@@ -5,21 +5,26 @@ This directory contains `.http` files for testing the Schist API endpoints using
 ## Files
 
 - `health.http` - Health check and CORS testing
-- `pages.http` - CRUD operations for wiki pages
+- `pages.http` - CRUD operations for wiki pages  
 - `search.http` - Search functionality tests
+- `page-service-tests.http` - **Comprehensive PageService API testing** (recommended starting point)
+- `VSCODE_SETUP.md` - Detailed VS Code REST Client setup guide
 
 ## Usage
 
 ### With VS Code REST Client Extension
 
+**Quick Setup**: See [VSCODE_SETUP.md](./VSCODE_SETUP.md) for detailed instructions.
+
 1. Install the "REST Client" extension in VS Code
-2. **Select environment**: In VS Code, press `Ctrl+Shift+P` and search for "Rest Client: Switch Environment", then choose:
-   - `dev` - Development mode (separate frontend/backend)
-   - `prod` - Production mode (single server)
-   - `docker` - Docker deployment
-3. Open any `.http` file
+2. **Select environment**: Press `Ctrl+Shift+P` → "Rest Client: Switch Environment":
+   - `dev` - Development (separate frontend at :5173, backend at :8080)
+   - `local` - Local backend only (:8080) 
+   - `docker` - Docker deployment (:8080)
+   - `prod` - Production (:8080)
+3. Open any `.http` file (start with `page-service-tests.http`)
 4. Click "Send Request" above each HTTP request
-5. View responses in the output panel
+5. View responses in the new tab that opens
 
 ### Environment Variables
 

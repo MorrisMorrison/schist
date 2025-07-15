@@ -9,7 +9,10 @@ POST {{apiUrl}}/pages
 Content-Type: application/json
 
 {
-  "title": "Getting Started",
+  "metaData": {
+    "title": "Getting Started",
+    "tags": ["guide", "introduction"]
+  },
   "content": "# Getting Started\n\nWelcome to Schist! This is your first wiki page.\n\n## What is Schist?\n\nSchist is a lightweight, self-hosted markdown wiki.\n\n## Next Steps\n\n1. Create more pages\n2. Link pages together with [[Page Links]]\n3. Organize your knowledge\n\nHappy writing! 📝"
 }
 
@@ -18,7 +21,10 @@ PUT {{apiUrl}}/pages/getting-started
 Content-Type: application/json
 
 {
-  "title": "Getting Started - Updated",
+  "metaData": {
+    "title": "Getting Started - Updated",
+    "tags": ["guide", "introduction", "updated"]
+  },
   "content": "# Getting Started - Updated\n\nWelcome to Schist! This page has been updated.\n\n## Features\n\n- Markdown editing\n- Wiki-style linking\n- Full-text search\n- File-based storage\n\n## Links\n\nCheck out [[Project Ideas]] for inspiration."
 }
 

@@ -1,0 +1,63 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Schist Server",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/backend/cmd/schist",
+            "cwd": "${workspaceFolder}/backend",
+            "env": {
+                "ENVIRONMENT": "development",
+                "PORT": "8080",
+                "FRONTEND_URL": "http://localhost:5173",
+                "STATIC_DIR": "../frontend/dist"
+            },
+            "args": [],
+            "showLog": true,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Current Test",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "cwd": "${workspaceFolder}/backend",
+            "env": {},
+            "args": [
+                "-test.run",
+                "${input:testName}"
+            ],
+            "showLog": true,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug All Tests in Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${fileDirname}",
+            "cwd": "${workspaceFolder}/backend",
+            "env": {},
+            "showLog": true,
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Attach to Process",
+            "type": "go",
+            "request": "attach",
+            "mode": "local",
+            "processId": "${command:pickProcess}"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testName",
+            "description": "Test function name (regex pattern)",
+            "default": ".*",
+            "type": "promptString"
+        }
+    ]
+}

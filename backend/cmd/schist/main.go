@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/handlers"
@@ -13,9 +14,16 @@ import (
 func main() {
 	cfg := config.Load()
 
+	// timestamp + filename:line
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	if !cfg.IsDevelopment() {
+		// timestamp only
+		log.SetFlags(log.LstdFlags)
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	initDataDir(cfg)
 
 	r := gin.Default()
 
@@ -36,6 +44,14 @@ func main() {
 
 	if err := r.Run(port); err != nil {
 		log.Fatal("Failed to start server:", err)
+	}
+}
+
+func initDataDir(config *config.Config) {
+	// 0755 = read/write/execute for owner, read/execute for others
+	permissions := 0755
+	if err := os.MkdirAll(config.DataDir, os.FileMode(permissions)); err != nil {
+		log.Fatalf("could not create data directory %s", config.DataDir)
 	}
 }
 

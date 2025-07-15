@@ -65,7 +65,7 @@ func (p *PageService) ListPages() ([]*models.Page, error) {
 	dir := p.dataDir
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("could not read dir %s", dir)
+		return nil, fmt.Errorf("could not read dir %s: %w", dir, err)
 	}
 
 	pages := make([]*models.Page, 0, len(files))
@@ -100,9 +100,9 @@ func (p *PageService) savePage(page *models.Page) error {
 	if err != nil {
 		return err
 	}
-	// 0644 = -rw-r--r-- = read/write permission for owner, only read for others
+
+	// 0644 = -rw-r--r-- = read/write permission for owner, read for others
 	fileMode := 0644
 	fileName := p.buildFilePath(page.MetaData.Slug)
 	return os.WriteFile(fileName, content, os.FileMode(fileMode))
-
 }

@@ -1,0 +1,137 @@
+### 1. Health Check - Verify API is running
+GET {{apiUrl}}/health
+
+###
+
+### 2. List all pages (should be empty initially)
+GET {{apiUrl}}/pages
+
+###
+
+### 3. Create a new page
+POST {{apiUrl}}/pages
+Content-Type: application/json
+
+{
+  "metaData": {
+    "title": "Welcome to Schist",
+    "tags": ["welcome", "getting-started"]
+  },
+  "content": "# Welcome to Schist\n\nThis is your first wiki page!\n\n## Features\n\n- Markdown support\n- File-based storage\n- Wiki-style linking with [[Page Links]]\n- Full-text search\n\n## Next Steps\n\n1. Create more pages\n2. Link them together\n3. Build your knowledge base\n\nHappy writing! 📝"
+}
+
+###
+
+### 4. Create another page for testing
+POST {{apiUrl}}/pages
+Content-Type: application/json
+
+{
+  "metaData": {
+    "title": "Project Ideas",
+    "tags": ["projects", "ideas", "todo"]
+  },
+  "content": "# Project Ideas\n\nCollection of project ideas for development.\n\n## Web Development\n\n- Personal blog\n- Portfolio site\n- Wiki system (like Schist!)\n\n## CLI Tools\n\n- File organizer\n- Git helper scripts\n- Markdown processor\n\n## Learning Projects\n\n- API client\n- Database wrapper\n- Static site generator\n\nSee also: [[Welcome to Schist]]"
+}
+
+###
+
+### 5. List all pages (should show created pages)
+GET {{apiUrl}}/pages
+
+###
+
+### 6. Get specific page by slug
+GET {{apiUrl}}/pages/welcome-to-schist
+
+###
+
+### 7. Get another page by slug
+GET {{apiUrl}}/pages/project-ideas
+
+###
+
+### 8. Update existing page
+PUT {{apiUrl}}/pages/welcome-to-schist
+Content-Type: application/json
+
+{
+  "metaData": {
+    "title": "Welcome to Schist - Updated",
+    "tags": ["welcome", "getting-started", "updated"]
+  },
+  "content": "# Welcome to Schist - Updated! 🎉\n\nThis page has been updated to demonstrate the update functionality.\n\n## What's New\n\n- Updated content\n- New emoji in title\n- Additional tags\n- Updated timestamp\n\n## Original Features\n\n- Markdown support ✅\n- File-based storage ✅\n- Wiki-style linking with [[Project Ideas]] ✅\n- Full-text search ✅\n\n## Advanced Features\n\n- Page timestamps\n- Slug generation\n- Tag support\n- Content versioning\n\nCheck out [[Project Ideas]] for inspiration!"
+}
+
+###
+
+### 9. Verify update worked
+GET {{apiUrl}}/pages/welcome-to-schist
+
+###
+
+### 10. Test non-existent page (should return 404)
+GET {{apiUrl}}/pages/non-existent-page
+
+###
+
+### 11. Search functionality (if implemented)
+GET {{apiUrl}}/search?q=schist
+
+###
+
+### 12. Search for specific terms
+GET {{apiUrl}}/search?q=project
+
+###
+
+### 13. Delete a page
+DELETE {{apiUrl}}/pages/project-ideas
+
+###
+
+### 14. Verify deletion (should return 404)
+GET {{apiUrl}}/pages/project-ideas
+
+###
+
+### 15. List pages again (should only show remaining page)
+GET {{apiUrl}}/pages
+
+###
+
+### 16. Test error cases - Create page with invalid data
+POST {{apiUrl}}/pages
+Content-Type: application/json
+
+{
+  "invalid": "data"
+}
+
+###
+
+### 17. Test creating page without metadata
+POST {{apiUrl}}/pages
+Content-Type: application/json
+
+{
+  "content": "# Simple Page\n\nJust content, no metadata."
+}
+
+###
+
+### 18. Test CORS (for development)
+OPTIONS {{apiUrl}}/pages
+Origin: {{frontendUrl}}
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: Content-Type
+
+###
+
+### 19. Cleanup - Delete remaining test pages
+DELETE {{apiUrl}}/pages/welcome-to-schist
+
+###
+
+### 20. Verify cleanup
+GET {{apiUrl}}/pages

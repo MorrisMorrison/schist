@@ -1,0 +1,27 @@
+{
+  "folders": [
+    {
+      "name": "Schist Project",
+      "path": ".."
+    }
+  ],
+  "settings": {
+    "rest-client.defaultHeaders": {
+      "User-Agent": "Schist-HTTP-Client",
+      "Accept": "application/json"
+    },
+    "rest-client.previewOption": "body",
+    "rest-client.showResponseInDifferentTab": true,
+    "rest-client.enableTelemetry": false,
+    "rest-client.rememberCookiesForSubsequentRequests": true,
+    "files.associations": {
+      "*.http": "http"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "humao.rest-client",
+      "ms-vscode.vscode-json"
+    ]
+  }
+}

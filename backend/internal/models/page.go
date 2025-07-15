@@ -10,9 +10,9 @@ type Page struct {
 }
 
 type PageMetaData struct {
-	Slug     string
-	Title    string
-	Created  time.Time
-	Modified time.Time
-	Tags     []string
+	Slug    string    `yaml:"slug,omitempty"`
+	Title   string    `yaml:"title"`
+	Created time.Time `yaml:"created"`
+	Updated time.Time `yaml:"updated"`
+	Tags    []string  `yaml:"tags,omitempty"`
 }

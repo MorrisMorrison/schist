@@ -3,14 +3,20 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/models"
+	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 type APIHandler struct {
+	PageService *services.PageService
 }
 
 func NewAPIHandler() *APIHandler {
-	return &APIHandler{}
+	return &APIHandler{
+		PageService: services.NewPageService(config.Load().DataDir),
+	}
 }
 
 func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
@@ -36,22 +42,48 @@ func (h *APIHandler) healthCheck(c *gin.Context) {
 }
 
 func (h *APIHandler) listPages(c *gin.Context) {
+	pages, err := h.PageService.ListPages()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"pages": []gin.H{},
-		"total": 0,
+		"pages": pages,
+		"total": len(pages),
 	})
 }
 
 func (h *APIHandler) getPage(c *gin.Context) {
 	slug := c.Param("slug")
-	c.JSON(http.StatusOK, gin.H{
-		"slug":    slug,
-		"title":   "Sample Page",
-		"content": "# Sample Content\n\nThis is a placeholder page.",
-	})
+	page, err := h.PageService.ReadPage(slug)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, page)
 }
 
 func (h *APIHandler) createPage(c *gin.Context) {
+	page := &models.Page{}
+	err := c.BindJSON(page)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	err = h.PageService.CreatePage(page)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Page created successfully",
 	})
@@ -59,6 +91,21 @@ func (h *APIHandler) createPage(c *gin.Context) {
 
 func (h *APIHandler) updatePage(c *gin.Context) {
 	slug := c.Param("slug")
+	page := &models.Page{}
+	err := c.BindJSON(page)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+	}
+
+	h.PageService.UpdatePage(page)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Page updated successfully",
 		"slug":    slug,

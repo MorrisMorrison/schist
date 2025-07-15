@@ -1,4 +1,7 @@
-.PHONY: run, run-backend, run-frontend, run-e2e, run-docker
+.PHONY: run, run-backend, run-frontend, run-e2e, run-docker, run-backend-test
+
+run-backend-test:
+	cd backend && go test ./...
 
 run-docker:
 	docker-compose up --build

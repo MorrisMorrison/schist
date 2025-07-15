@@ -1,0 +1,6 @@
+### Health Check
+GET {{apiUrl}}/health
+
+### Health Check with CORS (Development)
+GET {{apiUrl}}/health
+Origin: {{frontendUrl}}

@@ -1,0 +1,17 @@
+### Search pages - empty query
+GET {{apiUrl}}/search
+
+### Search pages - basic query
+GET {{apiUrl}}/search?q=getting started
+
+### Search pages - single word
+GET {{apiUrl}}/search?q=markdown
+
+### Search pages - multiple words
+GET {{apiUrl}}/search?q=wiki pages
+
+### Search pages - with special characters
+GET {{apiUrl}}/search?q="getting started"
+
+### Search pages - URL encoded
+GET {{apiUrl}}/search?q=getting%20started%20guide

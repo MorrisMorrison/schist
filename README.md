@@ -17,190 +17,62 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 
 ## Quick Start
 
-### Prerequisites
-
-- [Go 1.21+](https://golang.org/dl/)
-- [Node.js 22+](https://nodejs.org/)
-- [Docker](https://docker.com/) (optional)
-
-### Development Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/MorrisMorrison/schist.git
-   cd schist
-   ```
-
-2. **Start the backend** (in one terminal)
-   ```bash
-   NODE_ENV=development make run-backend
-   ```
-
-3. **Start the frontend** (in another terminal)
-   ```bash
-   make run-frontend
-   ```
-
-4. **Open your browser**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8080/api/health
-
-### Production Deployment
-
-#### Using Docker (Recommended)
+### Development
 
 ```bash
-# Build and run
-make run-docker
+# Clone and start development servers
+git clone https://github.com/MorrisMorrison/schist.git
+cd schist
 
-# Or with docker-compose
-docker-compose up --build
+# Terminal 1: Backend
+NODE_ENV=development make run-backend
+
+# Terminal 2: Frontend  
+make run-frontend
 ```
 
-#### Manual Build
+Open http://localhost:5173 in your browser.
+
+### Production
 
 ```bash
-# Build frontend
-cd frontend && npm install && npm run build
+# Using Docker (recommended)
+make run-docker
 
-# Build backend
+# Or build manually
+cd frontend && npm run build
 cd backend && go build -o schist ./cmd/schist
-
-# Run
 ./backend/schist
 ```
 
 Your wiki will be available at http://localhost:8080
 
-## Project Structure
+## Documentation
 
-```
-schist/
-├── backend/                 # Go backend
-│   ├── cmd/schist/         # Main application
-│   ├── internal/           # Internal packages
-│   │   ├── config/        # Configuration
-│   │   ├── handlers/      # HTTP handlers
-│   │   ├── models/        # Data models
-│   │   ├── parser/        # Markdown parsing
-│   │   └── services/      # Business logic
-│   └── go.mod
-├── frontend/               # Svelte frontend
-│   ├── src/
-│   │   ├── lib/           # Reusable components
-│   │   ├── routes/        # SvelteKit routes
-│   │   └── app.html
-│   └── package.json
-├── http/                   # API testing files
-├── docs/                   # Documentation
-├── docker-compose.yml
-├── Dockerfile
-└── Makefile
-```
-
-## Available Commands
-
-```bash
-# Development
-make run-backend           # Start Go backend server
-make run-frontend          # Start Svelte dev server
-make run-e2e              # Run end-to-end tests
-
-# Production
-make run-docker           # Build and run with Docker
-make run-docker-dev       # Development with Docker
-
-# Testing
-# API testing files in http/ directory
-# Use VS Code REST Client extension
-```
-
-## Configuration
-
-### Environment Variables
-
-- `SCHIST_PORT` - Server port (default: 8080)
-- `SCHIST_DATA_DIR` - Data directory (default: ./data)
-- `NODE_ENV` - Environment (development/production)
-- `SCHIST_FRONTEND_URL` - Frontend URL for CORS (default: http://localhost:5173)
-
-### Development vs Production
-
-**Development Mode:**
-- Backend serves API only with CORS enabled
-- Frontend runs on separate dev server with hot reload
-- Environment: `NODE_ENV=development`
-
-**Production Mode:**
-- Backend serves both API and static files
-- Single server deployment
-- Environment: `NODE_ENV=production`
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/pages` | List all pages |
-| GET | `/api/pages/:slug` | Get page by slug |
-| POST | `/api/pages` | Create new page |
-| PUT | `/api/pages/:slug` | Update page |
-| DELETE | `/api/pages/:slug` | Delete page |
-| GET | `/api/search?q=query` | Search pages |
-
-## Data Storage
-
-Schist stores all data as plain files:
-
-```
-data/
-├── pages/                 # Markdown files
-│   ├── index.md
-│   ├── getting-started.md
-│   └── project-ideas.md
-├── assets/               # Images and files
-│   ├── images/
-│   └── files/
-└── .schist/             # Metadata
-    ├── config.json
-    └── search-index.json
-```
+- [📚 Quick Start Guide](docs/QUICK_START.md) - Get up and running
+- [🔧 API Documentation](docs/API.md) - Complete API reference
+- [⚙️ Configuration](docs/CONFIGURATION.md) - Environment setup
+- [💻 Development Guide](docs/DEVELOPMENT.md) - Contributing guide
+- [📋 Design Document](docs/DESIGN_DOC.md) - Architecture overview
+- [🗺️ Implementation Plan](docs/IMPLEMENTATION_PLAN.md) - Development roadmap
 
 ## Roadmap
 
-### MVP (Current)
-- [ ] Basic file operations (CRUD)
-- [ ] Markdown editor with preview
-- [ ] Wiki linking with `[[Page Name]]` syntax
-- [ ] Basic search functionality
-- [ ] Docker deployment
-- [ ] File watching and auto-indexing
-- [ ] Responsive UI design
+**MVP (Current Phase):** Basic wiki functionality with file operations, markdown editing, and wiki linking.
 
-### Phase 2
-- [ ] Graph view of page connections
-- [ ] Advanced search with filters
-- [ ] Tag support
-- [ ] Export functionality (PDF, HTML)
-- [ ] Page templates
+**Phase 2:** Enhanced features like graph view, advanced search, and export functionality.
 
-### Phase 3
-- [ ] Real-time collaboration
-- [ ] Git integration
-- [ ] Plugin system
-- [ ] Mobile app
+**Phase 3:** Collaboration features, git integration, and plugin system.
+
+See [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for detailed roadmap.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+Contributions are welcome! Please see the [Development Guide](docs/DEVELOPMENT.md) for details on setting up your development environment and contributing guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 

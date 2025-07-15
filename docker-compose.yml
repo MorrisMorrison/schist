@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  schist:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./wiki-data:/app/data
+    environment:
+      - SCHIST_DATA_DIR=/app/data
+      - SCHIST_PORT=8080
+    restart: unless-stopped
+
+  # Development services
+  schist-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: backend-builder
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - ./wiki-data:/app/data
+    environment:
+      - SCHIST_DATA_DIR=/app/data
+      - SCHIST_PORT=8080
+    command: ["go", "run", "./cmd/schist"]
+    depends_on:
+      - frontend-dev
+
+  frontend-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: frontend-builder
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app/frontend
+    command: ["npm", "run", "dev", "--", "--host"]
+    working_dir: /app/frontend

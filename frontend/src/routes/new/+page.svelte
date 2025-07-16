@@ -212,7 +212,6 @@
 					initialContent={content}
 					onContentChange={handleContentChange}
 					onSave={handleSaveFromEditor}
-					theme="light"
 					autoSave={{
 						enabled: false
 					}}

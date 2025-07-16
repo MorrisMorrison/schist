@@ -8,17 +8,17 @@
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
 	import type { EditorProps, FormattingType, EditorTheme } from '$lib/types/editor';
+	import { resolvedTheme } from '$lib/stores/theme.js';
 
 	let {
 		initialContent = '',
-		theme = 'light' as EditorTheme,
 		config = {},
 		autoSave = {},
 		onContentChange,
 		onSave,
 		readonly = false,
 		placeholder = 'Start writing your markdown...'
-	}: EditorProps = $props();
+	}: Omit<EditorProps, 'theme'> = $props();
 
 	// Editor state
 	let editorElement: HTMLElement;
@@ -27,7 +27,9 @@
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
-	let currentTheme = $state(theme);
+	
+	// Use the global theme store
+	const currentTheme = $derived($resolvedTheme);
 
 	// Auto-save configuration
 	const autoSaveConfig = {
@@ -141,15 +143,7 @@
 		editorView.focus();
 	}
 
-	// Toggle theme
-	function toggleTheme() {
-		currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-
-		// Recreate editor with new theme
-		if (editorView) {
-			initializeEditor();
-		}
-	}
+	// Theme toggle is handled by the global theme store now
 
 	// Toggle preview visibility
 	function togglePreview() {
@@ -264,11 +258,8 @@
 
 	// Reactive theme updates
 	$effect(() => {
-		if (currentTheme !== theme) {
-			currentTheme = theme;
-			if (editorView) {
-				initializeEditor();
-			}
+		if (editorView) {
+			initializeEditor();
 		}
 	});
 
@@ -285,7 +276,6 @@
 	<EditorToolbar
 		onFormat={formatText}
 		theme={currentTheme}
-		onThemeToggle={toggleTheme}
 		disabled={readonly}
 	/>
 

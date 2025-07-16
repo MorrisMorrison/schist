@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Editor from '$lib/components/Editor.svelte';
-	import type { EditorTheme } from '$lib/types/editor';
 
 	// Test content
 	const initialContent = `# Welcome to the Markdown Editor
@@ -29,7 +28,6 @@ function hello() {
 ## Try the editor
 Edit this text to test the functionality.`;
 
-	let editorTheme: EditorTheme = 'light';
 	let content = $state(initialContent);
 
 	function handleContentChange(newContent: string) {
@@ -58,7 +56,6 @@ Edit this text to test the functionality.`;
 		<div class="h-full">
 			<Editor
 				initialContent={content}
-				theme={editorTheme}
 				onContentChange={handleContentChange}
 				onSave={handleSave}
 				config={{

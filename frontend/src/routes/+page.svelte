@@ -12,6 +12,7 @@
 
 <div class="space-y-8">
 	<!-- Hero Section -->
+	 {#if data.totalPages === 0}
 	<div class="text-center">
 		<div class="mx-auto max-w-3xl">
 			<h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
@@ -21,22 +22,23 @@
 				A lightweight, fast wiki for all your documentation needs. Create, edit, and organize your
 				knowledge with ease.
 			</p>
-			<div class="mt-10 flex items-center justify-center gap-x-6">
+			<!-- <div class="mt-10 flex items-center justify-center gap-x-6">
 				<a
 					href="/new"
 					class="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
 				>
 					Create Your First Page
-				</a>
-				<a href="/pages" class="text-sm leading-6 font-semibold text-gray-900">
+				</a> -->
+				<!-- <a href="/pages" class="text-sm leading-6 font-semibold text-gray-900">
 					Browse All Pages <span aria-hidden="true">→</span>
-				</a>
-			</div>
+				</a> -->
+			<!-- </div> -->
 		</div>
 	</div>
+	{/if}
 
 	<!-- Stats -->
-	{#if data.totalPages > 0}
+	<!-- {#if data.totalPages > 0}
 		<div class="mx-auto max-w-2xl">
 			<div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
 				<div class="text-center">
@@ -47,7 +49,7 @@
 				</div>
 			</div>
 		</div>
-	{/if}
+	{/if} -->
 
 	<!-- Recent Pages -->
 	{#if data.recentPages.length > 0}

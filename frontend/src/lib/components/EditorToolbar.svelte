@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ToolbarProps, FormattingType } from '$lib/types/editor';
 
-	let { onFormat, theme = 'light', onThemeToggle, disabled = false }: ToolbarProps = $props();
+	let { onFormat, theme = 'light', disabled = false }: Omit<ToolbarProps, 'onThemeToggle'> = $props();
 
 	// Toolbar button configurations
 	const toolbarButtons = [
@@ -96,12 +96,7 @@
 		}
 	}
 
-	// Handle theme toggle
-	function handleThemeToggle() {
-		if (onThemeToggle && !disabled) {
-			onThemeToggle();
-		}
-	}
+	// Theme toggle is now handled globally in the navigation
 </script>
 
 <div
@@ -125,28 +120,6 @@
 			<span class="select-none">{button.icon}</span>
 		</button>
 	{/each}
-
-	<!-- Separator -->
-	<div class="mx-2 h-6 w-px {theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}"></div>
-
-	<!-- Theme toggle button -->
-	{#if onThemeToggle}
-		<button
-			class="toolbar-btn rounded border px-3 py-1.5 text-sm font-medium transition-colors duration-200
-					focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none
-					{buttonThemeClasses}"
-			class:opacity-50={disabled}
-			class:cursor-not-allowed={disabled}
-			onclick={handleThemeToggle}
-			title="Toggle theme"
-			aria-label="Toggle between light and dark theme"
-			{disabled}
-		>
-			<span class="select-none">
-				{theme === 'dark' ? '☀️' : '🌙'}
-			</span>
-		</button>
-	{/if}
 
 	<!-- Spacer -->
 	<div class="flex-1"></div>

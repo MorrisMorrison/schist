@@ -45,3 +45,11 @@ export {
 	pagesStore,
 	searchStore
 } from './stores/pages.js';
+
+// Theme exports
+export {
+	theme,
+	resolvedTheme,
+	themeActions
+} from './stores/theme.js';
+export type { Theme } from './stores/theme.js';

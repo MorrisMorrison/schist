@@ -272,7 +272,6 @@
 					initialContent={content}
 					onContentChange={handleContentChange}
 					onSave={handleSaveFromEditor}
-					theme="light"
 					autoSave={{
 						enabled: true,
 						interval: 10000,

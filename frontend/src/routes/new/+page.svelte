@@ -215,7 +215,7 @@
 
 		<!-- Content Editor -->
 		<div class="flex-1">
-			<div class="h-96">
+			<div class="w-full">
 				<Editor
 					bind:this={editorRef}
 					initialContent={content}

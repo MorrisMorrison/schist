@@ -25,6 +25,12 @@
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
+	
+	// Resize functionality
+	let editorHeight = $state(700); // Default height in pixels
+	let isResizing = $state(false);
+	let resizeStartY = $state(0);
+	let resizeStartHeight = $state(0);
 
 	// Use the global theme store
 	const currentTheme = $derived($theme);
@@ -248,6 +254,36 @@
 		}
 	}
 
+	// Resize functionality
+	function handleResizeStart(event: MouseEvent) {
+		event.preventDefault();
+		isResizing = true;
+		resizeStartY = event.clientY;
+		resizeStartHeight = editorHeight;
+		
+		// Add global event listeners
+		document.addEventListener('mousemove', handleResizeMove);
+		document.addEventListener('mouseup', handleResizeEnd);
+		document.body.style.cursor = 'ns-resize';
+		document.body.style.userSelect = 'none';
+	}
+
+	function handleResizeMove(event: MouseEvent) {
+		if (!isResizing) return;
+		
+		const deltaY = event.clientY - resizeStartY;
+		const newHeight = Math.max(200, resizeStartHeight + deltaY); // Minimum height of 200px
+		editorHeight = newHeight;
+	}
+
+	function handleResizeEnd() {
+		isResizing = false;
+		document.removeEventListener('mousemove', handleResizeMove);
+		document.removeEventListener('mouseup', handleResizeEnd);
+		document.body.style.cursor = '';
+		document.body.style.userSelect = '';
+	}
+
 	// Component lifecycle
 	onMount(() => {
 		initializeEditor();
@@ -333,7 +369,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="markdown-editor flex h-full flex-col {themeClasses}">
+<div class="markdown-editor flex flex-col {themeClasses}" style="height: {editorHeight}px;">
 	<!-- Toolbar -->
 	<EditorToolbar onFormat={formatText} theme={currentTheme} disabled={readonly} />
 
@@ -419,11 +455,22 @@
 			<span>Theme: {currentTheme}</span>
 		</div>
 	</div>
+
+	<!-- Resize Handle -->
+	<div 
+		class="flex items-center justify-center h-4 cursor-ns-resize bg-gray-100 border-t border-gray-200 hover:bg-gray-200 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
+		onmousedown={handleResizeStart}
+		role="button"
+		tabindex="0"
+		aria-label="Resize editor height"
+	>
+		<div class="w-8 h-1 bg-gray-400 rounded-full"></div>
+	</div>
 </div>
 
 <style>
 	.markdown-editor {
-		min-height: 400px;
+		resize: none; /* Disable default resize */
 	}
 
 	/* Ensure CodeMirror fills the container */

@@ -114,6 +114,13 @@ func (h *APIHandler) updatePage(c *gin.Context) {
 
 func (h *APIHandler) deletePage(c *gin.Context) {
 	slug := c.Param("slug")
+	err := h.PageService.DeletePage(slug)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Page deleted successfully",
 		"slug":    slug,

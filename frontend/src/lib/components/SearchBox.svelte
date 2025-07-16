@@ -1,0 +1,138 @@
+<script lang="ts">
+	import { api } from '$lib/api.js';
+	import type { PageMetaData } from '$lib/types.js';
+	import { onMount } from 'svelte';
+
+	let {
+		placeholder = 'Search pages...',
+		showResults = true,
+		onSelect
+	}: {
+		placeholder?: string;
+		showResults?: boolean;
+		onSelect?: (page: PageMetaData) => void;
+	} = $props();
+
+	let query = $state('');
+	let results: PageMetaData[] = $state([]);
+	let isSearching = $state(false);
+	let showDropdown = $state(false);
+	let searchTimeout: number;
+
+	// Reactive search
+	$effect(() => {
+		if (query.trim().length > 0) {
+			clearTimeout(searchTimeout);
+			searchTimeout = setTimeout(performSearch, 300);
+		} else {
+			results = [];
+			showDropdown = false;
+		}
+	});
+
+	async function performSearch() {
+		if (query.trim().length === 0) return;
+
+		isSearching = true;
+		try {
+			const response = await api.search(query.trim());
+			results = response.results;
+			showDropdown = showResults && results.length > 0;
+		} catch (error) {
+			console.error('Search failed:', error);
+			results = [];
+			showDropdown = false;
+		} finally {
+			isSearching = false;
+		}
+	}
+
+	function handleSelectPage(page: PageMetaData) {
+		query = '';
+		showDropdown = false;
+		if (onSelect) {
+			onSelect(page);
+		} else {
+			// Default behavior: navigate to page
+			window.location.href = `/${page.slug}`;
+		}
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			showDropdown = false;
+			query = '';
+		}
+	}
+
+	// Close dropdown when clicking outside
+	function handleClickOutside(event: MouseEvent) {
+		const target = event.target as Element;
+		if (!target.closest('.search-container')) {
+			showDropdown = false;
+		}
+	}
+
+	onMount(() => {
+		document.addEventListener('click', handleClickOutside);
+		return () => {
+			document.removeEventListener('click', handleClickOutside);
+		};
+	});
+</script>
+
+<div class="search-container relative">
+	<div class="relative">
+		<input
+			type="text"
+			bind:value={query}
+			onkeydown={handleKeydown}
+			{placeholder}
+			class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pl-10 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+		/>
+		<div class="absolute inset-y-0 left-0 flex items-center pl-3">
+			{#if isSearching}
+				<div
+					class="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"
+				></div>
+			{:else}
+				<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="m21 21-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
+					/>
+				</svg>
+			{/if}
+		</div>
+	</div>
+
+	{#if showDropdown && results.length > 0}
+		<div
+			class="absolute top-full z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
+		>
+			<div class="max-h-60 overflow-y-auto">
+				{#each results as page (page.slug)}
+					<button
+						type="button"
+						onclick={() => handleSelectPage(page)}
+						class="w-full px-4 py-3 text-left first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+					>
+						<div class="font-medium text-gray-900">{page.title}</div>
+						<div class="text-sm text-gray-500">/{page.slug}</div>
+						{#if page.tags && page.tags.length > 0}
+							<div class="mt-1 flex flex-wrap gap-1">
+								{#each page.tags as tag (tag)}
+									<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+										>{tag}</span
+									>
+								{/each}
+							</div>
+						{/if}
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
+</div>

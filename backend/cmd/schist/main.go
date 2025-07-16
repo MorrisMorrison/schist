@@ -14,11 +14,11 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// timestamp + filename:line
+	// dev logging: timestamp + filename:line
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	if !cfg.IsDevelopment() {
-		// timestamp only
+		// prod logging: timestamp only
 		log.SetFlags(log.LstdFlags)
 		gin.SetMode(gin.ReleaseMode)
 	}

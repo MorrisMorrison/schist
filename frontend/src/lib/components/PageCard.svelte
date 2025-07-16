@@ -5,11 +5,11 @@
 		CardTitle,
 		CardDescription,
 		CardContent
-	} from '$lib/components/ui/card/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	} from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Button } from '$lib/components/ui/button';
 	import { Edit, Trash2, Eye } from 'lucide-svelte';
-	import type { Page } from '$lib/api/types.js';
+	import type { Page } from '$lib/api/types';
 
 	interface Props {
 		page: Page;

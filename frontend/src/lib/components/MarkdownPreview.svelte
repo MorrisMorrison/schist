@@ -24,11 +24,11 @@
 
 	// Theme classes
 	const themeClasses = $derived(
-		theme === 'dark' ? 'bg-gray-900 text-gray-100 prose-invert' : 'bg-white text-gray-900'
+		theme === 'dark' ? 'bg-gray-900 text-gray-100 dark' : 'bg-white text-gray-900'
 	);
 
 	// Base prose classes for markdown styling
-	const proseClasses = 'prose prose-sm sm:prose-base lg:prose-lg max-w-none';
+	const proseClasses = 'prose max-w-none';
 </script>
 
 <div

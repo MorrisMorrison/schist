@@ -53,9 +53,7 @@
 
 	<!-- Page Content -->
 	<div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
-		<article
-			class="prose prose-gray prose-headings:text-gray-900 prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-code:rounded prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:text-gray-900 prose-pre:bg-gray-50 prose-blockquote:border-l-blue-500 prose-blockquote:text-gray-700 max-w-none p-8"
-		>
+		<article class="prose max-w-none p-8">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html renderedContent}
 		</article>

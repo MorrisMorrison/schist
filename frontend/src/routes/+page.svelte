@@ -56,9 +56,9 @@
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
 				<h2 class="text-primary text-2xl font-bold">Recent Pages</h2>
-				<a href="/pages" class="text-blue-primary hover:text-blue-secondary text-sm font-medium">
+				<!-- <a href="/pages" class="text-blue-primary hover:text-blue-secondary text-sm font-medium">
 					View all pages →
-				</a>
+				</a> -->
 			</div>
 
 			<div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">

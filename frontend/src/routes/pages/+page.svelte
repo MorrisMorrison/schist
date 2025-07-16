@@ -92,7 +92,7 @@
 			</p>
 		</div>
 
-		<div class="flex items-center space-x-3">
+		<!-- <div class="flex items-center space-x-3">
 			<a
 				href="/new"
 				class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
@@ -107,7 +107,7 @@
 				</svg>
 				New Page
 			</a>
-		</div>
+		</div> -->
 	</div>
 
 	<!-- Search and Filters -->

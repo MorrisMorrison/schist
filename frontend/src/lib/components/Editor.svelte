@@ -308,6 +308,23 @@
 		}
 	});
 
+	// Update editor content when initialContent prop changes
+	$effect(() => {
+		if (editorView && initialContent !== currentContent) {
+			const newContent = initialContent || '';
+			currentContent = newContent;
+			
+			// Update the editor view with new content
+			editorView.dispatch({
+				changes: {
+					from: 0,
+					to: editorView.state.doc.length,
+					insert: newContent
+				}
+			});
+		}
+	});
+
 	// Theme classes
 	const themeClasses = $derived(
 		currentTheme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'

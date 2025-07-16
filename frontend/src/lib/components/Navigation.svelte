@@ -98,7 +98,7 @@
 				</a>
 
 				<!-- Edit current page button (if on a page) -->
-				{#if currentPageSlug && $page.url.pathname !== '/new' && !$page.url.pathname.startsWith('/edit/')}
+				<!-- {#if currentPageSlug && $page.url.pathname !== '/new' && !$page.url.pathname.startsWith('/edit/')}
 					<a
 						href="/edit/{currentPageSlug}"
 						class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
@@ -113,7 +113,7 @@
 						</svg>
 						Edit
 					</a>
-				{/if}
+				{/if} -->
 
 				<!-- Mobile menu button -->
 				<button

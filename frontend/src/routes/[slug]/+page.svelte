@@ -60,7 +60,7 @@
 	</div>
 
 	<!-- Page Actions -->
-	<div class="border-primary flex justify-center space-x-4 border-t pt-6">
+	<!-- <div class="border-primary flex justify-center space-x-4 border-t pt-6">
 		<a
 			href="/"
 			class="bg-secondary text-primary hover:bg-hover focus:bg-hover focus:ring-border-primary inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-offset-2 focus:outline-none"
@@ -100,5 +100,5 @@
 			</svg>
 			New Page
 		</a>
-	</div>
+	</div> -->
 </div>

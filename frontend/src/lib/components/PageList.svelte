@@ -83,11 +83,11 @@
 
 <div class="space-y-4 {className}">
 	<!-- Search Input -->
-	{#if pages.length > 0}
+	<!-- {#if pages.length > 0}
 		<div class="mb-6">
 			<Input type="text" placeholder="Search pages..." bind:value={searchTerm} class="max-w-md" />
 		</div>
-	{/if}
+	{/if} -->
 
 	<!-- Error Display -->
 	{#if error}

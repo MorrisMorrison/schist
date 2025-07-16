@@ -7,18 +7,16 @@
 	// Configure marked for better rendering
 	marked.setOptions({
 		gfm: true,
-		breaks: true,
-		headerIds: true,
-		headerPrefix: 'heading-'
+		breaks: true
 	});
 
 	// Render markdown to HTML
-	let renderedContent = $derived(marked(data.page.content));
+	let renderedContent = $derived(data.page?.content ? marked(data.page.content) : '');
 </script>
 
 <svelte:head>
-	<title>{data.page.title} - Schist Wiki</title>
-	<meta name="description" content="Wiki page: {data.page.title}" />
+	<title>{data.page?.metaData.title} - Schist Wiki</title>
+	<meta name="description" content="Wiki page: {data.page?.metaData.title}" />
 </svelte:head>
 
 <div class="space-y-6">
@@ -27,16 +25,16 @@
 		<div class="flex items-start justify-between">
 			<div class="min-w-0 flex-1">
 				<h1 class="text-3xl leading-tight font-bold text-gray-900">
-					{data.page.title}
+					{data.page?.metaData.title}
 				</h1>
 				<div class="mt-2 flex items-center space-x-2 text-sm text-gray-500">
-					<span>/{data.page.slug}</span>
+					<span>/{data.page?.metaData.slug}</span>
 				</div>
 			</div>
 
 			<div class="flex flex-shrink-0 space-x-3">
 				<a
-					href="/edit/{data.page.slug}"
+					href="/edit/{data.page?.metaData.slug}"
 					class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 				>
 					<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

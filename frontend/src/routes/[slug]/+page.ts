@@ -1,31 +1,37 @@
-import { api } from '$lib/api.js';
 import { error } from '@sveltejs/kit';
+import { PUBLIC_API_URL } from '$env/static/public';
 import type { PageLoad } from './$types.js';
+import type { Page } from '$lib/api/types.js';
 
-export const load: PageLoad = async ({ params }) => {
+export const load: PageLoad = async ({ params, fetch }) => {
 	const { slug } = params;
+	const apiUrl = PUBLIC_API_URL || 'http://localhost:8080/api';
 
 	try {
-		const page = await api.getPage(slug);
+		const response = await fetch(`${apiUrl}/pages/${encodeURIComponent(slug)}`);
+		
+		if (!response.ok) {
+			if (response.status === 404) {
+				throw error(404, `Page "${slug}" not found`);
+			}
+			throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+		}
+
+		const page: Page = await response.json();
 
 		return {
 			page,
 			slug
 		};
 	} catch (err) {
-		// If the page doesn't exist (404), throw a SvelteKit error
-		if (err instanceof Error && 'status' in err && err.status === 404) {
-			throw error(404, {
-				message: `Page "${slug}" not found`,
-				slug
-			});
-		}
-
-		// For other errors, also throw an error but with a generic message
 		console.error('Failed to load page:', err);
-		throw error(500, {
-			message: 'Failed to load page',
-			slug
-		});
+		
+		// Re-throw SvelteKit errors as-is
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err;
+		}
+		
+		// Convert other errors to SvelteKit errors
+		throw error(500, 'Failed to load page');
 	}
 };

@@ -3,7 +3,7 @@
 
 	$: status = $page.status;
 	$: message = $page.error?.message;
-	$: slug = $page.error?.slug;
+	$: slug = $page.url.pathname.split('/').pop() || '';
 </script>
 
 <svelte:head>

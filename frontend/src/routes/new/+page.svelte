@@ -206,7 +206,6 @@
 				<MarkdownEditor
 					bind:this={editorRef}
 					value={content}
-					placeholder="Write your markdown content here..."
 					onChange={handleContentChange}
 				/>
 			</div>

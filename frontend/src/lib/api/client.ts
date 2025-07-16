@@ -6,7 +6,8 @@ import type {
   UpdatePageRequest,
   SearchResult,
   HealthResponse,
-  ApiError
+  ApiError,
+  PageListResponse
 } from './types.js';
 
 class SchістApiClient {
@@ -65,7 +66,8 @@ class SchістApiClient {
 
   // Page operations
   async getPages(): Promise<Page[]> {
-    return this.request<Page[]>('/pages');
+    const response = await this.request<PageListResponse>('/pages');
+    return response.pages;
   }
 
   async getPage(slug: string): Promise<Page> {

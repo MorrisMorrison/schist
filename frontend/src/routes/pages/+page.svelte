@@ -1,7 +1,7 @@
 <script lang="ts">
 	import PageList from '$lib/components/PageList.svelte';
 	import type { PageData } from './$types.js';
-	import type { PageMetaData } from '$lib/types.js';
+	import type { Page } from '$lib/api/types.js';
 
 	let { data }: { data: PageData } = $props();
 
@@ -15,9 +15,10 @@
 			if (!searchQuery.trim()) return true;
 			const query = searchQuery.toLowerCase();
 			return (
-				page.title.toLowerCase().includes(query) ||
-				page.slug.toLowerCase().includes(query) ||
-				(page.tags && page.tags.some((tag) => tag.toLowerCase().includes(query)))
+				page.metaData.title.toLowerCase().includes(query) ||
+				page.metaData.slug?.toLowerCase().includes(query) ||
+				(page.metaData.tags && page.metaData.tags.some((tag) => tag.toLowerCase().includes(query))) ||
+				page.content.toLowerCase().includes(query)
 			);
 		})
 		.sort((a, b) => {
@@ -25,13 +26,17 @@
 
 			switch (sortBy) {
 				case 'title':
-					comparison = a.title.localeCompare(b.title);
+					comparison = a.metaData.title.localeCompare(b.metaData.title);
 					break;
 				case 'created':
-					comparison = new Date(a.created).getTime() - new Date(b.created).getTime();
+					const createdA = new Date(a.metaData.created || 0).getTime();
+					const createdB = new Date(b.metaData.created || 0).getTime();
+					comparison = createdA - createdB;
 					break;
 				case 'updated':
-					comparison = new Date(a.updated).getTime() - new Date(b.updated).getTime();
+					const updatedA = new Date(a.metaData.updated || a.metaData.created || 0).getTime();
+					const updatedB = new Date(b.metaData.updated || b.metaData.created || 0).getTime();
+					comparison = updatedA - updatedB;
 					break;
 			}
 
@@ -50,14 +55,14 @@
 	// Group pages by first letter for alphabetical view
 	const groupedPages = $derived(filteredPages.reduce(
 		(groups, page) => {
-			const firstLetter = page.title.charAt(0).toUpperCase();
+			const firstLetter = page.metaData.title.charAt(0).toUpperCase();
 			if (!groups[firstLetter]) {
 				groups[firstLetter] = [];
 			}
 			groups[firstLetter].push(page);
 			return groups;
 		},
-		{} as Record<string, PageMetaData[]>
+		{} as Record<string, Page[]>
 	));
 
 	const groupedKeys = $derived(Object.keys(groupedPages).sort());

@@ -11,6 +11,11 @@ export interface Page {
   content: string;
 }
 
+export interface PageListResponse {
+  pages: Page[];
+  total: number;
+}
+
 export interface CreatePageRequest {
   metaData: Omit<PageMetaData, 'slug' | 'created' | 'updated'>;
   content: string;

@@ -6,7 +6,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let title = $state(data.page.title);
+	let title = $state(data.page.metaData.title);
 	let content = $state(data.page.content);
 	let isSaving = $state(false);
 	let saveError = $state('');
@@ -84,8 +84,8 @@
 </script>
 
 <svelte:head>
-	<title>Edit {data.page.title} - Schist Wiki</title>
-	<meta name="description" content="Edit wiki page: {data.page.title}" />
+	<title>Edit {data.page.metaData.title} - Schist Wiki</title>
+	<meta name="description" content="Edit wiki page: {data.page.metaData.title}" />
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -266,7 +266,6 @@
 				<MarkdownEditor
 					bind:this={editorRef}
 					value={content}
-					placeholder="Write your markdown content here..."
 					onChange={handleContentChange}
 				/>
 			</div>

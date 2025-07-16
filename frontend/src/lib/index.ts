@@ -19,17 +19,17 @@ export type {
 } from './types/editor.js';
 
 // API exports
-export { ApiClient, apiClient, createApiClient } from './api/client.js';
+export { SchістApiClient, apiClient } from './api/client.js';
 export type {
 	Page,
 	PageMetaData,
-	PageRequest,
+	CreatePageRequest,
+	UpdatePageRequest,
+	SearchResult,
 	ApiResponse,
 	ApiError,
-	SearchResponse,
-	SearchParams,
 	HealthResponse,
-	LoadingState
+	PageListResponse
 } from './api/types.js';
 
 // Store exports
@@ -38,10 +38,10 @@ export {
 	currentPage,
 	searchResults,
 	searchQuery,
-	loadingStates,
 	isLoading,
-	errors,
+	error,
 	pageActions,
-	filteredPages,
-	pageSlugs
+	searchActions,
+	pagesStore,
+	searchStore
 } from './stores/pages.js';

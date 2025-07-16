@@ -48,11 +48,14 @@ func main() {
 }
 
 func initDataDir(config *config.Config) {
+	log.Printf("creating dataDir %s", config.DataDir)
 	// 0755 = read/write/execute for owner, read/execute for others
 	permissions := 0755
 	if err := os.MkdirAll(config.DataDir, os.FileMode(permissions)); err != nil {
 		log.Fatalf("could not create data directory %s", config.DataDir)
 	}
+
+	log.Printf("dataDir %s successfully created", config.DataDir)
 }
 
 func setupCORS(r *gin.Engine, cfg *config.Config) {

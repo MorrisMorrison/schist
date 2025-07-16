@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api.js';
-	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+	import Editor from '$lib/components/Editor.svelte';
 	import type { PageData } from './$types.js';
 
 	let { data }: { data: PageData } = $props();
@@ -13,7 +13,7 @@
 	let isDeleting = $state(false);
 	let showDeleteConfirm = $state(false);
 
-	let editorRef: MarkdownEditor;
+	let editorRef: Editor;
 
 	async function handleSave() {
 		if (!title.trim()) {
@@ -67,6 +67,11 @@
 
 	function handleContentChange(newContent: string) {
 		content = newContent;
+	}
+
+	async function handleSaveFromEditor(newContent: string) {
+		content = newContent;
+		await handleSave();
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -260,18 +265,21 @@
 		</div>
 
 		<!-- Content Editor -->
-		<div>
-			<label for="content" class="block text-sm font-medium text-gray-700">Content</label>
-			<div class="mt-1">
-				<MarkdownEditor
+		<div class="flex-1">
+			<div class="h-96">
+				<Editor
 					bind:this={editorRef}
-					value={content}
-					onChange={handleContentChange}
+					initialContent={content}
+					onContentChange={handleContentChange}
+					onSave={handleSaveFromEditor}
+					theme="light"
+					autoSave={{
+						enabled: true,
+						interval: 10000,
+						onSave: handleSaveFromEditor
+					}}
 				/>
 			</div>
-			<p class="mt-2 text-sm text-gray-500">
-				You can use Markdown syntax. Press Ctrl+S (or Cmd+S) to save.
-			</p>
 		</div>
 	</div>
 

@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { apiClient } from '$lib/api/client.js';
-	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+	import Editor from '$lib/components/Editor.svelte';
 
 	// Get initial title from URL params if provided (e.g., from 404 page)
 	const initialTitle = $derived($page.url.searchParams.get('title') || '');
@@ -22,7 +22,7 @@
 	let isCreating = $state(false);
 	let createError = $state('');
 
-	let editorRef: MarkdownEditor;
+	let editorRef: Editor;
 
 	// Update content when title changes
 	$effect(() => {
@@ -72,6 +72,11 @@
 
 	function handleContentChange(newContent: string) {
 		content = newContent;
+	}
+
+	async function handleSaveFromEditor(newContent: string) {
+		content = newContent;
+		await handleCreate();
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -200,18 +205,19 @@
 		</div>
 
 		<!-- Content Editor -->
-		<div>
-			<label for="content" class="block text-sm font-medium text-gray-700">Content</label>
-			<div class="mt-1">
-				<MarkdownEditor
+		<div class="flex-1">
+			<div class="h-96">
+				<Editor
 					bind:this={editorRef}
-					value={content}
-					onChange={handleContentChange}
+					initialContent={content}
+					onContentChange={handleContentChange}
+					onSave={handleSaveFromEditor}
+					theme="light"
+					autoSave={{
+						enabled: false
+					}}
 				/>
 			</div>
-			<p class="mt-2 text-sm text-gray-500">
-				You can use Markdown syntax. Press Ctrl+S (or Cmd+S) to create the page.
-			</p>
 		</div>
 	</div>
 

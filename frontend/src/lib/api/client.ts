@@ -1,12 +1,9 @@
-import { browser } from '$app/environment';
 import { PUBLIC_API_URL } from '$env/static/public';
 import type {
   Page,
   CreatePageRequest,
   UpdatePageRequest,
-  SearchResult,
   HealthResponse,
-  ApiError,
   PageListResponse
 } from './types.js';
 

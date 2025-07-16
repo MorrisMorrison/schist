@@ -16,6 +16,7 @@ interface ImportMetaEnv {
 	readonly VITE_API_TIMEOUT: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ImportMeta {
 	readonly env: ImportMetaEnv;
 }

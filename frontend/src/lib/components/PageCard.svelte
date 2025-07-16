@@ -13,12 +13,14 @@
 
 	interface Props {
 		page: Page;
+		showTags?: boolean;
+		showDates?: boolean;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void;
 		onView?: (slug: string) => void;
 	}
 
-	let { page, onEdit, onDelete, onView }: Props = $props();
+	let { page, showTags = true, showDates = true, onEdit, onDelete, onView }: Props = $props();
 
 	function formatDate(dateString?: string): string {
 		if (!dateString) return '';
@@ -49,13 +51,15 @@
 				>
 					{page.metaData.title}
 				</CardTitle>
-				<CardDescription class="text-muted-foreground mt-1 text-sm">
-					{#if page.metaData.updated}
-						Updated {formatDate(page.metaData.updated)}
-					{:else if page.metaData.created}
-						Created {formatDate(page.metaData.created)}
-					{/if}
-				</CardDescription>
+				{#if showDates}
+					<CardDescription class="text-muted-foreground mt-1 text-sm">
+						{#if page.metaData.updated}
+							Updated {formatDate(page.metaData.updated)}
+						{:else if page.metaData.created}
+							Created {formatDate(page.metaData.created)}
+						{/if}
+					</CardDescription>
+				{/if}
 			</div>
 			<div class="ml-2 flex gap-1">
 				{#if onView}
@@ -84,9 +88,9 @@
 			</p>
 		{/if}
 
-		{#if page.metaData.tags && page.metaData.tags.length > 0}
+		{#if showTags && page.metaData.tags && page.metaData.tags.length > 0}
 			<div class="flex flex-wrap gap-1">
-				{#each page.metaData.tags as tag}
+				{#each page.metaData.tags as tag (tag)}
 					<Badge variant="secondary" class="text-xs">
 						{tag}
 					</Badge>

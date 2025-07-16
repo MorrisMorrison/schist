@@ -7,17 +7,15 @@
 
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
-	import type { EditorProps, FormattingType, EditorTheme } from '$lib/types/editor';
+	import type { EditorProps, FormattingType } from '$lib/types/editor';
 	import { theme } from '$lib/stores/theme.js';
 
 	let {
 		initialContent = '',
-		config = {},
 		autoSave = {},
 		onContentChange,
 		onSave,
-		readonly = false,
-		placeholder = 'Start writing your markdown...'
+		readonly = false
 	}: Omit<EditorProps, 'theme'> = $props();
 
 	// Editor state
@@ -121,11 +119,12 @@
 			case 'numberedList':
 				replacement = `1. ${selectedText || 'List item'}`;
 				break;
-			case 'link':
+			case 'link': {
 				const url = value || 'https://example.com';
 				replacement = `[${selectedText || 'link text'}](${url})`;
 				cursorOffset = selectedText ? 0 : -url.length - 1;
 				break;
+			}
 			case 'code':
 				replacement = `\`${selectedText || 'code'}\``;
 				cursorOffset = selectedText ? 0 : -1;

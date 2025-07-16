@@ -30,16 +30,18 @@
 					case 'title':
 						comparison = a.metaData.title.localeCompare(b.metaData.title);
 						break;
-					case 'created':
+					case 'created': {
 						const createdA = new Date(a.metaData.created || 0).getTime();
 						const createdB = new Date(b.metaData.created || 0).getTime();
 						comparison = createdA - createdB;
 						break;
-					case 'updated':
+					}
+					case 'updated': {
 						const updatedA = new Date(a.metaData.updated || a.metaData.created || 0).getTime();
 						const updatedB = new Date(b.metaData.updated || b.metaData.created || 0).getTime();
 						comparison = updatedA - updatedB;
 						break;
+					}
 				}
 
 				return sortOrder === 'desc' ? -comparison : comparison;
@@ -82,8 +84,8 @@
 	<!-- Header -->
 	<div class="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
 		<div>
-			<h1 class="text-2xl font-bold text-primary">All Pages</h1>
-			<p class="mt-1 text-sm text-secondary">
+			<h1 class="text-primary text-2xl font-bold">All Pages</h1>
+			<p class="text-secondary mt-1 text-sm">
 				{data.total}
 				{data.total === 1 ? 'page' : 'pages'} total
 				{filteredPages.length !== data.total ? ` (${filteredPages.length} shown)` : ''}
@@ -109,21 +111,21 @@
 	</div>
 
 	<!-- Search and Filters -->
-	<div class="rounded-lg bg-primary p-6 shadow-sm ring-1 ring-border-primary">
+	<div class="bg-primary ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 		<div class="space-y-4">
 			<!-- Search -->
 			<div>
-				<label for="search" class="block text-sm font-medium text-primary">Search Pages</label>
+				<label for="search" class="text-primary block text-sm font-medium">Search Pages</label>
 				<div class="relative mt-1">
 					<input
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search by title, slug, or tags..."
-						class="w-full rounded-lg border border-primary bg-primary px-4 py-2 pl-10 text-primary placeholder-secondary focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+						class="border-primary bg-primary text-primary placeholder-secondary w-full rounded-lg border px-4 py-2 pl-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
 					/>
 					<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
 						<svg
-							class="h-4 w-4 text-secondary"
+							class="text-secondary h-4 w-4"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -141,7 +143,7 @@
 
 			<!-- Sort Options -->
 			<div class="flex flex-wrap items-center gap-4">
-				<span class="text-sm font-medium text-primary">Sort by:</span>
+				<span class="text-primary text-sm font-medium">Sort by:</span>
 
 				<button
 					type="button"
@@ -261,9 +263,9 @@
 		</div>
 	{:else if filteredPages.length === 0 && searchQuery.trim()}
 		<!-- No Search Results -->
-		<div class="rounded-lg bg-secondary p-8 text-center">
+		<div class="bg-secondary rounded-lg p-8 text-center">
 			<svg
-				class="mx-auto h-12 w-12 text-secondary"
+				class="text-secondary mx-auto h-12 w-12"
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
@@ -275,8 +277,8 @@
 					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 				/>
 			</svg>
-			<h3 class="mt-4 text-lg font-medium text-primary">No pages found</h3>
-			<p class="mt-2 text-secondary">
+			<h3 class="text-primary mt-4 text-lg font-medium">No pages found</h3>
+			<p class="text-secondary mt-2">
 				No pages match your search for "<span class="font-semibold">{searchQuery}</span>".
 			</p>
 			<div class="mt-4">
@@ -294,7 +296,7 @@
 		<div class="space-y-8">
 			{#each groupedKeys as letter (letter)}
 				<div>
-					<h2 class="mb-4 border-b border-primary pb-2 text-lg font-semibold text-primary">
+					<h2 class="border-primary text-primary mb-4 border-b pb-2 text-lg font-semibold">
 						{letter}
 					</h2>
 					<PageList pages={groupedPages[letter]} showDates={true} showTags={true} />
@@ -303,7 +305,7 @@
 		</div>
 	{:else}
 		<!-- Regular List View -->
-		<div class="rounded-lg bg-primary shadow-sm ring-1 ring-border-primary">
+		<div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
 			<div class="p-6">
 				<PageList
 					pages={filteredPages}

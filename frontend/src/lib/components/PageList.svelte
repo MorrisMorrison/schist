@@ -10,7 +10,6 @@
 	} from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { FileText } from 'lucide-svelte';
 	import PageCard from './PageCard.svelte';
 	import LoadingSpinner from './LoadingSpinner.svelte';
@@ -118,7 +117,14 @@
 		<!-- Page Grid -->
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{#each filteredPages as page (page.metaData.slug)}
-				<PageCard {page} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
+				<PageCard
+					{page}
+					{showTags}
+					{showDates}
+					onView={handleView}
+					onEdit={handleEdit}
+					onDelete={handleDelete}
+				/>
 			{/each}
 		</div>
 	{/if}

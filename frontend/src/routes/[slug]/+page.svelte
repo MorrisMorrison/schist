@@ -21,13 +21,13 @@
 
 <div class="space-y-6">
 	<!-- Page Header -->
-	<div class="border-b border-primary pb-6">
+	<div class="border-primary border-b pb-6">
 		<div class="flex items-start justify-between">
 			<div class="min-w-0 flex-1">
-				<h1 class="text-3xl leading-tight font-bold text-primary">
+				<h1 class="text-primary text-3xl leading-tight font-bold">
 					{data.page?.metaData.title}
 				</h1>
-				<div class="mt-2 flex items-center space-x-2 text-sm text-secondary">
+				<div class="text-secondary mt-2 flex items-center space-x-2 text-sm">
 					<span>/{data.page?.metaData.slug}</span>
 				</div>
 			</div>
@@ -52,7 +52,7 @@
 	</div>
 
 	<!-- Page Content -->
-	<div class="rounded-lg bg-primary shadow-sm ring-1 ring-border-primary">
+	<div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
 		<article class="prose max-w-none p-8">
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			{@html renderedContent}
@@ -60,10 +60,10 @@
 	</div>
 
 	<!-- Page Actions -->
-	<div class="flex justify-center space-x-4 border-t border-primary pt-6">
+	<div class="border-primary flex justify-center space-x-4 border-t pt-6">
 		<a
 			href="/"
-			class="inline-flex items-center rounded-md bg-secondary px-3 py-2 text-sm font-medium text-primary hover:bg-hover focus:bg-hover focus:ring-2 focus:ring-border-primary focus:ring-offset-2 focus:outline-none"
+			class="bg-secondary text-primary hover:bg-hover focus:bg-hover focus:ring-border-primary inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-offset-2 focus:outline-none"
 		>
 			<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
@@ -78,7 +78,7 @@
 
 		<a
 			href="/pages"
-			class="inline-flex items-center rounded-md bg-secondary px-3 py-2 text-sm font-medium text-primary hover:bg-hover focus:bg-hover focus:ring-2 focus:ring-border-primary focus:ring-offset-2 focus:outline-none"
+			class="bg-secondary text-primary hover:bg-hover focus:bg-hover focus:ring-border-primary inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-offset-2 focus:outline-none"
 		>
 			<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path

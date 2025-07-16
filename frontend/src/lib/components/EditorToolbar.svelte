@@ -109,7 +109,7 @@
 	aria-label="Formatting toolbar"
 >
 	<!-- Formatting buttons -->
-	{#each toolbarButtons as button}
+	{#each toolbarButtons as button (button.type)}
 		<button
 			class="toolbar-btn rounded border px-3 py-1.5 text-sm font-medium transition-colors duration-200
 					focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none

@@ -173,6 +173,8 @@
   /* Border utilities */
   .border-primary { border-color: var(--border-primary); }
   .border-secondary { border-color: var(--border-secondary); }
+  .ring-border-primary { --tw-ring-color: var(--border-primary); }
+  .ring-border-secondary { --tw-ring-color: var(--border-secondary); }
   
   /* Blue utilities */
   .text-blue-primary { color: var(--blue-primary); }

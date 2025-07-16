@@ -184,7 +184,7 @@
 	{/if}
 
 	<!-- Editor Form -->
-	<div class="space-y-6 rounded-lg bg-primary p-6 shadow-sm ring-1 border-primary">
+	<div class="space-y-6 rounded-lg bg-primary p-6 shadow-sm ring-1 ring-border-primary">
 		<!-- Title Input -->
 		<div>
 			<label for="title" class="block text-sm font-medium text-secondary">Page Title</label>

@@ -61,7 +61,7 @@
 				</a>
 			</div>
 
-			<div class="rounded-lg bg-primary shadow-sm ring-1 border-primary">
+			<div class="rounded-lg bg-primary shadow-sm ring-1 ring-border-primary">
 				<div class="p-6">
 					<PageList pages={data.recentPages} showDates={true} showTags={true} />
 				</div>
@@ -69,7 +69,7 @@
 		</div>
 	{:else}
 		<!-- Empty State -->
-		<div class="rounded-lg bg-primary p-12 text-center shadow-sm ring-1 border-primary">
+		<div class="rounded-lg bg-primary p-12 text-center shadow-sm ring-1 ring-border-primary">
 			<svg
 				class="mx-auto h-12 w-12 text-muted"
 				fill="none"

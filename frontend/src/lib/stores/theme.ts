@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark';
 
 // Get system theme preference
 function getSystemTheme(): 'light' | 'dark' {
@@ -13,64 +13,37 @@ function getSystemTheme(): 'light' | 'dark' {
   return 'light';
 }
 
-// Get stored theme or default to system
+// Get stored theme or default to system preference
 function getInitialTheme(): Theme {
-  if (!browser) return 'system';
+  if (!browser) return 'dark';
   
   const stored = localStorage.getItem('theme') as Theme;
-  if (stored && ['light', 'dark', 'system'].includes(stored)) {
+  if (stored && ['light', 'dark'].includes(stored)) {
     return stored;
   }
-  return 'system';
+  // No stored theme, use system preference
+  return getSystemTheme();
 }
 
-// Resolve theme to actual light/dark value
-function resolveTheme(theme: Theme): 'light' | 'dark' {
-  if (theme === 'system') {
-    return getSystemTheme();
-  }
-  return theme;
-}
 
 // Create the theme store
 export const theme = writable<Theme>(getInitialTheme());
 
-// Create a derived store for the resolved theme
-export const resolvedTheme = writable<'light' | 'dark'>('dark');
-
-// Update resolved theme when theme changes
+// Update document class when theme changes
 theme.subscribe((currentTheme) => {
-  const resolved = resolveTheme(currentTheme);
-  resolvedTheme.set(resolved);
-  
   if (browser) {
     // Save to localStorage
     localStorage.setItem('theme', currentTheme);
     
     // Update document class
-    document.documentElement.classList.toggle('dark', resolved === 'dark');
+    document.documentElement.classList.toggle('dark', currentTheme === 'dark');
   }
 });
 
-// Listen for system theme changes
+// Initialize theme on page load
 if (browser) {
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  
-  mediaQuery.addEventListener('change', () => {
-    theme.update(currentTheme => {
-      if (currentTheme === 'system') {
-        // Force update by setting the same value
-        return 'system';
-      }
-      return currentTheme;
-    });
-  });
-  
-  // Initialize theme on page load
   theme.update(currentTheme => {
-    const resolved = resolveTheme(currentTheme);
-    document.documentElement.classList.toggle('dark', resolved === 'dark');
-    resolvedTheme.set(resolved);
+    document.documentElement.classList.toggle('dark', currentTheme === 'dark');
     return currentTheme;
   });
 }
@@ -83,12 +56,7 @@ export const themeActions = {
   
   toggleTheme: () => {
     theme.update(currentTheme => {
-      const resolved = resolveTheme(currentTheme);
-      return resolved === 'dark' ? 'light' : 'dark';
+      return currentTheme === 'dark' ? 'light' : 'dark';
     });
-  },
-  
-  setSystemTheme: () => {
-    theme.set('system');
   }
 };

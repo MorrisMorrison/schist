@@ -8,7 +8,7 @@
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
 	import type { EditorProps, FormattingType, EditorTheme } from '$lib/types/editor';
-	import { resolvedTheme } from '$lib/stores/theme.js';
+	import { theme } from '$lib/stores/theme.js';
 
 	let {
 		initialContent = '',
@@ -29,7 +29,7 @@
 	let isPreviewVisible = $state(true);
 	
 	// Use the global theme store
-	const currentTheme = $derived($resolvedTheme);
+	const currentTheme = $derived($theme);
 
 	// Auto-save configuration
 	const autoSaveConfig = {

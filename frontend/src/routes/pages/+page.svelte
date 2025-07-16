@@ -82,8 +82,8 @@
 	<!-- Header -->
 	<div class="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
 		<div>
-			<h1 class="text-2xl font-bold text-gray-900">All Pages</h1>
-			<p class="mt-1 text-sm text-gray-600">
+			<h1 class="text-2xl font-bold text-primary">All Pages</h1>
+			<p class="mt-1 text-sm text-secondary">
 				{data.total}
 				{data.total === 1 ? 'page' : 'pages'} total
 				{filteredPages.length !== data.total ? ` (${filteredPages.length} shown)` : ''}
@@ -109,21 +109,21 @@
 	</div>
 
 	<!-- Search and Filters -->
-	<div class="rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+	<div class="rounded-lg bg-primary p-6 shadow-sm ring-1 ring-border-primary">
 		<div class="space-y-4">
 			<!-- Search -->
 			<div>
-				<label for="search" class="block text-sm font-medium text-gray-700">Search Pages</label>
+				<label for="search" class="block text-sm font-medium text-primary">Search Pages</label>
 				<div class="relative mt-1">
 					<input
 						type="text"
 						bind:value={searchQuery}
 						placeholder="Search by title, slug, or tags..."
-						class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pl-10 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+						class="w-full rounded-lg border border-primary bg-primary px-4 py-2 pl-10 text-primary placeholder-secondary focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
 					/>
 					<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
 						<svg
-							class="h-4 w-4 text-gray-400"
+							class="h-4 w-4 text-secondary"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -141,7 +141,7 @@
 
 			<!-- Sort Options -->
 			<div class="flex flex-wrap items-center gap-4">
-				<span class="text-sm font-medium text-gray-700">Sort by:</span>
+				<span class="text-sm font-medium text-primary">Sort by:</span>
 
 				<button
 					type="button"
@@ -149,7 +149,7 @@
 					class="inline-flex items-center rounded-md px-2 py-1 text-sm font-medium transition-colors {sortBy ===
 					'title'
 						? 'bg-blue-100 text-blue-800'
-						: 'text-gray-600 hover:bg-gray-100'}"
+						: 'text-secondary hover:bg-hover'}"
 				>
 					Title
 					{#if sortBy === 'title'}
@@ -179,7 +179,7 @@
 					class="inline-flex items-center rounded-md px-2 py-1 text-sm font-medium transition-colors {sortBy ===
 					'updated'
 						? 'bg-blue-100 text-blue-800'
-						: 'text-gray-600 hover:bg-gray-100'}"
+						: 'text-secondary hover:bg-hover'}"
 				>
 					Last Updated
 					{#if sortBy === 'updated'}
@@ -209,7 +209,7 @@
 					class="inline-flex items-center rounded-md px-2 py-1 text-sm font-medium transition-colors {sortBy ===
 					'created'
 						? 'bg-blue-100 text-blue-800'
-						: 'text-gray-600 hover:bg-gray-100'}"
+						: 'text-secondary hover:bg-hover'}"
 				>
 					Created
 					{#if sortBy === 'created'}
@@ -261,9 +261,9 @@
 		</div>
 	{:else if filteredPages.length === 0 && searchQuery.trim()}
 		<!-- No Search Results -->
-		<div class="rounded-lg bg-gray-50 p-8 text-center">
+		<div class="rounded-lg bg-secondary p-8 text-center">
 			<svg
-				class="mx-auto h-12 w-12 text-gray-400"
+				class="mx-auto h-12 w-12 text-secondary"
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
@@ -275,8 +275,8 @@
 					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 				/>
 			</svg>
-			<h3 class="mt-4 text-lg font-medium text-gray-900">No pages found</h3>
-			<p class="mt-2 text-gray-600">
+			<h3 class="mt-4 text-lg font-medium text-primary">No pages found</h3>
+			<p class="mt-2 text-secondary">
 				No pages match your search for "<span class="font-semibold">{searchQuery}</span>".
 			</p>
 			<div class="mt-4">
@@ -294,7 +294,7 @@
 		<div class="space-y-8">
 			{#each groupedKeys as letter (letter)}
 				<div>
-					<h2 class="mb-4 border-b border-gray-200 pb-2 text-lg font-semibold text-gray-900">
+					<h2 class="mb-4 border-b border-primary pb-2 text-lg font-semibold text-primary">
 						{letter}
 					</h2>
 					<PageList pages={groupedPages[letter]} showDates={true} showTags={true} />
@@ -303,7 +303,7 @@
 		</div>
 	{:else}
 		<!-- Regular List View -->
-		<div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+		<div class="rounded-lg bg-primary shadow-sm ring-1 ring-border-primary">
 			<div class="p-6">
 				<PageList
 					pages={filteredPages}

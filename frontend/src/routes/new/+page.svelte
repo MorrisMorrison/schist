@@ -107,17 +107,17 @@
 
 <div class="space-y-6">
 	<!-- Header -->
-	<div class="border-b border-primary pb-6">
+	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-2xl font-bold text-primary">Create New Page</h1>
-				<p class="mt-1 text-sm text-secondary">Add a new page to your wiki</p>
+				<h1 class="text-primary text-2xl font-bold">Create New Page</h1>
+				<p class="text-secondary mt-1 text-sm">Add a new page to your wiki</p>
 			</div>
 
 			<div class="flex items-center space-x-3">
 				<a
 					href="/"
-					class="inline-flex items-center rounded-md bg-secondary px-3 py-2 text-sm font-medium text-primary hover:bg-gray-hover focus:bg-gray-active focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
+					class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel
 				</a>
@@ -161,7 +161,7 @@
 
 	<!-- Error Message -->
 	{#if createError}
-		<div class="rounded-md bg-red-muted p-4">
+		<div class="bg-red-muted rounded-md p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">
 					<svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,8 +174,8 @@
 					</svg>
 				</div>
 				<div class="ml-3">
-					<h3 class="text-sm font-medium text-red-primary">Error</h3>
-					<div class="mt-2 text-sm text-red-secondary">
+					<h3 class="text-red-primary text-sm font-medium">Error</h3>
+					<div class="text-red-secondary mt-2 text-sm">
 						<p>{createError}</p>
 					</div>
 				</div>
@@ -184,22 +184,23 @@
 	{/if}
 
 	<!-- Editor Form -->
-	<div class="space-y-6 rounded-lg bg-primary p-6 shadow-sm ring-1 ring-border-primary">
+	<div class="bg-primary ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
 		<!-- Title Input -->
 		<div>
-			<label for="title" class="block text-sm font-medium text-secondary">Page Title</label>
+			<label for="title" class="text-secondary block text-sm font-medium">Page Title</label>
 			<div class="mt-1">
 				<input
 					id="title"
 					type="text"
 					bind:value={title}
 					placeholder="Enter page title..."
-					class="block w-full rounded-md border border-secondary bg-primary text-primary px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
+					class="border-secondary bg-primary text-primary block w-full rounded-md border px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
 				/>
 			</div>
 			{#if title.trim()}
-				<p class="mt-1 text-sm text-muted">
-					URL will be: <span class="font-mono text-blue-primary">/{generateSlugPreview(title)}</span>
+				<p class="text-muted mt-1 text-sm">
+					URL will be: <span class="text-blue-primary font-mono">/{generateSlugPreview(title)}</span
+					>
 				</p>
 			{/if}
 		</div>
@@ -221,8 +222,8 @@
 	</div>
 
 	<!-- Template Suggestions -->
-	<div class="rounded-lg bg-secondary p-6">
-		<h3 class="mb-4 text-lg font-medium text-primary">Quick Start Templates</h3>
+	<div class="bg-secondary rounded-lg p-6">
+		<h3 class="text-primary mb-4 text-lg font-medium">Quick Start Templates</h3>
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			<button
 				type="button"
@@ -249,10 +250,10 @@ Brief description of what this page covers.
 - [Link 1](https://example.com)
 - [Link 2](https://example.com)`;
 				}}
-				class="rounded-lg border border-primary bg-primary p-4 text-left hover:border-secondary hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+				class="border-primary bg-primary hover:border-secondary rounded-lg border p-4 text-left hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
 			>
-				<h4 class="font-medium text-primary">Getting Started Guide</h4>
-				<p class="mt-1 text-sm text-secondary">Step-by-step guide template</p>
+				<h4 class="text-primary font-medium">Getting Started Guide</h4>
+				<p class="text-secondary mt-1 text-sm">Step-by-step guide template</p>
 			</button>
 
 			<button
@@ -285,10 +286,10 @@ Description of the endpoint.
 ## Examples
 Code examples and usage.`;
 				}}
-				class="rounded-lg border border-primary bg-primary p-4 text-left hover:border-secondary hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+				class="border-primary bg-primary hover:border-secondary rounded-lg border p-4 text-left hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
 			>
-				<h4 class="font-medium text-primary">API Documentation</h4>
-				<p class="mt-1 text-sm text-secondary">API reference template</p>
+				<h4 class="text-primary font-medium">API Documentation</h4>
+				<p class="text-secondary mt-1 text-sm">API reference template</p>
 			</button>
 
 			<button
@@ -322,19 +323,24 @@ Notes and decisions.
 ## Next Steps
 What to do before the next meeting.`;
 				}}
-				class="rounded-lg border border-primary bg-primary p-4 text-left hover:border-secondary hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+				class="border-primary bg-primary hover:border-secondary rounded-lg border p-4 text-left hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
 			>
-				<h4 class="font-medium text-primary">Meeting Notes</h4>
-				<p class="mt-1 text-sm text-secondary">Meeting notes template</p>
+				<h4 class="text-primary font-medium">Meeting Notes</h4>
+				<p class="text-secondary mt-1 text-sm">Meeting notes template</p>
 			</button>
 		</div>
 	</div>
 
 	<!-- Help Text -->
-	<div class="rounded-lg bg-blue-muted p-4">
+	<div class="bg-blue-muted rounded-lg p-4">
 		<div class="flex">
 			<div class="flex-shrink-0">
-				<svg class="h-5 w-5 text-blue-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg
+					class="text-blue-primary h-5 w-5"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -344,8 +350,8 @@ What to do before the next meeting.`;
 				</svg>
 			</div>
 			<div class="ml-3">
-				<h3 class="text-sm font-medium text-blue-primary">Markdown Tips</h3>
-				<div class="mt-2 text-sm text-blue-secondary">
+				<h3 class="text-blue-primary text-sm font-medium">Markdown Tips</h3>
+				<div class="text-blue-secondary mt-2 text-sm">
 					<ul class="list-inside list-disc space-y-1">
 						<li><strong># Heading</strong> for main headings</li>
 						<li><strong>**bold**</strong> for bold text</li>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api.js';
+	import { apiClient } from '$lib';
 	import Editor from '$lib/components/Editor.svelte';
 	import type { PageData } from './$types.js';
 
@@ -30,8 +30,12 @@
 		saveError = '';
 
 		try {
-			await api.updatePage(data.slug, {
-				title: title.trim(),
+			await apiClient.updatePage(data.slug, {
+				...data.page,
+				metaData: {
+					...data.page.metaData,
+					title: title.trim()
+				},
 				content: content.trim()
 			});
 
@@ -54,7 +58,7 @@
 		isDeleting = true;
 
 		try {
-			await api.deletePage(data.slug);
+			await apiClient.deletePage(data.slug);
 			goto('/');
 		} catch (error) {
 			console.error('Failed to delete page:', error);
@@ -97,11 +101,11 @@
 
 <div class="space-y-6">
 	<!-- Header -->
-	<div class="border-b border-primary pb-6">
+	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-2xl font-bold text-primary">Edit Page</h1>
-				<p class="mt-1 text-sm text-secondary">
+				<h1 class="text-primary text-2xl font-bold">Edit Page</h1>
+				<p class="text-secondary mt-1 text-sm">
 					Editing <span class="font-mono">/{data.slug}</span>
 				</p>
 			</div>
@@ -109,7 +113,7 @@
 			<div class="flex items-center space-x-3">
 				<a
 					href="/{data.slug}"
-					class="inline-flex items-center rounded-md bg-secondary px-3 py-2 text-sm font-medium text-primary hover:bg-gray-hover focus:bg-gray-active focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
+					class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel
 				</a>
@@ -186,10 +190,15 @@
 
 	<!-- Delete Confirmation -->
 	{#if showDeleteConfirm}
-		<div class="rounded-md bg-red-muted p-4">
+		<div class="bg-red-muted rounded-md p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">
-					<svg class="h-5 w-5 text-red-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg
+						class="text-red-primary h-5 w-5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -199,8 +208,8 @@
 					</svg>
 				</div>
 				<div class="ml-3">
-					<h3 class="text-sm font-medium text-red-primary">Delete Page</h3>
-					<div class="mt-2 text-sm text-red-secondary">
+					<h3 class="text-red-primary text-sm font-medium">Delete Page</h3>
+					<div class="text-red-secondary mt-2 text-sm">
 						<p>Are you sure you want to delete this page? This action cannot be undone.</p>
 					</div>
 					<div class="mt-4 flex space-x-3">
@@ -214,7 +223,7 @@
 						<button
 							type="button"
 							onclick={() => (showDeleteConfirm = false)}
-							class="rounded-md bg-primary px-3 py-2 text-sm font-medium text-red-primary hover:bg-gray-hover"
+							class="bg-primary text-red-primary hover:bg-gray-hover rounded-md px-3 py-2 text-sm font-medium"
 						>
 							Cancel
 						</button>
@@ -226,10 +235,15 @@
 
 	<!-- Error Message -->
 	{#if saveError}
-		<div class="rounded-md bg-red-muted p-4">
+		<div class="bg-red-muted rounded-md p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">
-					<svg class="h-5 w-5 text-red-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg
+						class="text-red-primary h-5 w-5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -239,8 +253,8 @@
 					</svg>
 				</div>
 				<div class="ml-3">
-					<h3 class="text-sm font-medium text-red-primary">Error</h3>
-					<div class="mt-2 text-sm text-red-secondary">
+					<h3 class="text-red-primary text-sm font-medium">Error</h3>
+					<div class="text-red-secondary mt-2 text-sm">
 						<p>{saveError}</p>
 					</div>
 				</div>
@@ -249,17 +263,17 @@
 	{/if}
 
 	<!-- Editor Form -->
-	<div class="space-y-6 rounded-lg bg-primary p-6 shadow-sm ring-1 ring-border-primary">
+	<div class="bg-primary ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
 		<!-- Title Input -->
 		<div>
-			<label for="title" class="block text-sm font-medium text-secondary">Page Title</label>
+			<label for="title" class="text-secondary block text-sm font-medium">Page Title</label>
 			<div class="mt-1">
 				<input
 					id="title"
 					type="text"
 					bind:value={title}
 					placeholder="Enter page title..."
-					class="block w-full rounded-md border border-secondary bg-primary text-primary px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
+					class="border-secondary bg-primary text-primary block w-full rounded-md border px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
 				/>
 			</div>
 		</div>
@@ -283,10 +297,15 @@
 	</div>
 
 	<!-- Help Text -->
-	<div class="rounded-lg bg-blue-muted p-4">
+	<div class="bg-blue-muted rounded-lg p-4">
 		<div class="flex">
 			<div class="flex-shrink-0">
-				<svg class="h-5 w-5 text-blue-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg
+					class="text-blue-primary h-5 w-5"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -296,8 +315,8 @@
 				</svg>
 			</div>
 			<div class="ml-3">
-				<h3 class="text-sm font-medium text-blue-primary">Markdown Tips</h3>
-				<div class="mt-2 text-sm text-blue-secondary">
+				<h3 class="text-blue-primary text-sm font-medium">Markdown Tips</h3>
+				<div class="text-blue-secondary mt-2 text-sm">
 					<ul class="list-inside list-disc space-y-1">
 						<li><strong># Heading</strong> for main headings</li>
 						<li><strong>**bold**</strong> for bold text</li>

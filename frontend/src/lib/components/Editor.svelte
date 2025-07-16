@@ -27,7 +27,7 @@
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
-	
+
 	// Use the global theme store
 	const currentTheme = $derived($theme);
 
@@ -46,7 +46,7 @@
 	function updateContent(content: string) {
 		// Avoid unnecessary updates
 		if (content === currentContent) return;
-		
+
 		currentContent = content;
 		isDirty = true;
 
@@ -319,11 +319,7 @@
 
 <div class="markdown-editor flex h-full flex-col {themeClasses}">
 	<!-- Toolbar -->
-	<EditorToolbar
-		onFormat={formatText}
-		theme={currentTheme}
-		disabled={readonly}
-	/>
+	<EditorToolbar onFormat={formatText} theme={currentTheme} disabled={readonly} />
 
 	<!-- Editor and Preview Container -->
 	<div class="flex flex-1 overflow-hidden">

@@ -12,17 +12,17 @@
 
 <div class="space-y-8">
 	<!-- Hero Section -->
-	 {#if data.totalPages === 0}
-	<div class="text-center">
-		<div class="mx-auto max-w-3xl">
-			<h1 class="text-4xl font-bold tracking-tight text-primary sm:text-6xl">
-				Welcome to <span class="text-blue-primary">Schist</span>
-			</h1>
-			<p class="mt-6 text-lg leading-8 text-secondary">
-				A lightweight, fast wiki for all your documentation needs. Create, edit, and organize your
-				knowledge with ease.
-			</p>
-			<!-- <div class="mt-10 flex items-center justify-center gap-x-6">
+	{#if data.totalPages === 0}
+		<div class="text-center">
+			<div class="mx-auto max-w-3xl">
+				<h1 class="text-primary text-4xl font-bold tracking-tight sm:text-6xl">
+					Welcome to <span class="text-blue-primary">Schist</span>
+				</h1>
+				<p class="text-secondary mt-6 text-lg leading-8">
+					A lightweight, fast wiki for all your documentation needs. Create, edit, and organize your
+					knowledge with ease.
+				</p>
+				<!-- <div class="mt-10 flex items-center justify-center gap-x-6">
 				<a
 					href="/new"
 					class="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -32,9 +32,9 @@
 				<!-- <a href="/pages" class="text-sm leading-6 font-semibold text-gray-900">
 					Browse All Pages <span aria-hidden="true">→</span>
 				</a> -->
-			<!-- </div> -->
+				<!-- </div> -->
+			</div>
 		</div>
-	</div>
 	{/if}
 
 	<!-- Stats -->
@@ -55,13 +55,13 @@
 	{#if data.recentPages.length > 0}
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<h2 class="text-2xl font-bold text-primary">Recent Pages</h2>
-				<a href="/pages" class="text-sm font-medium text-blue-primary hover:text-blue-secondary">
+				<h2 class="text-primary text-2xl font-bold">Recent Pages</h2>
+				<a href="/pages" class="text-blue-primary hover:text-blue-secondary text-sm font-medium">
 					View all pages →
 				</a>
 			</div>
 
-			<div class="rounded-lg bg-primary shadow-sm ring-1 ring-border-primary">
+			<div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
 				<div class="p-6">
 					<PageList pages={data.recentPages} showDates={true} showTags={true} />
 				</div>
@@ -69,9 +69,9 @@
 		</div>
 	{:else}
 		<!-- Empty State -->
-		<div class="rounded-lg bg-primary p-12 text-center shadow-sm ring-1 ring-border-primary">
+		<div class="bg-primary ring-border-primary rounded-lg p-12 text-center shadow-sm ring-1">
 			<svg
-				class="mx-auto h-12 w-12 text-muted"
+				class="text-muted mx-auto h-12 w-12"
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
@@ -83,8 +83,8 @@
 					d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"
 				/>
 			</svg>
-			<h3 class="mt-4 text-lg font-medium text-primary">No pages yet</h3>
-			<p class="mt-2 text-secondary">Get started by creating your first wiki page.</p>
+			<h3 class="text-primary mt-4 text-lg font-medium">No pages yet</h3>
+			<p class="text-secondary mt-2">Get started by creating your first wiki page.</p>
 			<div class="mt-6">
 				<a
 					href="/new"

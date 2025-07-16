@@ -1,7 +1,11 @@
 <script lang="ts">
 	import type { ToolbarProps, FormattingType } from '$lib/types/editor';
 
-	let { onFormat, theme = 'light', disabled = false }: Omit<ToolbarProps, 'onThemeToggle'> = $props();
+	let {
+		onFormat,
+		theme = 'light',
+		disabled = false
+	}: Omit<ToolbarProps, 'onThemeToggle'> = $props();
 
 	// Toolbar button configurations
 	const toolbarButtons = [

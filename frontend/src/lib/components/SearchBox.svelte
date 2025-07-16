@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { api } from '$lib/api.js';
-	import type { PageMetaData } from '$lib/types.js';
+	import { apiClient } from '$lib/api/client';
+	import type { PageMetaData } from '$lib/api/types';
 	import { onMount } from 'svelte';
 
 	let {
@@ -35,9 +35,8 @@
 
 		isSearching = true;
 		try {
-			const response = await api.search(query.trim());
-			results = response.results;
-			showDropdown = showResults && results.length > 0;
+			const pages = await apiClient.searchPages(query.trim());
+			showDropdown = showResults && pages.length > 0;
 		} catch (error) {
 			console.error('Search failed:', error);
 			results = [];

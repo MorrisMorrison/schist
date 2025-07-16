@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '$lib/components/ui/dialog/index.js';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle
+	} from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
@@ -36,10 +43,11 @@
 	let pageToDelete = $state<string | null>(null);
 
 	const filteredPages = $derived(
-		pages.filter(page =>
-			page.metaData.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			page.metaData.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-			page.content.toLowerCase().includes(searchTerm.toLowerCase())
+		pages.filter(
+			(page) =>
+				page.metaData.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				page.metaData.tags?.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+				page.content.toLowerCase().includes(searchTerm.toLowerCase())
 		)
 	);
 
@@ -58,7 +66,7 @@
 
 	async function confirmDelete() {
 		if (!pageToDelete) return;
-		
+
 		try {
 			await pageActions.deletePage(pageToDelete);
 			deleteDialogOpen = false;
@@ -78,18 +86,13 @@
 	<!-- Search Input -->
 	{#if pages.length > 0}
 		<div class="mb-6">
-			<Input 
-				type="text" 
-				placeholder="Search pages..." 
-				bind:value={searchTerm}
-				class="max-w-md"
-			/>
+			<Input type="text" placeholder="Search pages..." bind:value={searchTerm} class="max-w-md" />
 		</div>
 	{/if}
 
 	<!-- Error Display -->
 	{#if error}
-		<ErrorAlert error={error} onDismiss={() => pageActions.clearError()} />
+		<ErrorAlert {error} onDismiss={() => pageActions.clearError()} />
 	{/if}
 
 	<!-- Loading Spinner -->
@@ -100,29 +103,22 @@
 	{:else if filteredPages.length === 0 && pages.length === 0}
 		<!-- Empty State -->
 		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<FileText class="h-12 w-12 text-muted-foreground mb-4" />
-			<h3 class="text-lg font-medium text-foreground mb-2">No pages yet</h3>
+			<FileText class="text-muted-foreground mb-4 h-12 w-12" />
+			<h3 class="text-foreground mb-2 text-lg font-medium">No pages yet</h3>
 			<p class="text-muted-foreground mb-4">{emptyMessage}</p>
-			<Button onclick={() => goto('/new')}>
-				Create your first page
-			</Button>
+			<Button onclick={() => goto('/new')}>Create your first page</Button>
 		</div>
 	{:else if filteredPages.length === 0}
 		<!-- No Search Results -->
 		<div class="flex flex-col items-center justify-center py-8 text-center">
-			<FileText class="h-8 w-8 text-muted-foreground mb-4" />
+			<FileText class="text-muted-foreground mb-4 h-8 w-8" />
 			<p class="text-muted-foreground">No pages match your search for "{searchTerm}"</p>
 		</div>
 	{:else}
 		<!-- Page Grid -->
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{#each filteredPages as page (page.metaData.slug)}
-				<PageCard 
-					{page}
-					onView={handleView}
-					onEdit={handleEdit}
-					onDelete={handleDelete}
-				/>
+				<PageCard {page} onView={handleView} onEdit={handleEdit} onDelete={handleDelete} />
 			{/each}
 		</div>
 	{/if}

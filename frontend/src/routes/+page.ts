@@ -1,19 +1,10 @@
-import { PUBLIC_API_URL } from '$env/static/public';
 import type { PageLoad } from './$types.js';
-import type { Page, PageListResponse } from '$lib/api/types.js';
+import type { Page } from '$lib/api/types.js';
+import { apiClient } from '$lib';
 
-export const load: PageLoad = async ({ fetch }) => {
-	const apiUrl = PUBLIC_API_URL || 'http://localhost:8080/api';
-	
+export const load: PageLoad = async () => {
 	try {
-		const response = await fetch(`${apiUrl}/pages`);
-		
-		if (!response.ok) {
-			throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-		}
-
-		const data: PageListResponse = await response.json();
-		const pages: Page[] = data.pages || [];
+		const pages: Page[] = (await apiClient.getPages()) || [];
 
 		// Sort pages by updated date (most recent first) and take the first 5
 		const recentPages = pages

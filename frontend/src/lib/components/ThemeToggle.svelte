@@ -12,11 +12,9 @@
   function handleToggle() {
     if ($theme === 'light') {
       themeActions.setTheme('dark');
-    } else if ($theme === 'dark') {
-      themeActions.setSystemTheme();
     } else {
       themeActions.setTheme('light');
-    }
+    } 
   }
 </script>
 

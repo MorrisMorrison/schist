@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { EditorView, basicSetup } from 'codemirror';
-	import { EditorState } from '@codemirror/state';
+	import { EditorState, StateEffect } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { oneDark } from '@codemirror/theme-one-dark';
 
@@ -44,6 +44,9 @@
 
 	// Update content and trigger change event
 	function updateContent(content: string) {
+		// Avoid unnecessary updates
+		if (content === currentContent) return;
+		
 		currentContent = content;
 		isDirty = true;
 
@@ -168,7 +171,11 @@
 				currentTheme === 'dark' ? oneDark : [],
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
-						updateContent(update.state.doc.toString());
+						const newContent = update.state.doc.toString();
+						// Only update if content actually changed to avoid loops
+						if (newContent !== currentContent) {
+							updateContent(newContent);
+						}
 					}
 				}),
 				EditorView.lineWrapping,
@@ -256,10 +263,49 @@
 		}
 	});
 
-	// Reactive theme updates
+	// Reactive theme updates - only update theme, don't recreate editor
 	$effect(() => {
-		if (editorView) {
-			initializeEditor();
+		if (editorView && currentTheme) {
+			const extensions = [
+				basicSetup,
+				markdown(),
+				currentTheme === 'dark' ? oneDark : [],
+				EditorView.updateListener.of((update) => {
+					if (update.docChanged) {
+						const newContent = update.state.doc.toString();
+						// Only update if content actually changed to avoid loops
+						if (newContent !== currentContent) {
+							updateContent(newContent);
+						}
+					}
+				}),
+				EditorView.lineWrapping,
+				EditorState.readOnly.of(readonly),
+				EditorView.theme({
+					'&': {
+						height: '100%',
+						fontSize: '14px'
+					},
+					'.cm-content': {
+						padding: '16px',
+						minHeight: '100%'
+					},
+					'.cm-focused': {
+						outline: 'none'
+					},
+					'.cm-editor': {
+						height: '100%'
+					},
+					'.cm-scroller': {
+						height: '100%'
+					}
+				})
+			];
+
+			// Reconfigure the editor with new extensions instead of recreating
+			editorView.dispatch({
+				effects: StateEffect.reconfigure.of(extensions)
+			});
 		}
 	});
 

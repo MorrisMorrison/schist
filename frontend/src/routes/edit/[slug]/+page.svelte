@@ -97,11 +97,11 @@
 
 <div class="space-y-6">
 	<!-- Header -->
-	<div class="border-b border-gray-200 pb-6">
+	<div class="border-b border-primary pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-2xl font-bold text-gray-900">Edit Page</h1>
-				<p class="mt-1 text-sm text-gray-600">
+				<h1 class="text-2xl font-bold text-primary">Edit Page</h1>
+				<p class="mt-1 text-sm text-secondary">
 					Editing <span class="font-mono">/{data.slug}</span>
 				</p>
 			</div>
@@ -109,7 +109,7 @@
 			<div class="flex items-center space-x-3">
 				<a
 					href="/{data.slug}"
-					class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
+					class="inline-flex items-center rounded-md bg-secondary px-3 py-2 text-sm font-medium text-primary hover:bg-gray-hover focus:bg-gray-active focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel
 				</a>
@@ -186,10 +186,10 @@
 
 	<!-- Delete Confirmation -->
 	{#if showDeleteConfirm}
-		<div class="rounded-md bg-red-50 p-4">
+		<div class="rounded-md bg-red-muted p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">
-					<svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="h-5 w-5 text-red-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -199,8 +199,8 @@
 					</svg>
 				</div>
 				<div class="ml-3">
-					<h3 class="text-sm font-medium text-red-800">Delete Page</h3>
-					<div class="mt-2 text-sm text-red-700">
+					<h3 class="text-sm font-medium text-red-primary">Delete Page</h3>
+					<div class="mt-2 text-sm text-red-secondary">
 						<p>Are you sure you want to delete this page? This action cannot be undone.</p>
 					</div>
 					<div class="mt-4 flex space-x-3">
@@ -214,7 +214,7 @@
 						<button
 							type="button"
 							onclick={() => (showDeleteConfirm = false)}
-							class="rounded-md bg-white px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100"
+							class="rounded-md bg-primary px-3 py-2 text-sm font-medium text-red-primary hover:bg-gray-hover"
 						>
 							Cancel
 						</button>
@@ -226,10 +226,10 @@
 
 	<!-- Error Message -->
 	{#if saveError}
-		<div class="rounded-md bg-red-50 p-4">
+		<div class="rounded-md bg-red-muted p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">
-					<svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="h-5 w-5 text-red-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -239,8 +239,8 @@
 					</svg>
 				</div>
 				<div class="ml-3">
-					<h3 class="text-sm font-medium text-red-800">Error</h3>
-					<div class="mt-2 text-sm text-red-700">
+					<h3 class="text-sm font-medium text-red-primary">Error</h3>
+					<div class="mt-2 text-sm text-red-secondary">
 						<p>{saveError}</p>
 					</div>
 				</div>
@@ -249,17 +249,17 @@
 	{/if}
 
 	<!-- Editor Form -->
-	<div class="space-y-6 rounded-lg bg-white p-6 shadow-sm ring-1 ring-gray-200">
+	<div class="space-y-6 rounded-lg bg-primary p-6 shadow-sm ring-1 border-primary">
 		<!-- Title Input -->
 		<div>
-			<label for="title" class="block text-sm font-medium text-gray-700">Page Title</label>
+			<label for="title" class="block text-sm font-medium text-secondary">Page Title</label>
 			<div class="mt-1">
 				<input
 					id="title"
 					type="text"
 					bind:value={title}
 					placeholder="Enter page title..."
-					class="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
+					class="block w-full rounded-md border border-secondary bg-primary text-primary px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
 				/>
 			</div>
 		</div>
@@ -283,10 +283,10 @@
 	</div>
 
 	<!-- Help Text -->
-	<div class="rounded-lg bg-blue-50 p-4">
+	<div class="rounded-lg bg-blue-muted p-4">
 		<div class="flex">
 			<div class="flex-shrink-0">
-				<svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg class="h-5 w-5 text-blue-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -296,8 +296,8 @@
 				</svg>
 			</div>
 			<div class="ml-3">
-				<h3 class="text-sm font-medium text-blue-800">Markdown Tips</h3>
-				<div class="mt-2 text-sm text-blue-700">
+				<h3 class="text-sm font-medium text-blue-primary">Markdown Tips</h3>
+				<div class="mt-2 text-sm text-blue-secondary">
 					<ul class="list-inside list-disc space-y-1">
 						<li><strong># Heading</strong> for main headings</li>
 						<li><strong>**bold**</strong> for bold text</li>

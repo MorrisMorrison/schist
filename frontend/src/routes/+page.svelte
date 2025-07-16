@@ -15,10 +15,10 @@
 	 {#if data.totalPages === 0}
 	<div class="text-center">
 		<div class="mx-auto max-w-3xl">
-			<h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-				Welcome to <span class="text-blue-600">Schist</span>
+			<h1 class="text-4xl font-bold tracking-tight text-primary sm:text-6xl">
+				Welcome to <span class="text-blue-primary">Schist</span>
 			</h1>
-			<p class="mt-6 text-lg leading-8 text-gray-600">
+			<p class="mt-6 text-lg leading-8 text-secondary">
 				A lightweight, fast wiki for all your documentation needs. Create, edit, and organize your
 				knowledge with ease.
 			</p>
@@ -55,13 +55,13 @@
 	{#if data.recentPages.length > 0}
 		<div class="space-y-4">
 			<div class="flex items-center justify-between">
-				<h2 class="text-2xl font-bold text-gray-900">Recent Pages</h2>
-				<a href="/pages" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+				<h2 class="text-2xl font-bold text-primary">Recent Pages</h2>
+				<a href="/pages" class="text-sm font-medium text-blue-primary hover:text-blue-secondary">
 					View all pages →
 				</a>
 			</div>
 
-			<div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+			<div class="rounded-lg bg-primary shadow-sm ring-1 border-primary">
 				<div class="p-6">
 					<PageList pages={data.recentPages} showDates={true} showTags={true} />
 				</div>
@@ -69,9 +69,9 @@
 		</div>
 	{:else}
 		<!-- Empty State -->
-		<div class="rounded-lg bg-white p-12 text-center shadow-sm ring-1 ring-gray-200">
+		<div class="rounded-lg bg-primary p-12 text-center shadow-sm ring-1 border-primary">
 			<svg
-				class="mx-auto h-12 w-12 text-gray-400"
+				class="mx-auto h-12 w-12 text-muted"
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
@@ -83,8 +83,8 @@
 					d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"
 				/>
 			</svg>
-			<h3 class="mt-4 text-lg font-medium text-gray-900">No pages yet</h3>
-			<p class="mt-2 text-gray-600">Get started by creating your first wiki page.</p>
+			<h3 class="mt-4 text-lg font-medium text-primary">No pages yet</h3>
+			<p class="mt-2 text-secondary">Get started by creating your first wiki page.</p>
 			<div class="mt-6">
 				<a
 					href="/new"

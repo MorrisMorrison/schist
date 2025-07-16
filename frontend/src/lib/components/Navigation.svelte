@@ -23,7 +23,7 @@
 	});
 </script>
 
-<nav class="border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 transition-colors">
+<nav class="border-b border-primary bg-primary shadow-sm transition-colors">
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="flex h-16 justify-between">
 			<!-- Left side - Logo and main navigation -->
@@ -31,7 +31,7 @@
 				<div class="flex-shrink-0">
 					<a href="/" class="flex items-center space-x-2">
 						<svg
-							class="h-8 w-8 text-blue-600"
+							class="h-8 w-8 text-blue-primary"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -43,7 +43,7 @@
 								d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
 							/>
 						</svg>
-						<span class="text-xl font-bold text-gray-900 dark:text-gray-100">Schist</span>
+						<span class="text-xl font-bold text-primary">Schist</span>
 					</a>
 				</div>
 
@@ -53,8 +53,8 @@
 						href="/"
 						class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {$page
 							.url.pathname === '/'
-							? 'border-blue-500 text-gray-900 dark:text-gray-100'
-							: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}"
+							? 'border-blue-500 text-primary'
+							: 'border-transparent text-secondary hover:border-gray-300 hover:text-primary'}"
 					>
 						Home
 					</a>
@@ -62,8 +62,8 @@
 						href="/pages"
 						class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {$page
 							.url.pathname === '/pages'
-							? 'border-blue-500 text-gray-900 dark:text-gray-100'
-							: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}"
+							? 'border-blue-500 text-primary'
+							: 'border-transparent text-secondary hover:border-gray-300 hover:text-primary'}"
 					>
 						All Pages
 					</a>
@@ -101,7 +101,7 @@
 				{#if currentPageSlug && $page.url.pathname !== '/new' && !$page.url.pathname.startsWith('/edit/')}
 					<a
 						href="/edit/{currentPageSlug}"
-						class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
+						class="inline-flex items-center rounded-md bg-secondary px-3 py-2 text-sm font-medium text-primary hover:bg-gray-hover focus:bg-gray-active focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
 					>
 						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
@@ -119,7 +119,7 @@
 				<button
 					type="button"
 					onclick={toggleMenu}
-					class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none md:hidden dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-200 dark:focus:bg-gray-700"
+					class="inline-flex items-center justify-center rounded-md p-2 text-muted hover:bg-gray-hover hover:text-secondary focus:bg-gray-hover focus:text-secondary focus:outline-none md:hidden"
 					aria-expanded={isMenuOpen}
 				>
 					<span class="sr-only">Open main menu</span>
@@ -148,7 +148,7 @@
 	<!-- Mobile menu -->
 	{#if isMenuOpen}
 		<div class="md:hidden">
-			<div class="space-y-1 border-t border-gray-200 pt-2 pb-3 dark:border-gray-700">
+			<div class="space-y-1 border-t border-primary pt-2 pb-3">
 				<!-- Mobile search -->
 				<div class="px-4 pb-3">
 					<SearchBox placeholder="Search pages..." />
@@ -164,8 +164,8 @@
 					href="/"
 					onclick={closeMenu}
 					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname === '/'
-						? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-						: 'border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'}"
+						? 'border-blue-500 bg-blue-muted text-blue-primary'
+						: 'border-transparent text-secondary hover:border-gray-300 hover:bg-gray-hover hover:text-primary'}"
 				>
 					Home
 				</a>
@@ -174,8 +174,8 @@
 					onclick={closeMenu}
 					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname ===
 					'/pages'
-						? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-						: 'border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'}"
+						? 'border-blue-500 bg-blue-muted text-blue-primary'
+						: 'border-transparent text-secondary hover:border-gray-300 hover:bg-gray-hover hover:text-primary'}"
 				>
 					All Pages
 				</a>

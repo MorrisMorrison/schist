@@ -59,22 +59,17 @@ func initDataDir(config *config.Config) {
 }
 
 func setupCORS(r *gin.Engine, cfg *config.Config) {
-	if cfg.IsDevelopment() {
-		// Development: Allow frontend dev server
-		r.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{cfg.FrontendURL},
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-			ExposeHeaders:    []string{"Content-Length"},
-			AllowCredentials: true,
-		}))
-		log.Printf("CORS enabled for development: %s", cfg.FrontendURL)
-	} else {
-		// Production: Restrictive CORS
-		r.Use(cors.New(cors.Config{
-			AllowOrigins: []string{"*"},
-			AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
-			AllowHeaders: []string{"Origin", "Content-Type", "Accept"},
-		}))
+	if !cfg.IsDevelopment() {
+		return
 	}
+
+	// Development: Allow frontend dev server
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{cfg.FrontendURL},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+	log.Printf("CORS enabled for development: %s", cfg.FrontendURL)
 }

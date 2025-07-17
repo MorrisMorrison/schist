@@ -63,22 +63,32 @@ func (f *Folder) Depth() int {
 
 ## **Phase 2: API Endpoints**
 
-### 2.1 New Route Structure (`/backend/internal/handlers/api.go`)
+### 2.1 Extended Route Structure (`/backend/internal/handlers/api.go`)
 ```
-GET    /api/docs/*path              # Get page by path
-POST   /api/docs/*path              # Create page at path  
-PUT    /api/docs/*path              # Update page at path
-DELETE /api/docs/*path              # Delete page at path
+# Existing endpoints (enhanced to support both slugs and paths)
+GET    /api/pages                   # List all pages (existing)
+GET    /api/pages/:slug             # Get by slug (existing, backward compatible)
+GET    /api/pages/*path             # Get by path (new, for nested docs)
+POST   /api/pages                   # Create page (existing, enhanced)
+PUT    /api/pages/:slug             # Update by slug (existing)
+PUT    /api/pages/*path             # Update by path (new)
+DELETE /api/pages/:slug             # Delete by slug (existing)
+DELETE /api/pages/*path             # Delete by path (new)
+
+# New folder-specific endpoints
 GET    /api/folders                 # Get folder tree
 POST   /api/folders/*path           # Create folder
 DELETE /api/folders/*path           # Delete folder
-POST   /api/docs/move               # Move page/folder
+
+# New operations
+POST   /api/pages/move              # Move page/folder
 ```
 
-### 2.2 Backward Compatibility
-- Keep existing `/api/pages` endpoints for migration period
-- Add deprecation headers
-- Implement slug → path resolution for old routes
+### 2.2 Handler Implementation Strategy
+- **Extend existing handlers** to detect if parameter is slug or path
+- **Path detection**: If parameter contains "/" it's a path, otherwise it's a slug
+- **Backward compatibility**: All existing slug-based calls continue to work
+- **No breaking changes**: Existing API consumers unaffected
 
 ## **Phase 3: Frontend API Client**
 

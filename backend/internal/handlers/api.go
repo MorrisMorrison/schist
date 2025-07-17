@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/models"
@@ -25,10 +27,18 @@ func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
 	pages := r.Group("/pages")
 	{
 		pages.GET("", h.listPages)
-		pages.GET("/:slug", h.getPage)
 		pages.POST("", h.createPage)
-		pages.PUT("/:slug", h.updatePage)
-		pages.DELETE("/:slug", h.deletePage)
+		pages.GET("/*path", h.getPageByPath)
+		pages.PUT("/*path", h.updatePageByPath)
+		pages.DELETE("/*path", h.deletePageByPath)
+		r.POST("/move", h.movePage)
+	}
+
+	folders := r.Group("/folders")
+	{
+		folders.GET("", h.getFolderTree)
+		folders.POST("/*path", h.createFolder)
+		folders.DELETE("/*path", h.deleteFolder)
 	}
 
 	r.GET("/search", h.search)
@@ -56,18 +66,6 @@ func (h *APIHandler) listPages(c *gin.Context) {
 	})
 }
 
-func (h *APIHandler) getPage(c *gin.Context) {
-	slug := c.Param("slug")
-	page, err := h.PageService.ReadPage(slug)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-	c.JSON(http.StatusOK, page)
-}
-
 func (h *APIHandler) createPage(c *gin.Context) {
 	page := &models.Page{}
 	err := c.BindJSON(page)
@@ -75,6 +73,7 @@ func (h *APIHandler) createPage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
+		return
 	}
 
 	err = h.PageService.CreatePage(page)
@@ -82,48 +81,12 @@ func (h *APIHandler) createPage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Page created successfully",
-	})
-}
-
-func (h *APIHandler) updatePage(c *gin.Context) {
-	slug := c.Param("slug")
-	page := &models.Page{}
-	err := c.BindJSON(page)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-	}
-
-	h.PageService.UpdatePage(page)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Page updated successfully",
-		"slug":    slug,
-	})
-}
-
-func (h *APIHandler) deletePage(c *gin.Context) {
-	slug := c.Param("slug")
-	err := h.PageService.DeletePage(slug)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Page deleted successfully",
-		"slug":    slug,
+		"path":    page.MetaData.Path,
 	})
 }
 
@@ -133,5 +96,178 @@ func (h *APIHandler) search(c *gin.Context) {
 		"query":   query,
 		"results": []gin.H{},
 		"total":   0,
+	})
+}
+
+func (h *APIHandler) getPageByPath(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	page, err := h.PageService.GetPageByPath(path)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, page)
+}
+
+// TODO move logic out of handler
+func (h *APIHandler) updatePageByPath(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	existingPage, err := h.PageService.GetPageByPath(path)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	updatedPage := &models.Page{}
+	err = c.BindJSON(updatedPage)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	updatedPage.MetaData = existingPage.MetaData
+	updatedPage.MetaData.Updated = time.Now()
+
+	err = h.PageService.UpdatePage(updatedPage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Page updated successfully",
+		"path":    path,
+	})
+}
+
+func (h *APIHandler) deletePageByPath(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	trashPath := "/trash" + path
+	err := h.PageService.MovePage(path, trashPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Page moved to trash successfully",
+		"path":    path,
+	})
+}
+
+func (h *APIHandler) getFolderTree(c *gin.Context) {
+	folders, err := h.PageService.GetFolderTree()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"folders": folders,
+		"total":   len(folders),
+	})
+}
+
+func (h *APIHandler) createFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	err := h.PageService.CreateFolder(path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Folder created successfully",
+		"path":    path,
+	})
+}
+
+func (h *APIHandler) deleteFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	err := h.PageService.DeleteFolder(path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Folder deleted successfully",
+		"path":    path,
+	})
+}
+
+func (h *APIHandler) movePage(c *gin.Context) {
+	// TODO move out of handler
+	type MoveRequest struct {
+		OldPath string `json:"oldPath" binding:"required"`
+		NewPath string `json:"newPath" binding:"required"`
+	}
+
+	var req MoveRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// TODO use existing path validation
+	if !strings.HasPrefix(req.OldPath, "/") {
+		req.OldPath = "/" + req.OldPath
+	}
+	if !strings.HasPrefix(req.NewPath, "/") {
+		req.NewPath = "/" + req.NewPath
+	}
+
+	err = h.PageService.MovePage(req.OldPath, req.NewPath)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Page moved successfully",
+		"oldPath": req.OldPath,
+		"newPath": req.NewPath,
 	})
 }

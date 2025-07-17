@@ -34,3 +34,4 @@ go.work.sum
 backend/data
 backend/schist
 .claude/
+wiki-data/

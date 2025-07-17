@@ -9,6 +9,7 @@
 		DialogTitle
 	} from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { FileText } from 'lucide-svelte';
 	import PageCard from './PageCard.svelte';

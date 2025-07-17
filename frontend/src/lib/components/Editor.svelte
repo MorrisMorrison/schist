@@ -25,7 +25,7 @@
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
-	
+
 	// Resize functionality
 	let editorHeight = $state(700); // Default height in pixels
 	let isResizing = $state(false);
@@ -260,7 +260,7 @@
 		isResizing = true;
 		resizeStartY = event.clientY;
 		resizeStartHeight = editorHeight;
-		
+
 		// Add global event listeners
 		document.addEventListener('mousemove', handleResizeMove);
 		document.addEventListener('mouseup', handleResizeEnd);
@@ -270,7 +270,7 @@
 
 	function handleResizeMove(event: MouseEvent) {
 		if (!isResizing) return;
-		
+
 		const deltaY = event.clientY - resizeStartY;
 		const newHeight = Math.max(200, resizeStartHeight + deltaY); // Minimum height of 200px
 		editorHeight = newHeight;
@@ -349,7 +349,7 @@
 		if (editorView && initialContent !== currentContent) {
 			const newContent = initialContent || '';
 			currentContent = newContent;
-			
+
 			// Update the editor view with new content
 			editorView.dispatch({
 				changes: {
@@ -457,14 +457,14 @@
 	</div>
 
 	<!-- Resize Handle -->
-	<div 
-		class="flex items-center justify-center h-4 cursor-ns-resize bg-gray-100 border-t border-gray-200 hover:bg-gray-200 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
+	<div
+		class="flex h-4 cursor-ns-resize items-center justify-center border-t border-gray-200 bg-gray-100 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
 		onmousedown={handleResizeStart}
 		role="button"
 		tabindex="0"
 		aria-label="Resize editor height"
 	>
-		<div class="w-8 h-1 bg-gray-400 rounded-full"></div>
+		<div class="h-1 w-8 rounded-full bg-gray-400"></div>
 	</div>
 </div>
 

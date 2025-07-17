@@ -3,6 +3,7 @@
 	import SearchBox from './SearchBox.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let { currentPageSlug }: { currentPageSlug?: string } = $props();
 
 	let isMenuOpen = $state(false);

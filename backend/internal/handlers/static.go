@@ -29,7 +29,7 @@ func (h *StaticHandler) ServeStatic() gin.HandlerFunc {
 
 		// Try to serve the requested file
 		filePath := filepath.Join(h.staticDir, c.Request.URL.Path)
-		
+
 		// Check if file exists
 		if _, err := http.Dir(h.staticDir).Open(c.Request.URL.Path); err == nil {
 			c.File(filePath)
@@ -47,7 +47,7 @@ func (h *StaticHandler) SetupStaticRoutes(r *gin.Engine) {
 	// Serve static assets (CSS, JS, images)
 	r.Static("/assets", filepath.Join(h.staticDir, "assets"))
 	r.Static("/_app", filepath.Join(h.staticDir, "_app"))
-	
+
 	// Handle all other routes (SPA fallback)
 	r.NoRoute(h.ServeStatic())
 }

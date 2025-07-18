@@ -98,7 +98,7 @@ export const pageActions = {
 		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const pages = await apiClient.getPages() ?? [];
+			const pages = (await apiClient.getPages()) ?? [];
 			pagesStore.update((state) => ({
 				...state,
 				pages,

@@ -3,10 +3,7 @@ import { apiClient } from '$lib';
 
 export const load: PageLoad = async () => {
 	try {
-		const [pages, folders] = await Promise.all([
-			apiClient.getPages(),
-			apiClient.getFolderTree()
-		]);
+		const [pages, folders] = await Promise.all([apiClient.getPages(), apiClient.getFolderTree()]);
 
 		return {
 			pages: pages || [],

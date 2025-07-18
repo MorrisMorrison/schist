@@ -10,7 +10,6 @@
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
-	import LoadingSpinner from './LoadingSpinner.svelte';
 	import ErrorAlert from './ErrorAlert.svelte';
 	import type { Folder as FolderType } from '$lib/api/types.js';
 	import { folders, isFoldersLoading, foldersError } from '$lib/stores/pages.js';
@@ -260,7 +259,7 @@
 	<!-- Loading State -->
 	{#if $isFoldersLoading}
 		<div class="flex items-center justify-center py-8">
-			<LoadingSpinner size="md" />
+			<div class="border-border border-t-primary h-6 w-6 animate-spin rounded-full border-2"></div>
 		</div>
 	{:else if $folders.length === 0}
 		<!-- Empty State -->
@@ -285,7 +284,7 @@
 	<!-- Context Menu -->
 	{#if contextMenuOpen}
 		<div
-			class="bg-popover border-border fixed z-50 min-w-[160px] rounded-md border py-1 shadow-lg"
+			class="bg-primary border-primary fixed z-50 min-w-[160px] rounded-lg border py-1 shadow-lg"
 			style="left: {contextMenuPosition.x}px; top: {contextMenuPosition.y}px"
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => {

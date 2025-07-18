@@ -14,10 +14,9 @@
 	<div class="space-y-2">
 		<h1 class="text-primary text-3xl font-bold">Recent Pages</h1>
 		<p class="text-secondary text-lg">
-			{data.totalPages > 0 
+			{data.totalPages > 0
 				? `Showing ${data.recentPages.length} of ${data.totalPages} pages, sorted by most recent activity`
-				: 'No pages found'
-			}
+				: 'No pages found'}
 		</p>
 	</div>
 
@@ -25,7 +24,7 @@
 	{#if data.recentPages.length > 0}
 		<div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
 			<div class="p-6">
-				<PageList pages={data.recentPages} showDates={true} showTags={true}/>
+				<PageList pages={data.recentPages} showDates={true} showTags={true} />
 			</div>
 		</div>
 	{:else}

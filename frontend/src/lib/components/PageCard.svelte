@@ -23,7 +23,16 @@
 		onMove?: (page: Page) => void;
 	}
 
-	let { page, showTags = true, showDates = true, showPath = true, onEdit, onDelete, onView, onMove }: Props = $props();
+	let {
+		page,
+		showTags = true,
+		showDates = true,
+		showPath = true,
+		onEdit,
+		onDelete,
+		onView,
+		onMove
+	}: Props = $props();
 
 	function formatDate(dateString?: string): string {
 		if (!dateString) return '';
@@ -44,10 +53,12 @@
 	}
 
 	const pagePathDerived = $derived(page.metaData?.path || `/${page.metaData.slug}`);
-	const parentFolderDerived = $derived((() => {
-		const parent = getParentPath(pagePathDerived);
-		return parent === '/' ? 'Root' : parent.split('/').pop() || 'Root';
-	})());
+	const parentFolderDerived = $derived(
+		(() => {
+			const parent = getParentPath(pagePathDerived);
+			return parent === '/' ? 'Root' : parent.split('/').pop() || 'Root';
+		})()
+	);
 </script>
 
 <Card class="transition-shadow hover:shadow-md">
@@ -60,9 +71,9 @@
 				>
 					{page.metaData.title}
 				</CardTitle>
-				
+
 				{#if showPath}
-					<CardDescription class="text-muted-foreground mt-1 text-sm flex items-center gap-1">
+					<CardDescription class="text-muted-foreground mt-1 flex items-center gap-1 text-sm">
 						<FolderOpen class="h-3 w-3" />
 						<span class="font-mono text-xs">{pagePathDerived}</span>
 						{#if parentFolderDerived !== 'Root'}
@@ -70,7 +81,7 @@
 						{/if}
 					</CardDescription>
 				{/if}
-				
+
 				{#if showDates}
 					<CardDescription class="text-muted-foreground mt-1 text-sm">
 						{#if page.metaData.updated}

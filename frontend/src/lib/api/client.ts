@@ -157,9 +157,8 @@ class SchістApiClient {
 		});
 	}
 
-
 	// Folder operations
-	
+
 	async getFolderTree(): Promise<Folder[]> {
 		const response = await this.request<FolderTreeResponse>('/folders');
 		return response.folders;

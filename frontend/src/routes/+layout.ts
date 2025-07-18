@@ -1,6 +1,6 @@
-import { apiClient } from "$lib";
+import { apiClient } from '$lib';
 
 export async function load() {
-  const pages = await apiClient.getPages();
-  return { pages };
+	const pages = await apiClient.getPages();
+	return { pages };
 }

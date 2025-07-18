@@ -164,7 +164,8 @@
 				<a
 					href="/"
 					onclick={closeMenu}
-					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname === '/' || $page.url.pathname.startsWith('/folders')
+					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname ===
+						'/' || $page.url.pathname.startsWith('/folders')
 						? 'bg-blue-muted text-blue-primary border-blue-500'
 						: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"
 				>
@@ -173,7 +174,8 @@
 				<a
 					href="/recent"
 					onclick={closeMenu}
-					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname === '/recent'
+					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname ===
+					'/recent'
 						? 'bg-blue-muted text-blue-primary border-blue-500'
 						: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"
 				>

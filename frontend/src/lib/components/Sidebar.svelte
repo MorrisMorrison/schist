@@ -24,8 +24,8 @@
   onMount(() => {
     folderActions.loadFolderTree();
     // Auto-expand folders containing the current path
-    if (currentPath.startsWith('/pages/')) {
-      const pathSegments = currentPath.replace('/pages/', '').split('/');
+    if (currentPath.startsWith('/folders/')) {
+      const pathSegments = currentPath.replace('/folders/', '').split('/');
       let buildPath = '';
       for (const segment of pathSegments) {
         if (segment) {
@@ -60,11 +60,11 @@
   }
 
   function navigateToFolder(folderPath: string) {
-    goto(`/pages${folderPath}`);
+    goto(`/folders${folderPath}`);
   }
 
   function isCurrentPath(path: string): boolean {
-    return currentPath === `/pages${path}` || currentPath === `/pages${path}/`;
+    return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
   }
 
   function createFolder(parentPath: string) {
@@ -138,11 +138,11 @@
       <!-- Root link -->
       <div class="folder-item root-item">
         <a 
-          href="/pages"
-          class="folder-link {currentPath === '/pages' ? 'current' : ''}"
+          href="/folders"
+          class="folder-link {currentPath === '/folders' ? 'current' : ''}"
         >
           <FolderOpen class="folder-icon" />
-          <span class="folder-name">All Pages</span>
+          <span class="folder-name">All Folders</span>
         </a>
       </div>
 
@@ -165,7 +165,7 @@
 
             <!-- Folder link -->
             <a 
-              href="/pages{item.folder.path}"
+              href="/folders{item.folder.path}"
               class="folder-link {item.isCurrent ? 'current' : ''}"
             >
               <Folder class="folder-icon" />
@@ -202,7 +202,7 @@
                   {/if}
 
                   <a 
-                    href="/pages{subItem.folder.path}"
+                    href="/folders{subItem.folder.path}"
                     class="folder-link {subItem.isCurrent ? 'current' : ''}"
                   >
                     <Folder class="folder-icon" />

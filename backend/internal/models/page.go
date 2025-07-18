@@ -33,7 +33,7 @@ type Folder struct {
 	Path       string    `json:"path"`
 	Created    time.Time `json:"created"`
 	PageCount  int       `json:"page_count"`
-	SubFolders []Folder  `json:"sub_folders"`
+	SubFolders []*Folder `json:"sub_folders"`
 }
 
 func (f *Folder) ParentPath() string {

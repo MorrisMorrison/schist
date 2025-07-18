@@ -37,6 +37,7 @@ func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
 	folders := r.Group("/folders")
 	{
 		folders.GET("", h.getFolderTree)
+		folders.GET("/*path", h.getFolder)
 		folders.POST("/*path", h.createFolder)
 		folders.DELETE("/*path", h.deleteFolder)
 	}
@@ -176,6 +177,23 @@ func (h *APIHandler) deletePageByPath(c *gin.Context) {
 		"message": "Page moved to trash successfully",
 		"path":    path,
 	})
+}
+
+func (h *APIHandler) getFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	folder, err := h.PageService.GetFolder(path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, folder)
 }
 
 func (h *APIHandler) getFolderTree(c *gin.Context) {

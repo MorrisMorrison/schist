@@ -59,7 +59,7 @@
 
   // Navigate to subfolder
   function navigateToFolder(folderPath: string) {
-    goto(`/pages${folderPath}`);
+    goto(`/folders${folderPath}`);
   }
 
   // Navigate to page

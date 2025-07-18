@@ -196,9 +196,13 @@ func (p *PageService) MovePage(oldPath, newPath string) error {
 	return nil
 }
 
-func (p *PageService) GetFolderTree() ([]models.Folder, error) {
+func (p *PageService) GetFolder(path string) (*models.Folder, error) {
+
+}
+
+func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 	folderMap := make(map[string]*models.Folder)
-	var rootFolders []models.Folder
+	var rootFolders []*models.Folder
 
 	err := filepath.WalkDir(p.dataDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -228,7 +232,7 @@ func (p *PageService) GetFolderTree() ([]models.Folder, error) {
 				Path:       logicalPath,
 				Created:    info.ModTime(),
 				PageCount:  0,
-				SubFolders: []models.Folder{},
+				SubFolders: []*models.Folder{},
 			}
 
 			folderMap[logicalPath] = folder
@@ -236,10 +240,10 @@ func (p *PageService) GetFolderTree() ([]models.Folder, error) {
 			parentPath := filepath.Dir(logicalPath)
 			isRootFolder := parentPath == "/" || parentPath == "."
 			if isRootFolder {
-				rootFolders = append(rootFolders, *folder)
+				rootFolders = append(rootFolders, folder)
 			} else {
 				if parent, exists := folderMap[parentPath]; exists {
-					parent.SubFolders = append(parent.SubFolders, *folder)
+					parent.SubFolders = append(parent.SubFolders, folder)
 				}
 			}
 		} else if strings.HasSuffix(d.Name(), MARKDOWN_FILE_ENDING) {

@@ -13,8 +13,8 @@
 	// Extract current page slug from URL for edit button
 	const currentPageSlug = $derived($page.params?.slug);
 
-	// Show sidebar on pages routes
-	const showSidebar = $derived($page.url.pathname.startsWith('/pages'));
+	// Show sidebar on pages and folders routes
+	const showSidebar = $derived($page.url.pathname.startsWith('/pages') || $page.url.pathname.startsWith('/folders'));
 
 	// Ensure theme is initialized on mount
 	onMount(() => {

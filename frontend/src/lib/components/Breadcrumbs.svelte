@@ -21,9 +21,9 @@
   // Handle navigation to folder/path
   function navigateToPath(targetPath: string) {
     if (targetPath === '/') {
-      window.location.href = '/pages';
+      window.location.href = '/folders';
     } else {
-      window.location.href = `/pages${targetPath}`;
+      window.location.href = `/folders${targetPath}`;
     }
   }
 </script>

@@ -1,29 +1,33 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { pagesStore, foldersStore } from '$lib/stores/pages';
+  import { pagesStore, foldersStore, folderActions, pageActions } from '$lib/stores/pages';
   import { getParentPath, normalizePath } from '$lib/api/types';
   import { Move, Folder, File, ChevronRight } from 'lucide-svelte';
   import type { Page, Folder as FolderType } from '$lib/api/types';
 
-  export let page: Page;
-  export let onClose: () => void;
-  export let onMoved: () => void;
+  interface Props {
+    page: Page;
+    onClose: () => void;
+    onMoved: () => void;
+  }
+  
+  let { page, onClose, onMoved }: Props = $props();
 
-  let selectedPath = '';
-  let newPageName = '';
-  let isLoading = false;
-  let error = '';
-  let expandedFolders = new Set<string>();
+  let selectedPath = $state('');
+  let newPageName = $state('');
+  let isLoading = $state(false);
+  let error = $state('');
+  let expandedFolders = $state(new Set<string>());
 
-  $: availableFolders = $foldersStore.folders;
-  $: currentPath = page.metadata.path || `/${page.metadata.slug}`;
-  $: currentFolder = getParentPath(currentPath);
-  $: pageName = page.metadata.title || page.metadata.slug || 'Untitled';
-  $: finalPath = selectedPath ? `${selectedPath}/${newPageName || page.metadata.slug}` : `/${newPageName || page.metadata.slug}`;
+  const availableFolders = $derived($foldersStore.folders);
+  const currentPath = $derived(page.metaData.path || `/${page.metaData.slug}`);
+  const currentFolder = $derived(getParentPath(currentPath));
+  const pageName = $derived(page.metaData.title || page.metaData.slug || 'Untitled');
+  const finalPath = $derived(selectedPath ? `${selectedPath}/${newPageName || page.metaData.slug}` : `/${newPageName || page.metaData.slug}`);
 
   onMount(() => {
-    foldersStore.loadFolderTree();
-    newPageName = page.metadata.slug || '';
+    folderActions.loadFolderTree();
+    newPageName = page.metaData.slug || '';
     selectedPath = currentFolder === '/' ? '' : currentFolder;
   });
 
@@ -59,7 +63,7 @@
     });
   }
 
-  $: folderTree = renderFolderTree(availableFolders);
+  const folderTree = $derived(renderFolderTree(availableFolders));
 
   async function movePage() {
     if (isLoading) return;
@@ -78,7 +82,7 @@
     error = '';
 
     try {
-      await pagesStore.movePagePath(currentPath, finalPath);
+      await pageActions.movePagePath(currentPath, finalPath);
       onMoved();
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to move page';
@@ -96,8 +100,8 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="modal-overlay" on:click={onClose}>
-  <div class="modal" on:click|stopPropagation>
+<div class="modal-overlay" onclick={onClose}>
+  <div class="modal" onclick={(e) => e.stopPropagation()}>
     <div class="modal-header">
       <div class="modal-title">
         <Move class="modal-icon" />
@@ -106,14 +110,14 @@
       <button 
         type="button"
         class="modal-close"
-        on:click={onClose}
+        onclick={onClose}
         aria-label="Close modal"
       >
         ×
       </button>
     </div>
 
-    <form on:submit|preventDefault={movePage}>
+    <form onsubmit={(e) => { e.preventDefault(); movePage(); }}>
       <div class="modal-body">
         <!-- Current Location -->
         <div class="current-location">
@@ -149,7 +153,7 @@
                 type="button"
                 class="folder-button"
                 class:selected={selectedPath === ''}
-                on:click={() => selectFolder('')}
+                onclick={() => selectFolder('')}
               >
                 <Folder class="folder-icon" />
                 <span>Root (/) - All Documentation</span>
@@ -164,7 +168,7 @@
                     <button 
                       type="button"
                       class="expand-button"
-                      on:click={() => toggleFolder(item.folder.path)}
+                      onclick={() => toggleFolder(item.folder.path)}
                     >
                       <ChevronRight class="expand-icon {item.isExpanded ? 'expanded' : ''}" />
                     </button>
@@ -177,7 +181,7 @@
                     class="folder-button"
                     class:selected={item.isSelected}
                     class:current={item.isCurrentFolder}
-                    on:click={() => selectFolder(item.folder.path)}
+                    onclick={() => selectFolder(item.folder.path)}
                     disabled={item.isCurrentFolder}
                   >
                     <Folder class="folder-icon" />
@@ -196,7 +200,7 @@
                         <button 
                           type="button"
                           class="expand-button"
-                          on:click={() => toggleFolder(child.folder.path)}
+                          onclick={() => toggleFolder(child.folder.path)}
                         >
                           <ChevronRight class="expand-icon {child.isExpanded ? 'expanded' : ''}" />
                         </button>
@@ -209,7 +213,7 @@
                         class="folder-button"
                         class:selected={child.isSelected}
                         class:current={child.isCurrentFolder}
-                        on:click={() => selectFolder(child.folder.path)}
+                        onclick={() => selectFolder(child.folder.path)}
                         disabled={child.isCurrentFolder}
                       >
                         <Folder class="folder-icon" />
@@ -246,7 +250,7 @@
         <button 
           type="button" 
           class="btn btn-secondary" 
-          on:click={onClose}
+          onclick={onClose}
           disabled={isLoading}
         >
           Cancel
@@ -547,13 +551,19 @@
   }
 
   .btn {
-    padding: 0.75rem 1.5rem;
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    text-decoration: none;
+    border: none;
+    outline: none;
   }
 
   .btn:disabled {
@@ -562,23 +572,31 @@
   }
 
   .btn-primary {
-    background: var(--color-primary);
+    background: var(--blue-primary);
     color: white;
-    border-color: var(--color-primary);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: var(--color-primary-hover);
+    background: var(--blue-secondary);
+  }
+
+  .btn-primary:focus {
+    background: var(--blue-secondary);
+    box-shadow: 0 0 0 2px var(--blue-primary);
   }
 
   .btn-secondary {
-    background: var(--color-background);
-    color: var(--color-text);
-    border-color: var(--color-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: var(--color-background-tertiary);
+    background: var(--gray-hover);
+  }
+
+  .btn-secondary:focus {
+    background: var(--gray-active);
+    box-shadow: 0 0 0 2px var(--gray-active);
   }
 
   @media (max-width: 768px) {

@@ -1,18 +1,22 @@
 <script lang="ts">
-  import { foldersStore } from '$lib/stores/pages';
+  import { folderActions } from '$lib/stores/pages';
   import { isValidPath, normalizePath } from '$lib/api/types';
   import { Folder, AlertCircle } from 'lucide-svelte';
 
-  export let parentPath: string = '';
-  export let onClose: () => void;
-  export let onCreated: () => void;
+  interface Props {
+    parentPath?: string;
+    onClose: () => void;
+    onCreated: () => void;
+  }
+  
+  let { parentPath = '', onClose, onCreated }: Props = $props();
 
-  let folderName = '';
-  let error = '';
-  let isLoading = false;
+  let folderName = $state('');
+  let error = $state('');
+  let isLoading = $state(false);
 
-  $: folderPath = parentPath ? `${parentPath}/${folderName}` : `/${folderName}`;
-  $: isValidName = validateFolderName(folderName);
+  const folderPath = $derived(parentPath ? `${parentPath}/${folderName}` : `/${folderName}`);
+  const isValidName = $derived(validateFolderName(folderName));
 
   function validateFolderName(name: string): boolean {
     if (!name.trim()) return false;
@@ -51,7 +55,7 @@
       const normalizedName = folderName.trim().toLowerCase().replace(/\s+/g, '-');
       const fullPath = parentPath ? `${parentPath}/${normalizedName}` : `/${normalizedName}`;
       
-      await foldersStore.createFolder(fullPath);
+      await folderActions.createFolder(fullPath);
       onCreated();
     } catch (err) {
       error = err instanceof Error ? err.message : 'Failed to create folder';
@@ -71,8 +75,8 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="modal-overlay" on:click={onClose}>
-  <div class="modal" on:click|stopPropagation>
+<div class="modal-overlay" onclick={onClose}>
+  <div class="modal" onclick={(e) => e.stopPropagation()}>
     <div class="modal-header">
       <div class="modal-title">
         <Folder class="modal-icon" />
@@ -81,14 +85,14 @@
       <button 
         type="button"
         class="modal-close"
-        on:click={onClose}
+        onclick={onClose}
         aria-label="Close modal"
       >
         ×
       </button>
     </div>
 
-    <form on:submit|preventDefault={createFolder}>
+    <form onsubmit={(e) => { e.preventDefault(); createFolder(); }}>
       <div class="modal-body">
         <div class="form-group">
           <label for="folder-name">Folder Name</label>
@@ -99,7 +103,6 @@
             placeholder="Enter folder name"
             class:error={error && folderName}
             required
-            autofocus
           />
           
           {#if error && folderName}
@@ -127,7 +130,7 @@
         <button 
           type="button" 
           class="btn btn-secondary" 
-          on:click={onClose}
+          onclick={onClose}
           disabled={isLoading}
         >
           Cancel
@@ -333,17 +336,19 @@
   }
 
   .btn {
-    padding: 0.75rem 1.5rem;
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    border: none;
+    outline: none;
   }
 
   .btn:disabled {
@@ -352,24 +357,31 @@
   }
 
   .btn-primary {
-    background: var(--color-primary);
+    background: var(--blue-primary);
     color: white;
-    border-color: var(--color-primary);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: var(--color-primary-hover);
-    border-color: var(--color-primary-hover);
+    background: var(--blue-secondary);
+  }
+
+  .btn-primary:focus {
+    background: var(--blue-secondary);
+    box-shadow: 0 0 0 2px var(--blue-primary);
   }
 
   .btn-secondary {
-    background: var(--color-background);
-    color: var(--color-text);
-    border-color: var(--color-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   .btn-secondary:hover:not(:disabled) {
-    background: var(--color-background-tertiary);
+    background: var(--gray-hover);
+  }
+
+  .btn-secondary:focus {
+    background: var(--gray-active);
+    box-shadow: 0 0 0 2px var(--gray-active);
   }
 
   @media (max-width: 768px) {

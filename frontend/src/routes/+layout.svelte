@@ -25,7 +25,7 @@
 <div class="min-h-screen bg-gray-50 transition-colors dark:bg-gray-900">
 	<Navigation {currentPageSlug} />
 
-	<div class="app-container">
+	<div class="app-container" class:with-sidebar={showSidebar}>
 		{#if showSidebar}
 			<Sidebar />
 		{/if}
@@ -45,7 +45,13 @@
 	.main-content {
 		flex: 1;
 		overflow-y: auto;
-		padding: 1rem;
+		padding: 2rem;
+	}
+	
+	/* When sidebar is not shown, center the content with max-width */
+	.app-container:not(.with-sidebar) .main-content {
+		max-width: 1200px;
+		margin: 0 auto;
 	}
 
 	@media (max-width: 768px) {

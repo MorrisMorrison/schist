@@ -1,24 +1,26 @@
 import type { PageLoad } from './$types.js';
-import type { Page } from '$lib/api/types.js';
+import type { Page, Folder } from '$lib/api/types.js';
 import { apiClient } from '$lib';
 
 export const load: PageLoad = async () => {
 	try {
-		const pages: Page[] = (await apiClient.getPages()) || [];
-
-		// Sort pages alphabetically by title
-		const sortedPages = pages.sort((a, b) => a.metaData.title.localeCompare(b.metaData.title));
+		const [pages, folders] = await Promise.all([
+			apiClient.getPages(),
+			apiClient.getFolderTree()
+		]);
 
 		return {
-			pages: sortedPages,
-			total: pages.length
+			pages: pages || [],
+			folders: folders || [],
+			total: pages?.length || 0
 		};
 	} catch (error) {
-		console.error('Failed to load pages:', error);
+		console.error('Failed to load pages and folders:', error);
 		return {
 			pages: [],
+			folders: [],
 			total: 0,
-			error: 'Failed to load pages'
+			error: 'Failed to load pages and folders'
 		};
 	}
 };

@@ -43,7 +43,7 @@
 		return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
 	}
 
-	const pagePathDerived = $derived(page.metadata?.path || `/${page.metaData.slug}`);
+	const pagePathDerived = $derived(page.metaData?.path || `/${page.metaData.slug}`);
 	const parentFolderDerived = $derived((() => {
 		const parent = getParentPath(pagePathDerived);
 		return parent === '/' ? 'Root' : parent.split('/').pop() || 'Root';

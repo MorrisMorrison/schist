@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { pagesStore, foldersStore } from '$lib/stores/pages';
+  import { goto } from '$app/navigation';
+  import { pagesStore, foldersStore, folderActions, pageActions } from '$lib/stores/pages';
   import { getParentPath } from '$lib/api/types';
   import PageCard from './PageCard.svelte';
   import Breadcrumbs from './Breadcrumbs.svelte';
@@ -11,45 +12,60 @@
   interface Props {
     path?: string;
     showCreateButtons?: boolean;
+    initialPages?: Page[];
+    initialFolders?: FolderType[];
   }
   
-  let { path = '', showCreateButtons = true }: Props = $props();
+  let { path = '', showCreateButtons = true, initialPages = [], initialFolders = [] }: Props = $props();
 
   let showCreateFolderModal = $state(false);
   let showCreatePageModal = $state(false);
   let newPageTitle = $state('');
 
   // Get current folder and its contents
-  const currentFolder = $derived($foldersStore.folders.find(f => f.path === path));
+  const currentFolderData = $derived($foldersStore.folders?.find(f => f.path === path));
   const currentFolderPages = $derived($pagesStore.pages.filter(page => 
-    page.metadata.path === path || 
-    (path === '' && !page.metadata.path?.includes('/'))
+    page.metaData.path === path || 
+    (path === '' && !page.metaData.path?.includes('/'))
   ));
-  const subFolders = $derived(currentFolder?.sub_folders || []);
+  const subFolders = $derived(currentFolderData?.sub_folders || []);
 
   // Load folder contents on mount and path changes
-  onMount(() => {
-    if (path) {
-      pagesStore.setCurrentFolder(path);
+  $effect(() => {
+    // Initialize stores with initial data if provided
+    if (initialPages.length > 0) {
+      pagesStore.update(state => ({ ...state, pages: initialPages }));
     }
-    foldersStore.loadFolderTree();
+    if (initialFolders.length > 0) {
+      foldersStore.update(state => ({ ...state, folders: initialFolders }));
+    }
+    
+    // Load fresh data if not provided
+    if (initialPages.length === 0 || initialFolders.length === 0) {
+      loadFolderData();
+    }
   });
 
-  $effect(() => {
-    if (path) {
-      pagesStore.setCurrentFolder(path);
+  async function loadFolderData() {
+    try {
+      await Promise.all([
+        folderActions.loadFolderTree(),
+        pageActions.loadPages()
+      ]);
+    } catch (error) {
+      console.error('Failed to load folder data:', error);
     }
-  });
+  }
 
   // Navigate to subfolder
   function navigateToFolder(folderPath: string) {
-    window.location.href = `/pages${folderPath}`;
+    goto(`/pages${folderPath}`);
   }
 
   // Navigate to page
   function navigateToPage(page: Page) {
-    const pagePath = page.metadata.path || `/${page.metadata.slug}`;
-    window.location.href = `/pages${pagePath}`;
+    const pagePath = page.metaData.path || `/${page.metaData.slug}`;
+    goto(`/pages${pagePath}`);
   }
 
   // Create new page in current folder
@@ -59,33 +75,29 @@
     const slug = newPageTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     const pagePath = path ? `${path}/${slug}` : `/${slug}`;
     
-    const newPage: Page = {
-      metadata: {
-        title: newPageTitle,
-        slug: slug,
-        path: pagePath,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        tags: []
-      },
-      content: `# ${newPageTitle}\n\nStart writing your content here...`
-    };
-
     try {
-      await pagesStore.createPage(newPage);
+      await pageActions.createPage({
+        metaData: {
+          title: newPageTitle,
+          slug: slug,
+          path: pagePath,
+          tags: []
+        },
+        content: `# ${newPageTitle}\n\nStart writing your content here...`
+      });
       newPageTitle = '';
       showCreatePageModal = false;
       // Navigate to the new page
-      navigateToPage(newPage);
+      goto(`/pages${pagePath}`);
     } catch (error) {
       console.error('Failed to create page:', error);
     }
   }
 
   // Handle folder creation
-  function handleFolderCreated() {
+  async function handleFolderCreated() {
     showCreateFolderModal = false;
-    foldersStore.loadFolderTree();
+    await loadFolderData();
   }
 </script>
 
@@ -108,7 +120,7 @@
         <button 
           type="button"
           class="btn btn-secondary"
-          on:click={() => showCreateFolderModal = true}
+          onclick={() => showCreateFolderModal = true}
         >
           <FolderPlus class="icon" />
           New Folder
@@ -116,7 +128,7 @@
         <button 
           type="button"
           class="btn btn-primary"
-          on:click={() => showCreatePageModal = true}
+          onclick={() => showCreatePageModal = true}
         >
           <Plus class="icon" />
           New Page
@@ -136,7 +148,7 @@
             <button 
               type="button"
               class="folder-card"
-              on:click={() => navigateToFolder(folder.path)}
+              onclick={() => navigateToFolder(folder.path)}
             >
               <Folder class="folder-icon" />
               <div class="folder-info">
@@ -174,7 +186,7 @@
             <button 
               type="button"
               class="btn btn-primary"
-              on:click={() => showCreatePageModal = true}
+              onclick={() => showCreatePageModal = true}
             >
               <Plus class="icon" />
               Create Page
@@ -182,7 +194,7 @@
             <button 
               type="button"
               class="btn btn-secondary"
-              on:click={() => showCreateFolderModal = true}
+              onclick={() => showCreateFolderModal = true}
             >
               <FolderPlus class="icon" />
               Create Folder
@@ -205,19 +217,19 @@
 
 <!-- Create Page Modal -->
 {#if showCreatePageModal}
-  <div class="modal-overlay" on:click={() => showCreatePageModal = false}>
-    <div class="modal" on:click|stopPropagation>
+  <div class="modal-overlay" onclick={() => showCreatePageModal = false}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h3>Create New Page</h3>
         <button 
           type="button"
           class="modal-close"
-          on:click={() => showCreatePageModal = false}
+          onclick={() => showCreatePageModal = false}
         >
           ×
         </button>
       </div>
-      <form on:submit|preventDefault={createPage}>
+      <form onsubmit={(e) => { e.preventDefault(); createPage(); }}>
         <div class="form-group">
           <label for="page-title">Page Title</label>
           <input 
@@ -229,7 +241,7 @@
           />
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" on:click={() => showCreatePageModal = false}>
+          <button type="button" class="btn btn-secondary" onclick={() => showCreatePageModal = false}>
             Cancel
           </button>
           <button type="submit" class="btn btn-primary" disabled={!newPageTitle.trim()}>
@@ -362,34 +374,47 @@
   }
 
   .btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--color-border);
+    padding: 0.5rem 0.75rem;
     border-radius: 0.375rem;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     text-decoration: none;
-    background: var(--color-background);
-    color: var(--color-text);
+    border: none;
+    outline: none;
+    focus: ring-2 ring-offset-2;
   }
 
   .btn-primary {
-    background: var(--color-primary);
+    background: var(--blue-primary);
     color: white;
-    border-color: var(--color-primary);
+  }
+
+  .btn-primary:hover {
+    background: var(--blue-secondary);
+  }
+
+  .btn-primary:focus {
+    background: var(--blue-secondary);
+    box-shadow: 0 0 0 2px var(--blue-primary);
   }
 
   .btn-secondary {
-    background: var(--color-background-secondary);
-    border-color: var(--color-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
-  .btn:hover {
-    opacity: 0.9;
+  .btn-secondary:hover {
+    background: var(--gray-hover);
+  }
+
+  .btn-secondary:focus {
+    background: var(--gray-active);
+    box-shadow: 0 0 0 2px var(--gray-active);
   }
 
   .btn:disabled {

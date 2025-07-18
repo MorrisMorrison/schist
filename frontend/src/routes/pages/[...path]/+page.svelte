@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { pagesStore } from '$lib/stores/pages';
+  import { pageActions } from '$lib/stores/pages';
   import { goto } from '$app/navigation';
   import FolderView from '$lib/components/FolderView.svelte';
   import PageView from '$lib/components/PageView.svelte';
@@ -39,7 +39,7 @@
     try {
       // First try to load as a page
       try {
-        currentPage = await pagesStore.loadPageByPath(fullPath);
+        currentPage = await pageActions.loadPageByPath(fullPath);
         isFolder = false;
       } catch (pageError) {
         // If page not found, treat as folder
@@ -59,7 +59,7 @@
 
   function handleDeletePage(slug: string) {
     if (confirm('Are you sure you want to delete this page?')) {
-      pagesStore.deletePage(slug);
+      pageActions.deletePage(slug);
     }
   }
 
@@ -82,7 +82,7 @@
 </script>
 
 <svelte:head>
-  <title>{currentPage?.metadata?.title || (isFolder ? (path ? path.split('/').pop() + ' - Folder' : 'Pages') : 'Pages')}</title>
+  <title>{currentPage?.metaData?.title || (isFolder ? (path ? path.split('/').pop() + ' - Folder' : 'Pages') : 'Pages')}</title>
 </svelte:head>
 
 <div class="pages-container">

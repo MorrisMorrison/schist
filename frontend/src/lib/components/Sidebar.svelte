@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { foldersStore } from '$lib/stores/pages';
+  import { goto } from '$app/navigation';
+  import { foldersStore, folderActions } from '$lib/stores/pages';
   import { page } from '$app/stores';
   import { Folder, FolderOpen, File, ChevronRight, Plus, Search } from 'lucide-svelte';
   import CreateFolderModal from './CreateFolderModal.svelte';
@@ -12,16 +13,16 @@
   let parentPathForModal = $state('');
 
   const currentPath = $derived($page.url.pathname);
-  const folders = $derived($foldersStore.folders);
-  const isLoading = $derived($foldersStore.isLoading);
+  const folders = $derived($foldersStore.folders || []);
+  const isLoading = $derived($foldersStore.loading);
 
   // Filter folders based on search
   const filteredFolders = $derived(searchQuery.trim() 
-    ? filterFolders(folders, searchQuery.toLowerCase())
-    : folders);
+    ? filterFolders(folders || [], searchQuery.toLowerCase())
+    : folders || []);
 
   onMount(() => {
-    foldersStore.loadFolderTree();
+    folderActions.loadFolderTree();
     // Auto-expand folders containing the current path
     if (currentPath.startsWith('/pages/')) {
       const pathSegments = currentPath.replace('/pages/', '').split('/');
@@ -59,7 +60,7 @@
   }
 
   function navigateToFolder(folderPath: string) {
-    window.location.href = `/pages${folderPath}`;
+    goto(`/pages${folderPath}`);
   }
 
   function isCurrentPath(path: string): boolean {
@@ -74,7 +75,7 @@
   function handleFolderCreated() {
     showCreateFolderModal = false;
     parentPathForModal = '';
-    foldersStore.loadFolderTree();
+    folderActions.loadFolderTree();
   }
 
   function renderFolderTree(folders: FolderType[], depth: number = 0) {
@@ -258,7 +259,7 @@
   .sidebar-title {
     font-size: 1.125rem;
     font-weight: 600;
-    color: var(--color-text);
+    color: var(--text-primary);
     margin: 0;
   }
 
@@ -271,14 +272,14 @@
     background: none;
     border: none;
     border-radius: 0.25rem;
-    color: var(--color-text-secondary);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
   }
 
   .create-folder-btn:hover {
-    background: var(--color-background-secondary);
-    color: var(--color-text);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   .search-container {
@@ -439,7 +440,9 @@
 
   .folder-name {
     flex: 1;
-    truncate: true;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .page-count {

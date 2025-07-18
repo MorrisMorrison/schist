@@ -13,12 +13,12 @@
   
   let { page, onEdit = () => {}, onDelete = () => {}, onView = () => {}, onMove = () => {} }: Props = $props();
 
-  const pagePath = $derived(page.metadata?.path || `/${page.metadata?.slug}`);
-  const pageTitle = $derived(page.metadata?.title || page.metaData?.title || 'Untitled');
-  const pageSlug = $derived(page.metadata?.slug || page.metaData?.slug || '');
-  const pageCreated = $derived(page.metadata?.created || page.metaData?.created);
-  const pageUpdated = $derived(page.metadata?.updated || page.metaData?.updated);
-  const pageTags = $derived(page.metadata?.tags || page.metaData?.tags || []);
+  const pagePath = $derived(page.metaData?.path || `/${page.metaData?.slug}`);
+  const pageTitle = $derived(page.metaData?.title || 'Untitled');
+  const pageSlug = $derived(page.metaData?.slug || '');
+  const pageCreated = $derived(page.metaData?.created);
+  const pageUpdated = $derived(page.metaData?.updated);
+  const pageTags = $derived(page.metaData?.tags || []);
 
   function formatDate(dateString?: string): string {
     if (!dateString) return '';
@@ -93,7 +93,7 @@
       <button 
         type="button"
         class="btn btn-secondary"
-        on:click={() => onEdit(pageSlug)}
+        onclick={() => onEdit(pageSlug)}
         title="Edit page"
       >
         <Edit class="btn-icon" />
@@ -103,7 +103,7 @@
       <button 
         type="button"
         class="btn btn-secondary"
-        on:click={() => onMove(page)}
+        onclick={() => onMove(page)}
         title="Move page"
       >
         <Move class="btn-icon" />
@@ -113,7 +113,7 @@
       <button 
         type="button"
         class="btn btn-danger"
-        on:click={() => onDelete(pageSlug)}
+        onclick={() => onDelete(pageSlug)}
         title="Delete page"
       >
         <Trash2 class="btn-icon" />
@@ -134,7 +134,7 @@
         <button 
           type="button"
           class="btn btn-primary"
-          on:click={() => onEdit(pageSlug)}
+          onclick={() => onEdit(pageSlug)}
         >
           Add Content
         </button>
@@ -214,51 +214,60 @@
   }
 
   .btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--color-border);
+    padding: 0.5rem 0.75rem;
     border-radius: 0.375rem;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     text-decoration: none;
-    background: var(--color-background);
-    color: var(--color-text);
+    border: none;
+    outline: none;
   }
 
   .btn-secondary {
-    background: var(--color-background-secondary);
-    border-color: var(--color-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   .btn-secondary:hover {
-    background: var(--color-background-tertiary);
-    border-color: var(--color-primary);
+    background: var(--gray-hover);
+  }
+
+  .btn-secondary:focus {
+    background: var(--gray-active);
+    box-shadow: 0 0 0 2px var(--gray-active);
   }
 
   .btn-primary {
-    background: var(--color-primary);
+    background: var(--blue-primary);
     color: white;
-    border-color: var(--color-primary);
   }
 
   .btn-primary:hover {
-    background: var(--color-primary-hover);
-    border-color: var(--color-primary-hover);
+    background: var(--blue-secondary);
+  }
+
+  .btn-primary:focus {
+    background: var(--blue-secondary);
+    box-shadow: 0 0 0 2px var(--blue-primary);
   }
 
   .btn-danger {
-    background: var(--color-error);
+    background: var(--red-primary);
     color: white;
-    border-color: var(--color-error);
   }
 
   .btn-danger:hover {
-    background: var(--color-error-hover);
-    border-color: var(--color-error-hover);
+    background: var(--red-secondary);
+  }
+
+  .btn-danger:focus {
+    background: var(--red-secondary);
+    box-shadow: 0 0 0 2px var(--red-primary);
   }
 
   .btn-icon {

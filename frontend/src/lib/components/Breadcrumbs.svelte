@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
   import { getParentPath } from '$lib/api/types';
   import { ChevronRight, Home } from 'lucide-svelte';
 
@@ -25,9 +26,9 @@ $: {
   // Handle navigation to folder/path
   function navigateToPath(targetPath: string) {
     if (targetPath === '/') {
-      window.location.href = '/folders';
+      goto('/folders');
     } else {
-      window.location.href = `/folders${targetPath}`;
+      goto(`/folders${targetPath}`);
     }
   }
 </script>

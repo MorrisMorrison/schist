@@ -120,8 +120,8 @@ class SchістApiClient {
 		});
 	}
 
-	async deletePage(slug: string): Promise<void> {
-		await this.request<void>(`/pages/${encodeURIComponent(slug)}`, {
+	async deletePage(path: string): Promise<void> {
+		await this.request<void>(`/pages/${this.encodePath(path)}`, {
 			method: 'DELETE'
 		});
 	}

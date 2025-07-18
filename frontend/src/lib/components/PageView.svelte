@@ -13,7 +13,7 @@
   
   let { page, onEdit = () => {}, onDelete = () => {}, onView = () => {}, onMove = () => {} }: Props = $props();
 
-  const pagePath = $derived(page.metaData?.path || `/${page.metaData?.slug}`);
+  const pagePath = $derived(page.metaData?.path || `/${page.metaData?.slug}`)
   const pageTitle = $derived(page.metaData?.title || 'Untitled');
   const pageSlug = $derived(page.metaData?.slug || '');
   const pageCreated = $derived(page.metaData?.created);
@@ -113,7 +113,7 @@
       <button 
         type="button"
         class="btn btn-danger"
-        onclick={() => onDelete(pageSlug)}
+        onclick={() => onDelete(pagePath)}
         title="Delete page"
       >
         <Trash2 class="btn-icon" />

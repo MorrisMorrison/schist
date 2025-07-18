@@ -1,5 +1,4 @@
 import type { PageLoad } from './$types.js';
-import type { Page, Folder } from '$lib/api/types.js';
 import { apiClient } from '$lib';
 
 export const load: PageLoad = async () => {

@@ -7,8 +7,7 @@
 
 	// Import theme store to initialize
 	import '$lib/stores/theme.js';
-
-	let { children } = $props();
+	let { children, data } = $props();
 
 	// Extract current page slug from URL for edit button
 	const currentPageSlug = $derived($page.params?.slug);

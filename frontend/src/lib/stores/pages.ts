@@ -212,15 +212,15 @@ export const pageActions = {
 	},
 
 	// Delete a page
-	async deletePage(slug: string) {
+	async deletePage(path: string) {
 		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			await apiClient.deletePage(slug);
+			await apiClient.deletePage(path);
 			pagesStore.update((state) => ({
 				...state,
-				pages: state.pages.filter((p) => p.metaData.slug !== slug),
-				currentPage: state.currentPage?.metaData.slug === slug ? null : state.currentPage,
+				pages: state.pages.filter((p) => p.metaData.path !== path),
+				currentPage: state.currentPage?.metaData.path === path ? null : state.currentPage,
 				loading: false
 			}));
 

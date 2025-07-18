@@ -1,12 +1,15 @@
 import { apiClient } from '$lib/api/client';
-import type { PageData } from './$types';
+import type {  PageLoad } from './$types';
 
-export async function load(): Promise<PageData> {
+export const load: PageLoad = async () =>
+ {
 	try {
 		const response = await apiClient.getPages();
 		
+		const pagesWithoutTrash = response.filter(page => !page.metaData.path.includes("/trash"))
+		
 		// Sort by updated date (most recent first)
-		const sortedPages = response.sort((a, b) => {
+		const sortedPages = pagesWithoutTrash.sort((a, b) => {
 			const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
 			const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
 			return dateB - dateA;

@@ -9,7 +9,6 @@
 	<title>Recent Pages - Schist Wiki</title>
 	<meta name="description" content="Recently updated pages in your wiki" />
 </svelte:head>
-
 <div class="space-y-8">
 	<!-- Header -->
 	<div class="space-y-2">
@@ -26,7 +25,7 @@
 	{#if data.recentPages.length > 0}
 		<div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
 			<div class="p-6">
-				<PageList pages={data.recentPages} showDates={true} showTags={true} showPath={true} />
+				<PageList pages={data.recentPages} showDates={true} showTags={true}/>
 			</div>
 		</div>
 	{:else}

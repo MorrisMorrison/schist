@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { pagesStore, foldersStore, folderActions, pageActions } from '$lib/stores/pages';
-  import { getParentPath } from '$lib/api/types';
   import PageCard from './PageCard.svelte';
   import Breadcrumbs from './Breadcrumbs.svelte';
   import CreateFolderModal from './CreateFolderModal.svelte';
@@ -21,14 +19,52 @@
   let showCreateFolderModal = $state(false);
   let showCreatePageModal = $state(false);
   let newPageTitle = $state('');
+  let isLoadingFolderData = $state(false);
+  let sortBy = $state('name'); // 'name', 'created', 'modified'
+  let sortOrder = $state('asc'); // 'asc', 'desc'
 
   // Get current folder and its contents
   const currentFolderData = $derived($foldersStore.folders?.find(f => f.path === path));
-  const currentFolderPages = $derived($pagesStore.pages.filter(page => 
-    page.metaData.path === path || 
-    (path === '' && !page.metaData.path?.includes('/'))
-  ));
-  const subFolders = $derived(currentFolderData?.sub_folders || []);
+  const currentFolderPages = $derived($pagesStore.pages.filter(page => {
+    const pagePath = page.metaData?.path || '';
+    
+    // Handle root folder case
+    if (path === '' || path === '/') {
+      // Pages in root folder don't have '/' after the first character
+      return pagePath.split('/').length === 2; // ['', 'filename']
+    }
+    
+    // For specific folders, check if page is directly in this folder
+    // e.g., for folder '/anotherfolder', match pages like '/anotherfolder/page'
+    // but not '/anotherfolder/subfolder/page'
+    const folderSegments = path.split('/').filter(Boolean);
+    const pageSegments = pagePath.split('/').filter(Boolean);
+    
+    // Page must be exactly one level deeper than the folder
+    return pageSegments.length === folderSegments.length + 1 &&
+           pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/');
+  }).sort((a, b) => {
+    let result = 0;
+    
+    if (sortBy === 'name') {
+      result = (a.metaData.title || '').localeCompare(b.metaData.title || '');
+    } else if (sortBy === 'created') {
+      const dateA = new Date(a.metaData.created || '').getTime();
+      const dateB = new Date(b.metaData.created || '').getTime();
+      result = dateB - dateA; // Newest first by default
+    } else if (sortBy === 'modified') {
+      const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
+      const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
+      result = dateB - dateA; // Newest first by default
+    }
+    
+    return sortOrder === 'desc' ? -result : result;
+  }));
+  
+  const subFolders = $derived((currentFolderData?.sub_folders || []).sort((a, b) => {
+    const result = a.name.localeCompare(b.name);
+    return sortOrder === 'desc' ? -result : result;
+  }));
 
   // Load folder contents on mount and path changes
   $effect(() => {
@@ -48,12 +84,15 @@
 
   async function loadFolderData() {
     try {
+      isLoadingFolderData = true;
       await Promise.all([
         folderActions.loadFolderTree(),
         pageActions.loadPages()
       ]);
     } catch (error) {
       console.error('Failed to load folder data:', error);
+    } finally {
+      isLoadingFolderData = false;
     }
   }
 
@@ -62,11 +101,6 @@
     goto(`/folders${folderPath}`);
   }
 
-  // Navigate to page
-  function navigateToPage(page: Page) {
-    const pagePath = page.metaData.path || `/${page.metaData.slug}`;
-    goto(`/pages${pagePath}`);
-  }
 
   // Create new page in current folder
   async function createPage() {
@@ -79,7 +113,6 @@
       await pageActions.createPage({
         metaData: {
           title: newPageTitle,
-          slug: slug,
           path: pagePath,
           tags: []
         },
@@ -107,34 +140,78 @@
 
   <!-- Folder Header -->
   <div class="folder-header">
-    <h1 class="folder-title">
-      {#if path === ''}
-        All Documentation
-      {:else}
-        {path.split('/').pop()?.charAt(0).toUpperCase() + path.split('/').pop()?.slice(1).replace(/-/g, ' ') || 'Folder'}
+    <div class="folder-title-section">
+      <h1 class="folder-title">
+        {#if path === ''}
+          All Documentation
+        {:else}
+          {(() => {
+            const folderName = path.split('/').pop();
+            if (!folderName) return 'Folder';
+            return folderName.charAt(0).toUpperCase() + folderName.slice(1).replace(/-/g, ' ');
+          })()}
+        {/if}
+      </h1>
+      
+      <!-- Folder Statistics -->
+      <div class="folder-stats">
+        <span class="stat-item">
+          {subFolders.length} {subFolders.length === 1 ? 'folder' : 'folders'}
+        </span>
+        <span class="stat-divider">•</span>
+        <span class="stat-item">
+          {currentFolderPages.length} {currentFolderPages.length === 1 ? 'page' : 'pages'}
+        </span>
+      </div>
+      
+      {#if isLoadingFolderData}
+        <div class="loading-indicator">
+          <div class="spinner"></div>
+          <span>Loading...</span>
+        </div>
       {/if}
-    </h1>
+    </div>
     
-    {#if showCreateButtons}
-      <div class="folder-actions">
+    <div class="folder-controls">
+      <!-- Sort Controls -->
+      <div class="sort-controls">
+        <label class="sort-label" for="sort-select">Sort by:</label>
+        <select bind:value={sortBy} class="sort-select" id="sort-select">
+          <option value="name">Name</option>
+          <option value="created">Created</option>
+          <option value="modified">Modified</option>
+        </select>
         <button 
           type="button"
-          class="btn btn-secondary"
-          onclick={() => showCreateFolderModal = true}
+          class="sort-order-btn"
+          onclick={() => sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'}
+          title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
         >
-          <FolderPlus class="icon" />
-          New Folder
-        </button>
-        <button 
-          type="button"
-          class="btn btn-primary"
-          onclick={() => showCreatePageModal = true}
-        >
-          <Plus class="icon" />
-          New Page
+          {sortOrder === 'asc' ? '↑' : '↓'}
         </button>
       </div>
-    {/if}
+      
+      {#if showCreateButtons}
+        <div class="folder-actions">
+          <button 
+            type="button"
+            class="btn btn-secondary"
+            onclick={() => showCreateFolderModal = true}
+          >
+            <FolderPlus class="icon" />
+            New Folder
+          </button>
+          <button 
+            type="button"
+            class="btn btn-primary"
+            onclick={() => showCreatePageModal = true}
+          >
+            <Plus class="icon" />
+            New Page
+          </button>
+        </div>
+      {/if}
+    </div>
   </div>
 
   <!-- Folder Contents -->
@@ -178,9 +255,23 @@
     <!-- Empty State -->
     {#if subFolders.length === 0 && currentFolderPages.length === 0}
       <div class="empty-state">
-        <File class="empty-icon" />
-        <h3>No content yet</h3>
-        <p>This folder is empty. Create your first page or subfolder to get started.</p>
+        <div class="empty-icon-container">
+          <File class="empty-icon" />
+        </div>
+        <h3>
+          {#if path === ''}
+            Welcome to your documentation
+          {:else}
+            This folder is empty
+          {/if}
+        </h3>
+        <p>
+          {#if path === ''}
+            Start organizing your knowledge by creating your first page or folder.
+          {:else}
+            Add some content to this folder to get started.
+          {/if}
+        </p>
         {#if showCreateButtons}
           <div class="empty-actions">
             <button 
@@ -217,8 +308,8 @@
 
 <!-- Create Page Modal -->
 {#if showCreatePageModal}
-  <div class="modal-overlay" onclick={() => showCreatePageModal = false}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay" role="dialog" aria-modal="true" tabindex="-1" onclick={() => showCreatePageModal = false} onkeydown={(e) => { if (e.key === 'Escape') showCreatePageModal = false; }}>
+    <div class="modal" role="dialog" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
       <div class="modal-header">
         <h3>Create New Page</h3>
         <button 
@@ -263,10 +354,17 @@
   .folder-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 2px solid var(--color-border);
+    gap: 1rem;
+  }
+
+  .folder-title-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
 
   .folder-title {
@@ -274,6 +372,92 @@
     font-weight: 600;
     color: var(--color-text);
     margin: 0;
+  }
+
+  .folder-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+
+  .stat-item {
+    font-weight: 500;
+  }
+
+  .stat-divider {
+    color: var(--color-text-tertiary);
+  }
+
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
+
+  .spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--color-border);
+    border-top: 2px solid var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .folder-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--color-background-secondary);
+    border-radius: 0.375rem;
+    border: 1px solid var(--color-border);
+  }
+
+  .sort-label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
+
+  .sort-select {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .sort-order-btn {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 2rem;
+  }
+
+  .sort-order-btn:hover {
+    background: var(--color-background-tertiary);
   }
 
   .folder-actions {
@@ -317,12 +501,6 @@
     background: var(--color-background-tertiary);
   }
 
-  .folder-icon {
-    width: 2rem;
-    height: 2rem;
-    color: var(--color-primary);
-    flex-shrink: 0;
-  }
 
   .folder-info {
     flex: 1;
@@ -353,12 +531,12 @@
     color: var(--color-text-secondary);
   }
 
-  .empty-icon {
-    width: 4rem;
-    height: 4rem;
-    margin: 0 auto 1rem;
-    color: var(--color-text-tertiary);
+  .empty-icon-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
   }
+
 
   .empty-state h3 {
     font-size: 1.5rem;
@@ -386,7 +564,6 @@
     text-decoration: none;
     border: none;
     outline: none;
-    focus: ring-2 ring-offset-2;
   }
 
   .btn-primary {
@@ -422,10 +599,6 @@
     cursor: not-allowed;
   }
 
-  .icon {
-    width: 1rem;
-    height: 1rem;
-  }
 
   .modal-overlay {
     position: fixed;
@@ -505,6 +678,24 @@
       flex-direction: column;
       gap: 1rem;
       align-items: flex-start;
+    }
+
+    .folder-title-section {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .folder-controls {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      width: 100%;
+    }
+
+    .sort-controls {
+      flex-wrap: wrap;
+      gap: 0.25rem;
     }
 
     .folder-actions {

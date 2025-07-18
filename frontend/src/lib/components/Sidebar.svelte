@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { foldersStore, folderActions } from '$lib/stores/pages';
+  import { foldersStore, folderActions, pagesStore, pageActions } from '$lib/stores/pages';
   import { page } from '$app/stores';
   import { Folder, FolderOpen, File, ChevronRight, Plus, Search } from 'lucide-svelte';
   import CreateFolderModal from './CreateFolderModal.svelte';
@@ -15,6 +15,7 @@
   const currentPath = $derived($page.url.pathname);
   const folders = $derived($foldersStore.folders || []);
   const isLoading = $derived($foldersStore.loading);
+  const pages = $derived($pagesStore.pages || []);
 
   // Filter folders based on search
   const filteredFolders = $derived(searchQuery.trim() 
@@ -23,6 +24,20 @@
 
   onMount(() => {
     folderActions.loadFolderTree();
+    pageActions.loadPages();
+    
+    // Restore expanded folders from localStorage
+    if (typeof window !== 'undefined') {
+      const savedExpanded = localStorage.getItem('sidebar-expanded-folders');
+      if (savedExpanded) {
+        try {
+          expandedFolders = new Set(JSON.parse(savedExpanded));
+        } catch (e) {
+          console.warn('Failed to parse saved expanded folders:', e);
+        }
+      }
+    }
+    
     // Auto-expand folders containing the current path
     if (currentPath.startsWith('/folders/')) {
       const pathSegments = currentPath.replace('/folders/', '').split('/');
@@ -57,15 +72,41 @@
       expandedFolders.add(folderPath);
     }
     expandedFolders = new Set(expandedFolders);
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar-expanded-folders', JSON.stringify([...expandedFolders]));
+    }
   }
 
-  function navigateToFolder(folderPath: string) {
-    goto(`/folders${folderPath}`);
-  }
 
   function isCurrentPath(path: string): boolean {
     return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
   }
+
+  // Get pages for a specific folder path
+  function getPagesForFolder(folderPath: string) {
+    return pages.filter(page => {
+      const pagePath = page.metaData?.path || '';
+      
+      // Handle root folder case
+      if (folderPath === '' || folderPath === '/') {
+        // Pages in root folder don't have '/' after the first character
+        return pagePath.split('/').length === 2; // ['', 'filename']
+      }
+      
+      // For specific folders, check if page is directly in this folder
+      // e.g., for folder '/anotherfolder', match pages like '/anotherfolder/page'
+      // but not '/anotherfolder/subfolder/page'
+      const folderSegments = folderPath.split('/').filter(Boolean);
+      const pageSegments = pagePath.split('/').filter(Boolean);
+      
+      // Page must be exactly one level deeper than the folder
+      return pageSegments.length === folderSegments.length + 1 &&
+             pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/');
+    });
+  }
+
 
   function createFolder(parentPath: string) {
     parentPathForModal = parentPath;
@@ -78,13 +119,46 @@
     folderActions.loadFolderTree();
   }
 
+  // Expand all folders
+  function expandAll() {
+    const getAllFolderPaths = (folders: FolderType[]): string[] => {
+      let paths: string[] = [];
+      for (const folder of folders) {
+        paths.push(folder.path);
+        if (folder.sub_folders) {
+          paths = paths.concat(getAllFolderPaths(folder.sub_folders));
+        }
+      }
+      return paths;
+    };
+    
+    const allPaths = getAllFolderPaths(folders);
+    expandedFolders = new Set(allPaths);
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar-expanded-folders', JSON.stringify([...expandedFolders]));
+    }
+  }
+
+  // Collapse all folders
+  function collapseAll() {
+    expandedFolders = new Set();
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar-expanded-folders', JSON.stringify([]));
+    }
+  }
+
   function renderFolderTree(folders: FolderType[], depth: number = 0) {
     return folders.map(folder => ({
       folder,
       isExpanded: expandedFolders.has(folder.path),
       isCurrent: isCurrentPath(folder.path),
       depth,
-      hasSubFolders: folder.sub_folders && folder.sub_folders.length > 0
+      hasSubFolders: folder.sub_folders && folder.sub_folders.length > 0,
+      pages: getPagesForFolder(folder.path)
     }));
   }
 </script>
@@ -92,14 +166,32 @@
 <aside class="sidebar">
   <div class="sidebar-header">
     <h2 class="sidebar-title">Pages</h2>
-    <button 
-      type="button"
-      class="create-folder-btn"
-      onclick={() => createFolder('')}
-      title="Create new folder"
-    >
-      <Plus class="icon" />
-    </button>
+    <div class="header-actions">
+      <button 
+        type="button"
+        class="action-btn"
+        onclick={expandAll}
+        title="Expand all folders"
+      >
+        <FolderOpen class="icon" />
+      </button>
+      <button 
+        type="button"
+        class="action-btn"
+        onclick={collapseAll}
+        title="Collapse all folders"
+      >
+        <Folder class="icon" />
+      </button>
+      <button 
+        type="button"
+        class="action-btn"
+        onclick={() => createFolder('')}
+        title="Create new folder"
+      >
+        <Plus class="icon" />
+      </button>
+    </div>
   </div>
 
   <!-- Search -->
@@ -184,43 +276,82 @@
             </button>
           </div>
 
-          <!-- Render subfolders -->
-          {#if item.hasSubFolders && item.isExpanded}
-            {#each renderFolderTree(item.folder.sub_folders, item.depth + 1) as subItem}
-              <div class="folder-item" style="margin-left: {subItem.depth * 1.5}rem;">
-                <div class="folder-row">
-                  {#if subItem.hasSubFolders}
+          <!-- Render subfolders and files when expanded -->
+          {#if item.isExpanded}
+            <!-- Render files in current folder first -->
+            {#if item.pages.length > 0}
+              {#each item.pages as page}
+                <div class="file-item" style="margin-left: {(item.depth + 1) * 1.5}rem;">
+                  <div class="file-row">
+                    <div class="expand-spacer"></div>
+                    <a 
+                      href="/pages{page.metaData?.path || `/${page.metaData?.slug}`}"
+                      class="file-link"
+                    >
+                      <File class="file-icon" />
+                      <span class="file-name">{page.metaData?.title || 'Untitled'}</span>
+                    </a>
+                  </div>
+                </div>
+              {/each}
+            {/if}
+
+            <!-- Then render subfolders -->
+            {#if item.hasSubFolders}
+              {#each renderFolderTree(item.folder.sub_folders, item.depth + 1) as subItem}
+                <div class="folder-item" style="margin-left: {subItem.depth * 1.5}rem;">
+                  <div class="folder-row">
+                    {#if subItem.hasSubFolders}
+                      <button 
+                        type="button"
+                        class="expand-btn"
+                        onclick={() => toggleFolder(subItem.folder.path)}
+                      >
+                        <ChevronRight class="expand-icon {subItem.isExpanded ? 'expanded' : ''}" />
+                      </button>
+                    {:else}
+                      <div class="expand-spacer"></div>
+                    {/if}
+
+                    <a 
+                      href="/folders{subItem.folder.path}"
+                      class="folder-link {subItem.isCurrent ? 'current' : ''}"
+                    >
+                      <Folder class="folder-icon" />
+                      <span class="folder-name">{subItem.folder.name}</span>
+                      <span class="page-count">({subItem.folder.page_count})</span>
+                    </a>
+
                     <button 
                       type="button"
-                      class="expand-btn"
-                      onclick={() => toggleFolder(subItem.folder.path)}
+                      class="create-subfolder-btn"
+                      onclick={() => createFolder(subItem.folder.path)}
+                      title="Create subfolder"
                     >
-                      <ChevronRight class="expand-icon {subItem.isExpanded ? 'expanded' : ''}" />
+                      <Plus class="icon" />
                     </button>
-                  {:else}
-                    <div class="expand-spacer"></div>
+                  </div>
+
+                  <!-- Render files in expanded subfolder -->
+                  {#if subItem.isExpanded && subItem.pages.length > 0}
+                    {#each subItem.pages as page}
+                      <div class="file-item" style="margin-left: {(subItem.depth + 1) * 1.5}rem;">
+                        <div class="file-row">
+                          <div class="expand-spacer"></div>
+                          <a 
+                            href="/pages{page.metaData?.path || `/${page.metaData?.slug}`}"
+                            class="file-link"
+                          >
+                            <File class="file-icon" />
+                            <span class="file-name">{page.metaData?.title || 'Untitled'}</span>
+                          </a>
+                        </div>
+                      </div>
+                    {/each}
                   {/if}
-
-                  <a 
-                    href="/folders{subItem.folder.path}"
-                    class="folder-link {subItem.isCurrent ? 'current' : ''}"
-                  >
-                    <Folder class="folder-icon" />
-                    <span class="folder-name">{subItem.folder.name}</span>
-                    <span class="page-count">({subItem.folder.page_count})</span>
-                  </a>
-
-                  <button 
-                    type="button"
-                    class="create-subfolder-btn"
-                    onclick={() => createFolder(subItem.folder.path)}
-                    title="Create subfolder"
-                  >
-                    <Plus class="icon" />
-                  </button>
                 </div>
-              </div>
-            {/each}
+              {/each}
+            {/if}
           {/if}
         </div>
       {/each}
@@ -263,7 +394,13 @@
     margin: 0;
   }
 
-  .create-folder-btn {
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .action-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -277,7 +414,7 @@
     transition: all 0.2s ease;
   }
 
-  .create-folder-btn:hover {
+  .action-btn:hover {
     background: var(--bg-secondary);
     color: var(--text-primary);
   }
@@ -482,6 +619,56 @@
   .icon {
     width: 0.875rem;
     height: 0.875rem;
+  }
+
+  /* File item styling */
+  .file-item {
+    position: relative;
+  }
+
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    transition: background 0.2s ease;
+  }
+
+  .file-row:hover {
+    background: var(--color-background-secondary);
+  }
+
+  .file-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    padding: 0.125rem;
+    border-radius: 0.25rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+  }
+
+  .file-link:hover {
+    color: var(--color-text);
+    background: var(--color-background-tertiary);
+  }
+
+  .file-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+    color: var(--color-text-tertiary);
+  }
+
+  .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Scrollbar styling */

@@ -32,6 +32,7 @@ go.work.sum
 # .vscode/
 
 backend/data
+data/
 backend/schist
 .claude/
 wiki-data/

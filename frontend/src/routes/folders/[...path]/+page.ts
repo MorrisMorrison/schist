@@ -31,7 +31,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
     
     if (folder) {
       // This is a folder - filter pages and subfolders for this path
-      const folderPages = allPages.filter((page: any) => 
+      const folderPages = allPages?.filter((page: any) => 
         page.metaData?.path === fullPath || 
         (fullPath === '/' && !page.metaData?.path?.includes('/'))
       );

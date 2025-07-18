@@ -1,30 +1,31 @@
 import type { PageLoad } from './$types.js';
-import type { Page } from '$lib/api/types.js';
+import type { Page, Folder } from '$lib/api/types.js';
 import { apiClient } from '$lib';
 
 export const load: PageLoad = async () => {
 	try {
-		const pages: Page[] = (await apiClient.getPages()) || [];
+		const [pagesResponse, foldersResponse] = await Promise.all([
+			apiClient.getPages(),
+			apiClient.getFolderTree()
+		]);
 
-		// Sort pages by updated date (most recent first) and take the first 5
-		const recentPages = pages
-			.sort((a, b) => {
-				const dateA = new Date(a.metaData.updated || a.metaData.created || 0);
-				const dateB = new Date(b.metaData.updated || b.metaData.created || 0);
-				return dateB.getTime() - dateA.getTime();
-			})
-			.slice(0, 5);
+		const pages: Page[] = pagesResponse || [];
+		const folders: Folder[] = foldersResponse || [];
 
 		return {
-			recentPages,
-			totalPages: pages.length
+			pages,
+			folders,
+			totalPages: pages.length,
+			totalFolders: folders.length
 		};
 	} catch (error) {
-		console.error('Failed to load pages:', error);
+		console.error('Failed to load folder structure:', error);
 		return {
-			recentPages: [],
+			pages: [],
+			folders: [],
 			totalPages: 0,
-			error: 'Failed to load pages'
+			totalFolders: 0,
+			error: 'Failed to load folder structure'
 		};
 	}
 };

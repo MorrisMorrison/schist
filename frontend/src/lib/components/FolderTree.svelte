@@ -199,7 +199,6 @@
 					{/if}
 				{/if}
 			</div>
-
 			<!-- Folder Icon -->
 			<Folder class="h-4 w-4 flex-shrink-0 text-blue-500" />
 

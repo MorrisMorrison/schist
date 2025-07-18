@@ -4,19 +4,23 @@
 
   export let path: string = '';
   export let currentPageTitle: string = '';
-
+  let segments: Array<{ name: string; path: string; isLast: boolean }> = [];
   // Build breadcrumb segments from path
-  $: segments = path
-    .split('/')
-    .filter(segment => segment !== '')
-    .map((segment, index, array) => {
-      const fullPath = '/' + array.slice(0, index + 1).join('/');
-      return {
-        name: segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' '),
-        path: fullPath,
-        isLast: index === array.length - 1
-      };
-    });
+$: {
+  let rawSegments = path.split('/').filter(segment => segment !== '');
+  const isPagePath = window.location.href.includes("pages");
+  if (isPagePath && rawSegments.length > 0) {
+    rawSegments = rawSegments.slice(0, -1); // remove last element
+  }
+  segments = rawSegments.map((segment, index, array) => {
+    const fullPath = '/' + array.slice(0, index + 1).join('/');
+    return {
+      name: segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' '),
+      path: fullPath,
+      isLast: index === array.length - 1
+    };
+  });
+}
 
   // Handle navigation to folder/path
   function navigateToPath(targetPath: string) {

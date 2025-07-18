@@ -98,7 +98,7 @@ export const pageActions = {
 		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const pages = await apiClient.getPages();
+			const pages = await apiClient.getPages() ?? [];
 			pagesStore.update((state) => ({
 				...state,
 				pages,
@@ -157,7 +157,9 @@ export const pageActions = {
 		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const newPage = await apiClient.createPage(pageData);
+			const response = await apiClient.createPage(pageData);
+			const newPage = await apiClient.getPageByPath(response.path);
+
 			pagesStore.update((state) => ({
 				...state,
 				pages: [...state.pages, newPage],
@@ -166,7 +168,7 @@ export const pageActions = {
 			}));
 
 			// Update current folder based on the new page's path
-			if (newPage.metaData.path) {
+			if (!newPage.metaData?.path) {
 				currentFolder.set(getParentPath(newPage.metaData.path));
 			}
 

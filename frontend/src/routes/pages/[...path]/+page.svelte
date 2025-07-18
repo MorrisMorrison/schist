@@ -137,7 +137,7 @@
 <style>
   .pages-container {
     min-height: 100vh;
-    background: var(--color-background);
+    /* background: var(--color-background); */
   }
 
   .loading-state,

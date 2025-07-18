@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   import { foldersStore, folderActions, pagesStore, pageActions } from '$lib/stores/pages';
   import { page } from '$app/stores';
-  import { Folder, FolderOpen, File, ChevronRight, Plus, Search } from 'lucide-svelte';
+  import { Folder, FolderOpen, File, ChevronRight, Plus, Search, FolderTree } from 'lucide-svelte';
   import CreateFolderModal from './CreateFolderModal.svelte';
   import type { Folder as FolderType } from '$lib/api/types';
 

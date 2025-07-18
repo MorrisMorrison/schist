@@ -19,7 +19,7 @@
 		showPath?: boolean;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void;
-		onView?: (slug: string) => void;
+		onView?: (path: string) => void;
 		onMove?: (page: Page) => void;
 	}
 
@@ -56,7 +56,7 @@
 			<div class="flex-1">
 				<CardTitle
 					class="hover:text-primary cursor-pointer text-lg font-semibold"
-					onclick={() => onView?.(page.metaData.slug!)}
+					onclick={() => onView?.(pagePathDerived)}
 				>
 					{page.metaData.title}
 				</CardTitle>
@@ -83,7 +83,7 @@
 			</div>
 			<div class="ml-2 flex gap-1">
 				{#if onView}
-					<Button variant="ghost" size="sm" onclick={() => onView(page.metaData.slug!)}>
+					<Button variant="ghost" size="sm" onclick={() => onView(pagePathDerived)}>
 						<Eye class="h-4 w-4" />
 					</Button>
 				{/if}

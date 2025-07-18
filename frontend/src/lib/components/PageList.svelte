@@ -51,8 +51,8 @@
 		)
 	);
 
-	function handleView(slug: string) {
-		goto(`/${slug}`);
+	function handleView(path: string) {
+		goto(`/pages${path}`);
 	}
 
 	function handleEdit(slug: string) {
@@ -122,9 +122,9 @@
 					{page}
 					{showTags}
 					{showDates}
-					onView={handleView}
-					onEdit={handleEdit}
-					onDelete={handleDelete}
+					onView={(path) => handleView(path)}
+					onEdit={(slug) => handleEdit(slug)}
+					onDelete={(slug) => handleDelete(slug)}
 				/>
 			{/each}
 		</div>

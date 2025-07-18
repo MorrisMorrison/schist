@@ -101,6 +101,23 @@
     goto(`/folders${folderPath}`);
   }
 
+  // Navigate to page
+  function navigateToPage(pagePath: string) {
+    goto(`/pages${pagePath}`);
+  }
+
+  // Navigate to edit page
+  function navigateToEditPage(slug: string) {
+    goto(`/edit/${slug}`);
+  }
+
+  // Handle page deletion
+  function handleDeletePage(slug: string) {
+    if (confirm('Are you sure you want to delete this page?')) {
+      pageActions.deletePage(slug);
+    }
+  }
+
 
   // Create new page in current folder
   async function createPage() {
@@ -134,7 +151,7 @@
   }
 </script>
 
-<div class="folder-view">
+<div class="folder-view ">
   <!-- Breadcrumbs -->
   <Breadcrumbs {path} />
 
@@ -143,7 +160,7 @@
     <div class="folder-title-section">
       <h1 class="folder-title">
         {#if path === ''}
-          All Documentation
+          All Pages
         {:else}
           {(() => {
             const folderName = path.split('/').pop();
@@ -215,7 +232,7 @@
   </div>
 
   <!-- Folder Contents -->
-  <div class="folder-contents">
+  <div class="folder-contents bg-primary ring-border-primary rounded-lg shadow-sm ring-1 p-6">
     <!-- Subfolders -->
     {#if subFolders.length > 0}
       <section class="folders-section">
@@ -246,7 +263,13 @@
         <h2 class="section-title">Pages</h2>
         <div class="pages-grid">
           {#each currentFolderPages as page}
-            <PageCard {page} showPath={false} />
+            <PageCard 
+              {page} 
+              showPath={false} 
+              onView={navigateToPage}
+              onEdit={navigateToEditPage}
+              onDelete={handleDeletePage}
+            />
           {/each}
         </div>
       </section>
@@ -368,7 +391,7 @@
   }
 
   .folder-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
     font-weight: 600;
     color: var(--color-text);
     margin: 0;

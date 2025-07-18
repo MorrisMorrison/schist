@@ -9,7 +9,6 @@ run-docker:
 run-docker-dev:
 	docker-compose --profile dev up --build
 
-
 run-backend: 
 	cd backend/cmd/schist && go run main.go
 

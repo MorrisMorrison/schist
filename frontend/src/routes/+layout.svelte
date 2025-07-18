@@ -14,7 +14,7 @@
 	const currentPageSlug = $derived($page.params?.slug);
 
 	// Show sidebar on pages and folders routes
-	const showSidebar = $derived($page.url.pathname.startsWith('/pages') || $page.url.pathname.startsWith('/folders'));
+	const showSidebar = $derived($page.url.pathname.startsWith('/'));
 
 	// Ensure theme is initialized on mount
 	onMount(() => {
@@ -22,7 +22,7 @@
 	});
 </script>
 
-<div class="min-h-screen bg-gray-50 transition-colors dark:bg-gray-900">
+<div class="min-h-screen bg-gray-50 transition-colors dark:Fbg-gray-900">
 	<Navigation {currentPageSlug} />
 
 	<div class="app-container" class:with-sidebar={showSidebar}>

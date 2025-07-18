@@ -123,7 +123,7 @@
   </header>
 
   <!-- Page Content -->
-  <main class="page-content">
+  <main class="page-content bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
     {#if page.content}
       <div class="content-wrapper">
         {@html renderMarkdown(page.content)}

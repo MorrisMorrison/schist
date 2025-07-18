@@ -22,6 +22,11 @@ export interface CreatePageRequest {
 	content: string;
 }
 
+export interface CreatePageResponse {
+	message: string;
+	path: string;
+}
+
 export interface UpdatePageRequest {
 	metaData: Omit<PageMetaData, 'slug' | 'created' | 'updated' | 'path'> & { path?: string };
 	content: string;

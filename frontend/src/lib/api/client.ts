@@ -9,7 +9,8 @@ import type {
 	FolderTreeResponse,
 	MovePageRequest,
 	MovePageResponse,
-	FolderOperationResponse
+	FolderOperationResponse,
+	CreatePageResponse
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -87,7 +88,7 @@ class SchістApiClient {
 		return this.request<Page>(`/pages/${encodeURIComponent(slug)}`);
 	}
 
-	async createPage(pageData: CreatePageRequest): Promise<Page> {
+	async createPage(pageData: CreatePageRequest): Promise<CreatePageResponse> {
 		// Ensure path is normalized if provided
 		const normalizedPageData = {
 			...pageData,
@@ -97,7 +98,7 @@ class SchістApiClient {
 			}
 		};
 
-		return this.request<Page>('/pages', {
+		return this.request<CreatePageResponse>('/pages', {
 			method: 'POST',
 			body: JSON.stringify(normalizedPageData)
 		});
@@ -156,7 +157,9 @@ class SchістApiClient {
 		});
 	}
 
+
 	// Folder operations
+	
 	async getFolderTree(): Promise<Folder[]> {
 		const response = await this.request<FolderTreeResponse>('/folders');
 		return response.folders;
@@ -164,7 +167,7 @@ class SchістApiClient {
 
 	async createFolder(path: string): Promise<FolderOperationResponse> {
 		const normalizedPath = normalizePath(path);
-		return this.request<FolderOperationResponse>('/folders', {
+		return this.request<FolderOperationResponse>('/folders' + path, {
 			method: 'POST',
 			body: JSON.stringify({ path: normalizedPath })
 		});

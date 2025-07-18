@@ -188,11 +188,6 @@
 		color: var(--color-text-secondary);
 	}
 
-	.metadata-icon {
-		width: 1rem;
-		height: 1rem;
-		flex-shrink: 0;
-	}
 
 	.tags {
 		display: flex;
@@ -272,10 +267,6 @@
 		box-shadow: 0 0 0 2px var(--red-primary);
 	}
 
-	.btn-icon {
-		width: 1rem;
-		height: 1rem;
-	}
 
 	.page-content {
 		background: var(--color-background);

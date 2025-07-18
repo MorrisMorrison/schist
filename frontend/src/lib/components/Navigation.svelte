@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import SearchBox from './SearchBox.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 
@@ -18,7 +18,7 @@
 
 	// Close menu when route changes
 	$effect(() => {
-		if ($page.url) {
+		if (page.url) {
 			isMenuOpen = false;
 		}
 	});
@@ -52,8 +52,8 @@
 				<div class="hidden md:ml-6 md:flex md:space-x-8">
 					<a
 						href="/"
-						class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {$page
-							.url.pathname === '/' || $page.url.pathname.startsWith('/folders')
+						class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {page
+							.url.pathname === '/' || page.url.pathname.startsWith('/folders')
 							? 'text-primary border-blue-500'
 							: 'text-secondary hover:text-primary border-transparent hover:border-gray-300'}"
 					>
@@ -61,7 +61,7 @@
 					</a>
 					<a
 						href="/recent"
-						class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {$page
+						class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {page
 							.url.pathname === '/recent'
 							? 'text-primary border-blue-500'
 							: 'text-secondary hover:text-primary border-transparent hover:border-gray-300'}"
@@ -99,7 +99,7 @@
 				</a>
 
 				<!-- Edit current page button (if on a page) -->
-				<!-- {#if currentPageSlug && $page.url.pathname !== '/new' && !$page.url.pathname.startsWith('/edit/')}
+				<!-- {#if currentPageSlug && page.url.pathname !== '/new' && !page.url.pathname.startsWith('/edit/')}
 					<a
 						href="/edit/{currentPageSlug}"
 						class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
@@ -164,8 +164,8 @@
 				<a
 					href="/"
 					onclick={closeMenu}
-					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname ===
-						'/' || $page.url.pathname.startsWith('/folders')
+					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {page.url.pathname ===
+						'/' || page.url.pathname.startsWith('/folders')
 						? 'bg-blue-muted text-blue-primary border-blue-500'
 						: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"
 				>
@@ -174,7 +174,7 @@
 				<a
 					href="/recent"
 					onclick={closeMenu}
-					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {$page.url.pathname ===
+					class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {page.url.pathname ===
 					'/recent'
 						? 'bg-blue-muted text-blue-primary border-blue-500'
 						: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"

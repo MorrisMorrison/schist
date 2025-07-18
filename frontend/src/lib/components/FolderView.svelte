@@ -138,9 +138,9 @@
 	}
 
 	// Handle page deletion
-	function handleDeletePage(slug: string) {
+	function handleDeletePage(path: string) {
 		if (confirm('Are you sure you want to delete this page?')) {
-			pageActions.deletePage(slug);
+			pageActions.deletePage(path);
 		}
 	}
 

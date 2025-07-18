@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { ChevronRight, Home } from 'lucide-svelte';
 
@@ -9,7 +10,7 @@
 	// Build breadcrumb segments from path
 	$: {
 		let rawSegments = path.split('/').filter((segment) => segment !== '');
-		const isPagePath = window.location.href.includes('pages');
+		const isPagePath = page.url.pathname.includes('pages');
 		if (isPagePath && rawSegments.length > 0) {
 			rawSegments = rawSegments.slice(0, -1); // remove last element
 		}

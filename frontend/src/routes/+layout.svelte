@@ -2,7 +2,7 @@
 	import '../app.css';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 
 	// Import theme store to initialize
@@ -10,10 +10,10 @@
 	let { children, data } = $props();
 
 	// Extract current page slug from URL for edit button
-	const currentPageSlug = $derived($page.params?.slug);
+	const currentPageSlug = $derived(page.params?.slug);
 
 	// Show sidebar on pages and folders routes
-	const showSidebar = $derived($page.url.pathname.startsWith('/'));
+	const showSidebar = $derived(page.url.pathname.startsWith('/'));
 
 	// Ensure theme is initialized on mount
 	onMount(() => {

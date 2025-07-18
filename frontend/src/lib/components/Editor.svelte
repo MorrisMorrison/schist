@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { EditorView, basicSetup } from 'codemirror';
-	import { EditorState, StateEffect } from '@codemirror/state';
+	import { EditorState } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { oneDark } from '@codemirror/theme-one-dark';
 
@@ -339,7 +339,7 @@
 
 			// Reconfigure the editor with new extensions instead of recreating
 			editorView.dispatch({
-				effects: StateEffect.reconfigure.of(extensions)
+				effects: EditorView.reconfigure.of(extensions)
 			});
 		}
 	});

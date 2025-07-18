@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { pageActions } from '$lib/stores/pages';
 	import { goto } from '$app/navigation';
 	import FolderView from '$lib/components/FolderView.svelte';
@@ -15,7 +15,7 @@
 	let showMoveModal = $state(false);
 	let pageToMove = $state<Page | null>(null);
 
-	const path = $derived($page.params.path || '');
+	const path = $derived(page.params.path || '');
 	const decodedPath = $derived(decodeURIComponent(path));
 	const fullPath = $derived(`/${decodedPath}`);
 

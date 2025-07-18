@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { foldersStore, folderActions, pagesStore, pageActions } from '$lib/stores/pages';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
+	import { browser } from '$app/environment';
 	import { Button } from '$lib/components/ui/button';
 	import { Folder, FolderOpen, File, ChevronRight, Plus, Search } from 'lucide-svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
@@ -12,7 +13,7 @@
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
 
-	const currentPath = $derived($page.url.pathname);
+	const currentPath = $derived(page.url.pathname);
 	const folders = $derived($foldersStore.folders || []);
 	const isLoading = $derived($foldersStore.loading);
 	const pages = $derived($pagesStore.pages || []);
@@ -27,7 +28,7 @@
 		pageActions.loadPages();
 
 		// Restore expanded folders from localStorage
-		if (typeof window !== 'undefined') {
+		if (browser) {
 			const savedExpanded = localStorage.getItem('sidebar-expanded-folders');
 			if (savedExpanded) {
 				try {
@@ -76,7 +77,7 @@
 		expandedFolders = new Set(expandedFolders);
 
 		// Save to localStorage
-		if (typeof window !== 'undefined') {
+		if (browser) {
 			localStorage.setItem('sidebar-expanded-folders', JSON.stringify([...expandedFolders]));
 		}
 	}
@@ -138,7 +139,7 @@
 		expandedFolders = new Set(allPaths);
 
 		// Save to localStorage
-		if (typeof window !== 'undefined') {
+		if (browser) {
 			localStorage.setItem('sidebar-expanded-folders', JSON.stringify([...expandedFolders]));
 		}
 	}

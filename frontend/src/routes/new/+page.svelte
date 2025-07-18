@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { apiClient } from '$lib/api/client.js';
 	import Editor from '$lib/components/Editor.svelte';
 
 	// Get initial title from URL params if provided (e.g., from 404 page)
-	const initialTitle = $derived($page.url.searchParams.get('title') || '');
+	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 
 	let title = $state('');
 	let content = $state('');

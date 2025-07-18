@@ -216,7 +216,7 @@ export const pageActions = {
 		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			await apiClient.deletePage(path);
+			await apiClient.deletePageByPath(path);
 			pagesStore.update((state) => ({
 				...state,
 				pages: state.pages.filter((p) => p.metaData.path !== path),

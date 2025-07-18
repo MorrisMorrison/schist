@@ -60,7 +60,7 @@
 	}
 
 	function handleDelete(slug: string) {
-		pageToDelete = slug ;
+		pageToDelete = slug;
 		deleteDialogOpen = true;
 	}
 
@@ -83,7 +83,6 @@
 </script>
 
 <div class="space-y-4 {className}">
-
 	<!-- Search Input -->
 	<!-- {#if pages.length > 0}
 		<div class="mb-6">

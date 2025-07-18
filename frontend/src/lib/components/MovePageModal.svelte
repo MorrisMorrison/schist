@@ -103,16 +103,28 @@
 			onClose();
 		}
 	}
+
+	function handleOverlayKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			onClose();
+		}
+	}
+
+	function handleModalKeydown(event: KeyboardEvent) {
+		// Stop propagation for keyboard events on modal content
+		event.stopPropagation();
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="modal-overlay" onclick={onClose}>
-	<div class="modal" onclick={(e) => e.stopPropagation()}>
+<div class="modal-overlay" onclick={onClose} onkeydown={handleOverlayKeydown} role="button" tabindex="0" aria-label="Close modal overlay">
+	<div class="modal" onclick={(e) => e.stopPropagation()} onkeydown={handleModalKeydown} role="dialog" aria-labelledby="modal-title" aria-modal="true" tabindex="-1">
 		<div class="modal-header">
 			<div class="modal-title">
 				<Move class="modal-icon" />
-				<h3>Move Page</h3>
+				<h3 id="modal-title">Move Page</h3>
 			</div>
 			<button type="button" class="modal-close" onclick={onClose} aria-label="Close modal">
 				×
@@ -151,9 +163,9 @@
 				</div>
 
 				<!-- Destination Folder -->
-				<div class="form-group">
-					<label>Destination Folder</label>
-					<div class="folder-selector">
+				<fieldset class="form-group">
+					<legend>Destination Folder</legend>
+					<div class="folder-selector" role="radiogroup" aria-label="Select destination folder">
 						<!-- Root folder option -->
 						<div class="folder-option">
 							<button
@@ -161,6 +173,8 @@
 								class="folder-button"
 								class:selected={selectedPath === ''}
 								onclick={() => selectFolder('')}
+								role="radio"
+								aria-checked={selectedPath === ''}
 							>
 								<Folder class="folder-icon" />
 								<span>Root (/) - All Documentation</span>
@@ -176,6 +190,8 @@
 											type="button"
 											class="expand-button"
 											onclick={() => toggleFolder(item.folder.path)}
+											aria-expanded={item.isExpanded}
+											aria-label={`${item.isExpanded ? 'Collapse' : 'Expand'} ${item.folder.name} folder`}
 										>
 											<ChevronRight class="expand-icon {item.isExpanded ? 'expanded' : ''}" />
 										</button>
@@ -190,6 +206,9 @@
 										class:current={item.isCurrentFolder}
 										onclick={() => selectFolder(item.folder.path)}
 										disabled={item.isCurrentFolder}
+										role="radio"
+										aria-checked={item.isSelected}
+										aria-disabled={item.isCurrentFolder}
 									>
 										<Folder class="folder-icon" />
 										<span>{item.folder.name}</span>
@@ -208,6 +227,8 @@
 													type="button"
 													class="expand-button"
 													onclick={() => toggleFolder(child.folder.path)}
+													aria-expanded={child.isExpanded}
+													aria-label={`${child.isExpanded ? 'Collapse' : 'Expand'} ${child.folder.name} folder`}
 												>
 													<ChevronRight class="expand-icon {child.isExpanded ? 'expanded' : ''}" />
 												</button>
@@ -222,6 +243,9 @@
 												class:current={child.isCurrentFolder}
 												onclick={() => selectFolder(child.folder.path)}
 												disabled={child.isCurrentFolder}
+												role="radio"
+												aria-checked={child.isSelected}
+												aria-disabled={child.isCurrentFolder}
 											>
 												<Folder class="folder-icon" />
 												<span>{child.folder.name}</span>
@@ -235,7 +259,7 @@
 							</div>
 						{/each}
 					</div>
-				</div>
+				</fieldset>
 
 				<!-- Preview -->
 				<div class="move-preview">
@@ -318,11 +342,6 @@
 		color: var(--color-text);
 	}
 
-	.modal-icon {
-		width: 1.25rem;
-		height: 1.25rem;
-		color: var(--color-primary);
-	}
 
 	.modal-close {
 		background: none;
@@ -366,12 +385,6 @@
 		gap: 0.75rem;
 	}
 
-	.file-icon {
-		width: 1.25rem;
-		height: 1.25rem;
-		color: var(--color-primary);
-		flex-shrink: 0;
-	}
 
 	.page-name {
 		font-weight: 500;
@@ -394,6 +407,22 @@
 		margin-bottom: 0.5rem;
 		font-weight: 500;
 		color: var(--color-text);
+	}
+
+	.form-group legend {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: var(--color-text);
+		padding: 0;
+		border: none;
+		font-size: inherit;
+	}
+
+	fieldset.form-group {
+		border: none;
+		padding: 0;
+		margin: 0 0 1.5rem 0;
 	}
 
 	.form-group input {
@@ -446,15 +475,6 @@
 		width: 2.5rem;
 	}
 
-	.expand-icon {
-		width: 1rem;
-		height: 1rem;
-		transition: transform 0.2s ease;
-	}
-
-	.expand-icon.expanded {
-		transform: rotate(90deg);
-	}
 
 	.folder-button {
 		flex: 1;
@@ -483,11 +503,6 @@
 		cursor: not-allowed;
 	}
 
-	.folder-icon {
-		width: 1rem;
-		height: 1rem;
-		flex-shrink: 0;
-	}
 
 	.current-label {
 		font-size: 0.75rem;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { getParentPath } from '$lib/api/types';
+	import { Button } from '$lib/components/ui/button';
 	import { ChevronRight, Home } from 'lucide-svelte';
 
 	export let path: string = '';
@@ -33,138 +33,52 @@
 	}
 </script>
 
-<nav class="breadcrumbs" aria-label="Breadcrumb navigation">
-	<ol class="breadcrumb-list">
+<nav class="mb-4 border-b pb-2" aria-label="Breadcrumb navigation">
+	<ol class="m-0 flex list-none flex-wrap items-center gap-1 p-0">
 		<!-- Home/Root -->
-		<li class="breadcrumb-item">
-			<button
-				type="button"
-				class="breadcrumb-link"
-				on:click={() => navigateToPath('/')}
+		<li class="flex items-center gap-1">
+			<Button
+				variant="ghost"
+				size="sm"
+				class="flex h-8 items-center gap-1 px-2"
+				onclick={() => navigateToPath('/')}
 				aria-label="Go to home"
 			>
-				<Home class="breadcrumb-icon" />
+				<Home class="h-4 w-4" />
 				<span>Home</span>
-			</button>
+			</Button>
 		</li>
 
 		<!-- Path segments -->
-		{#each segments as segment}
-			<li class="breadcrumb-item">
-				<ChevronRight class="breadcrumb-separator" />
+		{#each segments as segment (segment.path)}
+			<li class="flex items-center gap-1">
+				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
 				{#if segment.isLast}
-					<span class="breadcrumb-current" aria-current="page">
+					<span class="text-primary px-2 py-1 text-sm font-medium" aria-current="page">
 						{segment.name}
 					</span>
 				{:else}
-					<button
-						type="button"
-						class="breadcrumb-link"
-						on:click={() => navigateToPath(segment.path)}
+					<Button
+						variant="ghost"
+						size="sm"
+						class="text-secondary hover:text-primary h-8 px-2"
+						onclick={() => navigateToPath(segment.path)}
 						aria-label="Go to {segment.name}"
 					>
 						{segment.name}
-					</button>
+					</Button>
 				{/if}
 			</li>
 		{/each}
 
 		<!-- Current page title if different from path -->
 		{#if currentPageTitle && currentPageTitle !== segments[segments.length - 1]?.name}
-			<li class="breadcrumb-item">
-				<ChevronRight class="breadcrumb-separator" />
-				<span class="breadcrumb-current" aria-current="page">
+			<li class="flex items-center gap-1">
+				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
+				<span class="text-primary px-2 py-1 text-sm font-medium" aria-current="page">
 					{currentPageTitle}
 				</span>
 			</li>
 		{/if}
 	</ol>
 </nav>
-
-<style>
-	.breadcrumbs {
-		margin-bottom: 1rem;
-		padding: 0.5rem 0;
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	.breadcrumb-list {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.25rem;
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	.breadcrumb-item {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	.breadcrumb-link {
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		padding: 0.25rem 0.5rem;
-		background: none;
-		border: none;
-		border-radius: 0.25rem;
-		color: var(--color-text-secondary);
-		font-size: 0.875rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-decoration: none;
-	}
-
-	.breadcrumb-link:hover {
-		color: var(--color-primary);
-		background-color: var(--color-background-secondary);
-	}
-
-	.breadcrumb-link:focus {
-		outline: 2px solid var(--color-primary);
-		outline-offset: 2px;
-	}
-
-	.breadcrumb-current {
-		padding: 0.25rem 0.5rem;
-		color: var(--color-text);
-		font-size: 0.875rem;
-		font-weight: 500;
-	}
-
-	.breadcrumb-separator {
-		width: 1rem;
-		height: 1rem;
-		color: var(--color-text-tertiary);
-		flex-shrink: 0;
-	}
-
-	.breadcrumb-icon {
-		width: 1rem;
-		height: 1rem;
-		flex-shrink: 0;
-	}
-
-	/* Responsive design */
-	@media (max-width: 768px) {
-		.breadcrumbs {
-			padding: 0.25rem 0;
-		}
-
-		.breadcrumb-link,
-		.breadcrumb-current {
-			padding: 0.125rem 0.25rem;
-			font-size: 0.8125rem;
-		}
-
-		.breadcrumb-separator,
-		.breadcrumb-icon {
-			width: 0.875rem;
-			height: 0.875rem;
-		}
-	}
-</style>

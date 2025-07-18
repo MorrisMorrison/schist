@@ -348,13 +348,12 @@
 </div>
 
 <!-- Create Folder Modal -->
-{#if showCreateFolderModal}
-	<CreateFolderModal
-		parentPath={path}
-		onClose={() => (showCreateFolderModal = false)}
-		onCreated={handleFolderCreated}
-	/>
-{/if}
+<CreateFolderModal
+	open={showCreateFolderModal}
+	parentPath={path}
+	onClose={() => (showCreateFolderModal = false)}
+	onCreated={handleFolderCreated}
+/>
 
 <!-- Create Page Modal -->
 <Dialog open={showCreatePageModal} onOpenChange={(open) => (showCreatePageModal = open)}>

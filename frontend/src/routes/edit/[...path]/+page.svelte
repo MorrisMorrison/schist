@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { apiClient } from '$lib';
 	import Editor from '$lib/components/Editor.svelte';
-	import type { PageData } from './$types.js';
+	import type { PageData } from '../[slug]/$types.js';
 
 	let { data }: { data: PageData } = $props();
 

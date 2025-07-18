@@ -51,16 +51,16 @@
 		)
 	);
 
-	function handleView(path: string) {
+	function handleView(path: string, slug: string) {
 		goto(`/pages${path}`);
 	}
 
-	function handleEdit(slug: string) {
-		goto(`/edit/${slug}`);
+	function handleEdit(path: string, slug: string) {
+		goto(`/edit${path}`);
 	}
 
 	function handleDelete(slug: string) {
-		pageToDelete = slug;
+		pageToDelete = slug ;
 		deleteDialogOpen = true;
 	}
 
@@ -83,6 +83,7 @@
 </script>
 
 <div class="space-y-4 {className}">
+
 	<!-- Search Input -->
 	<!-- {#if pages.length > 0}
 		<div class="mb-6">
@@ -117,14 +118,14 @@
 	{:else}
 		<!-- Page Grid -->
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each filteredPages as page (page.metaData.slug)}
+			{#each filteredPages as page (page.metaData.path + page.metaData.slug)}
 				<PageCard
 					{page}
 					{showTags}
 					{showDates}
-					onView={(path) => handleView(path)}
-					onEdit={(slug) => handleEdit(slug)}
-					onDelete={(slug) => handleDelete(slug)}
+					onView={(path) => handleView(page.metaData.path, page.metaData.slug ?? '')}
+					onEdit={(path) => handleEdit(page.metaData.path, page.metaData.slug ?? '')}
+					onDelete={(path) => handleDelete(page.metaData.path)}
 				/>
 			{/each}
 		</div>

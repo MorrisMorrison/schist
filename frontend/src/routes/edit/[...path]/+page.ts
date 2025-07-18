@@ -1,16 +1,16 @@
 import { error } from '@sveltejs/kit';
-import type { PageLoad } from './$types.js';
+import type { PageLoad } from '../[slug]/$types.js';
 import type { Page } from '$lib/api/types.js';
 import { apiClient } from '$lib';
 
 export const load: PageLoad = async ({ params }) => {
-	const { slug } = params;
+	const { path } = params;
 
 	try {
-		const page: Page = await apiClient.getPage(slug);
+		const page: Page = await apiClient.getPageByPath(path);
 		return {
 			page,
-			slug
+			path
 		};
 	} catch (err) {
 		console.error('Failed to load page for editing:', err);

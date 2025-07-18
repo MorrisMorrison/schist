@@ -133,8 +133,8 @@
 	}
 
 	// Navigate to edit page
-	function navigateToEditPage(slug: string) {
-		goto(`/edit/${slug}`);
+	function navigateToEditPage(path: string) {
+		goto(`/edit${path}`);
 	}
 
 	// Handle page deletion

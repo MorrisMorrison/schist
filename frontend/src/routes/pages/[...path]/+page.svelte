@@ -54,7 +54,7 @@
 	}
 
 	function handleEditPage(slug: string) {
-		goto(`/edit/${slug}`);
+		goto(`/edit/${path}`);
 	}
 
 	function handleDeletePage(path: string) {

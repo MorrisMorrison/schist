@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { folderActions } from '$lib/stores/pages';
 	import { isValidPath, normalizePath } from '$lib/api/types';
+	import { Button } from '$lib/components/ui/button';
 	import { Folder, AlertCircle } from 'lucide-svelte';
 
 	interface Props {
@@ -127,16 +128,16 @@
 			</div>
 
 			<div class="modal-footer">
-				<button type="button" class="btn btn-secondary" onclick={onClose} disabled={isLoading}>
+				<Button type="button" variant="outline" onclick={onClose} disabled={isLoading}>
 					Cancel
-				</button>
-				<button type="submit" class="btn btn-primary" disabled={!isValidName || isLoading}>
+				</Button>
+				<Button type="submit" disabled={!isValidName || isLoading}>
 					{#if isLoading}
 						Creating...
 					{:else}
 						Create Folder
 					{/if}
-				</button>
+				</Button>
 			</div>
 		</form>
 	</div>
@@ -347,34 +348,6 @@
 	.btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
-	}
-
-	.btn-primary {
-		background: var(--blue-primary);
-		color: white;
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background: var(--blue-secondary);
-	}
-
-	.btn-primary:focus {
-		background: var(--blue-secondary);
-		box-shadow: 0 0 0 2px var(--blue-primary);
-	}
-
-	.btn-secondary {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background: var(--gray-hover);
-	}
-
-	.btn-secondary:focus {
-		background: var(--gray-active);
-		box-shadow: 0 0 0 2px var(--gray-active);
 	}
 
 	@media (max-width: 768px) {

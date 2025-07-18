@@ -99,7 +99,7 @@
 					</Button>
 				{/if}
 				{#if onEdit}
-					<Button variant="ghost" size="sm" onclick={() => onEdit(page.metaData.slug!)}>
+					<Button variant="ghost" size="sm" onclick={() => onEdit(page.metaData.path!)}>
 						<Edit class="h-4 w-4" />
 					</Button>
 				{/if}

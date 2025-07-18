@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { foldersStore, folderActions, pagesStore, pageActions } from '$lib/stores/pages';
 	import { page } from '$app/stores';
-	import { Folder, FolderOpen, File, ChevronRight, Plus, Search, FolderTree } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Folder, FolderOpen, File, ChevronRight, Plus, Search } from 'lucide-svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
 	import type { Folder as FolderType } from '$lib/api/types';
 
@@ -226,7 +226,7 @@
 			<!-- Folder tree -->
 			{#each renderFolderTree(filteredFolders) as item}
 				<div class="folder-item" style="margin-left: {item.depth * 1.5}rem;">
-					<div class="folder-row">
+					<div class="folder-row group">
 						<!-- Expand/collapse button -->
 						{#if item.hasSubFolders}
 							<button
@@ -251,14 +251,15 @@
 						</a>
 
 						<!-- Create subfolder button -->
-						<button
-							type="button"
-							class="create-subfolder-btn"
+						<Button
+							variant="ghost"
+							size="icon"
+							class="create-subfolder-btn opacity-0 group-hover:opacity-100"
 							onclick={() => createFolder(item.folder.path)}
 							title="Create subfolder"
 						>
-							<Plus class="icon" />
-						</button>
+							<Plus class="h-3 w-3" />
+						</Button>
 					</div>
 
 					<!-- Render subfolders and files when expanded -->
@@ -285,7 +286,7 @@
 						{#if item.hasSubFolders}
 							{#each renderFolderTree(item.folder.sub_folders, item.depth + 1) as subItem}
 								<div class="folder-item" style="margin-left: {subItem.depth * 1.5}rem;">
-									<div class="folder-row">
+									<div class="folder-row group">
 										{#if subItem.hasSubFolders}
 											<button
 												type="button"
@@ -307,14 +308,15 @@
 											<span class="page-count">({subItem.folder.page_count})</span>
 										</a>
 
-										<button
-											type="button"
-											class="create-subfolder-btn"
+										<Button
+											variant="ghost"
+											size="icon"
+											class="create-subfolder-btn opacity-0 group-hover:opacity-100"
 											onclick={() => createFolder(subItem.folder.path)}
 											title="Create subfolder"
 										>
-											<Plus class="icon" />
-										</button>
+											<Plus class="h-3 w-3" />
+										</Button>
 									</div>
 
 									<!-- Render files in expanded subfolder -->
@@ -581,27 +583,9 @@
 	}
 
 	.create-subfolder-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		width: 1.25rem;
 		height: 1.25rem;
-		background: none;
-		border: none;
-		border-radius: 0.25rem;
-		color: var(--color-text-secondary);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		opacity: 0;
-	}
-
-	.folder-row:hover .create-subfolder-btn {
-		opacity: 1;
-	}
-
-	.create-subfolder-btn:hover {
-		background: var(--color-background-tertiary);
-		color: var(--color-text);
+		transition: opacity 0.2s ease;
 	}
 
 	.icon {

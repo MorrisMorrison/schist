@@ -1,0 +1,596 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { pagesStore, foldersStore } from '$lib/stores/pages';
+  import { getParentPath, normalizePath } from '$lib/api/types';
+  import { Move, Folder, File, ChevronRight } from 'lucide-svelte';
+  import type { Page, Folder as FolderType } from '$lib/api/types';
+
+  export let page: Page;
+  export let onClose: () => void;
+  export let onMoved: () => void;
+
+  let selectedPath = '';
+  let newPageName = '';
+  let isLoading = false;
+  let error = '';
+  let expandedFolders = new Set<string>();
+
+  $: availableFolders = $foldersStore.folders;
+  $: currentPath = page.metadata.path || `/${page.metadata.slug}`;
+  $: currentFolder = getParentPath(currentPath);
+  $: pageName = page.metadata.title || page.metadata.slug || 'Untitled';
+  $: finalPath = selectedPath ? `${selectedPath}/${newPageName || page.metadata.slug}` : `/${newPageName || page.metadata.slug}`;
+
+  onMount(() => {
+    foldersStore.loadFolderTree();
+    newPageName = page.metadata.slug || '';
+    selectedPath = currentFolder === '/' ? '' : currentFolder;
+  });
+
+  function toggleFolder(folderPath: string) {
+    if (expandedFolders.has(folderPath)) {
+      expandedFolders.delete(folderPath);
+    } else {
+      expandedFolders.add(folderPath);
+    }
+    expandedFolders = new Set(expandedFolders);
+  }
+
+  function selectFolder(folderPath: string) {
+    selectedPath = folderPath;
+  }
+
+  function renderFolderTree(folders: FolderType[], parentPath: string = '', depth: number = 0) {
+    return folders.map(folder => {
+      const isExpanded = expandedFolders.has(folder.path);
+      const isSelected = selectedPath === folder.path;
+      const isCurrentFolder = folder.path === currentFolder;
+      const hasSubFolders = folder.sub_folders && folder.sub_folders.length > 0;
+
+      return {
+        folder,
+        isExpanded,
+        isSelected,
+        isCurrentFolder,
+        hasSubFolders,
+        depth,
+        children: hasSubFolders && isExpanded ? renderFolderTree(folder.sub_folders, folder.path, depth + 1) : []
+      };
+    });
+  }
+
+  $: folderTree = renderFolderTree(availableFolders);
+
+  async function movePage() {
+    if (isLoading) return;
+    
+    if (!newPageName.trim()) {
+      error = 'Page name is required';
+      return;
+    }
+
+    if (finalPath === currentPath) {
+      error = 'Please select a different location or change the page name';
+      return;
+    }
+
+    isLoading = true;
+    error = '';
+
+    try {
+      await pagesStore.movePagePath(currentPath, finalPath);
+      onMoved();
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Failed to move page';
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      onClose();
+    }
+  }
+</script>
+
+<svelte:window on:keydown={handleKeydown} />
+
+<div class="modal-overlay" on:click={onClose}>
+  <div class="modal" on:click|stopPropagation>
+    <div class="modal-header">
+      <div class="modal-title">
+        <Move class="modal-icon" />
+        <h3>Move Page</h3>
+      </div>
+      <button 
+        type="button"
+        class="modal-close"
+        on:click={onClose}
+        aria-label="Close modal"
+      >
+        ×
+      </button>
+    </div>
+
+    <form on:submit|preventDefault={movePage}>
+      <div class="modal-body">
+        <!-- Current Location -->
+        <div class="current-location">
+          <h4>Current Location</h4>
+          <div class="location-info">
+            <File class="file-icon" />
+            <div>
+              <div class="page-name">{pageName}</div>
+              <div class="page-path">{currentPath}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- New Page Name -->
+        <div class="form-group">
+          <label for="page-name">Page Name (slug)</label>
+          <input 
+            id="page-name"
+            type="text"
+            bind:value={newPageName}
+            placeholder="Enter page name"
+            required
+          />
+        </div>
+
+        <!-- Destination Folder -->
+        <div class="form-group">
+          <label>Destination Folder</label>
+          <div class="folder-selector">
+            <!-- Root folder option -->
+            <div class="folder-option">
+              <button 
+                type="button"
+                class="folder-button"
+                class:selected={selectedPath === ''}
+                on:click={() => selectFolder('')}
+              >
+                <Folder class="folder-icon" />
+                <span>Root (/) - All Documentation</span>
+              </button>
+            </div>
+
+            <!-- Folder tree -->
+            {#each folderTree as item}
+              <div class="folder-item" style="margin-left: {item.depth * 1.5}rem;">
+                <div class="folder-option">
+                  {#if item.hasSubFolders}
+                    <button 
+                      type="button"
+                      class="expand-button"
+                      on:click={() => toggleFolder(item.folder.path)}
+                    >
+                      <ChevronRight class="expand-icon {item.isExpanded ? 'expanded' : ''}" />
+                    </button>
+                  {:else}
+                    <div class="expand-spacer"></div>
+                  {/if}
+                  
+                  <button 
+                    type="button"
+                    class="folder-button"
+                    class:selected={item.isSelected}
+                    class:current={item.isCurrentFolder}
+                    on:click={() => selectFolder(item.folder.path)}
+                    disabled={item.isCurrentFolder}
+                  >
+                    <Folder class="folder-icon" />
+                    <span>{item.folder.name}</span>
+                    {#if item.isCurrentFolder}
+                      <span class="current-label">(current)</span>
+                    {/if}
+                  </button>
+                </div>
+
+                <!-- Render nested folders -->
+                {#each item.children as child}
+                  <div class="folder-item" style="margin-left: {child.depth * 1.5}rem;">
+                    <div class="folder-option">
+                      {#if child.hasSubFolders}
+                        <button 
+                          type="button"
+                          class="expand-button"
+                          on:click={() => toggleFolder(child.folder.path)}
+                        >
+                          <ChevronRight class="expand-icon {child.isExpanded ? 'expanded' : ''}" />
+                        </button>
+                      {:else}
+                        <div class="expand-spacer"></div>
+                      {/if}
+                      
+                      <button 
+                        type="button"
+                        class="folder-button"
+                        class:selected={child.isSelected}
+                        class:current={child.isCurrentFolder}
+                        on:click={() => selectFolder(child.folder.path)}
+                        disabled={child.isCurrentFolder}
+                      >
+                        <Folder class="folder-icon" />
+                        <span>{child.folder.name}</span>
+                        {#if child.isCurrentFolder}
+                          <span class="current-label">(current)</span>
+                        {/if}
+                      </button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="move-preview">
+          <h4>New Location</h4>
+          <div class="preview-path">
+            <File class="file-icon" />
+            <code>{finalPath}</code>
+          </div>
+        </div>
+
+        {#if error}
+          <div class="error-message">
+            {error}
+          </div>
+        {/if}
+      </div>
+
+      <div class="modal-footer">
+        <button 
+          type="button" 
+          class="btn btn-secondary" 
+          on:click={onClose}
+          disabled={isLoading}
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="btn btn-primary" 
+          disabled={isLoading || !newPageName.trim()}
+        >
+          {#if isLoading}
+            Moving...
+          {:else}
+            Move Page
+          {/if}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-background-secondary);
+    border-radius: 0.75rem 0.75rem 0 0;
+  }
+
+  .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .modal-title h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .modal-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-primary);
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+  }
+
+  .modal-close:hover {
+    background: var(--color-background-tertiary);
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .current-location {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--color-background-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+  }
+
+  .current-location h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .location-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .file-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .page-name {
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+  }
+
+  .page-path {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    background: var(--color-background);
+    color: var(--color-text);
+    transition: all 0.2s ease;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  }
+
+  .folder-selector {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-background);
+  }
+
+  .folder-option {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .folder-option:last-child {
+    border-bottom: none;
+  }
+
+  .expand-button {
+    background: none;
+    border: none;
+    padding: 0.75rem;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .expand-spacer {
+    width: 2.5rem;
+  }
+
+  .expand-icon {
+    width: 1rem;
+    height: 1rem;
+    transition: transform 0.2s ease;
+  }
+
+  .expand-icon.expanded {
+    transform: rotate(90deg);
+  }
+
+  .folder-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+  }
+
+  .folder-button:hover:not(:disabled) {
+    background: var(--color-background-secondary);
+  }
+
+  .folder-button.selected {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .folder-button.current {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .folder-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  .current-label {
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+  }
+
+  .move-preview {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--color-background-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+  }
+
+  .move-preview h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .preview-path {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .preview-path code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--color-primary);
+    background: var(--color-background);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--color-border);
+  }
+
+  .error-message {
+    padding: 0.75rem;
+    background: rgba(var(--color-error-rgb), 0.1);
+    border: 1px solid rgba(var(--color-error-rgb), 0.2);
+    border-radius: 0.5rem;
+    color: var(--color-error);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    padding: 1.5rem;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-background-secondary);
+    border-radius: 0 0 0.75rem 0.75rem;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+  }
+
+  .btn-secondary {
+    background: var(--color-background);
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--color-background-tertiary);
+  }
+
+  @media (max-width: 768px) {
+    .modal {
+      width: 95%;
+      margin: 1rem;
+    }
+    
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+      padding: 1rem;
+    }
+  }
+</style>

@@ -8,19 +8,22 @@
 	} from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Edit, Trash2, Eye } from 'lucide-svelte';
+	import { Edit, Trash2, Eye, FolderOpen, Move } from 'lucide-svelte';
 	import type { Page } from '$lib/api/types';
+	import { getParentPath } from '$lib/api/types';
 
 	interface Props {
 		page: Page;
 		showTags?: boolean;
 		showDates?: boolean;
+		showPath?: boolean;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void;
 		onView?: (slug: string) => void;
+		onMove?: (page: Page) => void;
 	}
 
-	let { page, showTags = true, showDates = true, onEdit, onDelete, onView }: Props = $props();
+	let { page, showTags = true, showDates = true, showPath = true, onEdit, onDelete, onView, onMove }: Props = $props();
 
 	function formatDate(dateString?: string): string {
 		if (!dateString) return '';
@@ -39,6 +42,12 @@
 
 		return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
 	}
+
+	const pagePathDerived = $derived(page.metadata?.path || `/${page.metaData.slug}`);
+	const parentFolderDerived = $derived((() => {
+		const parent = getParentPath(pagePathDerived);
+		return parent === '/' ? 'Root' : parent.split('/').pop() || 'Root';
+	})());
 </script>
 
 <Card class="transition-shadow hover:shadow-md">
@@ -51,6 +60,17 @@
 				>
 					{page.metaData.title}
 				</CardTitle>
+				
+				{#if showPath}
+					<CardDescription class="text-muted-foreground mt-1 text-sm flex items-center gap-1">
+						<FolderOpen class="h-3 w-3" />
+						<span class="font-mono text-xs">{pagePathDerived}</span>
+						{#if parentFolderDerived !== 'Root'}
+							<span class="text-xs">in {parentFolderDerived}</span>
+						{/if}
+					</CardDescription>
+				{/if}
+				
 				{#if showDates}
 					<CardDescription class="text-muted-foreground mt-1 text-sm">
 						{#if page.metaData.updated}
@@ -70,6 +90,11 @@
 				{#if onEdit}
 					<Button variant="ghost" size="sm" onclick={() => onEdit(page.metaData.slug!)}>
 						<Edit class="h-4 w-4" />
+					</Button>
+				{/if}
+				{#if onMove}
+					<Button variant="ghost" size="sm" onclick={() => onMove(page)}>
+						<Move class="h-4 w-4" />
 					</Button>
 				{/if}
 				{#if onDelete}

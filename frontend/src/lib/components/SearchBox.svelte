@@ -116,7 +116,7 @@
 			class="absolute top-full z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
 		>
 			<div class="max-h-60 overflow-y-auto">
-				{#each results as page (page.metaData.slug)}
+				{#each results as page, i (page.metaData.slug)}
 					<button
 						type="button"
 						onclick={() => handleSelectPage(page)}
@@ -134,7 +134,9 @@
 							</div>
 						{/if}
 					</button>
-
+						{#if i < results.length -1}
+							<div class="bg-gray-100 mt-1 mr-4 ml-4 mb-1 border-t-1"></div>
+							{/if}
 				{/each}
 			</div>
 		</div>

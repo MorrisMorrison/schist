@@ -88,17 +88,24 @@
 	>
 </svelte:head>
 
-<div class="pages-container">
+<div class="min-h-screen">
 	{#if isLoading}
-		<div class="loading-state">
-			<div class="loading-spinner"></div>
-			<p>Loading...</p>
+		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
+			<div
+				class="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"
+			></div>
+			<p class="text-muted-foreground">Loading...</p>
 		</div>
 	{:else if error}
-		<div class="error-state">
-			<h1>Error</h1>
-			<p>{error}</p>
-			<button class="retry-button" onclick={loadContent}> Try Again </button>
+		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
+			<h1 class="text-foreground mb-4 text-2xl font-semibold">Error</h1>
+			<p class="text-muted-foreground mb-8 max-w-2xl">{error}</p>
+			<button
+				class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				onclick={loadContent}
+			>
+				Try Again
+			</button>
 		</div>
 	{:else if isFolder}
 		<FolderView path={fullPath} />
@@ -111,12 +118,27 @@
 			onMove={handleMovePage}
 		/>
 	{:else}
-		<div class="not-found-state">
-			<h1>Content Not Found</h1>
-			<p>The page or folder at <code>{fullPath}</code> could not be found.</p>
-			<div class="not-found-actions">
-				<button class="btn btn-primary" onclick={() => goto('/pages')}> Go to Pages Home </button>
-				<button class="btn btn-secondary" onclick={() => goto('/')}> Go to Home </button>
+		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
+			<h1 class="text-foreground mb-4 text-2xl font-semibold">Content Not Found</h1>
+			<p class="text-muted-foreground mb-8 max-w-2xl">
+				The page or folder at <code
+					class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
+					>{fullPath}</code
+				> could not be found.
+			</p>
+			<div class="flex flex-wrap justify-center gap-4 md:flex-row">
+				<button
+					class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					onclick={() => goto('/pages')}
+				>
+					Go to Pages Home
+				</button>
+				<button
+					class="border-border text-foreground hover:bg-muted rounded-lg border px-6 py-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+					onclick={() => goto('/')}
+				>
+					Go to Home
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -133,129 +155,3 @@
 		onMoved={handlePageMoved}
 	/>
 {/if}
-
-<style>
-	.pages-container {
-		min-height: 100vh;
-		/* background: var(--color-background); */
-	}
-
-	.loading-state,
-	.error-state,
-	.not-found-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		min-height: 60vh;
-		padding: 2rem;
-		text-align: center;
-	}
-
-	.loading-spinner {
-		width: 2rem;
-		height: 2rem;
-		border: 2px solid var(--color-border);
-		border-top: 2px solid var(--color-primary);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-		margin-bottom: 1rem;
-	}
-
-	.error-state h1,
-	.not-found-state h1 {
-		font-size: 2rem;
-		color: var(--color-text);
-		margin-bottom: 1rem;
-	}
-
-	.error-state p,
-	.not-found-state p {
-		color: var(--color-text-secondary);
-		margin-bottom: 2rem;
-		max-width: 600px;
-	}
-
-	.not-found-state code {
-		background: var(--color-background-secondary);
-		padding: 0.25rem 0.5rem;
-		border-radius: 0.25rem;
-		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-	}
-
-	.not-found-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: center;
-		flex-wrap: wrap;
-	}
-
-	.btn {
-		padding: 0.75rem 1.5rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.5rem;
-		font-size: 0.875rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-decoration: none;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.btn-primary {
-		background: var(--color-primary);
-		color: white;
-		border-color: var(--color-primary);
-	}
-
-	.btn-primary:hover {
-		background: var(--color-primary-hover);
-		border-color: var(--color-primary-hover);
-	}
-
-	.btn-secondary {
-		background: var(--color-background);
-		color: var(--color-text);
-		border-color: var(--color-border);
-	}
-
-	.btn-secondary:hover {
-		background: var(--color-background-secondary);
-	}
-
-	.retry-button {
-		background: var(--color-primary);
-		color: white;
-		border: 1px solid var(--color-primary);
-		padding: 0.75rem 1.5rem;
-		border-radius: 0.5rem;
-		font-size: 0.875rem;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.retry-button:hover {
-		background: var(--color-primary-hover);
-		border-color: var(--color-primary-hover);
-	}
-
-	@keyframes spin {
-		0% {
-			transform: rotate(0deg);
-		}
-		100% {
-			transform: rotate(360deg);
-		}
-	}
-
-	@media (max-width: 768px) {
-		.not-found-actions {
-			flex-direction: column;
-			width: 100%;
-			max-width: 300px;
-		}
-	}
-</style>

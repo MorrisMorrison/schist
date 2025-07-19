@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { apiClient } from '$lib/api/client';
-	import type { Page, PageMetaData } from '$lib/api/types';
-	import { pagesStore } from '$lib/stores/pages';
+	import type { Page} from '$lib/api/types';
 	import { onMount } from 'svelte';
-	import { Card } from './ui/card';
 
 	let {
 		placeholder = 'Search pages...',
@@ -127,16 +124,14 @@
 						{#if page.metaData.tags && page.metaData.tags.length > 0}
 							<div class="mt-1 flex flex-wrap gap-1">
 								{#each page.metaData.tags as tag (tag)}
-									<span class="rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white"
-										>{tag}</span
-									>
+									<span class="rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">{tag}</span>
 								{/each}
 							</div>
 						{/if}
 					</button>
-						{#if i < results.length -1}
-							<div class="bg-gray-100 mt-1 mr-4 ml-4 mb-1 border-t-1"></div>
-							{/if}
+					{#if i < results.length - 1}
+						<div class="mt-1 mr-4 mb-1 ml-4 border-t-1 bg-gray-100"></div>
+					{/if}
 				{/each}
 			</div>
 		</div>

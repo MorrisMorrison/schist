@@ -1,4 +1,4 @@
-.PHONY: run, run-backend, run-frontend, run-e2e, run-docker, run-backend-test
+.PHONY: run, run-backend, run-frontend, run-e2e, run-docker, run-backend-test, fmt, fmt-backend, fmt-frontend, lint
 
 run-backend-test:
 	cd backend && go test ./...
@@ -17,3 +17,15 @@ run-frontend:
 
 run-e2e:
 	cd frontend/e2e && npx playwright test
+
+fmt:
+	cd frontend && npm run format && cd ../backend && go fmt ./...
+
+fmt-backend:
+	cd backend && go fmt ./...
+
+fmt-frontend:
+	cd frontend && npm run format
+
+lint: 
+	cd frontend && npm run lint

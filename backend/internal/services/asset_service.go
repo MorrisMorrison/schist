@@ -104,11 +104,11 @@ func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
 	if relativePath == "" {
 		return "", fmt.Errorf("asset path cannot be empty")
 	}
-	
+
 	if !strings.HasPrefix(relativePath, "/") {
 		return "", fmt.Errorf("asset path must start with '/'")
 	}
-	
+
 	// Prevent directory traversal
 	if strings.Contains(relativePath, "..") {
 		return "", fmt.Errorf("asset path cannot contain '..'")

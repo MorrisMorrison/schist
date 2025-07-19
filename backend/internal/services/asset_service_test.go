@@ -28,17 +28,17 @@ var testPNGData = []byte{
 func createMultipartFile(filename string, data []byte, contentType string) (*multipart.FileHeader, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	
+
 	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	_, err = part.Write(data)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	err = writer.Close()
 	if err != nil {
 		return nil, err
@@ -46,26 +46,26 @@ func createMultipartFile(filename string, data []byte, contentType string) (*mul
 
 	// Parse the multipart form to get the FileHeader
 	boundary := writer.Boundary()
-	
+
 	reader := multipart.NewReader(body, boundary)
 	form, err := reader.ReadForm(int64(len(data)) + 1024)
 	if err != nil {
 		return nil, err
 	}
 	defer form.RemoveAll()
-	
+
 	files := form.File["file"]
 	if len(files) == 0 {
 		return nil, io.EOF
 	}
-	
+
 	fileHeader := files[0]
 	// Set the content type manually since multipart.FileHeader doesn't preserve it automatically
 	if fileHeader.Header == nil {
 		fileHeader.Header = make(map[string][]string)
 	}
 	fileHeader.Header.Set("Content-Type", contentType)
-	
+
 	return fileHeader, nil
 }
 
@@ -105,7 +105,7 @@ func TestAssetService_UploadImage(t *testing.T) {
 	t.Run("uploads valid JPEG image successfully", func(t *testing.T) {
 		// Minimal JPEG data
 		jpegData := []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0xFF, 0xD9}
-		
+
 		fileHeader, err := createMultipartFile("photo.jpg", jpegData, "image/jpeg")
 		require.NoError(t, err)
 
@@ -121,13 +121,13 @@ func TestAssetService_UploadImage(t *testing.T) {
 	t.Run("generates unique filenames for same original name", func(t *testing.T) {
 		fileHeader1, err := createMultipartFile("same.png", testPNGData, "image/png")
 		require.NoError(t, err)
-		
+
 		fileHeader2, err := createMultipartFile("same.png", testPNGData, "image/png")
 		require.NoError(t, err)
 
 		asset1, err := assetService.UploadImage(fileHeader1)
 		require.NoError(t, err)
-		
+
 		asset2, err := assetService.UploadImage(fileHeader2)
 		require.NoError(t, err)
 
@@ -142,8 +142,8 @@ func TestAssetService_UploadImage(t *testing.T) {
 	t.Run("rejects file that exceeds size limit", func(t *testing.T) {
 		// Create data larger than 10MB limit
 		largeData := make([]byte, 11*1024*1024) // 11MB
-		copy(largeData, testPNGData) // Start with valid PNG header
-		
+		copy(largeData, testPNGData)            // Start with valid PNG header
+
 		fileHeader, err := createMultipartFile("large.png", largeData, "image/png")
 		require.NoError(t, err)
 
@@ -245,7 +245,7 @@ func TestAssetService_GetAssetPath(t *testing.T) {
 	t.Run("allows valid asset paths with dots", func(t *testing.T) {
 		// This should be allowed since dots are valid in filenames
 		validPath := "/assets/images/my.image.with.dots.png"
-		
+
 		// Create the file first
 		fullTestPath := filepath.Join(testDir, "assets", "images", "my.image.with.dots.png")
 		err := os.MkdirAll(filepath.Dir(fullTestPath), 0755)
@@ -335,7 +335,7 @@ func TestAssetService_Integration(t *testing.T) {
 		// Upload
 		fileHeader, err := createMultipartFile("workflow.png", testPNGData, "image/png")
 		require.NoError(t, err)
-		
+
 		asset, err := assetService.UploadImage(fileHeader)
 		require.NoError(t, err)
 		assert.NotNil(t, asset)
@@ -343,7 +343,7 @@ func TestAssetService_Integration(t *testing.T) {
 		// Serve (get path)
 		fullPath, err := assetService.GetAssetPath(asset.Path)
 		assert.NoError(t, err)
-		
+
 		// Verify content
 		content, err := os.ReadFile(fullPath)
 		assert.NoError(t, err)
@@ -366,7 +366,7 @@ func TestAssetService_Integration(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			fileHeader, err := createMultipartFile("multi.png", testPNGData, "image/png")
 			require.NoError(t, err)
-			
+
 			asset, err := assetService.UploadImage(fileHeader)
 			require.NoError(t, err)
 			assets = append(assets, asset)
@@ -377,11 +377,11 @@ func TestAssetService_Integration(t *testing.T) {
 		for _, asset := range assets {
 			assert.False(t, names[asset.Name], "Duplicate asset name: %s", asset.Name)
 			names[asset.Name] = true
-			
+
 			// Verify each file exists and can be served
 			fullPath, err := assetService.GetAssetPath(asset.Path)
 			assert.NoError(t, err)
-			
+
 			content, err := os.ReadFile(fullPath)
 			assert.NoError(t, err)
 			assert.Equal(t, testPNGData, content)
@@ -411,7 +411,7 @@ func TestAssetService_ErrorCases(t *testing.T) {
 		assetsDir := filepath.Join(testDir, "assets", "images")
 		err := os.MkdirAll(assetsDir, 0755)
 		require.NoError(t, err)
-		
+
 		err = os.Chmod(assetsDir, 0444)
 		require.NoError(t, err)
 
@@ -446,7 +446,7 @@ func TestAssetService_FileExtensionValidation(t *testing.T) {
 			if ext == ".svg" {
 				contentType = "image/svg+xml"
 			}
-			
+
 			fileHeader, err := createMultipartFile(filename, testPNGData, contentType)
 			require.NoError(t, err)
 
@@ -462,7 +462,7 @@ func TestAssetService_FileExtensionValidation(t *testing.T) {
 	for _, ext := range forbiddenExtensions {
 		t.Run("rejects "+ext+" extension", func(t *testing.T) {
 			filename := "test" + ext
-			
+
 			fileHeader, err := createMultipartFile(filename, testPNGData, "image/png")
 			require.NoError(t, err)
 

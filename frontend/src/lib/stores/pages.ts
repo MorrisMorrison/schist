@@ -405,7 +405,7 @@ export const searchActions = {
 		try {
 			const allResults = await apiClient.searchPages(query);
 			// Filter results to only include pages in the specified folder
-			const results = allResults.filter(
+			const results = allResults.pages.filter(
 				(page) => page.metaData.path && page.metaData.path.startsWith(folderPath)
 			);
 

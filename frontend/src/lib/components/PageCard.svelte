@@ -63,55 +63,60 @@
 
 <Card class="transition-shadow hover:shadow-md">
 	<CardHeader class="pb-3">
-		<div class="flex items-start justify-between">
-			<div class="flex-1">
+		<div class="space-y-2">
+			<!-- Row 1: Title and Buttons -->
+			<div class="flex items-center justify-between gap-3">
 				<CardTitle
-					class="hover:text-primary cursor-pointer text-lg font-semibold"
+					class="hover:text-primary cursor-pointer text-lg font-semibold truncate"
 					onclick={() => onView?.(pagePathDerived)}
 				>
 					{page.metaData.title}
 				</CardTitle>
+				
+				<div class="flex shrink-0 gap-1">
+					{#if onView}
+						<Button variant="ghost" size="sm" onclick={() => onView(pagePathDerived)}>
+							<Eye class="h-4 w-4" />
+						</Button>
+					{/if}
+					{#if onEdit}
+						<Button variant="ghost" size="sm" onclick={() => onEdit(page.metaData.path!)}>
+							<Edit class="h-4 w-4" />
+						</Button>
+					{/if}
+					{#if onMove}
+						<Button variant="ghost" size="sm" onclick={() => onMove(page)}>
+							<Move class="h-4 w-4" />
+						</Button>
+					{/if}
+					{#if onDelete}
+						<Button variant="ghost" size="sm" onclick={() => onDelete(page.metaData.slug!)}>
+							<Trash2 class="text-destructive h-4 w-4" />
+						</Button>
+					{/if}
+				</div>
+			</div>
 
+			<!-- Row 2: Path and Dates (full width) -->
+			<div class="space-y-1">
 				{#if showPath}
-					<CardDescription class="text-muted-foreground mt-1 flex items-center gap-1 text-sm">
-						<FolderOpen class="h-3 w-3" />
-						<span class="font-mono text-xs">{pagePathDerived}</span>
+					<CardDescription class="text-muted-foreground flex items-center gap-1 text-sm">
+						<FolderOpen class="h-3 w-3 flex-shrink-0" />
+						<span class="font-mono text-xs truncate">{pagePathDerived}</span>
 						{#if parentFolderDerived !== 'Root'}
-							<span class="text-xs">in {parentFolderDerived}</span>
+							<span class="text-xs flex-shrink-0">in {parentFolderDerived}</span>
 						{/if}
 					</CardDescription>
 				{/if}
 
 				{#if showDates}
-					<CardDescription class="text-muted-foreground mt-1 text-sm">
+					<CardDescription class="text-muted-foreground text-sm">
 						{#if page.metaData.updated}
 							Updated {formatDate(page.metaData.updated)}
 						{:else if page.metaData.created}
 							Created {formatDate(page.metaData.created)}
 						{/if}
 					</CardDescription>
-				{/if}
-			</div>
-			<div class="ml-2 flex gap-1">
-				{#if onView}
-					<Button variant="ghost" size="sm" onclick={() => onView(pagePathDerived)}>
-						<Eye class="h-4 w-4" />
-					</Button>
-				{/if}
-				{#if onEdit}
-					<Button variant="ghost" size="sm" onclick={() => onEdit(page.metaData.path!)}>
-						<Edit class="h-4 w-4" />
-					</Button>
-				{/if}
-				{#if onMove}
-					<Button variant="ghost" size="sm" onclick={() => onMove(page)}>
-						<Move class="h-4 w-4" />
-					</Button>
-				{/if}
-				{#if onDelete}
-					<Button variant="ghost" size="sm" onclick={() => onDelete(page.metaData.slug!)}>
-						<Trash2 class="text-destructive h-4 w-4" />
-					</Button>
 				{/if}
 			</div>
 		</div>

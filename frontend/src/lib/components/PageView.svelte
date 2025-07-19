@@ -97,9 +97,8 @@
 						<span>Updated {formatDate(pageUpdated)}</span>
 					</div>
 				{/if}
-
 				{#if pageTags.length > 0}
-					<div class="flex items-center gap-2">
+					<div class="flex items-center gap-2 pt-2">
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each pageTags as tag (tag)}

@@ -95,6 +95,54 @@
 		await handleSave();
 	}
 
+	async function handleAutoSave(newContent: string) {
+		content = newContent;
+		await handleSaveWithoutNavigation();
+	}
+
+	async function handleSaveWithoutNavigation() {
+		if (!title.trim()) {
+			saveError = 'Title is required';
+			return;
+		}
+
+		if (!content.trim()) {
+			saveError = 'Content is required';
+			return;
+		}
+
+		isSaving = true;
+		saveError = '';
+
+		// We need to generate a slug from the title
+		const slug = title
+			.trim()
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-|-$/g, '');
+		const newPath = replaceLastPathSegment(data.path, slug);
+		try {
+			await pageActions.updatePageByPath(data.path, {
+				...data.page,
+				metaData: {
+					...data.page.metaData,
+					slug: slug,
+					path: newPath,
+					title: title.trim(),
+					tags: tags
+				},
+				content: content.trim()
+			});
+
+			// Don't navigate on autosave - just stay on the edit page
+		} catch (error) {
+			console.error('Failed to auto-save page:', error);
+			saveError = error instanceof Error ? error.message : 'Failed to auto-save page';
+		} finally {
+			isSaving = false;
+		}
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		// Ctrl+S or Cmd+S to save
 		if ((event.ctrlKey || event.metaKey) && event.key === 's') {
@@ -312,7 +360,7 @@
 					autoSave={{
 						enabled: true,
 						interval: 10000,
-						onSave: handleSaveFromEditor
+						onSave: handleAutoSave
 					}}
 				/>
 			</div>

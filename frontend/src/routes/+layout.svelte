@@ -29,7 +29,7 @@
 			<Sidebar />
 		{/if}
 
-		<main class="main-content">
+		<main class="main-content ring-border-primary rshadow-sm ring-1">
 			{@render children()}
 		</main>
 	</div>

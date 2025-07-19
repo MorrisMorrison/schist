@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
-import type { PageLoad } from '../[slug]/$types.js';
 import type { Page } from '$lib/api/types.js';
 import { apiClient } from '$lib';
+import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params }) => {
 	const { path } = params;

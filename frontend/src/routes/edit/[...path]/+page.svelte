@@ -2,7 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { apiClient } from '$lib';
 	import Editor from '$lib/components/Editor.svelte';
-	import type { PageData } from '../[slug]/$types.js';
+	import { pageActions } from '$lib/stores/pages.js';
+	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
@@ -14,7 +15,12 @@
 	let showDeleteConfirm = $state(false);
 
 	let editorRef: Editor;
-
+function replaceLastPathSegment(path: string, newSegment: string): string {
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length === 0) return newSegment;
+    parts[parts.length - 1] = newSegment;
+    return parts.join('/');
+}
 	async function handleSave() {
 		if (!title.trim()) {
 			saveError = 'Title is required';
@@ -29,18 +35,27 @@
 		isSaving = true;
 		saveError = '';
 
+					// We need to generate a slug from the title
+			const slug = title
+				.trim()
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-|-$/g, '');
+				const newPath = replaceLastPathSegment(data.path, slug);
 		try {
-			await apiClient.updatePage(data.slug, {
+			await pageActions.updatePageByPath(data.path, {
 				...data.page,
 				metaData: {
 					...data.page.metaData,
+					slug: slug,
+					path: newPath,
 					title: title.trim()
 				},
 				content: content.trim()
 			});
 
 			// Navigate back to the page view
-			goto(`/${data.slug}`);
+			goto(`/pages/${newPath}`);
 		} catch (error) {
 			console.error('Failed to save page:', error);
 			saveError = error instanceof Error ? error.message : 'Failed to save page';
@@ -58,7 +73,7 @@
 		isDeleting = true;
 
 		try {
-			await apiClient.deletePage(data.slug);
+			await pageActions.deletePageByPath(data.path);
 			goto('/');
 		} catch (error) {
 			console.error('Failed to delete page:', error);
@@ -99,20 +114,20 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="space-y-6">
+<div class="space-y-6 pt-8 pr-16 pl-16">
 	<!-- Header -->
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
 				<h1 class="text-primary text-2xl font-bold">Edit Page</h1>
 				<p class="text-secondary mt-1 text-sm">
-					Editing <span class="font-mono">/{data.slug}</span>
+					Editing <span class="font-mono">/{data.path}</span>
 				</p>
 			</div>
 
 			<div class="flex items-center space-x-3">
 				<a
-					href="/{data.slug}"
+					href="/{data.path}"
 					class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel

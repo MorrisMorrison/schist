@@ -28,7 +28,7 @@ export interface CreatePageResponse {
 }
 
 export interface UpdatePageRequest {
-	metaData: Omit<PageMetaData, 'slug' | 'created' | 'updated' | 'path'> & { path?: string };
+	metaData: Omit<PageMetaData, 'created' | 'updated' > & { path?: string };
 	content: string;
 }
 

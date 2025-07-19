@@ -98,15 +98,15 @@
 	// Load folder contents on mount and path changes
 	$effect(() => {
 		// Initialize stores with initial data if provided
-		if (initialPages.length > 0) {
+		if (initialPages?.length > 0) {
 			pagesStore.update((state) => ({ ...state, pages: initialPages }));
 		}
-		if (initialFolders.length > 0) {
+		if (initialFolders?.length > 0) {
 			foldersStore.update((state) => ({ ...state, folders: initialFolders }));
 		}
 
 		// Load fresh data if not provided
-		if (initialPages.length === 0 || initialFolders.length === 0) {
+		if (initialPages?.length === 0 || initialFolders?.length === 0) {
 			loadFolderData();
 		}
 	});

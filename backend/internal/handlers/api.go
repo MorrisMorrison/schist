@@ -124,16 +124,16 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		path = "/" + path
 	}
 
-	existingPage, err := h.PageService.GetPageByPath(path)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
+	// existingPage, err := h.PageService.GetPageByPath(path)
+	// if err != nil {
+	// 	c.JSON(http.StatusNotFound, gin.H{
+	// 		"error": err.Error(),
+	// 	})
+	// 	return
+	// }
 
 	updatedPage := &models.Page{}
-	err = c.BindJSON(updatedPage)
+	err := c.BindJSON(updatedPage)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -141,8 +141,8 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		return
 	}
 
-	updatedPage.MetaData = existingPage.MetaData
 	updatedPage.MetaData.Updated = time.Now()
+	h.PageService.MovePage(path, updatedPage.MetaData.Path)
 
 	err = h.PageService.UpdatePage(updatedPage)
 	if err != nil {

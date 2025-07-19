@@ -11,10 +11,10 @@
 	<meta name="description" content="A lightweight, fast wiki for your documentation needs" />
 </svelte:head>
 
-{#if data.totalPages === 0}
+<!-- {#if data.totalPages === 0} -->
 	<!-- <div class="space-y-8"> -->
 	<!-- Hero Section -->
-	<div class="text-center">
+	<!-- <div class="text-center">
 		<div class="mx-auto max-w-3xl">
 			<h1 class="text-primary text-4xl font-bold tracking-tight sm:text-6xl">
 				Welcome to <span class="text-blue-primary">Schist</span>
@@ -30,9 +30,9 @@
 				</a>
 			</div>
 		</div>
-	</div>
+	</div> -->
 	<!-- </div> -->
-{:else}
+<!-- {:else} -->
 	<!-- Use FolderView component to display folder structure -->
 	<FolderView
 		path=""
@@ -40,7 +40,7 @@
 		initialPages={data.pages}
 		initialFolders={data.folders}
 	/>
-{/if}
+<!-- {/if} -->
 
 <!-- Error Message -->
 {#if data.error}

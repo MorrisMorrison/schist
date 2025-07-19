@@ -363,7 +363,7 @@ export const searchActions = {
 			const results = await apiClient.searchPages(query);
 			searchStore.update((state) => ({
 				...state,
-				results,
+				results: results.pages,
 				loading: false
 			}));
 			return results;

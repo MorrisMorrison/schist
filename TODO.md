@@ -9,4 +9,3 @@
 - [ ] General Search in Navigation
 
 ## Backend
-- [ ] Implement search endpoint

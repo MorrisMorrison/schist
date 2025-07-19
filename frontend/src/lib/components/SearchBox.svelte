@@ -1,7 +1,10 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { apiClient } from '$lib/api/client';
-	import type { PageMetaData } from '$lib/api/types';
+	import type { Page, PageMetaData } from '$lib/api/types';
+	import { pagesStore } from '$lib/stores/pages';
 	import { onMount } from 'svelte';
+	import { Card } from './ui/card';
 
 	let {
 		placeholder = 'Search pages...',
@@ -10,11 +13,11 @@
 	}: {
 		placeholder?: string;
 		showResults?: boolean;
-		onSelect?: (page: PageMetaData) => void;
+		onSelect?: (page: Page) => void;
 	} = $props();
 
 	let query = $state('');
-	let results: PageMetaData[] = $state([]);
+	let results: Page[] = $state([]);
 	let isSearching = $state(false);
 	let showDropdown = $state(false);
 	let searchTimeout: number;
@@ -35,8 +38,9 @@
 
 		isSearching = true;
 		try {
-			const pages = await apiClient.searchPages(query.trim());
-			showDropdown = showResults && pages.length > 0;
+			const result = await apiClient.searchPages(query.trim());
+			showDropdown = showResults && result.pages.length > 0;
+			results = result.pages;
 		} catch (error) {
 			console.error('Search failed:', error);
 			results = [];
@@ -46,14 +50,14 @@
 		}
 	}
 
-	function handleSelectPage(page: PageMetaData) {
+	function handleSelectPage(page: Page) {
 		query = '';
 		showDropdown = false;
 		if (onSelect) {
 			onSelect(page);
 		} else {
 			// Default behavior: navigate to page
-			window.location.href = `/${page.slug}`;
+			window.location.href = `/${page.metaData.slug}`;
 		}
 	}
 
@@ -107,29 +111,30 @@
 		</div>
 	</div>
 
-	{#if showDropdown && results.length > 0}
+	{#if showDropdown}
 		<div
 			class="absolute top-full z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
 		>
 			<div class="max-h-60 overflow-y-auto">
-				{#each results as page (page.slug)}
+				{#each results as page (page.metaData.slug)}
 					<button
 						type="button"
 						onclick={() => handleSelectPage(page)}
 						class="w-full px-4 py-3 text-left first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
 					>
-						<div class="font-medium text-gray-900">{page.title}</div>
-						<div class="text-sm text-gray-500">/{page.slug}</div>
-						{#if page.tags && page.tags.length > 0}
+						<div class="font-medium text-gray-900">{page.metaData.title}</div>
+						<div class="text-sm text-gray-500">{page.metaData.path}</div>
+						{#if page.metaData.tags && page.metaData.tags.length > 0}
 							<div class="mt-1 flex flex-wrap gap-1">
-								{#each page.tags as tag (tag)}
-									<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+								{#each page.metaData.tags as tag (tag)}
+									<span class="rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white"
 										>{tag}</span
 									>
 								{/each}
 							</div>
 						{/if}
 					</button>
+
 				{/each}
 			</div>
 		</div>

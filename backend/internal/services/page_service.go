@@ -25,6 +25,28 @@ func NewPageService(dataDir string) *PageService {
 	}
 }
 
+func (p *PageService) Search(query string) ([]*models.Page, error) {
+	pages, err := p.ListPages()
+	if err != nil {
+		return nil, err
+	}
+
+	var filtered []*models.Page
+	lowerQuery := strings.ToLower(query)
+
+	for _, page := range pages {
+		if strings.Contains(page.MetaData.Path, "/trash") {
+			continue
+		}
+		if strings.Contains(strings.ToLower(page.MetaData.Title), lowerQuery) {
+			filtered = append(filtered, page)
+		}
+	}
+
+	return filtered, nil
+
+}
+
 func (p *PageService) CreatePage(page *models.Page) error {
 	if page.MetaData.Slug == "" {
 		page.MetaData.Slug = utils.GenerateSlug(page.MetaData.Title)

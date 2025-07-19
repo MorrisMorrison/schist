@@ -12,7 +12,8 @@ import type {
 	FolderOperationResponse,
 	CreatePageResponse,
 	Asset,
-	AssetUploadResponse
+	AssetUploadResponse,
+	SearchResult
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -194,9 +195,9 @@ class SchістApiClient {
 	}
 
 	// Search
-	async searchPages(query: string): Promise<Page[]> {
+	async searchPages(query: string): Promise<SearchResult> {
 		const params = new URLSearchParams({ q: query });
-		return this.request<Page[]>(`/search?${params}`);
+		return this.request<SearchResult>(`/search?${params}`);
 	}
 
 	// Asset operations

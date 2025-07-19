@@ -103,10 +103,17 @@ func (h *APIHandler) createPage(c *gin.Context) {
 
 func (h *APIHandler) search(c *gin.Context) {
 	query := c.Query("q")
+	pages, err := h.PageService.Search(query)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"query":   query,
-		"results": []gin.H{},
-		"total":   0,
+		"query": query,
+		"pages": pages,
+		"total": len(pages),
 	})
 }
 
@@ -329,9 +336,9 @@ func (h *APIHandler) serveAsset(c *gin.Context) {
 		path = "/" + path
 	}
 
-	// The path comes in as /images/test.png, we need to add /assets prefix  
+	// The path comes in as /images/test.png, we need to add /assets prefix
 	assetPath := "/assets" + path
-	
+
 	fullPath, err := h.AssetService.GetAssetPath(assetPath)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{

@@ -186,22 +186,35 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		// Get the position of the clicked button (three-dots or folder row)
-		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-		let x = rect.left;
-		let y = rect.bottom + 2; // Position below the button with small gap
+		const target = event.currentTarget as HTMLElement;
+		const rect = target.getBoundingClientRect();
+		
+		let x: number, y: number;
+		
+		if (event instanceof MouseEvent) {
+			// Position menu at mouse coordinates with small offset
+			x = event.clientX + 5;
+			y = event.clientY - 50; // Position above click point (working value)
+		} else {
+			// Fallback for keyboard events
+			x = rect.left;
+			y = rect.bottom + 2;
+		}
 
 		// Ensure the menu doesn't go off screen
-		const menuWidth = 160; // min-w-[160px] from the menu
-		const menuHeight = 120; // approximate height of 3 items
+		const menuWidth = 160;
+		const menuHeight = 120;
 		
 		if (x + menuWidth > window.innerWidth) {
 			x = window.innerWidth - menuWidth - 10;
 		}
-		if (y + menuHeight > window.innerHeight) {
-			y = rect.top - menuHeight - 2; // Position above if no room below
+		if (y < 0) {
+			y = 10; // Don't go above viewport
 		}
-
+		if (y + menuHeight > window.innerHeight) {
+			y = window.innerHeight - menuHeight - 10;
+		}
+		
 		contextMenuPosition = { x, y };
 		contextMenuOpen = folder.path;
 	}

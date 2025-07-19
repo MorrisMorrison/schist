@@ -12,7 +12,7 @@
 
 	const sizeClasses = {
 		sm: 'w-5 h-5',
-		md: 'w-6 h-6', 
+		md: 'w-6 h-6',
 		lg: 'w-8 h-8'
 	};
 
@@ -28,8 +28,8 @@
 	class={cn(
 		'flex flex-col items-center justify-center',
 		'transition-all duration-200 ease-in-out',
-		'hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md p-2',
-		'focus:ring-gray-500 focus:ring-2 focus:ring-offset-2 focus:outline-none',
+		'rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800',
+		'focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none',
 		sizeClasses[size],
 		className
 	)}
@@ -40,7 +40,7 @@
 	<!-- Top line -->
 	<div
 		class={cn(
-			'bg-gray-600 dark:bg-gray-400 transition-all duration-300 ease-in-out',
+			'bg-gray-600 transition-all duration-300 ease-in-out dark:bg-gray-400',
 			'w-full rounded-sm',
 			lineHeight[size],
 			isOpen ? 'translate-y-1 rotate-45' : 'translate-y-0 rotate-0'
@@ -50,7 +50,7 @@
 	<!-- Middle line -->
 	<div
 		class={cn(
-			'bg-gray-600 dark:bg-gray-400 transition-all duration-300 ease-in-out',
+			'bg-gray-600 transition-all duration-300 ease-in-out dark:bg-gray-400',
 			'my-0.5 w-full rounded-sm',
 			lineHeight[size],
 			isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'
@@ -60,7 +60,7 @@
 	<!-- Bottom line -->
 	<div
 		class={cn(
-			'bg-gray-600 dark:bg-gray-400 transition-all duration-300 ease-in-out',
+			'bg-gray-600 transition-all duration-300 ease-in-out dark:bg-gray-400',
 			'w-full rounded-sm',
 			lineHeight[size],
 			isOpen ? '-translate-y-1 -rotate-45' : 'translate-y-0 rotate-0'

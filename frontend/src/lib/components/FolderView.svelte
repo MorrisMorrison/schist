@@ -199,7 +199,9 @@
 	<Breadcrumbs {path} />
 
 	<!-- Folder Header -->
-	<div class="flex items-start justify-between gap-6 border-b pb-6">
+	<div
+		class="flex w-full flex-col items-start gap-4 border-b pb-6 md:flex-row md:items-start md:justify-between md:gap-6"
+	>
 		<div class="space-y-2">
 			<h1 class="text-primary text-3xl font-bold">
 				{#if path === ''}
@@ -236,9 +238,9 @@
 			{/if}
 		</div>
 
-		<div class="flex items-center gap-4">
+		<div class="flex w-full flex-col items-start gap-2 md:w-auto md:flex-row md:items-center md:gap-4">
 			<!-- Sort Controls -->
-			<div class="bg-secondary flex items-center gap-2 rounded-lg border p-2">
+			<div class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2">
 				<label class="text-secondary text-sm font-medium" for="sort-select">Sort by:</label>
 				<select
 					bind:value={sortBy}
@@ -260,7 +262,7 @@
 			</div>
 
 			{#if showCreateButtons}
-				<div class="flex gap-2">
+				<div class="flex w-full justify-start gap-2 md:w-auto">
 					<Button variant="outline" onclick={() => (showCreateFolderModal = true)}>
 						<FolderPlus class="h-4 w-4" />
 						New Folder
@@ -282,8 +284,7 @@
 				<section class="space-y-4">
 					<h2 class="text-primary text-lg font-medium">Folders</h2>
 					<div
-						class="grid gap-4"
-						style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"
+						class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 sm:grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]"
 					>
 						{#each subFolders as folder (folder.path)}
 							<Card
@@ -313,8 +314,7 @@
 				<section class="space-y-4">
 					<h2 class="text-primary text-lg font-medium">Pages</h2>
 					<div
-						class="grid gap-4"
-						style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));"
+						class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4 sm:grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(320px,1fr))]"
 					>
 						{#each currentFolderPages as page (page.metaData.slug)}
 							<PageCard
@@ -348,7 +348,7 @@
 						{/if}
 					</p>
 					{#if showCreateButtons}
-						<div class="flex gap-2">
+						<div class="flex w-full justify-start gap-2 md:w-auto">
 							<Button onclick={() => (showCreatePageModal = true)}>
 								<Plus class="h-4 w-4" />
 								Create Page
@@ -420,40 +420,3 @@
 		</form>
 	</DialogContent>
 </Dialog>
-
-<style>
-	@media (max-width: 768px) {
-		.max-w-7xl > div:first-child {
-			flex-direction: column;
-			gap: 1rem;
-			align-items: flex-start;
-		}
-
-		.space-y-2 {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.5rem;
-		}
-
-		.flex.items-center.gap-4 {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.5rem;
-			width: 100%;
-		}
-
-		.flex.items-center.gap-2.p-2 {
-			flex-wrap: wrap;
-			gap: 0.25rem;
-		}
-
-		.flex.gap-2 {
-			width: 100%;
-			justify-content: flex-start;
-		}
-
-		.grid[style*='grid-template-columns'] {
-			grid-template-columns: 1fr !important;
-		}
-	}
-</style>

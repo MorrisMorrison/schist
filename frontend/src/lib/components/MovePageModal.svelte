@@ -58,7 +58,10 @@
 		selectedPath = folderPath;
 	}
 
-	function renderFolderTree(folders: FolderType[], depth: number = 0): Array<{
+	function renderFolderTree(
+		folders: FolderType[],
+		depth: number = 0
+	): Array<{
 		folder: FolderType;
 		isExpanded: boolean;
 		isSelected: boolean;

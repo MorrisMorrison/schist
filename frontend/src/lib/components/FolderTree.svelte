@@ -188,9 +188,9 @@
 
 		const target = event.currentTarget as HTMLElement;
 		const rect = target.getBoundingClientRect();
-		
+
 		let x: number, y: number;
-		
+
 		if (event instanceof MouseEvent) {
 			// Position menu at mouse coordinates with small offset
 			x = event.clientX + 5;
@@ -204,7 +204,7 @@
 		// Ensure the menu doesn't go off screen
 		const menuWidth = 160;
 		const menuHeight = 120;
-		
+
 		if (x + menuWidth > window.innerWidth) {
 			x = window.innerWidth - menuWidth - 10;
 		}
@@ -214,7 +214,7 @@
 		if (y + menuHeight > window.innerHeight) {
 			y = window.innerHeight - menuHeight - 10;
 		}
-		
+
 		contextMenuPosition = { x, y };
 		contextMenuOpen = folder.path;
 	}
@@ -318,7 +318,7 @@
 	{@const hasSubFolders = folder.sub_folders && folder.sub_folders.length > 0}
 	{@const indentLevel = Math.min(depth, maxDepth)}
 
-	<div class="folder-item">
+	<div class="relative">
 		<!-- Folder Row -->
 		<button
 			type="button"
@@ -401,7 +401,8 @@
 									onclick={() => onpageselect?.({ page })}
 								>
 									<File class="h-4 w-4 text-gray-500" />
-									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span>
+									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span
+									>
 								</button>
 							</div>
 						</div>
@@ -421,7 +422,7 @@
 
 <svelte:window onclick={handleDocumentClick} />
 
-<div class={cn('folder-tree', className)}>
+<div class={cn('select-none', className)}>
 	<!-- Actions Header -->
 	{#if showActions}
 		<div class="border-border flex items-center justify-between border-b p-4">
@@ -514,7 +515,8 @@
 									onclick={() => onpageselect?.({ page })}
 								>
 									<File class="h-4 w-4 text-gray-500" />
-									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span>
+									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span
+									>
 								</button>
 							</div>
 						</div>
@@ -579,13 +581,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.folder-tree {
-		user-select: none;
-	}
-
-	.folder-item {
-		position: relative;
-	}
-</style>

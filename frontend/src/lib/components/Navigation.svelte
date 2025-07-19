@@ -100,7 +100,7 @@
 					<!-- Theme toggle -->
 					<ThemeToggle />
 					<!-- Create new page button -->
-					<a
+					<!-- <a
 						href="/new"
 						class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 					>
@@ -113,7 +113,7 @@
 							/>
 						</svg>
 						New Page
-					</a>
+					</a> -->
 
 					<!-- Edit current page button (if on a page) -->
 					<!-- {#if currentPageSlug && page.url.pathname !== '/new' && !page.url.pathname.startsWith('/edit/')}

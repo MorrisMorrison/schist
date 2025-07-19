@@ -167,6 +167,10 @@
 		};
 
 		const allPaths = getAllFolderPaths($folders);
+		// Include root folder if we're showing pages and have content
+		if (showPages && (getPagesForFolder('/').length > 0 || $folders.length > 0)) {
+			allPaths.push('/');
+		}
 		expandedFolders = new Set(allPaths);
 		saveExpandedFolders();
 		onexpandall?.();
@@ -520,31 +524,19 @@
 	{:else}
 		<!-- Folder Tree -->
 		<div class="space-y-1" role="tree" aria-label="Folder tree">
-			<!-- Root pages if showPages is enabled -->
-			{#if showPages}
-				{#each getPagesForFolder('/') as page (page.metaData?.slug || page.metaData?.path)}
-					<div class="px-2">
-						<div style="margin-left: 1.5rem;">
-							<div class="flex items-center">
-								<div class="h-5 w-5"></div>
-								<button
-									type="button"
-									class="text-primary hover:bg-accent hover:text-accent-foreground flex flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm transition-colors"
-									onclick={() => onpageselect?.({ page })}
-								>
-									<File class="h-4 w-4 text-gray-500" />
-									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span
-									>
-								</button>
-							</div>
-						</div>
-					</div>
+			<!-- Root folder containing root pages and root-level folders -->
+			{#if showPages && (getPagesForFolder('/').length > 0 || filteredFolders.length > 0)}
+				{@render folderNode({
+					name: '/',
+					path: '/',
+					page_count: getPagesForFolder('/').length,
+					sub_folders: filteredFolders
+				}, 0)}
+			{:else}
+				{#each filteredFolders as folder (folder.path)}
+					{@render folderNode(folder, 0)}
 				{/each}
 			{/if}
-
-			{#each filteredFolders as folder (folder.path)}
-				{@render folderNode(folder, 0)}
-			{/each}
 		</div>
 	{/if}
 

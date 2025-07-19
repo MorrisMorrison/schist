@@ -3,12 +3,14 @@
 	import { page } from '$app/state';
 	import { apiClient } from '$lib/api/client.js';
 	import Editor from '$lib/components/Editor.svelte';
+	import TagInput from '$lib/components/TagInput.svelte';
 
 	// Get initial title from URL params if provided (e.g., from 404 page)
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 
 	let title = $state('');
 	let content = $state('');
+	let tags = $state<string[]>([]);
 
 	// Initialize title and content when initialTitle changes
 	$effect(() => {
@@ -49,7 +51,7 @@
 			await apiClient.createPage({
 				metaData: {
 					title: title.trim(),
-					tags: []
+					tags: tags
 				},
 				content: content.trim()
 			});
@@ -211,6 +213,16 @@
 					>
 				</p>
 			{/if}
+		</div>
+
+		<!-- Tags Input (Compact) -->
+		<div>
+			<label for="tags" class="text-secondary block text-sm font-medium mb-2">Tags</label>
+			<TagInput 
+				{tags} 
+				onTagsChange={(newTags) => tags = newTags}
+				placeholder="Add tags..."
+			/>
 		</div>
 
 		<!-- Content Editor -->

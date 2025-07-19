@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { apiClient } from '$lib';
 	import Editor from '$lib/components/Editor.svelte';
+	import TagInput from '$lib/components/TagInput.svelte';
 	import { pageActions } from '$lib/stores/pages.js';
 	import type { PageData } from './$types';
 
@@ -9,6 +10,7 @@
 
 	let title = $state(data.page.metaData.title);
 	let content = $state(data.page.content);
+	let tags = $state<string[]>(data.page.metaData.tags || []);
 	let isSaving = $state(false);
 	let saveError = $state('');
 	let isDeleting = $state(false);
@@ -49,7 +51,8 @@
 					...data.page.metaData,
 					slug: slug,
 					path: newPath,
-					title: title.trim()
+					title: title.trim(),
+					tags: tags
 				},
 				content: content.trim()
 			});
@@ -291,6 +294,16 @@
 					class="border-secondary bg-primary text-primary block w-full rounded-md border px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
 				/>
 			</div>
+		</div>
+
+		<!-- Tags Input (Compact) -->
+		<div>
+			<label for="tags" class="text-secondary block text-sm font-medium mb-2">Tags</label>
+			<TagInput 
+				{tags} 
+				onTagsChange={(newTags) => tags = newTags}
+				placeholder="Add tags..."
+			/>
 		</div>
 
 		<!-- Content Editor -->

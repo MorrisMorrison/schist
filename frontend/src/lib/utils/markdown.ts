@@ -15,13 +15,10 @@ renderer.image = function({ href, title, text }: Tokens.Image): string {
 	let src = href;
 	// Check if href starts with /assets/ (ignoring query parameters)
 	const pathWithoutQuery = href.split('?')[0];
-	console.log('Image renderer debug:', { href, pathWithoutQuery, startsWithAssets: pathWithoutQuery.startsWith('/assets/') });
 	if (pathWithoutQuery.startsWith('/assets/')) {
 		// Use the API client's method to get the correct asset URL
 		src = apiClient.getAssetUrl(href);
-		console.log('Transformed URL:', src);
 	}
-	console.log('Final src:', src);
 	
 	const titleAttr = title ? ` title="${title}"` : '';
 	const alt = text || '';

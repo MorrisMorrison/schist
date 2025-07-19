@@ -1,53 +1,31 @@
 <script lang="ts">
-	import { marked } from 'marked';
 	import type { PreviewProps } from '$lib/types/editor';
-	import type { Tokens } from 'marked';
-	import { PUBLIC_API_URL } from '$env/static/public';
+	import { parseMarkdownWithCopyButtons, initializeCodeBlockCopyButtons } from '$lib/utils/markdown';
 
 	let { content, theme = 'light', className = '' }: PreviewProps = $props();
 	
-	// Get base server URL from API URL
-	const serverBaseUrl = PUBLIC_API_URL ? PUBLIC_API_URL.replace('/api', '') : 'http://localhost:8080';
+	// Container reference for initializing copy buttons
+	let containerRef: HTMLDivElement;
 
-	// Create a renderer for image path handling
-	const renderer = new marked.Renderer();
+	// State for HTML content
+	let htmlContent = $state('');
 	
-	// Override image rendering to handle local asset paths
-	renderer.image = function({ href, title, text }: Tokens.Image): string {
-		// Convert local asset paths to full URLs
-		let src = href;
-		// Check if href starts with /assets/ (ignoring query parameters)
-		const pathWithoutQuery = href.split('?')[0];
-		if (pathWithoutQuery.startsWith('/assets/')) {
-			// Transform /assets/ to /uploads/ for user-uploaded content
-			const uploadsPath = href.replace('/assets/', '/uploads/');
-			src = `${serverBaseUrl}${uploadsPath}`;
-		}
-		
-		const titleAttr = title ? ` title="${title}"` : '';
-		const alt = text || '';
-		
-		return `<img src="${src}" alt="${alt}"${titleAttr} class="max-w-full h-auto rounded-lg shadow-sm" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
-	};
-
-	// Configure marked for security and performance
-	marked.setOptions({
-		renderer,
-		breaks: true,
-		gfm: true
-	});
-
-	// Reactive HTML generation
-	let htmlContent = $derived(
-		(() => {
+	// Update HTML content when content changes
+	$effect(() => {
+		const updateContent = async () => {
 			try {
-				return marked.parse(content);
+				htmlContent = await parseMarkdownWithCopyButtons(content);
+				// Initialize copy buttons after content is rendered
+				if (containerRef) {
+					initializeCodeBlockCopyButtons(containerRef);
+				}
 			} catch (error) {
 				console.error('Markdown parsing error:', error);
-				return '<p class="text-red-500">Error parsing markdown content</p>';
+				htmlContent = '<p class="text-red-500">Error parsing markdown content</p>';
 			}
-		})()
-	);
+		};
+		updateContent();
+	});
 
 	// Theme classes
 	const themeClasses = $derived(
@@ -59,6 +37,7 @@
 </script>
 
 <div
+	bind:this={containerRef}
 	class="markdown-preview h-full overflow-auto border-l {themeClasses} {className}"
 	role="region"
 	aria-label="Markdown preview"

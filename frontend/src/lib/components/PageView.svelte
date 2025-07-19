@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { Edit, Trash2, Move, Calendar, Tag, User } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import type { Page } from '$lib/api/types';
 
@@ -56,37 +58,37 @@
 	<meta name="description" content={page.content?.slice(0, 160) || ''} />
 </svelte:head>
 
-<article class="page-view">
+<div class="mx-auto max-w-7xl space-y-8 p-6">
 	<!-- Breadcrumbs -->
 	<Breadcrumbs path={pagePath} currentPageTitle={pageTitle} />
 
 	<!-- Page Header -->
-	<header class="page-header">
-		<div class="page-title-section">
-			<h1 class="page-title">{pageTitle}</h1>
+	<header class="flex flex-col gap-6 border-b border-border pb-6 md:flex-row md:items-start md:justify-between">
+		<div class="flex-1">
+			<h1 class="text-primary mb-4 text-4xl font-bold leading-tight">{pageTitle}</h1>
 
 			<!-- Page Metadata -->
-			<div class="page-metadata">
+			<div class="flex flex-wrap items-center gap-4">
 				{#if pageCreated}
-					<div class="metadata-item">
-						<Calendar class="metadata-icon" />
+					<div class="flex items-center gap-2 text-sm text-muted-foreground">
+						<Calendar class="h-4 w-4" />
 						<span>Created {formatDate(pageCreated)}</span>
 					</div>
 				{/if}
 
 				{#if pageUpdated && pageUpdated !== pageCreated}
-					<div class="metadata-item">
-						<Calendar class="metadata-icon" />
+					<div class="flex items-center gap-2 text-sm text-muted-foreground">
+						<Calendar class="h-4 w-4" />
 						<span>Updated {formatDate(pageUpdated)}</span>
 					</div>
 				{/if}
 
 				{#if pageTags.length > 0}
-					<div class="metadata-item">
-						<Tag class="metadata-icon" />
-						<div class="tags">
+					<div class="flex items-center gap-2">
+						<Tag class="h-4 w-4 text-muted-foreground" />
+						<div class="flex flex-wrap gap-2">
 							{#each pageTags as tag}
-								<span class="tag">{tag}</span>
+								<Badge variant="default" class="bg-blue-600 text-white hover:bg-blue-500 text-xs">{tag}</Badge>
 							{/each}
 						</div>
 					</div>
@@ -95,279 +97,54 @@
 		</div>
 
 		<!-- Action Buttons -->
-		<div class="page-actions">
-			<button
-				type="button"
-				class="btn btn-secondary"
+		<div class="flex gap-2">
+			<Button
+				variant="outline"
+				size="sm"
 				onclick={() => onEdit(pageSlug)}
 				title="Edit page"
 			>
-				<Edit class="btn-icon" />
+				<Edit class="h-4 w-4" />
 				Edit
-			</button>
+			</Button>
 
-			<button
-				type="button"
-				class="btn btn-secondary"
+			<Button
+				variant="outline"
+				size="sm"
 				onclick={() => onMove(page)}
 				title="Move page"
 			>
-				<Move class="btn-icon" />
+				<Move class="h-4 w-4" />
 				Move
-			</button>
+			</Button>
 
-			<button
-				type="button"
-				class="btn btn-danger"
+			<Button
+				variant="destructive"
+				size="sm"
 				onclick={() => onDelete(pagePath)}
 				title="Delete page"
 			>
-				<Trash2 class="btn-icon" />
+				<Trash2 class="h-4 w-4" />
 				Delete
-			</button>
+			</Button>
 		</div>
 	</header>
 
 	<!-- Page Content -->
-	<main class="page-content bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
+	<main class="bg-primary ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if page.content}
-			<div class="content-wrapper">
+			<div class="prose prose-slate max-w-none dark:prose-invert">
 				{@html renderMarkdown(page.content)}
 			</div>
 		{:else}
-			<div class="empty-content">
-				<p>This page has no content yet.</p>
-				<button type="button" class="btn btn-primary" onclick={() => onEdit(pageSlug)}>
+			<div class="flex flex-col items-center justify-center py-12 text-center">
+				<p class="text-muted-foreground mb-6 text-lg">This page has no content yet.</p>
+				<Button onclick={() => onEdit(pageSlug)}>
+					<Edit class="h-4 w-4" />
 					Add Content
-				</button>
+				</Button>
 			</div>
 		{/if}
 	</main>
-</article>
+</div>
 
-<style>
-	.page-view {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 1rem;
-	}
-
-	.page-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 2rem;
-		padding-bottom: 1rem;
-		border-bottom: 2px solid var(--color-border);
-	}
-
-	.page-title-section {
-		flex: 1;
-	}
-
-	.page-title {
-		font-size: 2.5rem;
-		font-weight: 700;
-		color: var(--color-text);
-		margin: 0 0 1rem 0;
-		line-height: 1.2;
-	}
-
-	.page-metadata {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1rem;
-		margin-bottom: 1rem;
-	}
-
-	.metadata-item {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.875rem;
-		color: var(--color-text-secondary);
-	}
-
-	.tags {
-		display: flex;
-		gap: 0.5rem;
-		flex-wrap: wrap;
-	}
-
-	.tag {
-		background: var(--color-primary);
-		color: white;
-		padding: 0.25rem 0.5rem;
-		border-radius: 0.25rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-	}
-
-	.page-actions {
-		display: flex;
-		gap: 0.5rem;
-		margin-left: 1rem;
-	}
-
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem 0.75rem;
-		border-radius: 0.375rem;
-		font-size: 0.875rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-decoration: none;
-		border: none;
-		outline: none;
-	}
-
-	.btn-secondary {
-		background: var(--bg-secondary);
-		color: var(--text-primary);
-	}
-
-	.btn-secondary:hover {
-		background: var(--gray-hover);
-	}
-
-	.btn-secondary:focus {
-		background: var(--gray-active);
-		box-shadow: 0 0 0 2px var(--gray-active);
-	}
-
-	.btn-primary {
-		background: var(--blue-primary);
-		color: white;
-	}
-
-	.btn-primary:hover {
-		background: var(--blue-secondary);
-	}
-
-	.btn-primary:focus {
-		background: var(--blue-secondary);
-		box-shadow: 0 0 0 2px var(--blue-primary);
-	}
-
-	.btn-danger {
-		background: var(--red-primary);
-		color: white;
-	}
-
-	.btn-danger:hover {
-		background: var(--red-secondary);
-	}
-
-	.btn-danger:focus {
-		background: var(--red-secondary);
-		box-shadow: 0 0 0 2px var(--red-primary);
-	}
-
-	.page-content {
-		background: var(--color-background);
-		border-radius: 0.5rem;
-		padding: 2rem;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-	}
-
-	.content-wrapper {
-		line-height: 1.6;
-		color: var(--color-text);
-	}
-
-	.content-wrapper :global(h1) {
-		font-size: 2rem;
-		font-weight: 600;
-		margin: 2rem 0 1rem 0;
-		color: var(--color-text);
-	}
-
-	.content-wrapper :global(h2) {
-		font-size: 1.5rem;
-		font-weight: 600;
-		margin: 1.5rem 0 1rem 0;
-		color: var(--color-text);
-	}
-
-	.content-wrapper :global(h3) {
-		font-size: 1.25rem;
-		font-weight: 600;
-		margin: 1.25rem 0 0.75rem 0;
-		color: var(--color-text);
-	}
-
-	.content-wrapper :global(p) {
-		margin: 1rem 0;
-		color: var(--color-text);
-	}
-
-	.content-wrapper :global(code) {
-		background: var(--color-background-secondary);
-		padding: 0.25rem 0.5rem;
-		border-radius: 0.25rem;
-		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-		font-size: 0.875rem;
-	}
-
-	.content-wrapper :global(a) {
-		color: var(--color-primary);
-		text-decoration: none;
-	}
-
-	.content-wrapper :global(a:hover) {
-		text-decoration: underline;
-	}
-
-	.content-wrapper :global(strong) {
-		font-weight: 600;
-	}
-
-	.content-wrapper :global(em) {
-		font-style: italic;
-	}
-
-	.empty-content {
-		text-align: center;
-		padding: 3rem;
-		color: var(--color-text-secondary);
-	}
-
-	.empty-content p {
-		margin-bottom: 1.5rem;
-		font-size: 1.125rem;
-	}
-
-	@media (max-width: 768px) {
-		.page-view {
-			padding: 0.5rem;
-		}
-
-		.page-header {
-			flex-direction: column;
-			gap: 1rem;
-			align-items: flex-start;
-		}
-
-		.page-actions {
-			margin-left: 0;
-			width: 100%;
-			justify-content: flex-start;
-		}
-
-		.page-title {
-			font-size: 2rem;
-		}
-
-		.page-content {
-			padding: 1rem;
-		}
-
-		.page-metadata {
-			flex-direction: column;
-			gap: 0.5rem;
-		}
-	}
-</style>

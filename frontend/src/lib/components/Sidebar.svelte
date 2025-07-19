@@ -244,6 +244,22 @@
 					<span>All Folders</span>
 				</a>
 			</div>
+			<div class="px-2" >
+			{#each getPagesForFolder("/") as page}
+												<div style="margin-left: {1.5}rem;">
+										<div class="flex items-center">
+											<div class="h-5 w-5"></div>
+											<a
+												href="/pages/{page.metaData.slug}"
+												class="text-primary hover:bg-accent hover:text-accent-foreground flex flex-1 items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors"
+											>
+												<File class="h-4 w-4 text-gray-500" />
+												<span class="flex-1 truncate">{page.metaData?.title || 'Untitled'}</span>
+											</a>
+										</div>
+									</div>
+			{/each}
+			</div>
 
 			<!-- Folder tree -->
 			<div class="px-2">

@@ -18,7 +18,10 @@
 		DialogContent,
 		DialogHeader,
 		DialogTitle,
-		DialogFooter
+		DialogFooter,
+
+		DialogDescription
+
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import type { Page, Folder as FolderType } from '$lib/api/types';
@@ -43,6 +46,8 @@
 	let isLoadingFolderData = $state(false);
 	let sortBy = $state('name'); // 'name', 'created', 'modified'
 	let sortOrder = $state('asc'); // 'asc', 'desc'
+	let deleteDialogOpen = $state(false);
+	let pageToDelete = $state<string | null>(null);
 
 	// Get current folder and its contents
 	const currentFolderData = $derived($foldersStore.folders?.find((f) => f.path === path));
@@ -137,11 +142,26 @@
 		goto(`/edit${path}`);
 	}
 
-	// Handle page deletion
-	function handleDeletePage(path: string) {
-		if (confirm('Are you sure you want to delete this page?')) {
-			pageActions.deletePage(path);
+	function handleDeletePage(slug: string) {
+		pageToDelete = slug;
+		deleteDialogOpen = true;
+	}
+
+	async function confirmDelete() {
+		if (!pageToDelete) return;
+
+		try {
+			await pageActions.deletePage(pageToDelete);
+			deleteDialogOpen = false;
+			pageToDelete = null;
+		} catch (err) {
+			console.error('Failed to delete page:', err);
 		}
+	}
+
+	function cancelDelete() {
+		deleteDialogOpen = false;
+		pageToDelete = null;
 	}
 
 	// Create new page in current folder
@@ -346,6 +366,21 @@
 		</CardContent>
 	</Card>
 </div>
+<!-- Delete Confirmation Dialog -->
+<Dialog bind:open={deleteDialogOpen}>
+	<DialogContent>
+		<DialogHeader>
+			<DialogTitle>Delete Page</DialogTitle>
+			<DialogDescription>
+				Are you sure you want to delete this page? This action cannot be undone.
+			</DialogDescription>
+		</DialogHeader>
+		<DialogFooter>
+			<Button variant="outline" onclick={cancelDelete}>Cancel</Button>
+			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
+		</DialogFooter>
+	</DialogContent>
+</Dialog>
 
 <!-- Create Folder Modal -->
 <CreateFolderModal

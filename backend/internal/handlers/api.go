@@ -31,7 +31,7 @@ func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
 		pages.GET("/*path", h.getPageByPath)
 		pages.PUT("/*path", h.updatePageByPath)
 		pages.DELETE("/*path", h.deletePageByPath)
-		r.POST("/move", h.movePage)
+		pages.POST("/move", h.movePage)
 	}
 
 	folders := r.Group("/folders")

@@ -226,6 +226,7 @@ export const pageActions = {
 
 			// Refresh folder tree in case empty folders were removed
 			folderActions.loadFolderTree().catch(console.error);
+			pageActions.loadPages().catch(console.error);
 		} catch (error) {
 			pagesStore.update((state) => ({
 				...state,

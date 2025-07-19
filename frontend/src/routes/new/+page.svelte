@@ -217,12 +217,8 @@
 
 		<!-- Tags Input (Compact) -->
 		<div>
-			<label for="tags" class="text-secondary block text-sm font-medium mb-2">Tags</label>
-			<TagInput 
-				{tags} 
-				onTagsChange={(newTags) => tags = newTags}
-				placeholder="Add tags..."
-			/>
+			<label for="tags" class="text-secondary mb-2 block text-sm font-medium">Tags</label>
+			<TagInput {tags} onTagsChange={(newTags) => (tags = newTags)} placeholder="Add tags..." />
 		</div>
 
 		<!-- Content Editor -->

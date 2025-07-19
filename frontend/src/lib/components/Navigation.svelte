@@ -6,7 +6,8 @@
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	let { currentPageSlug, isSidebarOpen }: { currentPageSlug?: string; isSidebarOpen?: boolean } = $props();
+	let { currentPageSlug, isSidebarOpen }: { currentPageSlug?: string; isSidebarOpen?: boolean } =
+		$props();
 
 	let isMenuOpen = $state(false);
 
@@ -42,8 +43,8 @@
 		</div>
 
 		<!-- Main navigation content -->
-		<div 
-			class="mx-auto px-4 transition-all duration-300 ease-in-out sm:px-6 lg:px-8" 
+		<div
+			class="mx-auto px-4 transition-all duration-300 ease-in-out sm:px-6 lg:px-8"
 			class:pl-16={showSidebarToggle}
 			class:md:ml-[280px]={isSidebarOpen}
 			class:max-w-7xl={!isSidebarOpen}

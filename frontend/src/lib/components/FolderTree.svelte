@@ -526,13 +526,16 @@
 		<div class="space-y-1" role="tree" aria-label="Folder tree">
 			<!-- Root folder containing root pages and root-level folders -->
 			{#if showPages && (getPagesForFolder('/').length > 0 || filteredFolders.length > 0)}
-				{@render folderNode({
-					name: '/',
-					path: '/',
-					created: new Date().toISOString(),
-					page_count: getPagesForFolder('/').length,
-					sub_folders: filteredFolders
-				}, 0)}
+				{@render folderNode(
+					{
+						name: '/',
+						path: '/',
+						created: new Date().toISOString(),
+						page_count: getPagesForFolder('/').length,
+						sub_folders: filteredFolders
+					},
+					0
+				)}
 			{:else}
 				{#each filteredFolders as folder (folder.path)}
 					{@render folderNode(folder, 0)}

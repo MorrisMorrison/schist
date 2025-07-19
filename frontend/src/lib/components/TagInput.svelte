@@ -115,6 +115,6 @@
 		>
 			<Plus class="h-3 w-3" />
 		</Button>
-		<span class="text-xs text-muted-foreground">({tags.length}/{maxTags})</span>
+		<span class="text-muted-foreground text-xs">({tags.length}/{maxTags})</span>
 	</div>
 </div>

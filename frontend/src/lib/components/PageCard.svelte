@@ -67,12 +67,12 @@
 			<!-- Row 1: Title and Buttons -->
 			<div class="flex items-center justify-between gap-3">
 				<CardTitle
-					class="hover:text-primary cursor-pointer text-lg font-semibold truncate"
+					class="hover:text-primary cursor-pointer truncate text-lg font-semibold"
 					onclick={() => onView?.(pagePathDerived)}
 				>
 					{page.metaData.title}
 				</CardTitle>
-				
+
 				<div class="flex shrink-0 gap-1">
 					{#if onView}
 						<Button variant="ghost" size="sm" onclick={() => onView(pagePathDerived)}>
@@ -102,9 +102,9 @@
 				{#if showPath}
 					<CardDescription class="text-muted-foreground flex items-center gap-1 text-sm">
 						<FolderOpen class="h-3 w-3 flex-shrink-0" />
-						<span class="font-mono text-xs truncate">{pagePathDerived}</span>
+						<span class="truncate font-mono text-xs">{pagePathDerived}</span>
 						{#if parentFolderDerived !== 'Root'}
-							<span class="text-xs flex-shrink-0">in {parentFolderDerived}</span>
+							<span class="flex-shrink-0 text-xs">in {parentFolderDerived}</span>
 						{/if}
 					</CardDescription>
 				{/if}

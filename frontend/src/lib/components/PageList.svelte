@@ -116,7 +116,9 @@
 		</div>
 	{:else}
 		<!-- Page Grid -->
-		<div class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4 sm:grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
+		<div
+			class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4 sm:grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(320px,1fr))]"
+		>
 			{#each filteredPages as page (page.metaData.path + page.metaData.slug)}
 				<PageCard
 					{page}

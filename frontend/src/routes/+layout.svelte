@@ -41,15 +41,20 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-50 dark:bg-gray-800 transition-colors">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-800 transition-colors border-0">
 	<Navigation {currentPageSlug} />
 
-	<div class="app-container" class:with-sidebar={sidebarVisible}>
+	<div class="app-container border-0" class:with-sidebar={sidebarVisible}>
 		<!-- Mobile backdrop -->
 		{#if showSidebarComponent && $sidebarOpen}
 			<div
 				class="fixed inset-0 z-10 bg-black/50 md:hidden"
 				onclick={handleBackdropClick}
+				onkeydown={(e) => {
+					if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+						handleBackdropClick();
+					}
+				}}
 				role="button"
 				tabindex="-1"
 				aria-label="Close sidebar"
@@ -64,8 +69,11 @@
 		{/if}
 
 		<main
-			class="main-content bg-gray-50 dark:bg-gray-800 ring-border-primary rshadow-sm ring-1"
+			class="main-content dark:bg-gray-800"
 			class:sidebar-open={sidebarVisible}
+			class:ring-1={sidebarVisible}
+			class:ring-border-primary={sidebarVisible}
+			class:rshadow-sm={sidebarVisible}
 		>
 			{@render children()}
 		</main>

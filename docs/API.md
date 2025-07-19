@@ -1,15 +1,62 @@
 # API Documentation
 
+Schist provides a complete RESTful API for managing a hierarchical markdown wiki with folder organization, asset management, and full-text search.
+
 ## Base URL
 
 - Development: `http://localhost:8080/api`
 - Production: `http://localhost:8080/api`
 
+## Authentication
+
+Currently, no authentication is required for any endpoints.
+
+## Data Models
+
+### Page Object
+```json
+{
+  "metaData": {
+    "slug": "welcome-to-schist",
+    "title": "Welcome to Schist",
+    "path": "/welcome-to-schist",
+    "created": "2024-01-15T10:30:00Z",
+    "updated": "2024-01-15T10:30:00Z",
+    "tags": ["welcome", "getting-started"]
+  },
+  "content": "# Welcome to Schist\n\nMarkdown content here..."
+}
+```
+
+### Folder Object
+```json
+{
+  "name": "docs",
+  "path": "/docs",
+  "created": "2024-01-15T10:30:00Z",
+  "page_count": 5,
+  "sub_folders": [...]
+}
+```
+
+### Asset Object
+```json
+{
+  "name": "generated-filename.png",
+  "original_name": "upload.png",
+  "path": "/assets/images/generated-filename.png",
+  "size": 1024000,
+  "content_type": "image/png",
+  "created": "2024-01-15T10:30:00Z"
+}
+```
+
 ## Endpoints
 
-### Health Check
+### Health & System
 
-**GET** `/health`
+#### Health Check
+**GET** `/api/health`
 
 Check if the server is running.
 
@@ -21,130 +68,394 @@ Check if the server is running.
 }
 ```
 
-### Pages
+### Page Management
+
+Pages in Schist are organized hierarchically using path-based routing. Paths like `/docs/api` create nested folder structures automatically.
 
 #### List All Pages
+**GET** `/api/pages`
 
-**GET** `/pages`
-
-Get a list of all wiki pages.
-
-**Response:**
-```json
-{
-  "pages": [],
-  "total": 0
-}
-```
-
-#### Get Page
-
-**GET** `/pages/:slug`
-
-Get a specific page by slug.
-
-**Parameters:**
-- `slug` (string) - URL-friendly page identifier
+Retrieve all wiki pages with metadata. Automatically excludes pages in the `/trash` folder.
 
 **Response:**
 ```json
 {
-  "slug": "getting-started",
-  "title": "Getting Started",
-  "content": "# Getting Started\n\nWelcome to Schist!"
+  "pages": [
+    {
+      "metaData": {
+        "slug": "welcome-to-schist",
+        "title": "Welcome to Schist",
+        "path": "/welcome-to-schist",
+        "created": "2024-01-15T10:30:00Z",
+        "updated": "2024-01-15T10:30:00Z",
+        "tags": ["welcome", "getting-started"]
+      },
+      "content": "# Welcome to Schist\n\nMarkdown content here..."
+    }
+  ],
+  "total": 1
 }
 ```
 
-#### Create Page
+#### Get Page by Path
+**GET** `/api/pages/*path`
 
-**POST** `/pages`
+Retrieve a specific page by its hierarchical path.
 
-Create a new wiki page.
+**Path Examples:**
+- `/api/pages/welcome` - Root level page
+- `/api/pages/docs/api` - Nested page in docs folder
+- `/api/pages/projects/2024/website` - Deeply nested page
+
+**Response:** Single page object (same structure as in list response)
+
+**Error Responses:**
+- `404` - Page not found
+
+#### Create New Page
+**POST** `/api/pages`
+
+Create a new wiki page. The system automatically generates slugs and paths if not provided.
 
 **Request Body:**
 ```json
 {
-  "title": "Page Title",
-  "content": "# Page Content\n\nYour markdown content here."
+  "metaData": {
+    "title": "Page Title",
+    "path": "/optional-custom-path",
+    "tags": ["tag1", "tag2"]
+  },
+  "content": "# Markdown Content\n\nYour content here..."
 }
 ```
+
+**Auto-Generated Fields:**
+- `slug` - URL-friendly identifier from title
+- `path` - Hierarchical path from slug if not provided
+- `created` and `updated` - Current timestamp
 
 **Response:**
 ```json
 {
-  "message": "Page created successfully"
+  "message": "Page created successfully",
+  "path": "/generated-or-custom-path"
 }
 ```
 
 #### Update Page
+**PUT** `/api/pages/*path`
 
-**PUT** `/pages/:slug`
+Update an existing page. Can move pages by changing the path in metadata.
 
-Update an existing page.
+**Request Body:** Same as create page
 
-**Parameters:**
-- `slug` (string) - Page identifier
-
-**Request Body:**
-```json
-{
-  "title": "Updated Title",
-  "content": "# Updated Content\n\nNew content here."
-}
-```
+**Special Behavior:** If the path in metadata differs from the URL path, the page will be moved to the new location.
 
 **Response:**
 ```json
 {
   "message": "Page updated successfully",
-  "slug": "getting-started"
+  "path": "/current-path"
 }
 ```
 
-#### Delete Page
+#### Delete Page (Move to Trash)
+**DELETE** `/api/pages/*path`
 
-**DELETE** `/pages/:slug`
-
-Delete a page.
-
-**Parameters:**
-- `slug` (string) - Page identifier
+Soft delete a page by moving it to the `/trash` directory.
 
 **Response:**
 ```json
 {
-  "message": "Page deleted successfully",
-  "slug": "getting-started"
+  "message": "Page moved to trash successfully",
+  "path": "/original-path"
+}
+```
+
+#### Move Page
+**POST** `/api/pages/move`
+
+Move a page to a different location in the hierarchy.
+
+**Request Body:**
+```json
+{
+  "oldPath": "/current/path",
+  "newPath": "/new/path"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Page moved successfully",
+  "oldPath": "/current/path",
+  "newPath": "/new/path"
+}
+```
+
+### Folder Management
+
+Folders organize pages hierarchically and are created automatically when pages are placed in them.
+
+#### Get Folder Tree
+**GET** `/api/folders`
+
+Retrieve the complete folder hierarchy with page counts.
+
+**Response:**
+```json
+{
+  "folders": [
+    {
+      "name": "docs",
+      "path": "/docs",
+      "created": "2024-01-15T10:30:00Z",
+      "page_count": 5,
+      "sub_folders": [
+        {
+          "name": "api",
+          "path": "/docs/api",
+          "created": "2024-01-15T10:30:00Z",
+          "page_count": 2,
+          "sub_folders": []
+        }
+      ]
+    }
+  ],
+  "total": 3
+}
+```
+
+#### Get Specific Folder
+**GET** `/api/folders/*path`
+
+Get folder contents and metadata for a specific path.
+
+**Path Examples:**
+- `/api/folders/` - Root folder
+- `/api/folders/docs` - Docs folder
+- `/api/folders/projects/2024` - Nested folder
+
+**Response:** Single folder object with immediate children
+
+#### Create Folder
+**POST** `/api/folders/*path`
+
+Create a new directory structure.
+
+**Response:**
+```json
+{
+  "message": "Folder created successfully",
+  "path": "/created/path"
+}
+```
+
+#### Delete Folder
+**DELETE** `/api/folders/*path`
+
+Remove a folder and all its contents permanently.
+
+**Protection:** Cannot delete the root folder (`/`)
+
+**Response:**
+```json
+{
+  "message": "Folder deleted successfully",
+  "path": "/deleted/path"
 }
 ```
 
 ### Search
 
 #### Search Pages
+**GET** `/api/search?q={query}`
 
-**GET** `/search`
-
-Search for pages containing the query.
+Full-text search across page titles (case-insensitive). Excludes pages in `/trash`.
 
 **Query Parameters:**
-- `q` (string) - Search query
+- `q` (string, required) - Search term
+
+**Examples:**
+- `/api/search?q=getting started`
+- `/api/search?q=API`
 
 **Response:**
 ```json
 {
   "query": "search term",
-  "results": [],
-  "total": 0
+  "pages": [
+    {
+      "metaData": {
+        "title": "Getting Started Guide",
+        "path": "/docs/getting-started",
+        ...
+      },
+      "content": "..."
+    }
+  ],
+  "total": 2
 }
 ```
 
-## Testing
+### Asset Management
 
-Use the HTTP files in the `/http` directory to test the API:
+Upload and manage images and media files for use in wiki pages.
 
-1. Install VS Code REST Client extension
-2. Open any `.http` file in the `/http` directory
-3. Select environment (dev/prod/docker)
-4. Click "Send Request"
+#### Upload Asset
+**POST** `/api/assets/upload`
 
-See [HTTP Testing Guide](../http/README.md) for details.
+Upload an image or media file.
+
+**Content-Type:** `multipart/form-data`
+**Form Field:** `file`
+
+**Supported Types:** JPEG, PNG, GIF, WebP, SVG
+**Size Limit:** 10MB
+**File Naming:** Auto-generated unique names with MD5 hash
+
+**Response:**
+```json
+{
+  "message": "Asset uploaded successfully",
+  "asset": {
+    "name": "a1b2c3d4e5f6-original.png",
+    "original_name": "screenshot.png",
+    "path": "/assets/images/a1b2c3d4e5f6-original.png",
+    "size": 1024000,
+    "content_type": "image/png",
+    "created": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+**Usage in Markdown:**
+```markdown
+![Description](/assets/images/a1b2c3d4e5f6-original.png)
+```
+
+#### Serve Asset
+**GET** `/api/assets/*path`
+
+Serve uploaded files with appropriate headers.
+
+**Path Examples:**
+- `/api/assets/images/file.png`
+- `/api/assets/documents/file.pdf`
+
+**Response:** Binary file content with appropriate MIME type
+
+#### Delete Asset
+**DELETE** `/api/assets/*path`
+
+Remove an uploaded file permanently.
+
+**Response:**
+```json
+{
+  "message": "Asset deleted successfully",
+  "path": "/assets/images/file.png"
+}
+```
+
+## Static File Serving
+
+### Upload Directory Access
+**GET** `/uploads/*path`
+
+Direct static access to uploaded assets (maps to `{dataDir}/assets/`).
+
+**Examples:**
+- `http://localhost:8080/uploads/images/file.png`
+- `http://localhost:8080/uploads/documents/file.pdf`
+
+## Error Handling
+
+### Standard Error Response
+```json
+{
+  "error": "Descriptive error message"
+}
+```
+
+### HTTP Status Codes
+- **200** - Success
+- **201** - Created (new pages/folders/assets)
+- **400** - Bad Request (validation errors, invalid JSON)
+- **404** - Not Found (missing pages/folders/assets)
+- **500** - Internal Server Error (filesystem/parsing errors)
+
+## Path and Security Validation
+
+### Path Rules
+- **Valid Characters:** `[a-zA-Z0-9\-_/]+`
+- **Maximum Depth:** 10 levels
+- **Directory Traversal:** Blocked (`..` segments rejected)
+- **Auto-Normalization:** Leading slashes added automatically
+
+### File Storage Format
+Pages are stored as markdown files with YAML front matter:
+
+```markdown
+---
+title: Page Title
+path: /page-path
+created: 2024-01-15T10:30:00Z
+updated: 2024-01-15T10:30:00Z
+tags:
+  - tag1
+  - tag2
+---
+
+# Markdown Content
+
+Your page content here...
+```
+
+## Development Notes
+
+### CORS Configuration
+In development mode (`NODE_ENV=development`), CORS is enabled for frontend development server access.
+
+### Testing
+HTTP test files are available in the `/http` directory for API testing with VS Code REST Client extension.
+
+## Examples
+
+### Creating a Nested Document Structure
+```bash
+# Create a project documentation hierarchy
+POST /api/pages
+{
+  "metaData": {
+    "title": "Project Overview",
+    "path": "/projects/website/overview"
+  },
+  "content": "# Website Project\n\nThis is our main website project."
+}
+
+# This automatically creates the folders: /projects/website/
+```
+
+### Wiki Linking Between Pages
+```markdown
+# In any page content
+Check out our [[API Documentation]] or [[/docs/getting-started]].
+
+# Both create clickable links in the frontend
+```
+
+### Asset Workflow
+```bash
+# 1. Upload image
+POST /api/assets/upload (with file)
+# Returns: {"asset": {"path": "/assets/images/abc123-photo.jpg"}}
+
+# 2. Use in markdown
+![My Photo](/assets/images/abc123-photo.jpg)
+
+# 3. Image is accessible at both:
+# - /api/assets/images/abc123-photo.jpg (API route)
+# - /uploads/images/abc123-photo.jpg (static route)
+```

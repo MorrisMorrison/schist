@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { apiClient } from '$lib/api/client';
-	import type { Page} from '$lib/api/types';
+	import type { Page } from '$lib/api/types';
 	import { onMount } from 'svelte';
 
 	let {

@@ -54,17 +54,6 @@ Your wiki will be available at http://localhost:8080
 - [⚙️ Configuration](docs/CONFIGURATION.md) - Environment setup
 - [💻 Development Guide](docs/DEVELOPMENT.md) - Contributing guide
 - [📋 Design Document](docs/DESIGN_DOC.md) - Architecture overview
-- [🗺️ Implementation Plan](docs/IMPLEMENTATION_PLAN.md) - Development roadmap
-
-## Roadmap
-
-**MVP (Current Phase):** Basic wiki functionality with file operations, markdown editing, and wiki linking.
-
-**Phase 2:** Enhanced features like graph view, advanced search, and export functionality.
-
-**Phase 3:** Collaboration features, git integration, and plugin system.
-
-See [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) for detailed roadmap.
 
 ## Contributing
 

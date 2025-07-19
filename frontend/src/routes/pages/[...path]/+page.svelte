@@ -53,7 +53,7 @@
 		}
 	}
 
-	function handleEditPage(slug: string) {
+	function handleEditPage() {
 		goto(`/edit/${path}`);
 	}
 
@@ -63,7 +63,7 @@
 		}
 	}
 
-	function handleViewPage(slug: string) {
+	function handleViewPage() {
 		// Already viewing the page, could scroll to top or refresh
 		window.scrollTo(0, 0);
 	}

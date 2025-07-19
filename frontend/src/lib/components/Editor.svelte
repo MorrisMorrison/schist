@@ -525,16 +525,12 @@
 				</div>
 			{/if}
 			{#if uploadMessage && !isUploading}
-				<div
-					class="text-sm {currentTheme === 'dark' ? 'text-green-400' : 'text-green-600'}"
-				>
+				<div class="text-sm {currentTheme === 'dark' ? 'text-green-400' : 'text-green-600'}">
 					✓ {uploadMessage}
 				</div>
 			{/if}
 			{#if uploadError}
-				<div
-					class="text-sm {currentTheme === 'dark' ? 'text-red-400' : 'text-red-600'}"
-				>
+				<div class="text-sm {currentTheme === 'dark' ? 'text-red-400' : 'text-red-600'}">
 					✗ {uploadError}
 				</div>
 			{/if}

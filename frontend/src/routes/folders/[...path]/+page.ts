@@ -1,8 +1,9 @@
 import type { PageLoad } from './$types';
 import { apiClient } from '$lib/api/client';
 import { error } from '@sveltejs/kit';
+import type { Folder, Page } from '$lib';
 
-export const load: PageLoad = async ({ params, fetch }) => {
+export const load: PageLoad = async ({ params }) => {
 	const pathSegments = params.path.split('/').filter(Boolean);
 	const fullPath = '/' + pathSegments.join('/');
 
@@ -14,7 +15,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
 		]);
 
 		// Check if this path corresponds to a folder
-		const findFolderByPath = (folders: any[], targetPath: string): any => {
+		const findFolderByPath = (folders: Folder[], targetPath: string): Folder | null => {
 			for (const folder of folders) {
 				if (folder.path === targetPath) {
 					return folder;
@@ -32,7 +33,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
 		if (folder) {
 			// This is a folder - filter pages and subfolders for this path
 			const folderPages = allPages?.filter(
-				(page: any) =>
+				(page: Page) =>
 					page.metaData?.path === fullPath ||
 					(fullPath === '/' && !page.metaData?.path?.includes('/'))
 			);
@@ -55,7 +56,7 @@ export const load: PageLoad = async ({ params, fetch }) => {
 				path: fullPath,
 				page: page
 			};
-		} catch (pageError) {
+		} catch {
 			// Neither folder nor page found
 			throw error(404, {
 				message: 'Folder or page not found'

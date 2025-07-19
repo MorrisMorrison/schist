@@ -1,6 +1,5 @@
 <script lang="ts">
 	import FolderView from '$lib/components/FolderView.svelte';
-	import { Button } from '$lib/components/ui/button';
 	import type { PageData } from './$types.js';
 
 	let { data }: { data: PageData } = $props();

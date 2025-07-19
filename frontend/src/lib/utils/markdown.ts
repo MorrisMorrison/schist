@@ -1,5 +1,5 @@
-import { marked  } from 'marked';
-import type {Tokens}  from 'marked';
+import { marked } from 'marked';
+import type { Tokens } from 'marked';
 import { apiClient } from '$lib/api/client';
 
 /**
@@ -10,7 +10,7 @@ import { apiClient } from '$lib/api/client';
 const renderer = new marked.Renderer();
 
 // Override image rendering to handle local asset paths
-renderer.image = function({ href, title, text }: Tokens.Image): string {
+renderer.image = function ({ href, title, text }: Tokens.Image): string {
 	// Convert local asset paths to full URLs
 	let src = href;
 	// Check if href starts with /assets/ (ignoring query parameters)
@@ -19,15 +19,15 @@ renderer.image = function({ href, title, text }: Tokens.Image): string {
 		// Use the API client's method to get the correct asset URL
 		src = apiClient.getAssetUrl(href);
 	}
-	
+
 	const titleAttr = title ? ` title="${title}"` : '';
 	const alt = text || '';
-	
+
 	return `<img src="${src}" alt="${alt}"${titleAttr} class="max-w-full h-auto rounded-lg shadow-sm" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
 };
 
 // Override code block rendering to add copy functionality
-renderer.code = function({ text, lang }: Tokens.Code): string {
+renderer.code = function ({ text, lang }: Tokens.Code): string {
 	const escapedCode = text
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
@@ -37,7 +37,7 @@ renderer.code = function({ text, lang }: Tokens.Code): string {
 
 	const langClass = lang ? ` language-${lang}` : '';
 	const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
-	
+
 	return `
 		<div class="code-block-container flex justify-between">
 			<pre class="grow-1"><code class="hljs${langClass}">${escapedCode}</code></pre>
@@ -59,8 +59,8 @@ renderer.code = function({ text, lang }: Tokens.Code): string {
 	`;
 };
 
-// Override inline code rendering  
-renderer.codespan = function({ text }: Tokens.Codespan): string {
+// Override inline code rendering
+renderer.codespan = function ({ text }: Tokens.Codespan): string {
 	const escapedCode = text
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
@@ -114,7 +114,7 @@ export async function parseMarkdownWithCopyButtons(content: string): Promise<str
  */
 export function initializeCodeBlockCopyButtons(container: HTMLElement): void {
 	const copyButtons = container.querySelectorAll('.copy-button');
-	
+
 	copyButtons.forEach((button) => {
 		// Remove existing listeners to prevent duplicates
 		button.removeEventListener('click', handleCopyClick);
@@ -128,7 +128,7 @@ export function initializeCodeBlockCopyButtons(container: HTMLElement): void {
 async function handleCopyClick(event: Event): Promise<void> {
 	const button = event.currentTarget as HTMLButtonElement;
 	const copyText = button.getAttribute('data-copy-text');
-	
+
 	if (!copyText) return;
 
 	// Decode HTML entities
@@ -168,7 +168,7 @@ async function handleCopyClick(event: Event): Promise<void> {
  */
 function showCopyFeedback(button: HTMLElement, success: boolean): void {
 	const originalHTML = button.innerHTML;
-	
+
 	if (success) {
 		button.innerHTML = `
 			<svg class="copy-icon text-green-600" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

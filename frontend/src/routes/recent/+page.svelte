@@ -1,5 +1,7 @@
 <script lang="ts">
 	import PageList from '$lib/components/PageList.svelte';
+	import CardContent from '$lib/components/ui/card/card-content.svelte';
+	import { Card } from '$lib/components/ui/card/index.js';
 	import type { PageData } from './$types.js';
 
 	let { data }: { data: PageData } = $props();
@@ -11,22 +13,34 @@
 </svelte:head>
 <div class="mx-auto max-w-7xl space-y-8 p-6">
 	<!-- Header -->
-	<div class="space-y-2">
-		<h1 class="text-primary text-3xl font-bold">Recent Pages</h1>
-		<p class="text-secondary text-lg">
-			{data.totalPages > 0
-				? `Showing ${data.recentPages.length} of ${data.totalPages} pages, sorted by most recent activity`
-				: 'No pages found'}
-		</p>
+
+	<div
+		class="flex w-full flex-col items-start gap-4 border-b pb-6 md:flex-row md:items-start md:justify-between md:gap-6"
+	>
+		<div class="space-y-2">
+			<h1 class="text-primary text-3xl font-bold">Recent Pages</h1>
+			<p class="text-secondary text-lg">
+				{data.totalPages > 0
+					? `Showing ${data.recentPages.length} of ${data.totalPages} pages, sorted by most recent activity`
+					: 'No pages found'}
+			</p>
+		</div>
 	</div>
 
 	<!-- Recent Pages List -->
 	{#if data.recentPages.length > 0}
-		<div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
+		<Card class="p-6">
+			<CardContent>
+				<section class="space-y-4">
+					<h2 class="text-primary text-lg font-medium">Pages</h2>
+					<PageList pages={data.recentPages} showDates={true} showTags={true} />
+				</section>
+			</CardContent>
+		</Card>
+		<!-- <div class="bg-primary ring-border-primary rounded-lg shadow-sm ring-1">
 			<div class="p-6">
-				<PageList pages={data.recentPages} showDates={true} showTags={true} />
 			</div>
-		</div>
+		</div> -->
 	{:else}
 		<!-- Empty State -->
 		<div class="bg-primary ring-border-primary rounded-lg p-12 text-center shadow-sm ring-1">

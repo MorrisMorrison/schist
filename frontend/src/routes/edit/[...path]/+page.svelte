@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { apiClient } from '$lib';
 	import Editor from '$lib/components/Editor.svelte';
 	import TagInput from '$lib/components/TagInput.svelte';
 	import { pageActions } from '$lib/stores/pages.js';

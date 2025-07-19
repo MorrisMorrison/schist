@@ -17,12 +17,7 @@
 		onMove?: (page: Page) => void;
 	}
 
-	let {
-		page,
-		onEdit = () => {},
-		onDelete = () => {},
-		onMove = () => {}
-	}: Props = $props();
+	let { page, onEdit = () => {}, onDelete = () => {}, onMove = () => {} }: Props = $props();
 
 	const pagePath = $derived(page.metaData?.path || `/${page.metaData?.slug}`);
 	const pageTitle = $derived(page.metaData?.title || 'Untitled');
@@ -146,6 +141,7 @@
 	<main class="bg-primary ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if page.content}
 			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
+				<!-- TODO FIX CSS !!!! -->
 				{@html renderedMarkdown}
 			</div>
 		{:else}

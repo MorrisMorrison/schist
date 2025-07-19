@@ -17,35 +17,34 @@ class ImagePasteHandler {
 	}
 
 	private isImageFile(file: File): boolean {
-		return file.type.startsWith('image/') && [
-			'image/jpeg',
-			'image/jpg', 
-			'image/png',
-			'image/gif',
-			'image/webp',
-			'image/svg+xml'
-		].includes(file.type);
+		return (
+			file.type.startsWith('image/') &&
+			['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'].includes(
+				file.type
+			)
+		);
 	}
 
 	private async verifyImageAccess(assetPath: string): Promise<void> {
 		// Convert asset path to actual URL that will be used by the browser
 		const imageUrl = apiClient.getAssetUrl(assetPath);
-		
+
 		return new Promise((resolve, reject) => {
 			const img = new Image();
+			// eslint-disable-next-line prefer-const
 			let timeoutId: number;
-			
+
 			const cleanup = () => {
 				clearTimeout(timeoutId);
 				img.onload = null;
 				img.onerror = null;
 			};
-			
+
 			img.onload = () => {
 				cleanup();
 				resolve();
 			};
-			
+
 			img.onerror = () => {
 				cleanup();
 				// If image fails to load, wait a bit and try again
@@ -56,13 +55,13 @@ class ImagePasteHandler {
 					retryImg.src = imageUrl + '?t=' + Date.now(); // Cache bust
 				}, 200);
 			};
-			
+
 			// Timeout after 3 seconds
 			timeoutId = window.setTimeout(() => {
 				cleanup();
 				reject(new Error(`Image load timeout for ${imageUrl}`));
 			}, 3000);
-			
+
 			img.src = imageUrl;
 		});
 	}
@@ -80,7 +79,7 @@ class ImagePasteHandler {
 			// Add timestamp to bust browser cache for newly uploaded images
 			const cacheBustPath = `${asset.path}?t=${Date.now()}`;
 			const imageMarkdown = `![${asset.original_name}](${cacheBustPath})`;
-			
+
 			const transaction = view.state.update({
 				changes: { from: cursor, insert: imageMarkdown },
 				selection: { anchor: cursor + imageMarkdown.length }
@@ -88,7 +87,6 @@ class ImagePasteHandler {
 
 			view.dispatch(transaction);
 			this.options.onUploadComplete?.(asset);
-
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Upload failed';
 			this.options.onUploadError?.(errorMessage);
@@ -101,7 +99,7 @@ class ImagePasteHandler {
 
 		// Check for image files in clipboard
 		const files = Array.from(clipboardData.files);
-		const imageFiles = files.filter(file => this.isImageFile(file));
+		const imageFiles = files.filter((file) => this.isImageFile(file));
 
 		if (imageFiles.length === 0) {
 			// No images, let default paste behavior handle it
@@ -112,7 +110,7 @@ class ImagePasteHandler {
 		event.preventDefault();
 
 		// Handle each image file
-		imageFiles.forEach(file => {
+		imageFiles.forEach((file) => {
 			this.handleImageUpload(file, view);
 		});
 
@@ -124,7 +122,7 @@ class ImagePasteHandler {
 		if (!dataTransfer) return false;
 
 		const files = Array.from(dataTransfer.files);
-		const imageFiles = files.filter(file => this.isImageFile(file));
+		const imageFiles = files.filter((file) => this.isImageFile(file));
 
 		if (imageFiles.length === 0) {
 			return false;
@@ -142,7 +140,7 @@ class ImagePasteHandler {
 		});
 
 		// Handle each image file
-		imageFiles.forEach(file => {
+		imageFiles.forEach((file) => {
 			this.handleImageUpload(file, view);
 		});
 
@@ -152,7 +150,7 @@ class ImagePasteHandler {
 
 export function imagePasteExtension(options: ImagePasteOptions = {}) {
 	const handler = new ImagePasteHandler(options);
-	
+
 	return EditorView.domEventHandlers({
 		paste(event: ClipboardEvent, view: EditorView) {
 			return handler.handlePaste(event, view);

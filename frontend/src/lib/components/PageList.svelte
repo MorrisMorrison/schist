@@ -51,11 +51,11 @@
 		)
 	);
 
-	function handleView(path: string, slug: string) {
+	function handleView(path: string) {
 		goto(`/pages${path}`);
 	}
 
-	function handleEdit(path: string, slug: string) {
+	function handleEdit(path: string) {
 		goto(`/edit${path}`);
 	}
 
@@ -124,9 +124,9 @@
 					{page}
 					{showTags}
 					{showDates}
-					onView={(path) => handleView(page.metaData.path, page.metaData.slug ?? '')}
-					onEdit={(path) => handleEdit(page.metaData.path, page.metaData.slug ?? '')}
-					onDelete={(path) => handleDelete(page.metaData.path)}
+					onView={() => handleView(page.metaData.path)}
+					onEdit={() => handleEdit(page.metaData.path)}
+					onDelete={() => handleDelete(page.metaData.path)}
 				/>
 			{/each}
 		</div>

@@ -1,15 +1,18 @@
 <script lang="ts">
 	import type { PreviewProps } from '$lib/types/editor';
-	import { parseMarkdownWithCopyButtons, initializeCodeBlockCopyButtons } from '$lib/utils/markdown';
+	import {
+		parseMarkdownWithCopyButtons,
+		initializeCodeBlockCopyButtons
+	} from '$lib/utils/markdown';
 
 	let { content, theme = 'light', className = '' }: PreviewProps = $props();
-	
+
 	// Container reference for initializing copy buttons
 	let containerRef: HTMLDivElement;
 
 	// State for HTML content
 	let htmlContent = $state('');
-	
+
 	// Update HTML content when content changes
 	$effect(() => {
 		const updateContent = async () => {

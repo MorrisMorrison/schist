@@ -10,7 +10,9 @@ import type {
 	MovePageRequest,
 	MovePageResponse,
 	FolderOperationResponse,
-	CreatePageResponse
+	CreatePageResponse,
+	Asset,
+	AssetUploadResponse
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -195,6 +197,70 @@ class SchістApiClient {
 	async searchPages(query: string): Promise<Page[]> {
 		const params = new URLSearchParams({ q: query });
 		return this.request<Page[]>(`/search?${params}`);
+	}
+
+	// Asset operations
+	async uploadImage(file: File, onProgress?: (progress: number) => void): Promise<Asset> {
+		const formData = new FormData();
+		formData.append('file', file);
+
+		// For file uploads, we need to handle this differently than JSON requests
+		const url = `${this.baseUrl}/assets/upload`;
+
+		return new Promise((resolve, reject) => {
+			const xhr = new XMLHttpRequest();
+
+			// Handle progress if callback provided
+			if (onProgress) {
+				xhr.upload.addEventListener('progress', (event) => {
+					if (event.lengthComputable) {
+						const progress = (event.loaded / event.total) * 100;
+						onProgress(progress);
+					}
+				});
+			}
+
+			xhr.addEventListener('load', () => {
+				if (xhr.status >= 200 && xhr.status < 300) {
+					try {
+						const response: AssetUploadResponse = JSON.parse(xhr.responseText);
+						resolve(response.asset);
+					} catch {
+						reject(new Error('Failed to parse response'));
+					}
+				} else {
+					try {
+						const errorResponse = JSON.parse(xhr.responseText);
+						reject(new Error(errorResponse.error || 'Upload failed'));
+					} catch {
+						reject(new Error(`Upload failed with status ${xhr.status}`));
+					}
+				}
+			});
+
+			xhr.addEventListener('error', () => {
+				reject(new Error('Network error during upload'));
+			});
+
+			xhr.open('POST', url);
+			xhr.send(formData);
+		});
+	}
+
+	async deleteAsset(path: string): Promise<void> {
+		// Remove leading slash if present since API expects it
+		const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+		await this.request<void>(`/assets/${cleanPath}`, {
+			method: 'DELETE'
+		});
+	}
+
+	getAssetUrl(path: string): string {
+		// Convert /assets/ path to /uploads/ for user-uploaded content
+		const uploadsPath = path.replace('/assets/', '/uploads/');
+		// Remove /api from base URL to get server root
+		const serverRoot = this.baseUrl.replace('/api', '');
+		return `${serverRoot}${uploadsPath}`;
 	}
 }
 

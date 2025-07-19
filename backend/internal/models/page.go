@@ -43,3 +43,12 @@ func (f *Folder) ParentPath() string {
 func (f *Folder) Depth() int {
 	return strings.Count(f.Path, "/")
 }
+
+type Asset struct {
+	Name         string    `json:"name"`
+	OriginalName string    `json:"original_name"`
+	Path         string    `json:"path"`
+	Size         int64     `json:"size"`
+	ContentType  string    `json:"content_type"`
+	Created      time.Time `json:"created"`
+}

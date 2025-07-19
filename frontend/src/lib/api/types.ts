@@ -49,6 +49,24 @@ export interface HealthResponse {
 	timestamp: string;
 }
 
+export interface Asset {
+	name: string;
+	original_name: string;
+	path: string;
+	size: number;
+	content_type: string;
+	created: string;
+}
+
+export interface AssetUploadResponse {
+	message: string;
+	asset: Asset;
+}
+
+export interface AssetUploadError {
+	error: string;
+}
+
 export class ApiError extends Error {
 	constructor(
 		message: string,

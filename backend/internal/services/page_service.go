@@ -93,7 +93,7 @@ func (p *PageService) ListPages() ([]*models.Page, error) {
 
 		// Convert to logical path (Unix-style separators)
 		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
-		
+
 		// Remove .md extension from logical path
 		logicalPath = strings.TrimSuffix(logicalPath, MARKDOWN_FILE_ENDING)
 
@@ -225,7 +225,7 @@ func (p *PageService) GetFolder(path string) (*models.Folder, error) {
 	}
 
 	folderPath := pathutils.BuildFilePath(p.dataDir, path)
-	
+
 	// Check if folder exists
 	info, err := os.Stat(folderPath)
 	if err != nil {

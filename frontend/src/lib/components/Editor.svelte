@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { EditorView, basicSetup } from 'codemirror';
-	import { EditorState } from '@codemirror/state';
+	import { EditorState, StateEffect } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { oneDark } from '@codemirror/theme-one-dark';
 
@@ -9,6 +9,8 @@
 	import MarkdownPreview from './MarkdownPreview.svelte';
 	import type { EditorProps, FormattingType } from '$lib/types/editor';
 	import { theme } from '$lib/stores/theme.js';
+	import { imagePasteExtension } from '$lib/utils/image-paste.js';
+	import type { Asset } from '$lib/api/types.js';
 
 	let {
 		initialContent = '',
@@ -45,6 +47,12 @@
 
 	// Auto-save timer
 	let autoSaveTimer: number | null = null;
+
+	// Image upload state
+	let isUploading = $state(false);
+	let uploadProgress = $state(0);
+	let uploadMessage = $state<string | null>(null);
+	let uploadError = $state<string | null>(null);
 
 	// Update content and trigger change event
 	function updateContent(content: string) {
@@ -185,6 +193,33 @@
 				}),
 				EditorView.lineWrapping,
 				EditorState.readOnly.of(readonly),
+				imagePasteExtension({
+					onUploadStart: () => {
+						isUploading = true;
+						uploadProgress = 0;
+						uploadMessage = 'Starting upload...';
+						uploadError = null;
+					},
+					onUploadProgress: (progress) => {
+						uploadProgress = progress;
+						uploadMessage = `Uploading... ${Math.round(progress)}%`;
+					},
+					onUploadComplete: (asset: Asset) => {
+						isUploading = false;
+						uploadMessage = `Uploaded ${asset.original_name}`;
+						setTimeout(() => {
+							uploadMessage = null;
+						}, 3000);
+					},
+					onUploadError: (error: string) => {
+						isUploading = false;
+						uploadError = error;
+						uploadMessage = null;
+						setTimeout(() => {
+							uploadError = null;
+						}, 5000);
+					}
+				}),
 				EditorView.theme({
 					'&': {
 						height: '100%',
@@ -316,6 +351,33 @@
 				}),
 				EditorView.lineWrapping,
 				EditorState.readOnly.of(readonly),
+				imagePasteExtension({
+					onUploadStart: () => {
+						isUploading = true;
+						uploadProgress = 0;
+						uploadMessage = 'Starting upload...';
+						uploadError = null;
+					},
+					onUploadProgress: (progress) => {
+						uploadProgress = progress;
+						uploadMessage = `Uploading... ${Math.round(progress)}%`;
+					},
+					onUploadComplete: (asset: Asset) => {
+						isUploading = false;
+						uploadMessage = `Uploaded ${asset.original_name}`;
+						setTimeout(() => {
+							uploadMessage = null;
+						}, 3000);
+					},
+					onUploadError: (error: string) => {
+						isUploading = false;
+						uploadError = error;
+						uploadMessage = null;
+						setTimeout(() => {
+							uploadError = null;
+						}, 5000);
+					}
+				}),
 				EditorView.theme({
 					'&': {
 						height: '100%',
@@ -339,7 +401,7 @@
 
 			// Reconfigure the editor with new extensions instead of recreating
 			editorView.dispatch({
-				effects: EditorView.reconfigure.of(extensions)
+				effects: StateEffect.reconfigure.of(extensions)
 			});
 		}
 	});
@@ -435,6 +497,49 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Image upload status -->
+	{#if isUploading || uploadMessage || uploadError}
+		<div
+			class="border-t px-4 py-2 {currentTheme === 'dark'
+				? 'border-gray-700 bg-gray-800'
+				: 'border-gray-200 bg-gray-50'}"
+		>
+			{#if isUploading}
+				<div class="flex items-center gap-3">
+					<div class="flex-1">
+						<div
+							class="h-2 overflow-hidden rounded-full {currentTheme === 'dark'
+								? 'bg-gray-700'
+								: 'bg-gray-200'}"
+						>
+							<div
+								class="h-full bg-blue-500 transition-all duration-300"
+								style="width: {uploadProgress}%"
+							></div>
+						</div>
+					</div>
+					<span class="text-sm {currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}">
+						{uploadMessage}
+					</span>
+				</div>
+			{/if}
+			{#if uploadMessage && !isUploading}
+				<div
+					class="text-sm {currentTheme === 'dark' ? 'text-green-400' : 'text-green-600'}"
+				>
+					✓ {uploadMessage}
+				</div>
+			{/if}
+			{#if uploadError}
+				<div
+					class="text-sm {currentTheme === 'dark' ? 'text-red-400' : 'text-red-600'}"
+				>
+					✗ {uploadError}
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Status Bar -->
 	<div

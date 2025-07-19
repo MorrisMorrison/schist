@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/handlers"
@@ -34,6 +35,9 @@ func main() {
 
 	api := r.Group("/api")
 	apiHandler.SetupAPIRoutes(api)
+
+	// Serve user-uploaded assets from data directory
+	r.Static("/uploads", filepath.Join(cfg.DataDir, "assets"))
 
 	if !cfg.IsDevelopment() {
 		staticHandler.SetupStaticRoutes(r)

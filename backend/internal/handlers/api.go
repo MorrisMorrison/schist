@@ -12,12 +12,15 @@ import (
 )
 
 type APIHandler struct {
-	PageService *services.PageService
+	PageService  *services.PageService
+	AssetService *services.AssetService
 }
 
 func NewAPIHandler() *APIHandler {
+	dataDir := config.Load().DataDir
 	return &APIHandler{
-		PageService: services.NewPageService(config.Load().DataDir),
+		PageService:  services.NewPageService(dataDir),
+		AssetService: services.NewAssetService(dataDir),
 	}
 }
 
@@ -43,6 +46,13 @@ func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
 	}
 
 	r.GET("/search", h.search)
+
+	assets := r.Group("/assets")
+	{
+		assets.POST("/upload", h.uploadAsset)
+		assets.GET("/*path", h.serveAsset)
+		assets.DELETE("/*path", h.deleteAsset)
+	}
 }
 
 func (h *APIHandler) healthCheck(c *gin.Context) {
@@ -287,5 +297,77 @@ func (h *APIHandler) movePage(c *gin.Context) {
 		"message": "Page moved successfully",
 		"oldPath": req.OldPath,
 		"newPath": req.NewPath,
+	})
+}
+
+func (h *APIHandler) uploadAsset(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "No file provided",
+		})
+		return
+	}
+
+	asset, err := h.AssetService.UploadImage(file)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Asset uploaded successfully",
+		"asset":   asset,
+	})
+}
+
+func (h *APIHandler) serveAsset(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	// The path comes in as /images/test.png, we need to add /assets prefix  
+	assetPath := "/assets" + path
+	
+	fullPath, err := h.AssetService.GetAssetPath(assetPath)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.File(fullPath)
+}
+
+func (h *APIHandler) deleteAsset(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	// Remove /assets prefix from path
+	assetPath := strings.TrimPrefix(path, "/assets")
+	if assetPath == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid asset path",
+		})
+		return
+	}
+
+	err := h.AssetService.DeleteAsset("assets" + assetPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Asset deleted successfully",
+		"path":    path,
 	})
 }

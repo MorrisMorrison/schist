@@ -1,12 +1,33 @@
 import { marked  } from 'marked';
 import type {Tokens}  from 'marked';
+import { apiClient } from '$lib/api/client';
 
 /**
  * Enhanced markdown renderer with copy buttons for code blocks
  */
 
-// Custom renderer for code blocks
+// Custom renderer for code blocks and images
 const renderer = new marked.Renderer();
+
+// Override image rendering to handle local asset paths
+renderer.image = function({ href, title, text }: Tokens.Image): string {
+	// Convert local asset paths to full URLs
+	let src = href;
+	// Check if href starts with /assets/ (ignoring query parameters)
+	const pathWithoutQuery = href.split('?')[0];
+	console.log('Image renderer debug:', { href, pathWithoutQuery, startsWithAssets: pathWithoutQuery.startsWith('/assets/') });
+	if (pathWithoutQuery.startsWith('/assets/')) {
+		// Use the API client's method to get the correct asset URL
+		src = apiClient.getAssetUrl(href);
+		console.log('Transformed URL:', src);
+	}
+	console.log('Final src:', src);
+	
+	const titleAttr = title ? ` title="${title}"` : '';
+	const alt = text || '';
+	
+	return `<img src="${src}" alt="${alt}"${titleAttr} class="max-w-full h-auto rounded-lg shadow-sm" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
+};
 
 // Override code block rendering to add copy functionality
 renderer.code = function({ text, lang }: Tokens.Code): string {

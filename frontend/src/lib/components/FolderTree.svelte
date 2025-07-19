@@ -230,15 +230,20 @@
 		} else {
 			expandedFolders.add(path);
 		}
-		expandedFolders = expandedFolders; // Trigger reactivity
+		// Create new Set to trigger reactivity
+		expandedFolders = new Set(expandedFolders);
 		saveExpandedFolders();
 	}
 
-	function handleFolderClick(folder: FolderType) {
-		// Toggle expansion
+	function handleChevronClick(event: MouseEvent, folder: FolderType) {
+		event.preventDefault();
+		event.stopPropagation();
+		// Only toggle expansion, no navigation
 		toggleExpanded(folder.path);
+	}
 
-		// Call selection callback
+	function handleFolderNameClick(folder: FolderType) {
+		// Only call selection callback for navigation, no expansion
 		onselect?.({ path: folder.path, folder });
 	}
 
@@ -247,22 +252,18 @@
 			case 'Enter':
 			case ' ':
 				event.preventDefault();
-				handleFolderClick(folder);
+				handleFolderNameClick(folder);
 				break;
 			case 'ArrowRight':
 				event.preventDefault();
 				if (!expandedFolders.has(folder.path)) {
-					expandedFolders.add(folder.path);
-					expandedFolders = expandedFolders;
-					saveExpandedFolders();
+					toggleExpanded(folder.path);
 				}
 				break;
 			case 'ArrowLeft':
 				event.preventDefault();
 				if (expandedFolders.has(folder.path)) {
-					expandedFolders.delete(folder.path);
-					expandedFolders = expandedFolders;
-					saveExpandedFolders();
+					toggleExpanded(folder.path);
 				}
 				break;
 		}
@@ -316,56 +317,73 @@
 	{@const isSelected = selectedPath === folder.path}
 	{@const isCurrent = isCurrentPath(folder.path)}
 	{@const hasSubFolders = folder.sub_folders && folder.sub_folders.length > 0}
+	{@const hasPages = showPages && getPagesForFolder(folder.path).length > 0}
+	{@const hasExpandableContent = hasSubFolders || hasPages}
 	{@const indentLevel = Math.min(depth, maxDepth)}
 
 	<div class="relative">
 		<!-- Folder Row -->
-		<button
-			type="button"
+		<div
 			class={cn(
-				'group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+				'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
 				'hover:bg-accent hover:text-accent-foreground',
-				'focus:ring-ring focus:ring-2 focus:ring-offset-1 focus:outline-none',
 				isSelected && 'bg-accent text-accent-foreground',
 				isCurrent && 'bg-blue-100 font-medium text-blue-700'
 			)}
-			style="margin-left: {indentLevel * 16}px"
-			onclick={() => handleFolderClick(folder)}
-			onkeydown={(e) => handleKeydown(e, folder)}
 			oncontextmenu={(e) => handleContextMenu(e, folder)}
 			role="treeitem"
-			aria-expanded={hasSubFolders ? isExpanded : undefined}
+			aria-expanded={hasExpandableContent ? isExpanded : undefined}
 			aria-selected={isSelected}
 			aria-level={depth + 1}
-			tabindex="0"
+			tabindex="-1"
 		>
-			<!-- Expand/Collapse Icon -->
-			<div class="flex h-4 w-4 flex-shrink-0 items-center justify-center">
-				{#if hasSubFolders}
-					{#if isExpanded}
-						<ChevronDown class="h-3 w-3" />
-					{:else}
-						<ChevronRight class="h-3 w-3" />
+			<!-- Indented content container -->
+			<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {indentLevel * 16}px">
+				<!-- Expand/Collapse Icon - Separate clickable area -->
+				<button
+					type="button"
+					class="hover:bg-accent-foreground/10 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded"
+					onclick={(e) => handleChevronClick(e, folder)}
+					tabindex={hasExpandableContent ? 0 : -1}
+					aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
+					disabled={!hasExpandableContent}
+				>
+					{#if hasExpandableContent}
+						{#if isExpanded}
+							<ChevronDown class="h-3 w-3" />
+						{:else}
+							<ChevronRight class="h-3 w-3" />
+						{/if}
 					{/if}
-				{/if}
+				</button>
+				<!-- Folder Name Area - Clickable for navigation -->
+				<button
+					type="button"
+					class="hover:bg-accent-foreground/10 focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
+					onclick={() => handleFolderNameClick(folder)}
+					onkeydown={(e) => handleKeydown(e, folder)}
+					tabindex="0"
+					aria-label={`Open folder ${folder.name}`}
+				>
+					<!-- Folder Icon -->
+					<Folder class="h-4 w-4 flex-shrink-0 text-blue-500" />
+
+					<!-- Folder Name -->
+					<span class="flex-1 truncate font-medium">
+						{folder.name}
+					</span>
+
+					<!-- Page Count Badge -->
+					{#if showPageCounts && folder.page_count > 0}
+						<span class="text-secondary text-xs opacity-75">({folder.page_count})</span>
+					{/if}
+				</button>
 			</div>
-			<!-- Folder Icon -->
-			<Folder class="h-4 w-4 flex-shrink-0 text-blue-500" />
 
-			<!-- Folder Name -->
-			<span class="flex-1 truncate text-left font-medium">
-				{folder.name}
-			</span>
-
-			<!-- Page Count Badge -->
-			{#if showPageCounts && folder.page_count > 0}
-				<span class="text-secondary text-xs opacity-75">({folder.page_count})</span>
-			{/if}
-
-			<!-- Context Menu Trigger -->
+			<!-- Context Menu Trigger - Positioned absolutely to the right -->
 			{#if enableContextMenu}
 				<span
-					class="hover:bg-accent cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
+					class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
 					onclick={(e) => {
 						e.stopPropagation();
 						handleContextMenu(e, folder);
@@ -384,7 +402,7 @@
 					<MoreVertical class="h-3 w-3" />
 				</span>
 			{/if}
-		</button>
+		</div>
 
 		<!-- Sub-folders and pages when expanded -->
 		{#if isExpanded}

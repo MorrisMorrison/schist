@@ -238,9 +238,13 @@
 			{/if}
 		</div>
 
-		<div class="flex w-full flex-col items-start gap-2 md:w-auto md:flex-row md:items-center md:gap-4">
+		<div
+			class="flex w-full flex-col items-start gap-2 md:w-auto md:flex-row md:items-center md:gap-4"
+		>
 			<!-- Sort Controls -->
-			<div class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2">
+			<div
+				class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2"
+			>
 				<label class="text-secondary text-sm font-medium" for="sort-select">Sort by:</label>
 				<select
 					bind:value={sortBy}

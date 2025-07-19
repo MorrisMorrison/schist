@@ -370,6 +370,10 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 			return nil
 		}
 
+		if strings.Contains(path, "/assets") {
+			return nil
+		}
+
 		relPath, err := filepath.Rel(p.dataDir, path)
 		if err != nil {
 			return err

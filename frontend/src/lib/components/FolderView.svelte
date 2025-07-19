@@ -19,9 +19,7 @@
 		DialogHeader,
 		DialogTitle,
 		DialogFooter,
-
 		DialogDescription
-
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import type { Page, Folder as FolderType } from '$lib/api/types';

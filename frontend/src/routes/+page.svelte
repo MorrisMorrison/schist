@@ -12,9 +12,9 @@
 </svelte:head>
 
 <!-- {#if data.totalPages === 0} -->
-	<!-- <div class="space-y-8"> -->
-	<!-- Hero Section -->
-	<!-- <div class="text-center">
+<!-- <div class="space-y-8"> -->
+<!-- Hero Section -->
+<!-- <div class="text-center">
 		<div class="mx-auto max-w-3xl">
 			<h1 class="text-primary text-4xl font-bold tracking-tight sm:text-6xl">
 				Welcome to <span class="text-blue-primary">Schist</span>
@@ -31,15 +31,15 @@
 			</div>
 		</div>
 	</div> -->
-	<!-- </div> -->
+<!-- </div> -->
 <!-- {:else} -->
-	<!-- Use FolderView component to display folder structure -->
-	<FolderView
-		path=""
-		showCreateButtons={true}
-		initialPages={data.pages}
-		initialFolders={data.folders}
-	/>
+<!-- Use FolderView component to display folder structure -->
+<FolderView
+	path=""
+	showCreateButtons={true}
+	initialPages={data.pages}
+	initialFolders={data.folders}
+/>
 <!-- {/if} -->
 
 <!-- Error Message -->

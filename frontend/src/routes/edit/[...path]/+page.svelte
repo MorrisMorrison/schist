@@ -15,12 +15,12 @@
 	let showDeleteConfirm = $state(false);
 
 	let editorRef: Editor;
-function replaceLastPathSegment(path: string, newSegment: string): string {
-    const parts = path.split('/').filter(Boolean);
-    if (parts.length === 0) return newSegment;
-    parts[parts.length - 1] = newSegment;
-    return parts.join('/');
-}
+	function replaceLastPathSegment(path: string, newSegment: string): string {
+		const parts = path.split('/').filter(Boolean);
+		if (parts.length === 0) return newSegment;
+		parts[parts.length - 1] = newSegment;
+		return parts.join('/');
+	}
 	async function handleSave() {
 		if (!title.trim()) {
 			saveError = 'Title is required';
@@ -35,13 +35,13 @@ function replaceLastPathSegment(path: string, newSegment: string): string {
 		isSaving = true;
 		saveError = '';
 
-					// We need to generate a slug from the title
-			const slug = title
-				.trim()
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-|-$/g, '');
-				const newPath = replaceLastPathSegment(data.path, slug);
+		// We need to generate a slug from the title
+		const slug = title
+			.trim()
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-|-$/g, '');
+		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			await pageActions.updatePageByPath(data.path, {
 				...data.page,

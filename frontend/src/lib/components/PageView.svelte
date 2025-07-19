@@ -188,7 +188,6 @@
 		color: var(--color-text-secondary);
 	}
 
-
 	.tags {
 		display: flex;
 		gap: 0.5rem;
@@ -266,7 +265,6 @@
 		background: var(--red-secondary);
 		box-shadow: 0 0 0 2px var(--red-primary);
 	}
-
 
 	.page-content {
 		background: var(--color-background);

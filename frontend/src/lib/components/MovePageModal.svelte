@@ -119,8 +119,23 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="modal-overlay" onclick={onClose} onkeydown={handleOverlayKeydown} role="button" tabindex="0" aria-label="Close modal overlay">
-	<div class="modal" onclick={(e) => e.stopPropagation()} onkeydown={handleModalKeydown} role="dialog" aria-labelledby="modal-title" aria-modal="true" tabindex="-1">
+<div
+	class="modal-overlay"
+	onclick={onClose}
+	onkeydown={handleOverlayKeydown}
+	role="button"
+	tabindex="0"
+	aria-label="Close modal overlay"
+>
+	<div
+		class="modal"
+		onclick={(e) => e.stopPropagation()}
+		onkeydown={handleModalKeydown}
+		role="dialog"
+		aria-labelledby="modal-title"
+		aria-modal="true"
+		tabindex="-1"
+	>
 		<div class="modal-header">
 			<div class="modal-title">
 				<Move class="modal-icon" />
@@ -342,7 +357,6 @@
 		color: var(--color-text);
 	}
 
-
 	.modal-close {
 		background: none;
 		border: none;
@@ -384,7 +398,6 @@
 		align-items: center;
 		gap: 0.75rem;
 	}
-
 
 	.page-name {
 		font-weight: 500;
@@ -475,7 +488,6 @@
 		width: 2.5rem;
 	}
 
-
 	.folder-button {
 		flex: 1;
 		display: flex;
@@ -502,7 +514,6 @@
 		opacity: 0.5;
 		cursor: not-allowed;
 	}
-
 
 	.current-label {
 		font-size: 0.75rem;

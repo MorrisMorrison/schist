@@ -105,7 +105,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="space-y-6">
+<div class="mx-auto max-w-7xl space-y-8 p-6">
 	<!-- Header -->
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">

@@ -114,7 +114,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="space-y-6 pt-8 pr-16 pl-16">
+<div class="mx-auto max-w-7xl space-y-8 p-6">
 	<!-- Header -->
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
@@ -127,7 +127,7 @@
 
 			<div class="flex items-center space-x-3">
 				<a
-					href="/{data.path}"
+					href="/pages/{data.path}"
 					class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel

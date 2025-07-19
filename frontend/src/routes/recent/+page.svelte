@@ -9,7 +9,7 @@
 	<title>Recent Pages - Schist Wiki</title>
 	<meta name="description" content="Recently updated pages in your wiki" />
 </svelte:head>
-<div class="space-y-8">
+<div class="mx-auto max-w-7xl space-y-8 p-6">
 	<!-- Header -->
 	<div class="space-y-2">
 		<h1 class="text-primary text-3xl font-bold">Recent Pages</h1>

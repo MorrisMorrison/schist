@@ -342,7 +342,7 @@
 				<!-- Expand/Collapse Icon - Separate clickable area -->
 				<button
 					type="button"
-					class="hover:bg-accent-foreground/10 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded"
+					class="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded"
 					onclick={(e) => handleChevronClick(e, folder)}
 					tabindex={hasExpandableContent ? 0 : -1}
 					aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
@@ -359,7 +359,7 @@
 				<!-- Folder Name Area - Clickable for navigation -->
 				<button
 					type="button"
-					class="hover:bg-accent-foreground/10 focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
+					class="focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 					onclick={() => handleFolderNameClick(folder)}
 					onkeydown={(e) => handleKeydown(e, folder)}
 					tabindex="0"

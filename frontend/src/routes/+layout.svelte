@@ -42,7 +42,7 @@
 </script>
 
 <div class="min-h-screen border-0 bg-gray-50 transition-colors dark:bg-gray-800">
-	<Navigation {currentPageSlug} />
+	<Navigation {currentPageSlug} isSidebarOpen={$sidebarOpen} />
 
 	<div class="app-container border-0" class:with-sidebar={sidebarVisible}>
 		<!-- Mobile backdrop -->

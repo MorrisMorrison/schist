@@ -529,6 +529,7 @@
 				{@render folderNode({
 					name: '/',
 					path: '/',
+					created: new Date().toISOString(),
 					page_count: getPagesForFolder('/').length,
 					sub_folders: filteredFolders
 				}, 0)}

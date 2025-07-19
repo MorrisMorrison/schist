@@ -6,7 +6,7 @@
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	let { currentPageSlug }: { currentPageSlug?: string } = $props();
+	let { currentPageSlug, isSidebarOpen }: { currentPageSlug?: string; isSidebarOpen?: boolean } = $props();
 
 	let isMenuOpen = $state(false);
 
@@ -42,7 +42,13 @@
 		</div>
 
 		<!-- Main navigation content -->
-		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" class:pl-16={showSidebarToggle}>
+		<div 
+			class="mx-auto px-4 transition-all duration-300 ease-in-out sm:px-6 lg:px-8" 
+			class:pl-16={showSidebarToggle}
+			class:md:ml-[280px]={isSidebarOpen}
+			class:max-w-7xl={!isSidebarOpen}
+			class:max-w-none={isSidebarOpen}
+		>
 			<div class="flex h-16 justify-between">
 				<!-- Left side - Logo and main navigation -->
 				<div class="flex items-center">
@@ -88,15 +94,17 @@
 					</div>
 				</div>
 
-				<!-- Center - Search (desktop) -->
-				<div class="hidden md:flex md:flex-1 md:items-center md:justify-center md:px-2">
-					<div class="w-full max-w-lg">
-						<SearchBox placeholder="Search pages..." />
-					</div>
-				</div>
+				<!-- Spacer for centering when no search -->
+				<div class="flex-1"></div>
 
 				<!-- Right side - Actions -->
 				<div class="flex items-center space-x-4">
+					<!-- Search box - always on the right -->
+					<div class="hidden md:block">
+						<div class="w-64">
+							<SearchBox placeholder="Search pages..." />
+						</div>
+					</div>
 					<!-- Theme toggle -->
 					<ThemeToggle />
 					<!-- Create new page button -->

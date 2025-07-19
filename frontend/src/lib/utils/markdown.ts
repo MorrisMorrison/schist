@@ -21,11 +21,12 @@ renderer.code = function({ text, lang }: Tokens.Code): string {
 	const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
 	
 	return `
-		<div class="code-block-container">
-			<div class="code-block-header">
+		<div class="code-block-container flex justify-between">
+			<pre class="grow-1"><code class="hljs${langClass}">${escapedCode}</code></pre>
+			<div class="code-block-header pl-5">
 				${langLabel}
 				<button 
-					class="copy-button" 
+					class="copy-button px-3 py-2 text-sm font-semibold rounded-md hover:bg-gray-50  " 
 					data-copy-text="${escapedCode.replace(/"/g, '&quot;')}"
 					title="Copy code"
 					aria-label="Copy code to clipboard"
@@ -36,14 +37,37 @@ renderer.code = function({ text, lang }: Tokens.Code): string {
 					</svg>
 				</button>
 			</div>
-			<pre><code class="hljs${langClass}">${escapedCode}</code></pre>
 		</div>
 	`;
 };
 
 // Override inline code rendering  
 renderer.codespan = function({ text }: Tokens.Codespan): string {
-	return `<code class="inline-code">${text}</code>`;
+	const escapedCode = text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+
+	return `
+		<div class="flex justify-between rounded-md">
+			<code class="inline-code">${escapedCode}</code>
+			<div class="code-block-header">
+				<button 
+					class="copy-button px-3 py-1 text-sm font-semibold rounded-md hover:bg-gray-50 " 
+					data-copy-text="${escapedCode.replace(/"/g, '&quot;')}"
+					title="Copy code"
+					aria-label="Copy code to clipboard"
+				>
+					<svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+					</svg>
+				</button>
+			</div>
+		</div>
+	`;
 };
 
 // Configure marked options

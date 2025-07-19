@@ -58,7 +58,15 @@
 		selectedPath = folderPath;
 	}
 
-	function renderFolderTree(folders: FolderType[], depth: number = 0) :any  {
+	function renderFolderTree(folders: FolderType[], depth: number = 0): Array<{
+		folder: FolderType;
+		isExpanded: boolean;
+		isSelected: boolean;
+		isCurrentFolder: boolean;
+		hasSubFolders: boolean;
+		depth: number;
+		children: any[];
+	}> {
 		return folders.map((folder) => {
 			const isExpanded = expandedFolders.has(folder.path);
 			const isSelected = selectedPath === folder.path;
@@ -201,7 +209,7 @@
 								<button
 									type="button"
 									class="flex flex-1 items-center gap-3 p-3 text-left transition-colors {item.isCurrentFolder
-										? 'bg-amber-50 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100 cursor-not-allowed font-medium'
+										? 'cursor-not-allowed bg-amber-50 font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-100'
 										: 'hover:bg-muted/50'} {item.isSelected
 										? 'bg-primary text-primary-foreground'
 										: ''}"
@@ -243,7 +251,7 @@
 										<button
 											type="button"
 											class="flex flex-1 items-center gap-3 p-3 text-left transition-colors {child.isCurrentFolder
-												? 'bg-amber-50 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100 cursor-not-allowed font-medium'
+												? 'cursor-not-allowed bg-amber-50 font-medium text-amber-900 dark:bg-amber-900/30 dark:text-amber-100'
 												: 'hover:bg-muted/50'} {child.isSelected
 												? 'bg-primary text-primary-foreground'
 												: ''}"

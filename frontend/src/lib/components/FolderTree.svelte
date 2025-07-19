@@ -3,17 +3,26 @@
 		ChevronRight,
 		ChevronDown,
 		Folder,
+		FolderOpen,
+		File,
 		Plus,
 		Trash2,
 		Edit,
-		MoreVertical
+		MoreVertical,
+		Search
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
 	import ErrorAlert from './ErrorAlert.svelte';
-	import type { Folder as FolderType } from '$lib/api/types.js';
-	import { folders, isFoldersLoading, foldersError } from '$lib/stores/pages.js';
+	import type { Folder as FolderType, Page } from '$lib/api/types.js';
+	import {
+		folders,
+		isFoldersLoading,
+		foldersError,
+		pagesStore,
+		pageActions
+	} from '$lib/stores/pages.js';
 	import { folderActions } from '$lib/stores/pages.js';
+	import { browser } from '$app/environment';
 	import { cn } from '$lib/utils.js';
 
 	// Props
@@ -21,35 +30,154 @@
 		selectedPath?: string;
 		className?: string;
 		showPageCounts?: boolean;
+		showPages?: boolean;
+		showSearch?: boolean;
+		showActions?: boolean;
 		enableContextMenu?: boolean;
 		maxDepth?: number;
+		storageKey?: string;
+		currentPath?: string;
 		onselect?: (event: { path: string; folder: FolderType }) => void;
+		onpageselect?: (event: { page: Page }) => void;
 		oncreate?: (event: { parentPath: string }) => void;
 		ondelete?: (event: { path: string; folder: FolderType }) => void;
 		onrename?: (event: { path: string; folder: FolderType }) => void;
+		onexpandall?: () => void;
+		oncollapseall?: () => void;
 	}
 
 	let {
 		selectedPath = '',
 		className = '',
 		showPageCounts = true,
+		showPages = false,
+		showSearch = false,
+		showActions = false,
 		enableContextMenu = true,
 		maxDepth = 10,
+		storageKey = 'folder-tree-expanded',
+		currentPath = '',
 		onselect,
+		onpageselect,
 		oncreate,
 		ondelete,
-		onrename
+		onrename,
+		onexpandall,
+		oncollapseall
 	}: Props = $props();
 
 	// Local state
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
 	let contextMenuOpen = $state<string | null>(null);
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
+	let searchQuery = $state('');
+
+	// Derived state
+	const pages = $derived($pagesStore.pages || []);
+
+	// Filter folders based on search
+	const filteredFolders = $derived(
+		searchQuery.trim() ? filterFolders($folders || [], searchQuery.toLowerCase()) : $folders || []
+	);
 
 	// Load folders on mount
 	$effect(() => {
 		folderActions.loadFolderTree().catch(console.error);
+		if (showPages) {
+			pageActions.loadPages().catch(console.error);
+		}
 	});
+
+	// Load expanded folders from localStorage on mount
+	$effect(() => {
+		if (browser && storageKey) {
+			const savedExpanded = localStorage.getItem(storageKey);
+			if (savedExpanded) {
+				try {
+					expandedFolders = new Set(JSON.parse(savedExpanded));
+				} catch (e) {
+					console.warn('Failed to parse saved expanded folders:', e);
+				}
+			}
+		}
+	});
+
+	// Save expanded folders to localStorage
+	function saveExpandedFolders() {
+		if (browser && storageKey) {
+			localStorage.setItem(storageKey, JSON.stringify([...expandedFolders]));
+		}
+	}
+
+	// Filter folders based on search
+	function filterFolders(folders: FolderType[], query: string): FolderType[] {
+		return folders
+			.filter((folder) => {
+				const matchesName = folder.name.toLowerCase().includes(query);
+				const hasMatchingSubfolder = folder.sub_folders?.some(
+					(sub) => filterFolders([sub], query).length > 0
+				);
+				return matchesName || hasMatchingSubfolder;
+			})
+			.map((folder) => ({
+				...folder,
+				sub_folders: folder.sub_folders ? filterFolders(folder.sub_folders, query) : []
+			}));
+	}
+
+	// Get pages for a specific folder path
+	function getPagesForFolder(folderPath: string) {
+		return pages.filter((page) => {
+			const pagePath = page.metaData?.path || '';
+
+			// Handle root folder case
+			if (folderPath === '' || folderPath === '/') {
+				// Pages in root folder don't have '/' after the first character
+				return pagePath.split('/').length === 2; // ['', 'filename']
+			}
+
+			// For specific folders, check if page is directly in this folder
+			const folderSegments = folderPath.split('/').filter(Boolean);
+			const pageSegments = pagePath.split('/').filter(Boolean);
+
+			// Page must be exactly one level deeper than the folder
+			return (
+				pageSegments.length === folderSegments.length + 1 &&
+				pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
+			);
+		});
+	}
+
+	// Check if path is current
+	function isCurrentPath(path: string): boolean {
+		return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
+	}
+
+	// Expand all folders
+	function expandAll() {
+		const getAllFolderPaths = (folders: FolderType[]): string[] => {
+			let paths: string[] = [];
+			for (const folder of folders) {
+				paths.push(folder.path);
+				if (folder.sub_folders) {
+					paths = paths.concat(getAllFolderPaths(folder.sub_folders));
+				}
+			}
+			return paths;
+		};
+
+		const allPaths = getAllFolderPaths($folders);
+		expandedFolders = new Set(allPaths);
+		saveExpandedFolders();
+		onexpandall?.();
+	}
+
+	// Collapse all folders
+	function collapseAll() {
+		expandedFolders = new Set();
+		saveExpandedFolders();
+		oncollapseall?.();
+	}
 
 	// Context menu handling
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
@@ -58,15 +186,20 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		let x: number, y: number;
-		if (event instanceof MouseEvent) {
-			x = event.clientX;
-			y = event.clientY;
-		} else {
-			// For keyboard events, position relative to the element
-			const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-			x = rect.left + rect.width / 2;
-			y = rect.top + rect.height / 2;
+		// Get the position of the clicked button (three-dots or folder row)
+		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		let x = rect.left;
+		let y = rect.bottom + 2; // Position below the button with small gap
+
+		// Ensure the menu doesn't go off screen
+		const menuWidth = 160; // min-w-[160px] from the menu
+		const menuHeight = 120; // approximate height of 3 items
+		
+		if (x + menuWidth > window.innerWidth) {
+			x = window.innerWidth - menuWidth - 10;
+		}
+		if (y + menuHeight > window.innerHeight) {
+			y = rect.top - menuHeight - 2; // Position above if no room below
 		}
 
 		contextMenuPosition = { x, y };
@@ -85,6 +218,7 @@
 			expandedFolders.add(path);
 		}
 		expandedFolders = expandedFolders; // Trigger reactivity
+		saveExpandedFolders();
 	}
 
 	function handleFolderClick(folder: FolderType) {
@@ -107,6 +241,7 @@
 				if (!expandedFolders.has(folder.path)) {
 					expandedFolders.add(folder.path);
 					expandedFolders = expandedFolders;
+					saveExpandedFolders();
 				}
 				break;
 			case 'ArrowLeft':
@@ -114,6 +249,7 @@
 				if (expandedFolders.has(folder.path)) {
 					expandedFolders.delete(folder.path);
 					expandedFolders = expandedFolders;
+					saveExpandedFolders();
 				}
 				break;
 		}
@@ -165,6 +301,7 @@
 {#snippet folderNode(folder: FolderType, depth: number)}
 	{@const isExpanded = expandedFolders.has(folder.path)}
 	{@const isSelected = selectedPath === folder.path}
+	{@const isCurrent = isCurrentPath(folder.path)}
 	{@const hasSubFolders = folder.sub_folders && folder.sub_folders.length > 0}
 	{@const indentLevel = Math.min(depth, maxDepth)}
 
@@ -176,7 +313,8 @@
 				'group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
 				'hover:bg-accent hover:text-accent-foreground',
 				'focus:ring-ring focus:ring-2 focus:ring-offset-1 focus:outline-none',
-				isSelected && 'bg-accent text-accent-foreground'
+				isSelected && 'bg-accent text-accent-foreground',
+				isCurrent && 'bg-blue-100 font-medium text-blue-700'
 			)}
 			style="margin-left: {indentLevel * 16}px"
 			onclick={() => handleFolderClick(folder)}
@@ -208,9 +346,7 @@
 
 			<!-- Page Count Badge -->
 			{#if showPageCounts && folder.page_count > 0}
-				<Badge variant="secondary" class="ml-auto text-xs">
-					{folder.page_count}
-				</Badge>
+				<span class="text-secondary text-xs opacity-75">({folder.page_count})</span>
 			{/if}
 
 			<!-- Context Menu Trigger -->
@@ -237,12 +373,34 @@
 			{/if}
 		</button>
 
-		<!-- Sub-folders -->
-		{#if isExpanded && hasSubFolders}
+		<!-- Sub-folders and pages when expanded -->
+		{#if isExpanded}
 			<div class="mt-1">
-				{#each folder.sub_folders as subFolder (subFolder.path)}
-					{@render folderNode(subFolder, depth + 1)}
-				{/each}
+				<!-- Render pages in current folder first if showPages is enabled -->
+				{#if showPages}
+					{#each getPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
+						<div style="margin-left: {(depth + 1) * 16}px;">
+							<div class="flex items-center">
+								<div class="h-5 w-5"></div>
+								<button
+									type="button"
+									class="text-primary hover:bg-accent hover:text-accent-foreground flex flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm transition-colors"
+									onclick={() => onpageselect?.({ page })}
+								>
+									<File class="h-4 w-4 text-gray-500" />
+									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span>
+								</button>
+							</div>
+						</div>
+					{/each}
+				{/if}
+
+				<!-- Render sub-folders -->
+				{#if hasSubFolders}
+					{#each folder.sub_folders as subFolder (subFolder.path)}
+						{@render folderNode(subFolder, depth + 1)}
+					{/each}
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -251,6 +409,57 @@
 <svelte:window onclick={handleDocumentClick} />
 
 <div class={cn('folder-tree', className)}>
+	<!-- Actions Header -->
+	{#if showActions}
+		<div class="border-border flex items-center justify-between border-b p-4">
+			<h2 class="text-primary text-lg font-semibold">Pages</h2>
+			<div class="flex items-center gap-1">
+				<Button
+					variant="ghost"
+					size="icon"
+					class="h-6 w-6"
+					onclick={expandAll}
+					title="Expand all folders"
+				>
+					<FolderOpen class="h-4 w-4" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					class="h-6 w-6"
+					onclick={collapseAll}
+					title="Collapse all folders"
+				>
+					<Folder class="h-4 w-4" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					class="h-6 w-6"
+					onclick={() => oncreate?.({ parentPath: '' })}
+					title="Create new folder"
+				>
+					<Plus class="h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Search -->
+	{#if showSearch}
+		<div class="border-border border-b p-3">
+			<div class="relative">
+				<Search class="text-muted absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+				<input
+					type="text"
+					bind:value={searchQuery}
+					placeholder="Search folders..."
+					class="bg-secondary border-border focus:ring-primary focus:border-primary w-full rounded-md border py-2 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
+				/>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Error Display -->
 	{#if $foldersError}
 		<ErrorAlert error={$foldersError} onDismiss={() => folderActions.clearError()} />
@@ -261,21 +470,46 @@
 		<div class="flex items-center justify-center py-8">
 			<div class="border-border border-t-primary h-6 w-6 animate-spin rounded-full border-2"></div>
 		</div>
-	{:else if $folders.length === 0}
+	{:else if filteredFolders.length === 0}
 		<!-- Empty State -->
 		<div class="flex flex-col items-center justify-center py-8 text-center">
-			<Folder class="text-muted-foreground mb-4 h-12 w-12" />
-			<h3 class="text-foreground mb-2 text-lg font-medium">No folders yet</h3>
-			<p class="text-muted-foreground mb-4">Create your first folder to organize your pages.</p>
-			<Button variant="outline" size="sm" onclick={() => oncreate?.({ parentPath: '/' })}>
-				<Plus class="mr-2 h-4 w-4" />
-				Create Folder
-			</Button>
+			{#if searchQuery.trim()}
+				<p class="text-secondary text-sm">No folders match your search.</p>
+			{:else}
+				<Folder class="text-muted-foreground mb-4 h-12 w-12" />
+				<h3 class="text-foreground mb-2 text-lg font-medium">No folders yet</h3>
+				<p class="text-muted-foreground mb-4">Create your first folder to organize your pages.</p>
+				<Button variant="outline" size="sm" onclick={() => oncreate?.({ parentPath: '/' })}>
+					<Plus class="mr-2 h-4 w-4" />
+					Create Folder
+				</Button>
+			{/if}
 		</div>
 	{:else}
 		<!-- Folder Tree -->
 		<div class="space-y-1" role="tree" aria-label="Folder tree">
-			{#each $folders as folder (folder.path)}
+			<!-- Root pages if showPages is enabled -->
+			{#if showPages}
+				{#each getPagesForFolder('/') as page (page.metaData?.slug || page.metaData?.path)}
+					<div class="px-2">
+						<div style="margin-left: 1.5rem;">
+							<div class="flex items-center">
+								<div class="h-5 w-5"></div>
+								<button
+									type="button"
+									class="text-primary hover:bg-accent hover:text-accent-foreground flex flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm transition-colors"
+									onclick={() => onpageselect?.({ page })}
+								>
+									<File class="h-4 w-4 text-gray-500" />
+									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				{/each}
+			{/if}
+
+			{#each filteredFolders as folder (folder.path)}
 				{@render folderNode(folder, 0)}
 			{/each}
 		</div>
@@ -320,7 +554,7 @@
 			</button>
 			<button
 				type="button"
-				class="hover:bg-destructive hover:text-destructive-foreground text-destructive flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+				class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
 				onclick={() => {
 					const folder = findFolderByPath($folders, contextMenuOpen || '');
 					if (folder) handleDeleteFolder(folder);

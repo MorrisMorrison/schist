@@ -57,9 +57,14 @@
 		goto(`/edit/${path}`);
 	}
 
-	function handleDeletePage(path: string) {
-		if (confirm('Are you sure you want to delete this page?')) {
-			pageActions.deletePage(path);
+	async function handleDeletePage(path: string) {
+		try {
+			await pageActions.deletePage(path);
+			// Navigate to home page after deletion
+			goto('/');
+		} catch (err) {
+			console.error('Failed to delete page:', err);
+			// Could show error toast here
 		}
 	}
 

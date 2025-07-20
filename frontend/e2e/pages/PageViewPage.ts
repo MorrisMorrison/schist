@@ -40,15 +40,15 @@ export class PageViewPage extends BasePage {
 		// Page content
 		this.pageTitle = page.locator('h1').first();
 		this.pageContent = page.locator('.prose, [data-testid="page-content"]').first();
-		this.pageTags = page.locator('[data-testid="page-tags"] .badge, .tags .badge');
+		this.pageTags = page.getByTestId('page-tag');
 		this.pageMetadata = page.locator('[data-testid="page-metadata"]');
 		this.createdDate = page.locator('[data-testid="created-date"]');
 		this.updatedDate = page.locator('[data-testid="updated-date"]');
 
 		// Action buttons
-		this.editButton = page.getByRole('button', { name: /edit/i });
-		this.deleteButton = page.getByRole('button', { name: /delete/i });
-		this.moveButton = page.getByRole('button', { name: /move/i });
+		this.editButton = page.getByTestId('edit-page-button');
+		this.deleteButton = page.getByTestId('delete-page-button');
+		this.moveButton = page.getByTestId('move-page-button');
 
 		// Navigation
 		this.breadcrumbs = page.locator('[data-testid="breadcrumbs"]');
@@ -124,7 +124,7 @@ export class PageViewPage extends BasePage {
 		await this.deleteButton.click();
 
 		// Wait for confirmation dialog and confirm
-		const confirmButton = this.page.getByRole('button', { name: /confirm|yes|delete/i });
+		const confirmButton = this.page.getByTestId('confirm-delete-button');
 		await this.waitForVisible(confirmButton);
 		await confirmButton.click();
 

@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from './Breadcrumbs.svelte';
+	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
 	import {
 		parseMarkdownWithCopyButtons,
 		initializeCodeBlockCopyButtons
@@ -18,6 +19,9 @@
 	}
 
 	let { page, onEdit = () => {}, onDelete = () => {}, onMove = () => {} }: Props = $props();
+
+	let showDeleteModal = $state(false);
+	let isDeleting = $state(false);
 
 	const pagePath = $derived(page.metaData?.path || `/${page.metaData?.slug}`);
 	const pageTitle = $derived(page.metaData?.title || 'Untitled');
@@ -64,6 +68,32 @@
 			}, 0);
 		}
 	});
+
+	function handleDeleteClick() {
+		showDeleteModal = true;
+	}
+
+	async function handleConfirmDelete() {
+		isDeleting = true;
+
+		try {
+			const result = onDelete(pagePath);
+			// If onDelete returns a promise, wait for it
+			if (result && typeof result.then === 'function') {
+				await result;
+			}
+			showDeleteModal = false;
+		} catch (error) {
+			console.error('Failed to delete page:', error);
+		} finally {
+			isDeleting = false;
+		}
+	}
+
+	function handleCancelDelete() {
+		showDeleteModal = false;
+		isDeleting = false;
+	}
 </script>
 
 <svelte:head>
@@ -98,11 +128,11 @@
 					</div>
 				{/if}
 				{#if pageTags.length > 0}
-					<div class="flex items-center gap-2 pt-2">
+					<div class="flex items-center gap-2 pt-2" data-testid="page-tags">
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each pageTags as tag (tag)}
-								<Badge variant="default" class="bg-blue-600 text-xs text-white hover:bg-blue-500"
+								<Badge variant="default" class="bg-blue-600 text-xs text-white hover:bg-blue-500" data-testid="page-tag"
 									>{tag}</Badge
 								>
 							{/each}
@@ -114,12 +144,24 @@
 
 		<!-- Action Buttons -->
 		<div class="flex gap-2">
-			<Button variant="outline" size="sm" onclick={() => onEdit(pageSlug)} title="Edit page">
+			<Button 
+				variant="outline" 
+				size="sm" 
+				onclick={() => onEdit(pageSlug)} 
+				title="Edit page"
+				data-testid="edit-page-button"
+			>
 				<Edit class="h-4 w-4" />
 				Edit
 			</Button>
 
-			<Button variant="outline" size="sm" onclick={() => onMove(page)} title="Move page">
+			<Button 
+				variant="outline" 
+				size="sm" 
+				onclick={() => onMove(page)} 
+				title="Move page"
+				data-testid="move-page-button"
+			>
 				<Move class="h-4 w-4" />
 				Move
 			</Button>
@@ -127,8 +169,10 @@
 			<Button
 				variant="destructive"
 				size="sm"
-				onclick={() => onDelete(pagePath)}
+				onclick={handleDeleteClick}
+				disabled={isDeleting}
 				title="Delete page"
+				data-testid="delete-page-button"
 			>
 				<Trash2 class="h-4 w-4" />
 				Delete
@@ -154,6 +198,14 @@
 		{/if}
 	</main>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<DeleteConfirmModal
+	open={showDeleteModal}
+	{isDeleting}
+	onConfirm={handleConfirmDelete}
+	onCancel={handleCancelDelete}
+/>
 
 <style>
 	/* Code block enhancements */

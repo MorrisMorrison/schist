@@ -46,9 +46,9 @@ test.describe('Navigation and Routing', () => {
 		await apiHelper.createPage(grandchildPage);
 
 		// Navigate to deepest page
-		await pageViewPage.navigateToPage(grandchildPage.path);
+		await pageViewPage.navigateToPage(grandchildPage.path!!);
 		await pageViewPage.verifyPageLoaded(grandchildPage.title);
-		await pageViewPage.verifyPageUrl(grandchildPage.path);
+		await pageViewPage.verifyPageUrl(grandchildPage.path!!);
 
 		// Verify breadcrumbs show correct hierarchy
 		const breadcrumbs = await pageViewPage.getBreadcrumbPath();
@@ -57,7 +57,7 @@ test.describe('Navigation and Routing', () => {
 		// Navigate up via breadcrumbs
 		await pageViewPage.clickBreadcrumb(childPage.title);
 		await pageViewPage.verifyPageLoaded(childPage.title);
-		await pageViewPage.verifyPageUrl(childPage.path);
+		await pageViewPage.verifyPageUrl(childPage.path!);
 	});
 
 	test('should handle URL changes correctly', async ({
@@ -75,14 +75,14 @@ test.describe('Navigation and Routing', () => {
 		await apiHelper.createPage(testPage);
 
 		// Direct URL navigation to page view
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyPageUrl(testPage.path);
+		await pageViewPage.verifyPageUrl(testPage.path!);
 
 		// Navigate to edit via URL
-		await editorPage.navigateToEdit(testPage.path);
+		await editorPage.navigateToEdit(testPage.path!);
 		await editorPage.verifyLoaded();
-		await editorPage.expectUrl(`/edit${testPage.path}`);
+		await editorPage.expectUrl(`/edit${testPage.path!}`);
 
 		// Navigate back to view
 		await editorPage.cancel();
@@ -110,7 +110,7 @@ test.describe('Navigation and Routing', () => {
 		await homePage.verifyLoaded();
 
 		// Navigate to page view
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
 
 		// Navigate to edit
@@ -159,7 +159,7 @@ test.describe('Navigation and Routing', () => {
 		await apiHelper.createPage(testPage);
 
 		// Navigate to page
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
 
 		// Refresh the page
@@ -167,7 +167,7 @@ test.describe('Navigation and Routing', () => {
 
 		// Verify page still loads correctly
 		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyPageUrl(testPage.path);
+		await pageViewPage.verifyPageUrl(testPage.path!);
 	});
 
 	test('should handle navigation from search results', async ({
@@ -197,12 +197,11 @@ test.describe('Navigation and Routing', () => {
 
 		// Verify navigation to correct page
 		await pageViewPage.verifyPageLoaded(searchablePage.title);
-		await pageViewPage.verifyPageUrl(searchablePage.path);
+		await pageViewPage.verifyPageUrl(searchablePage.path!);
 	});
 
 	test('should handle concurrent navigation requests', async ({
 		pageViewPage,
-		editorPage,
 		apiHelper,
 		testId
 	}) => {
@@ -222,15 +221,15 @@ test.describe('Navigation and Routing', () => {
 		await apiHelper.createPage(page2);
 
 		// Navigate to first page
-		await pageViewPage.navigateToPage(page1.path);
+		await pageViewPage.navigateToPage(page1.path!);
 		await pageViewPage.verifyPageLoaded(page1.title);
 
 		// Quickly navigate to second page (simulating fast user clicks)
-		await pageViewPage.navigateToPage(page2.path);
+		await pageViewPage.navigateToPage(page2.path!);
 		await pageViewPage.verifyPageLoaded(page2.title);
 
 		// Verify we ended up on the correct page
-		await pageViewPage.verifyPageUrl(page2.path);
+		await pageViewPage.verifyPageUrl(page2.path!);
 	});
 
 	test('should preserve scroll position on navigation', async ({
@@ -253,7 +252,7 @@ test.describe('Navigation and Routing', () => {
 		await apiHelper.createPage(longPage);
 
 		// Navigate to page
-		await pageViewPage.navigateToPage(longPage.path);
+		await pageViewPage.navigateToPage(longPage.path!);
 		await pageViewPage.verifyPageLoaded(longPage.title);
 
 		// Scroll down
@@ -261,7 +260,7 @@ test.describe('Navigation and Routing', () => {
 
 		// Navigate away and back
 		await pageViewPage.goto('/');
-		await pageViewPage.navigateToPage(longPage.path);
+		await pageViewPage.navigateToPage(longPage.path!);
 		await pageViewPage.verifyPageLoaded(longPage.title);
 
 		// Note: Scroll position preservation is browser-dependent

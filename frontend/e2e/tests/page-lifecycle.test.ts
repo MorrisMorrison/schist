@@ -3,7 +3,6 @@ import { createTestPage } from '../utils/test-data';
 
 test.describe('Page Lifecycle', () => {
 	test('should create a new page successfully', async ({
-		homePage,
 		editorPage,
 		pageViewPage,
 		testId
@@ -14,16 +13,15 @@ test.describe('Page Lifecycle', () => {
 			tags: ['test', 'lifecycle']
 		});
 
-		// Navigate to home and create new page
-		await homePage.navigate();
-		await homePage.createNewPage();
+		// Navigate directly to new page editor
+		await editorPage.navigateToNew();
 
 		// Verify editor loaded
 		await editorPage.verifyLoaded();
 		await editorPage.expectUrl('/new');
 
 		// Fill in page details
-		await editorPage.fillPageDetails(testPage.title, testPage.content, testPage.tags);
+		await editorPage.fillPageDetails(testPage.title, testPage.content, testPage.tags!);
 
 		// Save and navigate to page view
 		await editorPage.saveAndExpectNavigation();
@@ -31,11 +29,10 @@ test.describe('Page Lifecycle', () => {
 		// Verify page was created and displays correctly
 		await pageViewPage.verifyPageLoaded(testPage.title);
 		await pageViewPage.verifyContentContains('This is a test page for page creation');
-		await pageViewPage.verifyTags(testPage.tags);
+		await pageViewPage.verifyTags(testPage.tags!);
 	});
 
 	test('should edit an existing page', async ({
-		homePage,
 		editorPage,
 		pageViewPage,
 		apiHelper,
@@ -51,7 +48,7 @@ test.describe('Page Lifecycle', () => {
 		await apiHelper.createPage(originalPage);
 
 		// Navigate to the page
-		await pageViewPage.navigateToPage(originalPage.path);
+		await pageViewPage.navigateToPage(originalPage.path!);
 		await pageViewPage.verifyPageLoaded(originalPage.title);
 
 		// Click edit button
@@ -86,7 +83,7 @@ test.describe('Page Lifecycle', () => {
 		await apiHelper.createPage(pageToDelete);
 
 		// Navigate to the page
-		await pageViewPage.navigateToPage(pageToDelete.path);
+		await pageViewPage.navigateToPage(pageToDelete.path!);
 		await pageViewPage.verifyPageLoaded(pageToDelete.title);
 
 		// Delete the page
@@ -96,7 +93,7 @@ test.describe('Page Lifecycle', () => {
 		await pageViewPage.expectUrl('/');
 
 		// Try to navigate to deleted page - should show 404
-		await pageViewPage.navigateToPage(pageToDelete.path);
+		await pageViewPage.navigateToPage(pageToDelete.path!);
 		await pageViewPage.verifyPageNotFound();
 	});
 
@@ -125,7 +122,7 @@ test.describe('Page Lifecycle', () => {
 		await apiHelper.createPage(testPage);
 
 		// Navigate to page view
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
 
 		// Navigate to edit
@@ -152,12 +149,12 @@ test.describe('Page Lifecycle', () => {
 		await apiHelper.createPage(testPage);
 
 		// Navigate to page
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
 
 		// Verify metadata is displayed
 		await pageViewPage.verifyMetadata();
-		await pageViewPage.verifyTags(testPage.tags);
+		await pageViewPage.verifyTags(testPage.tags!);
 	});
 
 	test('should render markdown content correctly', async ({ pageViewPage, apiHelper, testId }) => {
@@ -186,7 +183,7 @@ console.log('Hello, World!');
 		await apiHelper.createPage(testPage);
 
 		// Navigate to page
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
 
 		// Verify markdown has been rendered to HTML

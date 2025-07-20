@@ -3,7 +3,6 @@ import { createTestPage } from '../utils/test-data';
 
 test.describe('Content Persistence and Data Integrity', () => {
 	test('should persist content across browser sessions', async ({
-		editorPage,
 		pageViewPage,
 		apiHelper,
 		testId,
@@ -18,7 +17,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await apiHelper.createPage(testPage);
 
 		// Navigate to page and verify content
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
 		await pageViewPage.verifyContentContains('persist across sessions');
 
@@ -34,7 +33,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 			});
 		})) as any;
 
-		await newPageView.navigateToPage(testPage.path);
+		await newPageView.navigateToPage(testPage.path!);
 		await newPageView.verifyPageLoaded(testPage.title);
 		await newPageView.verifyContentContains('persist across sessions');
 	});
@@ -55,7 +54,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await apiHelper.createPage(testPage);
 
 		// Open first editor
-		await editorPage.navigateToEdit(testPage.path);
+		await editorPage.navigateToEdit(testPage.path!);
 		await editorPage.verifyLoaded();
 
 		// Open second page context (simulating another user)
@@ -66,7 +65,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 			});
 		})) as any;
 
-		await editorPage2.navigateToEdit(testPage.path);
+		await editorPage2.navigateToEdit(testPage.path!);
 		await editorPage2.verifyLoaded();
 
 		// Make changes in first editor
@@ -78,7 +77,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await editorPage2.save();
 
 		// Verify final state
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(testPage.title);
 
 		// Note: Depending on implementation, this might show conflict resolution
@@ -121,7 +120,7 @@ const unicode = "Hello 世界! 🌍";
 		await apiHelper.createPage(testPage);
 
 		// Navigate to page and verify special characters
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(`Unicode Test ${testId}`);
 		await pageViewPage.verifyContentContains('🚀 🎉 💻');
 		await pageViewPage.verifyContentContains('café, naïve');
@@ -163,7 +162,7 @@ const unicode = "Hello 世界! 🌍";
 		await apiHelper.createPage(testPage);
 
 		// Navigate to page and verify it loads
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(`Large Content ${testId}`);
 
 		// Verify content is present
@@ -241,7 +240,7 @@ End of formatting test.`;
 		await apiHelper.createPage(testPage);
 
 		// Verify initial rendering
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(`Formatting Test ${testId}`);
 
 		// Verify various elements are rendered correctly
@@ -293,7 +292,7 @@ End of formatting test.`;
 		await apiHelper.createPage(testPage);
 
 		// Verify content displays correctly
-		await pageViewPage.navigateToPage(testPage.path);
+		await pageViewPage.navigateToPage(testPage.path!);
 		await pageViewPage.verifyPageLoaded(`Line Endings ${testId}`);
 		await pageViewPage.verifyContentContains('Line with LF ending');
 		await pageViewPage.verifyContentContains('Final line');
@@ -323,7 +322,7 @@ End of formatting test.`;
 		await apiHelper.createPage(testPage);
 
 		// Navigate to edit
-		await editorPage.navigateToEdit(testPage.path);
+		await editorPage.navigateToEdit(testPage.path!);
 		await editorPage.verifyLoaded();
 
 		// Make changes that would trigger auto-save
@@ -370,7 +369,7 @@ The links should remain functional after edits.`,
 		await apiHelper.createPage(linkingPage);
 
 		// Navigate to linking page
-		await pageViewPage.navigateToPage(linkingPage.path);
+		await pageViewPage.navigateToPage(linkingPage.path!);
 		await pageViewPage.verifyPageLoaded(`Linking Page ${testId}`);
 
 		// Click internal link to verify it works
@@ -378,7 +377,7 @@ The links should remain functional after edits.`,
 		await pageViewPage.verifyPageLoaded(`Target Page ${testId}`);
 
 		// Go back and edit the linking page
-		await pageViewPage.navigateToPage(linkingPage.path);
+		await pageViewPage.navigateToPage(linkingPage.path!);
 		await pageViewPage.editPage();
 
 		// Add another internal link

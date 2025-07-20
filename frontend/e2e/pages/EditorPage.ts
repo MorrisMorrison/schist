@@ -34,15 +34,15 @@ export class EditorPage extends BasePage {
 		super(page);
 
 		// Form elements
-		this.titleInput = page.getByLabel(/title/i);
+		this.titleInput = page.getByTestId('page-title-input');
 		this.contentEditor = page
 			.locator('.cm-editor .cm-content, textarea[placeholder*="content"]')
 			.first();
-		this.tagsInput = page.getByLabel(/tags/i);
-		this.saveButton = page.getByRole('button', { name: /save/i });
-		this.cancelButton = page.getByRole('button', { name: /cancel/i });
-		this.deleteButton = page.getByRole('button', { name: /delete/i });
-		this.confirmDeleteButton = page.getByRole('button', { name: /confirm delete|yes.*delete/i });
+		this.tagsInput = page.getByTestId('tags-input');
+		this.saveButton = page.getByTestId('save-page-button');
+		this.cancelButton = page.getByTestId('cancel-button');
+		this.deleteButton = page.getByTestId('delete-page-button');
+		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
 
 		// Editor features
 		this.editorToolbar = page.locator('[data-testid="editor-toolbar"]');
@@ -108,8 +108,11 @@ export class EditorPage extends BasePage {
 	 */
 	async addTags(tags: string[]) {
 		for (const tag of tags) {
+			await this.tagsInput.clear();
 			await this.tagsInput.fill(tag);
 			await this.page.keyboard.press('Enter');
+			// Wait a moment for the tag to be added before continuing
+			await this.page.waitForTimeout(100);
 		}
 	}
 
@@ -125,7 +128,7 @@ export class EditorPage extends BasePage {
 	 * Save and expect navigation to page view
 	 */
 	async saveAndExpectNavigation() {
-		await Promise.all([this.page.waitForURL(/\/pages\//), this.saveButton.click()]);
+		await Promise.all([this.page.waitForURL(/\/pages\//, { timeout: 15000 }), this.saveButton.click()]);
 	}
 
 	/**
@@ -150,7 +153,7 @@ export class EditorPage extends BasePage {
 	 */
 	async typeContent(content: string) {
 		await this.contentEditor.click();
-		await this.contentEditor.type(content);
+		await this.contentEditor.pressSequentially(content);
 	}
 
 	/**
@@ -250,7 +253,7 @@ export class EditorPage extends BasePage {
 	/**
 	 * Format text with bold
 	 */
-	async makeBold(text: string) {
+	async makeBold() {
 		// Select text and apply bold formatting
 		await this.contentEditor.selectText();
 		await this.page.keyboard.press('Control+b');

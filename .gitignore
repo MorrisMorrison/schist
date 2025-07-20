@@ -37,3 +37,4 @@ backend/schist
 .claude/
 wiki-data/
 frontend/playwright-report
+backend/cmd/schist/test-data

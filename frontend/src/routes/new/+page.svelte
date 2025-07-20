@@ -48,7 +48,7 @@
 		createError = '';
 
 		try {
-			await apiClient.createPage({
+			const response = await apiClient.createPage({
 				metaData: {
 					title: title.trim(),
 					tags: tags
@@ -56,14 +56,8 @@
 				content: content.trim()
 			});
 
-			// Navigate to the new page
-			// We need to generate a slug from the title
-			const slug = title
-				.trim()
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-|-$/g, '');
-			goto(`/${slug}`);
+			// Navigate to the new page using the path returned by the API
+			goto(`/pages${response.path}`);
 		} catch (error) {
 			console.error('Failed to create page:', error);
 			createError = error instanceof Error ? error.message : 'Failed to create page';
@@ -119,6 +113,7 @@
 			<div class="flex items-center space-x-3">
 				<a
 					href="/"
+					data-testid="cancel-button"
 					class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
 				>
 					Cancel
@@ -126,6 +121,7 @@
 
 				<button
 					type="button"
+					data-testid="save-page-button"
 					onclick={handleCreate}
 					disabled={isCreating || !title.trim() || !content.trim()}
 					class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
@@ -201,6 +197,7 @@
 			<div class="mt-1">
 				<input
 					id="title"
+					data-testid="page-title-input"
 					type="text"
 					bind:value={title}
 					placeholder="Enter page title..."
@@ -218,7 +215,9 @@
 		<!-- Tags Input (Compact) -->
 		<div>
 			<label for="tags" class="text-secondary mb-2 block text-sm font-medium">Tags</label>
-			<TagInput {tags} onTagsChange={(newTags) => (tags = newTags)} placeholder="Add tags..." />
+			<div data-testid="tags-input-container">
+				<TagInput {tags} onTagsChange={(newTags) => (tags = newTags)} placeholder="Add tags..." />
+			</div>
 		</div>
 
 		<!-- Content Editor -->

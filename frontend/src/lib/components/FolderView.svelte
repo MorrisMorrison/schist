@@ -4,6 +4,7 @@
 	import PageCard from './PageCard.svelte';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
+	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
 	import { Plus, FolderPlus, File, Folder } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -18,8 +19,7 @@
 		DialogContent,
 		DialogHeader,
 		DialogTitle,
-		DialogFooter,
-		DialogDescription
+		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import type { Page, Folder as FolderType } from '$lib/api/types';
@@ -46,6 +46,7 @@
 	let sortOrder = $state('asc'); // 'asc', 'desc'
 	let deleteDialogOpen = $state(false);
 	let pageToDelete = $state<string | null>(null);
+	let isDeleting = $state(false);
 
 	// Get current folder and its contents
 	const currentFolderData = $derived($foldersStore.folders?.find((f) => f.path === path));
@@ -149,17 +150,21 @@
 		if (!pageToDelete) return;
 
 		try {
+			isDeleting = true;
 			await pageActions.deletePage(pageToDelete);
 			deleteDialogOpen = false;
 			pageToDelete = null;
 		} catch (err) {
 			console.error('Failed to delete page:', err);
+		} finally {
+			isDeleting = false;
 		}
 	}
 
 	function cancelDelete() {
 		deleteDialogOpen = false;
 		pageToDelete = null;
+		isDeleting = false;
 	}
 
 	// Create new page in current folder
@@ -368,21 +373,13 @@
 		</CardContent>
 	</Card>
 </div>
-<!-- Delete Confirmation Dialog -->
-<Dialog bind:open={deleteDialogOpen}>
-	<DialogContent>
-		<DialogHeader>
-			<DialogTitle>Delete Page</DialogTitle>
-			<DialogDescription>
-				Are you sure you want to delete this page? This action cannot be undone.
-			</DialogDescription>
-		</DialogHeader>
-		<DialogFooter>
-			<Button variant="outline" onclick={cancelDelete}>Cancel</Button>
-			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
-		</DialogFooter>
-	</DialogContent>
-</Dialog>
+<!-- Delete Confirmation Modal -->
+<DeleteConfirmModal
+	open={deleteDialogOpen}
+	{isDeleting}
+	onConfirm={confirmDelete}
+	onCancel={cancelDelete}
+/>
 
 <!-- Create Folder Modal -->
 <CreateFolderModal

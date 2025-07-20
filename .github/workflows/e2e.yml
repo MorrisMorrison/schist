@@ -21,7 +21,6 @@ jobs:
       - name: Install Playwright
         run: |
           cd frontend && npx playwright install
-
       - name: Run E2E tests
         run: |
           make e2e

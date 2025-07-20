@@ -103,6 +103,7 @@
 				disabled={tags.length >= maxTags}
 				class="w-full"
 				size="sm"
+				data-testid="tags-input"
 			/>
 		</div>
 		<Button

@@ -19,7 +19,7 @@ export class HomePage extends BasePage {
 
 		// Initialize locators
 		this.pageTitle = page.locator('h1').first();
-		this.newPageButton = page.getByRole('button', { name: 'New Page' }).first();
+		this.newPageButton = page.getByRole('link', { name: /Create.*First.*Page|Create.*Page/i }).first();
 		this.searchBox = page.getByPlaceholder(/search/i);
 		this.searchResults = page.locator('[data-testid="search-results"]');
 		this.recentPages = page.locator('[data-testid="recent-pages"]');

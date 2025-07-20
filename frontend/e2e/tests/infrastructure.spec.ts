@@ -31,7 +31,7 @@ test.describe('E2E Infrastructure', () => {
 
 	test('fixtures create backend data', async ({ withTestPage, pageViewPage }) => {
 		// Navigate to the page created by the fixture
-		await pageViewPage.navigateToPage(withTestPage.path!);
+		await pageViewPage.navigateToPage(withTestPage.path!!);
 		await pageViewPage.verifyPageLoaded(withTestPage.title);
 		await expectVisibleText(pageViewPage.pageTitle, withTestPage.title);
 	});

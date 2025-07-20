@@ -3,12 +3,12 @@
 all: build
 
 install:
-	make build-frontend
-	make build-backend
+	cd frontend && npm i
+	cd backend/cmd/schist && go mod download
 
 build: install
 	cd frontend && npm run build
-	cd ../backend/cmd/schist && go build
+	cd backend/cmd/schist && go build
 
 build-frontend:
 	cd frontend && npm run build
@@ -18,7 +18,7 @@ build-backend:
 
 test: install
 	cd frontend && npm test
-	cd ../backend && go test ./...
+	cd backend && go test ./...
 
 run-backend-test:
 	cd backend && go test ./...

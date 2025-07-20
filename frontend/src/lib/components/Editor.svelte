@@ -454,12 +454,16 @@
 					{#if isDirty}
 						<span
 							class="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+							data-testid="unsaved-indicator"
 						>
 							Unsaved changes
 						</span>
 					{/if}
 					{#if lastSaved}
-						<span class="text-xs {currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}">
+						<span 
+							class="text-xs {currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}"
+							data-testid="auto-saved"
+						>
 							Saved {lastSaved.toLocaleTimeString()}
 						</span>
 					{/if}

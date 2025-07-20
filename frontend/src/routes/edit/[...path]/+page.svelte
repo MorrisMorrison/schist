@@ -16,6 +16,14 @@
 	let isDeleting = $state(false);
 	let showDeleteModal = $state(false);
 
+	// Single auto-save timer
+	let autoSaveTimer: number | null = null;
+	
+	// Track original values to detect changes
+	const originalTitle = data.page.metaData.title;
+	const originalContent = data.page.content;
+	const originalTags = JSON.stringify(data.page.metaData.tags || []);
+
 	let editorRef: Editor;
 	function replaceLastPathSegment(path: string, newSegment: string): string {
 		const parts = path.split('/').filter(Boolean);
@@ -93,6 +101,31 @@
 
 	function handleContentChange(newContent: string) {
 		content = newContent;
+		scheduleAutoSave();
+	}
+
+	function handleTagsChange(newTags: string[]) {
+		tags = newTags;
+		scheduleAutoSave();
+	}
+
+	function scheduleAutoSave() {
+		// Clear existing timer
+		if (autoSaveTimer) {
+			clearTimeout(autoSaveTimer);
+		}
+		
+		// Only auto-save if there are actual changes
+		const hasChanges = 
+			title !== originalTitle ||
+			content !== originalContent ||
+			JSON.stringify(tags) !== originalTags;
+			
+		if (hasChanges) {
+			autoSaveTimer = setTimeout(async () => {
+				await handleSaveWithoutNavigation();
+			}, 10000); // 10 second auto-save interval
+		}
 	}
 
 	async function handleSaveFromEditor(newContent: string) {
@@ -100,10 +133,6 @@
 		await handleSave();
 	}
 
-	async function handleAutoSave(newContent: string) {
-		content = newContent;
-		await handleSaveWithoutNavigation();
-	}
 
 	async function handleSaveWithoutNavigation() {
 		if (!title.trim()) {
@@ -296,7 +325,7 @@
 		<div>
 			<label for="tags" class="text-secondary mb-2 block text-sm font-medium">Tags</label>
 			<div data-testid="tags-input-container">
-				<TagInput {tags} onTagsChange={(newTags) => (tags = newTags)} placeholder="Add tags..." />
+				<TagInput {tags} onTagsChange={handleTagsChange} placeholder="Add tags..." />
 			</div>
 		</div>
 
@@ -309,9 +338,7 @@
 					onContentChange={handleContentChange}
 					onSave={handleSaveFromEditor}
 					autoSave={{
-						enabled: true,
-						interval: 10000,
-						onSave: handleAutoSave
+						enabled: false
 					}}
 				/>
 			</div>

@@ -208,15 +208,26 @@ export class EditorPage extends BasePage {
 	 * Wait for auto-save to trigger
 	 */
 	async waitForAutoSave(timeoutMs: number = 15000) {
-		// Wait for auto-save indicator or timeout
+		// Auto-save happens after 10 seconds of no changes + network request time
+		// First wait for unsaved indicator to appear (content was changed)
 		try {
-			await this.page.waitForFunction(
-				() => document.querySelector('[data-testid="auto-saved"]') !== null,
-				{ timeout: timeoutMs }
-			);
+			await this.page.getByTestId('unsaved-indicator').waitFor({ 
+				state: 'visible', 
+				timeout: 2000 
+			});
 		} catch {
-			// Auto-save might not have visual indicator, just wait for network
-			await this.page.waitForLoadState('networkidle');
+			// Content might already be marked as dirty
+		}
+
+		// Then wait for the auto-saved indicator to appear
+		try {
+			await this.page.getByTestId('auto-saved').waitFor({ 
+				state: 'visible', 
+				timeout: timeoutMs 
+			});
+		} catch {
+			// If no visual indicator, wait for network to settle
+			await this.page.waitForLoadState('networkidle', { timeout: timeoutMs });
 		}
 	}
 

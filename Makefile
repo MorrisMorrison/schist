@@ -3,8 +3,8 @@
 all: build
 
 install:
-	cd frontend && npm ci
-	cd ../backend && go mod download
+	cd frontend && npm i
+	cd ../backend/cmd/schist && go mod download
 
 build: install
 	cd frontend && npm run build

@@ -79,7 +79,7 @@ cd schist
 cd frontend && npm install && cd ..
 
 # 2. Start development (two terminals)
-NODE_ENV=development make run-backend    # Terminal 1
+ENV=development make run-backend    # Terminal 1
 make run-frontend                        # Terminal 2
 
 # 3. Access at http://localhost:5173
@@ -96,7 +96,7 @@ cd backend
 go mod download
 
 # Run with auto-restart
-NODE_ENV=development make run-backend
+ENV=development make run-backend
 
 # Or run directly from backend directory
 cd cmd/schist && go run main.go
@@ -376,7 +376,7 @@ git checkout -b feature/amazing-feature
 
 ```bash
 # Start development servers
-NODE_ENV=development make run-backend    # Terminal 1
+ENV=development make run-backend    # Terminal 1
 make run-frontend                        # Terminal 2
 
 # Run tests
@@ -409,7 +409,7 @@ git push origin feature/amazing-feature
 **Development Logging:**
 ```bash
 # Enable debug mode
-NODE_ENV=development make run-backend
+ENV=development make run-backend
 
 # Logs include file:line information
 # CORS requests are logged
@@ -464,7 +464,7 @@ make run-frontend
 
 ```bash
 # Two-server development (recommended)
-NODE_ENV=development make run-backend    # :8080
+ENV=development make run-backend    # :8080
 make run-frontend                        # :5173
 ```
 
@@ -521,7 +521,7 @@ Since Schist is file-based, "schema changes" involve:
 1. **Check Logs** - Backend terminal output for errors
 2. **Test API** - Use `/api/health` to verify backend
 3. **Check Network** - Browser dev tools for API calls
-4. **Verify Environment** - Correct NODE_ENV and ports
+4. **Verify Environment** - Correct ENV and ports
 5. **Clean Build** - `make run-docker` for fresh environment
 
 Happy coding! 🚀

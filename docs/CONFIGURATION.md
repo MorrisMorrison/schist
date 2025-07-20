@@ -12,7 +12,7 @@ Schist is designed with minimal configuration using environment variables and se
 | `SCHIST_DATA_DIR` | `../../data` | Directory for storing wiki pages and assets |
 | `SCHIST_STATIC_DIR` | `./web` | Directory for serving static frontend files (production) |
 | `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Frontend URL for CORS configuration (development) |
-| `NODE_ENV` | `development` | Environment mode (development/production) |
+| `ENV` | `development` | Environment mode (development/production) |
 
 ### Frontend Configuration
 
@@ -22,7 +22,7 @@ Schist is designed with minimal configuration using environment variables and se
 
 ## Development vs Production
 
-### Development Mode (`NODE_ENV=development`)
+### Development Mode (`ENV=development`)
 
 **Features:**
 - **CORS enabled** - Allows frontend dev server to access API
@@ -34,7 +34,7 @@ Schist is designed with minimal configuration using environment variables and se
 **Setup:**
 ```bash
 # Terminal 1: Start backend
-NODE_ENV=development make run-backend
+ENV=development make run-backend
 
 # Terminal 2: Start frontend dev server
 make run-frontend
@@ -42,7 +42,7 @@ make run-frontend
 # Access: http://localhost:5173
 ```
 
-### Production Mode (`NODE_ENV != development`)
+### Production Mode (`ENV != development`)
 
 **Features:**
 - **Single server** - Backend serves both API and static files
@@ -130,7 +130,7 @@ services:
     environment:
       - SCHIST_DATA_DIR=/app/data
       - SCHIST_PORT=8080
-      - NODE_ENV=production
+      - ENV=production
     volumes:
       - ./wiki-data:/app/data
 ```
@@ -146,7 +146,7 @@ services:
       - "8080:8080"
     environment:
       - SCHIST_DATA_DIR=/app/data
-      - NODE_ENV=development
+      - ENV=development
     volumes:
       - ./data:/app/data
       - ./backend:/app/backend

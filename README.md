@@ -30,7 +30,7 @@ cd schist
 cd frontend && npm install && cd ..
 
 # Terminal 1: Backend
-NODE_ENV=development make run-backend
+ENV=development make run-backend
 
 # Terminal 2: Frontend  
 make run-frontend

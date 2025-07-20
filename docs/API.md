@@ -416,7 +416,7 @@ Your page content here...
 ## Development Notes
 
 ### CORS Configuration
-In development mode (`NODE_ENV=development`), CORS is enabled for frontend development server access.
+In development mode (`ENV=development`), CORS is enabled for frontend development server access.
 
 ### Testing
 HTTP test files are available in the `/http` directory for API testing with VS Code REST Client extension.

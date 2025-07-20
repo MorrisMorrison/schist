@@ -58,7 +58,7 @@ Make sure the backend server is running:
 
 ```bash
 # Development mode (with CORS)
-NODE_ENV=development make run-backend
+ENV=development make run-backend
 
 # Production mode
 make run-backend

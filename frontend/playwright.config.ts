@@ -90,7 +90,7 @@ export default defineConfig({
 	webServer: [
 		{
 			command:
-				'cd ../backend/cmd/schist && NODE_ENV=development SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data go run main.go',
+				'cd ../backend/cmd/schist && ENV=development SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data go run main.go',
 			port: 8080,
 			reuseExistingServer: !process.env.CI,
 			timeout: 60 * 1000 // 1 minute for backend start

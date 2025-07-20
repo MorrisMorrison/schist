@@ -29,7 +29,7 @@ cd ..
 
 ```bash
 # Terminal 1: Start backend
-NODE_ENV=development make run-backend
+ENV=development make run-backend
 
 # Terminal 2: Start frontend dev server
 make run-frontend
@@ -189,7 +189,7 @@ SCHIST_PORT=8081 make run-backend
 curl http://localhost:8080/api/health
 
 # Check CORS in development
-NODE_ENV=development make run-backend
+ENV=development make run-backend
 ```
 
 **Permission Errors:**
@@ -265,7 +265,7 @@ cd schist
 cd frontend && npm install && cd ..
 
 # 2. Run both servers
-NODE_ENV=development make run-backend    # Terminal 1
+ENV=development make run-backend    # Terminal 1
 make run-frontend                        # Terminal 2
 
 # 3. Open browser to http://localhost:5173

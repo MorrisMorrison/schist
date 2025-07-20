@@ -1,4 +1,4 @@
-.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint e2e e2e-ui
+.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui
 
 all: build
 
@@ -45,8 +45,14 @@ fmt-backend:
 fmt-frontend:
 	cd frontend && npm run format
 
-lint:
+lint: 
+	make lint-backend && make lint-frontend
+
+lint-frontend:
 	cd frontend && npm run lint
+
+lint-backend:
+	cd backend && golangci-lint run
 
 e2e: install
 	cd frontend && npx playwright test

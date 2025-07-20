@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     env:
-      PUBLIC_API_URL: ${{ http://localhost:8080/api }}
+      PUBLIC_API_URL: http://localhost:8080/api
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

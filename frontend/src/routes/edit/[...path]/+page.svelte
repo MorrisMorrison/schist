@@ -322,8 +322,8 @@
 				</svg>
 			</div>
 			<div class="ml-3">
-				<h3 class="text-blue-primary dark:text-white text-sm font-medium">Markdown Tips</h3>
-				<div class="text-blue-secondary dark:text-white mt-2 text-sm">
+				<h3 class="text-blue-primary text-sm font-medium dark:text-white">Markdown Tips</h3>
+				<div class="text-blue-secondary mt-2 text-sm dark:text-white">
 					<ul class="list-inside list-disc space-y-1">
 						<li><strong># Heading</strong> for main headings</li>
 						<li><strong>**bold**</strong> for bold text</li>

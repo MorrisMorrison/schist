@@ -38,22 +38,38 @@
 	let pageToDelete = $state<string | null>(null);
 	let isDeleting = $state(false);
 
-	// Get current folder and its contents
-	const currentFolderData = $derived($foldersStore.folders?.find((f) => f.path === path));
+	const currentFolderData = $derived(() => {
+		const isRoot = path === '' || path === '/'
+		if (isRoot) {
+			const rootPageCount = $pagesStore.pages.filter((page) => {
+				const pagePath = page.metaData?.path || '';
+				return pagePath.split('/').length === 2; // ['', 'filename']
+			}).length;
+			
+			return {
+				name: 'Root',
+				path: '/',
+				created: new Date().toISOString(),
+				page_count: rootPageCount,
+				sub_folders: $foldersStore.folders?.filter((f) => {
+					const segments = f.path.split('/').filter(Boolean);
+					return segments.length === 1;
+				}) || []
+			};
+		}
+		return $foldersStore.folders?.find((f) => f.path === path);
+	});
 	const currentFolderPages = $derived(
 		$pagesStore.pages
 			.filter((page) => {
 				const pagePath = page.metaData?.path || '';
-
-				// Handle root folder case
-				if (path === '' || path === '/') {
+				const isRoot = path === '' || path === '/'
+				if (isRoot) {
 					// Pages in root folder don't have '/' after the first character
 					return pagePath.split('/').length === 2; // ['', 'filename']
 				}
 
-				// For specific folders, check if page is directly in this folder
-				// e.g., for folder '/anotherfolder', match pages like '/anotherfolder/page'
-				// but not '/anotherfolder/subfolder/page'
+				// check if page is directly in this folder
 				const folderSegments = path.split('/').filter(Boolean);
 				const pageSegments = pagePath.split('/').filter(Boolean);
 
@@ -83,7 +99,7 @@
 	);
 
 	const subFolders = $derived(
-		(currentFolderData?.sub_folders || []).sort((a, b) => {
+		(currentFolderData()?.sub_folders || []).sort((a, b) => {
 			const result = a.name.localeCompare(b.name);
 			return sortOrder === 'desc' ? -result : result;
 		})
@@ -116,12 +132,10 @@
 		}
 	}
 
-	// Navigate to subfolder
 	function navigateToFolder(folderPath: string) {
 		goto(`/folders${folderPath}`);
 	}
 
-	// Navigate to page
 	function navigateToPage(pagePath: string) {
 		goto(`/pages${pagePath}`);
 	}
@@ -130,7 +144,6 @@
 		goto(`/new${path}`);
 	}
 
-	// Navigate to edit page
 	function navigateToEditPage(path: string) {
 		goto(`/edit${path}`);
 	}
@@ -161,32 +174,6 @@
 		isDeleting = false;
 	}
 
-	// Create new page in current folder
-	// async function createPage() {
-	// if (!newPageTitle.trim()) return;
-
-	// const slug = newPageTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-	// const pagePath = path ? `${path}/${slug}` : `/${slug}`;
-
-	// try {
-	// 	await pageActions.createPage({
-	// 		metaData: {
-	// 			title: newPageTitle,
-	// 			path: pagePath,
-	// 			tags: []
-	// 		},
-	// 		content: `# ${newPageTitle}\n\nStart writing your content here...`
-	// 	});
-	// 	newPageTitle = '';
-	// 	showCreatePageModal = false;
-	// Navigate to the new page
-	// goto(`/new${pagePath}`);
-	// } catch (error) {
-	// 	console.error('Failed to create page:', error);
-	// }
-	// }
-
-	// Handle folder creation
 	async function handleFolderCreated() {
 		showCreateFolderModal = false;
 		await loadFolderData();
@@ -194,7 +181,6 @@
 </script>
 
 <div class="mx-auto max-w-7xl space-y-8 p-6">
-	<!-- Breadcrumbs -->
 	<Breadcrumbs {path} />
 
 	<!-- Folder Header -->
@@ -204,7 +190,7 @@
 		<div class="space-y-2">
 			<h1 class="text-primary text-3xl font-bold">
 				{#if path === ''}
-					All Pages
+				root
 				{:else}
 					{(() => {
 						const folderName = path.split('/').pop();
@@ -367,7 +353,6 @@
 		</CardContent>
 	</Card>
 </div>
-<!-- Delete Confirmation Modal -->
 <DeleteConfirmModal
 	open={deleteDialogOpen}
 	{isDeleting}
@@ -375,43 +360,9 @@
 	onCancel={cancelDelete}
 />
 
-<!-- Create Folder Modal -->
 <CreateFolderModal
 	open={showCreateFolderModal}
 	parentPath={path}
 	onClose={() => (showCreateFolderModal = false)}
 	onCreated={handleFolderCreated}
 />
-
-<!-- Create Page Modal -->
-<!-- <Dialog open={showCreatePageModal} onOpenChange={(open) => (showCreatePageModal = open)}>
-	<DialogContent>
-		<DialogHeader>
-			<DialogTitle>Create New Page</DialogTitle>
-		</DialogHeader>
-		<form
-			onsubmit={(e) => {
-				e.preventDefault();
-				createPage();
-			}}
-			class="space-y-4"
-		>
-			<div class="space-y-2">
-				<label for="page-title" class="text-primary text-sm font-medium">Page Title</label>
-				<Input
-					id="page-title"
-					type="text"
-					bind:value={newPageTitle}
-					placeholder="Enter page title"
-					required
-				/>
-			</div>
-			<DialogFooter>
-				<Button type="button" variant="outline" onclick={() => (showCreatePageModal = false)}>
-					Cancel
-				</Button>
-				<Button type="submit" disabled={!newPageTitle.trim()}>Create Page</Button>
-			</DialogFooter>
-		</form>
-	</DialogContent>
-</Dialog> -->

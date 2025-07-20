@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { apiClient } from '$lib/api/client.js';
 	import Editor from '$lib/components/Editor.svelte';
 	import TagInput from '$lib/components/TagInput.svelte';
+	import { pageActions } from '$lib/stores/pages';
+	import { generateSlug } from '$lib/utils/path';
+	import type { PageData } from './$types';
 
 	// Get initial title from URL params if provided (e.g., from 404 page)
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 
+	let { data }: { data: PageData } = $props();
 	let title = $state('');
 	let content = $state('');
 	let tags = $state<string[]>([]);
@@ -48,8 +51,11 @@
 		createError = '';
 
 		try {
-			const response = await apiClient.createPage({
+			const fullPath = generatePath(title);
+
+			const response = await pageActions.createPage({
 				metaData: {
+					path: fullPath,
 					title: title.trim(),
 					tags: tags
 				},
@@ -57,7 +63,7 @@
 			});
 
 			// Navigate to the new page using the path returned by the API
-			goto(`/pages${response.path}`);
+			goto(`/pages${response.metaData.path}`);
 		} catch (error) {
 			console.error('Failed to create page:', error);
 			createError = error instanceof Error ? error.message : 'Failed to create page';
@@ -83,14 +89,9 @@
 		}
 	}
 
-	function generateSlugPreview(title: string): string {
-		return (
-			title
-				.trim()
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, '-')
-				.replace(/^-|-$/g, '') || 'new-page'
-		);
+	function generatePath(title: string): string {
+		const slug = generateSlug(title);
+		return `/${data.path}/${slug}`;
 	}
 </script>
 
@@ -206,8 +207,7 @@
 			</div>
 			{#if title.trim()}
 				<p class="text-muted mt-1 text-sm">
-					URL will be: <span class="text-blue-primary font-mono">/{generateSlugPreview(title)}</span
-					>
+					URL will be: <span class="text-blue-primary font-mono">/{generatePath(title)}</span>
 				</p>
 			{/if}
 		</div>

@@ -5,6 +5,7 @@
 	import DeleteConfirmModal from '$lib/components/DeleteConfirmModal.svelte';
 	import { pageActions } from '$lib/stores/pages.js';
 	import type { PageData } from './$types';
+	import { generateSlug } from '$lib/utils/path';
 
 	let { data }: { data: PageData } = $props();
 
@@ -46,11 +47,7 @@
 		saveError = '';
 
 		// We need to generate a slug from the title
-		const slug = title
-			.trim()
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-|-$/g, '');
+		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			await pageActions.updatePageByPath(data.path, {

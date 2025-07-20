@@ -14,14 +14,6 @@
 		CardTitle,
 		CardDescription
 	} from '$lib/components/ui/card';
-	import {
-		Dialog,
-		DialogContent,
-		DialogHeader,
-		DialogTitle,
-		DialogFooter
-	} from '$lib/components/ui/dialog';
-	import { Input } from '$lib/components/ui/input';
 	import type { Page, Folder as FolderType } from '$lib/api/types';
 
 	interface Props {
@@ -39,8 +31,6 @@
 	}: Props = $props();
 
 	let showCreateFolderModal = $state(false);
-	let showCreatePageModal = $state(false);
-	let newPageTitle = $state('');
 	let isLoadingFolderData = $state(false);
 	let sortBy = $state('name'); // 'name', 'created', 'modified'
 	let sortOrder = $state('asc'); // 'asc', 'desc'
@@ -136,6 +126,10 @@
 		goto(`/pages${pagePath}`);
 	}
 
+	function navigateToNewPage(path: string) {
+		goto(`/new${path}`);
+	}
+
 	// Navigate to edit page
 	function navigateToEditPage(path: string) {
 		goto(`/edit${path}`);
@@ -168,29 +162,29 @@
 	}
 
 	// Create new page in current folder
-	async function createPage() {
-		if (!newPageTitle.trim()) return;
+	// async function createPage() {
+	// if (!newPageTitle.trim()) return;
 
-		const slug = newPageTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-		const pagePath = path ? `${path}/${slug}` : `/${slug}`;
+	// const slug = newPageTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+	// const pagePath = path ? `${path}/${slug}` : `/${slug}`;
 
-		try {
-			await pageActions.createPage({
-				metaData: {
-					title: newPageTitle,
-					path: pagePath,
-					tags: []
-				},
-				content: `# ${newPageTitle}\n\nStart writing your content here...`
-			});
-			newPageTitle = '';
-			showCreatePageModal = false;
-			// Navigate to the new page
-			goto(`/pages${pagePath}`);
-		} catch (error) {
-			console.error('Failed to create page:', error);
-		}
-	}
+	// try {
+	// 	await pageActions.createPage({
+	// 		metaData: {
+	// 			title: newPageTitle,
+	// 			path: pagePath,
+	// 			tags: []
+	// 		},
+	// 		content: `# ${newPageTitle}\n\nStart writing your content here...`
+	// 	});
+	// 	newPageTitle = '';
+	// 	showCreatePageModal = false;
+	// Navigate to the new page
+	// goto(`/new${pagePath}`);
+	// } catch (error) {
+	// 	console.error('Failed to create page:', error);
+	// }
+	// }
 
 	// Handle folder creation
 	async function handleFolderCreated() {
@@ -276,7 +270,7 @@
 						<FolderPlus class="h-4 w-4" />
 						New Folder
 					</Button>
-					<Button onclick={() => (showCreatePageModal = true)}>
+					<Button onclick={() => navigateToNewPage(path)}>
 						<Plus class="h-4 w-4" />
 						New Page
 					</Button>
@@ -358,7 +352,7 @@
 					</p>
 					{#if showCreateButtons}
 						<div class="flex w-full justify-start gap-2 md:w-auto">
-							<Button onclick={() => (showCreatePageModal = true)}>
+							<Button onclick={() => navigateToNewPage(path)}>
 								<Plus class="h-4 w-4" />
 								Create Page
 							</Button>
@@ -390,7 +384,7 @@
 />
 
 <!-- Create Page Modal -->
-<Dialog open={showCreatePageModal} onOpenChange={(open) => (showCreatePageModal = open)}>
+<!-- <Dialog open={showCreatePageModal} onOpenChange={(open) => (showCreatePageModal = open)}>
 	<DialogContent>
 		<DialogHeader>
 			<DialogTitle>Create New Page</DialogTitle>
@@ -420,4 +414,4 @@
 			</DialogFooter>
 		</form>
 	</DialogContent>
-</Dialog>
+</Dialog> -->

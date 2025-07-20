@@ -46,7 +46,8 @@ fmt-frontend:
 	cd frontend && npm run format
 
 lint: 
-	make lint-backend && make lint-frontend
+	make lint-backend
+	make lint-frontend
 
 lint-frontend:
 	cd frontend && npm run lint

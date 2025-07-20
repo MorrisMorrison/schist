@@ -1,6 +1,51 @@
 import { marked } from 'marked';
 import type { Tokens } from 'marked';
 import { apiClient } from '$lib/api/client';
+import hljs from 'highlight.js/lib/core';
+
+// Import commonly used languages
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import java from 'highlight.js/lib/languages/java';
+import go from 'highlight.js/lib/languages/go';
+import rust from 'highlight.js/lib/languages/rust';
+import sql from 'highlight.js/lib/languages/sql';
+import json from 'highlight.js/lib/languages/json';
+import xml from 'highlight.js/lib/languages/xml';
+import css from 'highlight.js/lib/languages/css';
+import shell from 'highlight.js/lib/languages/shell';
+import markdown from 'highlight.js/lib/languages/markdown';
+import yaml from 'highlight.js/lib/languages/yaml';
+import dockerfile from 'highlight.js/lib/languages/dockerfile';
+import nginx from 'highlight.js/lib/languages/nginx';
+
+// Register languages
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('js', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('ts', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('py', python);
+hljs.registerLanguage('java', java);
+hljs.registerLanguage('go', go);
+hljs.registerLanguage('golang', go);
+hljs.registerLanguage('rust', rust);
+hljs.registerLanguage('rs', rust);
+hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('html', xml);
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('shell', shell);
+hljs.registerLanguage('bash', shell);
+hljs.registerLanguage('sh', shell);
+hljs.registerLanguage('markdown', markdown);
+hljs.registerLanguage('md', markdown);
+hljs.registerLanguage('yaml', yaml);
+hljs.registerLanguage('yml', yaml);
+hljs.registerLanguage('dockerfile', dockerfile);
+hljs.registerLanguage('nginx', nginx);
 
 /**
  * Enhanced markdown renderer with copy buttons for code blocks
@@ -26,9 +71,36 @@ renderer.image = function ({ href, title, text }: Tokens.Image): string {
 	return `<img src="${src}" alt="${alt}"${titleAttr} class="max-w-full h-auto rounded-lg shadow-sm" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
 };
 
-// Override code block rendering to add copy functionality
+// Override code block rendering to add syntax highlighting and copy functionality
 renderer.code = function ({ text, lang }: Tokens.Code): string {
-	const escapedCode = text
+	// Apply syntax highlighting if language is specified and supported
+	let highlightedCode = text;
+	if (lang && hljs.getLanguage(lang)) {
+		try {
+			const result = hljs.highlight(text, { language: lang });
+			highlightedCode = result.value;
+		} catch (error) {
+			console.warn(`Failed to highlight code for language "${lang}":`, error);
+			// Fall back to escaped plain text
+			highlightedCode = text
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#39;');
+		}
+	} else {
+		// No language specified or not supported, escape HTML
+		highlightedCode = text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+
+	// Prepare escaped version for copy functionality
+	const escapedForCopy = text
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;')
@@ -36,30 +108,32 @@ renderer.code = function ({ text, lang }: Tokens.Code): string {
 		.replace(/'/g, '&#39;');
 
 	const langClass = lang ? ` language-${lang}` : '';
-	const langLabel = lang ? `<span class="code-lang">${lang}</span>` : '';
+	const langLabel = lang
+		? `<span class="code-lang text-xs text-muted-foreground bg-muted px-2 py-1 rounded">${lang}</span>`
+		: '';
 
 	return `
-		<div class="code-block-container flex justify-between">
-			<pre class="grow-1"><code class="hljs${langClass}">${escapedCode}</code></pre>
-			<div class="code-block-header pl-5">
+		<div class="code-block-container relative group border rounded-lg bg-muted/30 my-4">
+			<div class="flex items-center justify-between px-4 py-2 border-b bg-muted/50">
 				${langLabel}
 				<button 
-					class="copy-button px-3 py-2 text-sm font-semibold rounded-md hover:bg-gray-50  " 
-					data-copy-text="${escapedCode.replace(/"/g, '&quot;')}"
+					class="copy-button px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100" 
+					data-copy-text="${escapedForCopy.replace(/"/g, '&quot;')}"
 					title="Copy code"
 					aria-label="Copy code to clipboard"
 				>
-					<svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
 						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
 					</svg>
 				</button>
 			</div>
+			<pre class="overflow-x-auto p-4 text-sm leading-relaxed"><code class="hljs${langClass}">${highlightedCode}</code></pre>
 		</div>
 	`;
 };
 
-// Override inline code rendering
+// Override inline code rendering - simpler without copy button for inline code
 renderer.codespan = function ({ text }: Tokens.Codespan): string {
 	const escapedCode = text
 		.replace(/&/g, '&amp;')
@@ -68,24 +142,7 @@ renderer.codespan = function ({ text }: Tokens.Codespan): string {
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&#39;');
 
-	return `
-		<div class="flex justify-between rounded-md">
-			<code class="inline-code">${escapedCode}</code>
-			<div class="code-block-header">
-				<button 
-					class="copy-button px-3 py-1 text-sm font-semibold rounded-md hover:bg-gray-50 " 
-					data-copy-text="${escapedCode.replace(/"/g, '&quot;')}"
-					title="Copy code"
-					aria-label="Copy code to clipboard"
-				>
-					<svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-					</svg>
-				</button>
-			</div>
-		</div>
-	`;
+	return `<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">${escapedCode}</code>`;
 };
 
 // Configure marked options

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import Editor from '$lib/components/Editor.svelte';
-	import TagInput from '$lib/components/TagInput.svelte';
+	import MetadataEditor from '$lib/components/MetadataEditor.svelte';
 	import DeleteConfirmModal from '$lib/components/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { pageActions } from '$lib/stores/pages.js';
@@ -271,28 +271,21 @@
 
 	<!-- Editor Form -->
 	<div class="bg-primary ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
-		<!-- Title Input -->
-		<div>
-			<label for="title" class="text-secondary block text-sm font-medium">Page Title</label>
-			<div class="mt-1">
-				<input
-					id="title"
-					data-testid="page-title-input"
-					type="text"
-					bind:value={title}
-					placeholder="Enter page title..."
-					class="border-secondary bg-primary text-primary block w-full rounded-md border px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
-				/>
-			</div>
-		</div>
-
-		<!-- Tags Input (Compact) -->
-		<div>
-			<label for="tags" class="text-secondary mb-2 block text-sm font-medium">Tags</label>
-			<div data-testid="tags-input-container">
-				<TagInput {tags} onTagsChange={handleTagsChange} placeholder="Add tags..." />
-			</div>
-		</div>
+		<!-- Enhanced Metadata Editor -->
+		<MetadataEditor
+			{title}
+			{tags}
+			slug={data.page.metaData.slug}
+			path={data.page.metaData.path}
+			created={data.page.metaData.created}
+			updated={data.page.metaData.updated}
+			onTitleChange={(newTitle) => {
+				title = newTitle;
+				scheduleAutoSave();
+			}}
+			onTagsChange={handleTagsChange}
+			showAdvanced={false}
+		/>
 
 		<!-- Content Editor -->
 		<div class="flex-1">
@@ -329,8 +322,8 @@
 				</svg>
 			</div>
 			<div class="ml-3">
-				<h3 class="text-blue-primary text-sm font-medium">Markdown Tips</h3>
-				<div class="text-blue-secondary mt-2 text-sm">
+				<h3 class="text-blue-primary dark:text-white text-sm font-medium">Markdown Tips</h3>
+				<div class="text-blue-secondary dark:text-white mt-2 text-sm">
 					<ul class="list-inside list-disc space-y-1">
 						<li><strong># Heading</strong> for main headings</li>
 						<li><strong>**bold**</strong> for bold text</li>

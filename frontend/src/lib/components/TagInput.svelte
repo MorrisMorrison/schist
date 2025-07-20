@@ -29,7 +29,6 @@
 	let showSuggestions = $state(false);
 	let selectedSuggestionIndex = $state(-1);
 
-	// Filter suggestions based on input
 	const filteredSuggestions = $derived(() => {
 		if (!inputValue.trim() || !suggestions.length) return [];
 
@@ -43,7 +42,6 @@
 			.slice(0, 5); // Limit to 5 suggestions
 	});
 
-	// Validation for tag
 	const canAddTag = $derived((tagText: string) => {
 		const trimmed = tagText.trim();
 		if (!trimmed) return false;
@@ -52,11 +50,9 @@
 		return true;
 	});
 
-	// Handle adding a new tag
 	function addTag(tagText: string) {
 		if (!canAddTag(tagText)) return;
 
-		// Add the tag
 		const newTags = [...tags, tagText.trim()];
 		onTagsChange(newTags);
 		inputValue = '';
@@ -64,15 +60,12 @@
 		selectedSuggestionIndex = -1;
 	}
 
-	// Handle removing a tag
 	function removeTag(index: number) {
 		const newTags = tags.filter((_, i) => i !== index);
 		onTagsChange(newTags);
 	}
 
-	// Handle input key events
 	function handleKeydown(event: KeyboardEvent) {
-		// Handle autocomplete navigation
 		if (showSuggestions && filteredSuggestions.length > 0) {
 			if (event.key === 'ArrowDown') {
 				event.preventDefault();
@@ -96,7 +89,6 @@
 			}
 		}
 
-		// Standard tag input handling
 		if (event.key === 'Enter' || event.key === ',') {
 			event.preventDefault();
 			if (selectedSuggestionIndex >= 0 && filteredSuggestions().length > 0) {
@@ -105,33 +97,27 @@
 				addTag(inputValue);
 			}
 		} else if (event.key === 'Backspace' && !inputValue && tags.length > 0) {
-			// Remove last tag if input is empty and backspace is pressed
 			removeTag(tags.length - 1);
 		}
 	}
 
-	// Handle add button click
 	function handleAddClick() {
 		addTag(inputValue);
 		inputElement?.focus();
 	}
 
-	// Handle input focus
 	function handleFocus() {
 		if (filteredSuggestions().length > 0) {
 			showSuggestions = true;
 		}
 	}
 
-	// Handle input change
 	function handleInput() {
 		selectedSuggestionIndex = -1;
 		showSuggestions = filteredSuggestions().length > 0 && inputValue.trim().length > 0;
 	}
 
-	// Handle input blur (add tag on blur if there's content)
 	function handleBlur() {
-		// Delay hiding suggestions to allow for clicks
 		setTimeout(() => {
 			if (inputValue.trim() && canAddTag(inputValue)) {
 				addTag(inputValue);
@@ -141,7 +127,6 @@
 		}, 150);
 	}
 
-	// Handle suggestion click
 	function handleSuggestionClick(suggestion: string) {
 		addTag(suggestion);
 		inputElement?.focus();

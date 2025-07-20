@@ -488,7 +488,7 @@
 
 	/* Enhanced code block styling */
 	.prose .code-block-container {
-		@apply not-prose;
+		margin: 1rem 0;
 	}
 
 	.prose .code-block-container pre {

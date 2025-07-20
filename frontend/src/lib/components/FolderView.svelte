@@ -39,22 +39,23 @@
 	let isDeleting = $state(false);
 
 	const currentFolderData = $derived(() => {
-		const isRoot = path === '' || path === '/'
+		const isRoot = path === '' || path === '/';
 		if (isRoot) {
 			const rootPageCount = $pagesStore.pages.filter((page) => {
 				const pagePath = page.metaData?.path || '';
 				return pagePath.split('/').length === 2; // ['', 'filename']
 			}).length;
-			
+
 			return {
 				name: 'Root',
 				path: '/',
 				created: new Date().toISOString(),
 				page_count: rootPageCount,
-				sub_folders: $foldersStore.folders?.filter((f) => {
-					const segments = f.path.split('/').filter(Boolean);
-					return segments.length === 1;
-				}) || []
+				sub_folders:
+					$foldersStore.folders?.filter((f) => {
+						const segments = f.path.split('/').filter(Boolean);
+						return segments.length === 1;
+					}) || []
 			};
 		}
 		return $foldersStore.folders?.find((f) => f.path === path);
@@ -63,7 +64,7 @@
 		$pagesStore.pages
 			.filter((page) => {
 				const pagePath = page.metaData?.path || '';
-				const isRoot = path === '' || path === '/'
+				const isRoot = path === '' || path === '/';
 				if (isRoot) {
 					// Pages in root folder don't have '/' after the first character
 					return pagePath.split('/').length === 2; // ['', 'filename']
@@ -190,7 +191,7 @@
 		<div class="space-y-2">
 			<h1 class="text-primary text-3xl font-bold">
 				{#if path === ''}
-				root
+					root
 				{:else}
 					{(() => {
 						const folderName = path.split('/').pop();

@@ -24,7 +24,7 @@ run-backend-test:
 	cd backend && go test ./...
 
 run-docker:
-	docker-compose up --build
+	docker-compose --profile prod up --build
 
 run-docker-dev:
 	docker-compose --profile dev up --build

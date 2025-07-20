@@ -21,7 +21,7 @@
 	}: Props = $props();
 
 	let inputValue = $state('');
-	let inputElement: HTMLInputElement | undefined = $state();
+	let inputElement: HTMLInputElement | null = $state(null);
 
 	// Handle adding a new tag
 	function addTag(tagText: string) {
@@ -95,14 +95,13 @@
 	<div class="flex items-center gap-2">
 		<div class="w-48">
 			<Input
-				bind:this={inputElement}
+				ref={inputElement}
 				bind:value={inputValue}
 				onkeydown={handleKeydown}
 				onblur={handleBlur}
 				{placeholder}
 				disabled={tags.length >= maxTags}
 				class="w-full"
-				size="sm"
 				data-testid="tags-input"
 			/>
 		</div>

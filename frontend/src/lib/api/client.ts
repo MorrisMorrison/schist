@@ -1,4 +1,4 @@
-import { PUBLIC_API_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import type {
 	Page,
 	CreatePageRequest,
@@ -21,7 +21,7 @@ class SchістApiClient {
 	private baseUrl: string;
 
 	constructor() {
-		this.baseUrl = PUBLIC_API_URL || 'http://localhost:8080/api';
+		this.baseUrl = env.PUBLIC_API_URL || 'http://localhost:8080/api';
 	}
 
 	private encodePath(path: string): string {

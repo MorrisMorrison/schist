@@ -77,10 +77,6 @@
 		}
 	}
 
-	function handleViewPage() {
-		// Already viewing the page, could scroll to top or refresh
-		window.scrollTo(0, 0);
-	}
 
 	function handleMovePage(page: Page) {
 		pageToMove = page;
@@ -128,7 +124,6 @@
 			page={currentPage}
 			onEdit={handleEditPage}
 			onDelete={handleDeletePage}
-			onView={handleViewPage}
 			onMove={handleMovePage}
 		/>
 	{:else if isNotFound}

@@ -11,6 +11,29 @@ export interface ApiResponse<T = unknown> {
 	error?: string;
 }
 
+interface PageListData {
+	pages: Array<{
+		metaData?: {
+			title?: string;
+			path?: string;
+		};
+	}>;
+}
+
+interface FolderListData {
+	folders: Array<{
+		name?: string;
+		path?: string;
+	}>;
+}
+
+interface PageData {
+	metaData?: {
+		title?: string;
+	};
+	content?: string;
+}
+
 /**
  * API helper class for direct backend interactions
  */
@@ -237,14 +260,14 @@ export class ApiHelper {
 	/**
 	 * Upload an asset
 	 */
-	async uploadAsset(filePath: string, fileName: string = 'test-image.png'): Promise<ApiResponse> {
+	async uploadAsset(_filePath: string, fileName: string = 'test-image.png'): Promise<ApiResponse> {
 		try {
 			const response = await this.apiContext.post(`${this.baseURL}/assets/upload`, {
 				multipart: {
 					file: {
 						name: fileName,
 						mimeType: 'image/png',
-						buffer: Buffer.from('fake-image-data') // For testing
+						buffer: new TextEncoder().encode('fake-image-data') // For testing
 					}
 				}
 			});
@@ -304,20 +327,22 @@ export class ApiHelper {
 		try {
 			// Get all pages and delete test pages
 			const pagesResponse = await this.listPages();
-			if (pagesResponse.data && pagesResponse.data.pages) {
-				for (const page of pagesResponse.data.pages) {
+			const pageData = pagesResponse.data as PageListData;
+			if (pageData && pageData.pages) {
+				for (const page of pageData.pages) {
 					if (page.metaData?.title?.includes(prefix) || page.metaData?.path?.includes(prefix)) {
-						await this.deletePage(page.metaData.path);
+						await this.deletePage(page.metaData.path || '');
 					}
 				}
 			}
 
 			// Clean up test folders
 			const foldersResponse = await this.getFolder('');
-			if (foldersResponse.data && foldersResponse.data.folders) {
-				for (const folder of foldersResponse.data.folders) {
+			const folderData = foldersResponse.data as FolderListData;
+			if (folderData && folderData.folders) {
+				for (const folder of folderData.folders) {
 					if (folder.name?.includes(prefix) || folder.path?.includes(prefix)) {
-						await this.deleteFolder(folder.path);
+						await this.deleteFolder(folder.path || '');
 					}
 				}
 			}
@@ -362,7 +387,8 @@ export async function verifyPageExists(
 	expect(result.status).toBe(200);
 
 	if (expectedTitle) {
-		expect(result.data?.metaData?.title).toBe(expectedTitle);
+		const pageData = result.data as PageData;
+		expect(pageData?.metaData?.title).toBe(expectedTitle);
 	}
 }
 
@@ -388,7 +414,8 @@ export async function waitForPageUpdate(
 	while (Date.now() - startTime < timeoutMs) {
 		const result = await apiHelper.getPage(path);
 		if (result.status === 200) {
-			if (!expectedContent || result.data?.content?.includes(expectedContent)) {
+			const pageData = result.data as PageData;
+			if (!expectedContent || pageData?.content?.includes(expectedContent)) {
 				return true;
 			}
 		}

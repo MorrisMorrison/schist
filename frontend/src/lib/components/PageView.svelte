@@ -13,7 +13,7 @@
 	interface Props {
 		page: Page;
 		onEdit?: (slug: string) => void;
-		onDelete?: (slug: string) => void;
+		onDelete?: (slug: string) => void | Promise<void>;
 		onMove?: (page: Page) => void;
 	}
 

@@ -41,7 +41,7 @@
 	}
 </script>
 
-<div class="min-h-screen border-0 bg-gray-50 transition-colors dark:bg-gray-800">
+<div class="min-h-screen border-0 bg-background transition-colors">
 	<Navigation {currentPageSlug} isSidebarOpen={$sidebarOpen} />
 
 	<div class="app-container border-0" class:with-sidebar={sidebarVisible}>
@@ -69,11 +69,8 @@
 		{/if}
 
 		<main
-			class="main-content dark:bg-gray-800"
+			class="main-content bg-background"
 			class:sidebar-open={sidebarVisible}
-			class:ring-1={sidebarVisible}
-			class:ring-border-primary={sidebarVisible}
-			class:rshadow-sm={sidebarVisible}
 		>
 			{@render children()}
 		</main>

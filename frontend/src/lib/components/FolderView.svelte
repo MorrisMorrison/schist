@@ -270,7 +270,7 @@
 						<FolderPlus class="h-4 w-4" />
 						New Folder
 					</Button>
-					<Button onclick={() => navigateToNewPage(path)}>
+					<Button variant="default" onclick={() => navigateToNewPage(path)}>
 						<Plus class="h-4 w-4" />
 						New Page
 					</Button>

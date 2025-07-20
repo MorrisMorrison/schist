@@ -54,21 +54,17 @@
 				<!-- Left side - Logo and main navigation -->
 				<div class="flex items-center">
 					<div class="flex-shrink-0">
-						<a href="/" class="flex items-center space-x-2">
-							<svg
-								class="text-blue-primary h-8 w-8"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-								/>
-							</svg>
-							<span class="text-primary text-xl font-bold">Schist</span>
+						<a href="/" class="flex items-center space-x-3">
+							<!-- Clean geometric logo -->
+							<div class="relative h-8 w-8">
+								<!-- Base layer - solid diamond -->
+								<div class="absolute inset-0 h-8 w-8 bg-primary rounded transform rotate-45"></div>
+								<!-- Inner cutout to create frame effect -->
+								<div class="absolute inset-1 h-6 w-6 bg-background rounded transform rotate-45"></div>
+								<!-- Small accent dot in center -->
+								<div class="absolute top-1/2 left-1/2 h-2 w-2 bg-primary rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+							</div>
+							<span class="text-foreground text-xl font-semibold tracking-tight">Schist</span>
 						</a>
 					</div>
 

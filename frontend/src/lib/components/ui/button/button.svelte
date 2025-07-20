@@ -6,14 +6,17 @@
 		variants: {
 			variant: {
 				default:
-					'bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none',
+					'bg-primary/90 text-primary-foreground shadow-sm hover:bg-primary/80 focus-visible:ring-primary/20 transition-colors',
 				destructive:
-					'bg-destructive shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 text-white',
+					'bg-destructive text-white shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/20 transition-colors',
 				outline:
-					'bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 border',
-				secondary: 'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80',
-				ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-				link: 'text-primary underline-offset-4 hover:underline'
+					'border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors',
+				secondary: 
+					'bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors',
+				ghost: 
+					'hover:bg-accent hover:text-accent-foreground transition-colors',
+				link: 
+					'text-primary underline-offset-4 hover:underline transition-colors'
 			},
 			size: {
 				default: 'h-9 px-4 py-2 has-[>svg]:px-3',

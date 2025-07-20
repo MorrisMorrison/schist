@@ -9,8 +9,6 @@ on:
 
 jobs:
   e2e:
-    env:
-      PUBLIC_API_URL: http://localhost:8080/api
     runs-on: ubuntu-latest
     timeout-minutes: 30
     
@@ -36,64 +34,20 @@ jobs:
       - name: Install dependencies
         run: make install
       
-      # Build frontend for E2E tests
-      - name: Build frontend
-        run: make build-frontend
-      
-      # Install Playwright and its dependencies
+      # Install Playwright browsers
       - name: Install Playwright browsers
         run: |
           cd frontend
           npx playwright install --with-deps chromium
       
-      # Start backend in background
-      - name: Start backend server
-        run: |
-          cd backend/cmd/schist
-          go run main.go &
-          echo $! > ../../../backend.pid
-        env:
-          DATA_DIR: test-data
-      
-      # Wait for backend to be ready
-      - name: Wait for backend health check
-        run: |
-          timeout 30 bash -c 'until curl -f http://localhost:8080/api/health; do sleep 1; done'
-      
-      # Start frontend in background  
-      - name: Start frontend server
-        run: |
-          cd frontend
-          npm run preview &
-          echo $! > ../frontend.pid
-        env:
-          PUBLIC_API_URL: http://localhost:8080/api
-      
-      # Wait for frontend to be ready
-      - name: Wait for frontend to be ready
-        run: |
-          timeout 30 bash -c 'until curl -f http://localhost:4173; do sleep 1; done'
-      
-      # Run E2E tests
+      # Run E2E tests (Playwright will start servers automatically)
       - name: Run Playwright tests
         run: |
           cd frontend
           npx playwright test
         env:
           PUBLIC_API_URL: http://localhost:8080/api
-      
-      # Cleanup processes
-      - name: Stop servers
-        if: always()
-        run: |
-          if [ -f backend.pid ]; then
-            kill $(cat backend.pid) || true
-            rm backend.pid
-          fi
-          if [ -f frontend.pid ]; then
-            kill $(cat frontend.pid) || true  
-            rm frontend.pid
-          fi
+          CI: true
       
       # Upload test results
       - name: Upload Playwright Report

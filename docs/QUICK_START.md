@@ -52,46 +52,14 @@ curl http://localhost:8080/api/health
 
 ## Production Deployment
 
-### Option 1: Docker (Recommended)
+### Docker
 
 **Quick Start:**
 ```bash
 make run-docker
 ```
 
-**Custom Configuration:**
-```bash
-# Create data directory
-mkdir -p ./wiki-data
-
-# Start with custom data location
-docker-compose up --build
-```
-
 Your wiki will be available at **http://localhost:8080**
-
-### Option 2: Manual Build
-
-For advanced users who want to build manually:
-
-```bash
-# 1. Build frontend
-cd frontend
-npm install
-npm run build
-cd ..
-
-# 2. Build backend
-cd backend
-go build -o schist ./cmd/schist
-cd ..
-
-# 3. Create data directory
-mkdir -p data/pages data/assets
-
-# 4. Run the server
-./backend/schist
-```
 
 ## Available Make Commands
 
@@ -100,7 +68,7 @@ mkdir -p data/pages data/assets
 | `make run-backend` | Start Go backend server | Development |
 | `make run-frontend` | Start Vite dev server | Development |
 | `make run-backend-test` | Run Go unit tests | Development |
-| `make run-e2e` | Run Playwright end-to-end tests | Testing |
+| `make e2e` | Run Playwright end-to-end tests | Testing |
 | `make fmt` | Format both frontend and backend code | Code quality |
 | `make lint` | Lint frontend code (ESLint) | Code quality |
 | `make run-docker` | Build and run production container | Production |
@@ -140,7 +108,6 @@ Create nested page structures:
 Folders are created automatically when you save pages with paths.
 
 ## Configuration
-
 ### Environment Variables
 
 Most common configurations:
@@ -216,20 +183,6 @@ make run-docker
 3. **API testing**: Use the health endpoint to verify backend connectivity
 4. **GitHub Issues**: Report bugs at the project repository
 
-## Development Workflow
-
-### Making Changes
-
-**Backend changes:**
-1. Edit Go files in `backend/`
-2. Backend automatically restarts (using `go run`)
-3. Test with `make run-backend-test`
-
-**Frontend changes:**
-1. Edit Svelte files in `frontend/src/`
-2. Changes appear immediately (hot reload)
-3. Test with `make run-e2e`
-
 ### Code Quality
 
 Before committing changes:
@@ -241,7 +194,6 @@ make fmt
 make lint
 
 # Run tests
-make run-backend-test
 make run-e2e
 ```
 
@@ -253,27 +205,3 @@ Now that Schist is running:
 - **Configure Settings**: See [Configuration](CONFIGURATION.md) for advanced options
 - **Contribute**: Read the [Development Guide](DEVELOPMENT.md) for contribution guidelines
 - **Deploy**: Set up production deployment with Docker or manual builds
-
-## Example Workflow
-
-Here's a typical development session:
-
-```bash
-# 1. Start development
-git clone https://github.com/MorrisMorrison/schist.git
-cd schist
-cd frontend && npm install && cd ..
-
-# 2. Run both servers
-ENV=development make run-backend    # Terminal 1
-make run-frontend                        # Terminal 2
-
-# 3. Open browser to http://localhost:5173
-
-# 4. Create pages, upload images, organize content
-
-# 5. Before committing
-make fmt && make lint && make run-backend-test
-```
-
-Welcome to your new knowledge base! 🪨

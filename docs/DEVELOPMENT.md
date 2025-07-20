@@ -13,7 +13,6 @@ schist/
 │   │   ├── config/           # Configuration management
 │   │   ├── handlers/         # HTTP route handlers
 │   │   ├── models/           # Data models and structures
-│   │   ├── parser/           # Markdown parsing with YAML front matter
 │   │   ├── serializer/       # Data serialization utilities
 │   │   └── services/         # Business logic services
 │   │       ├── asset_service.go      # Asset upload/management
@@ -30,11 +29,6 @@ schist/
 │   ├── src/
 │   │   ├── lib/             # Reusable components
 │   │   │   ├── components/  # UI components
-│   │   │   │   ├── Breadcrumbs.svelte
-│   │   │   │   ├── Editor.svelte
-│   │   │   │   ├── FolderTree.svelte
-│   │   │   │   ├── PageList.svelte
-│   │   │   │   └── SearchResults.svelte
 │   │   │   └── stores/       # Svelte stores for state
 │   │   ├── routes/          # SvelteKit routes
 │   │   │   ├── +layout.svelte
@@ -144,21 +138,6 @@ npm run build
 - **Package Structure**: Keep internal packages focused
 - **Testing**: Write table-driven tests for complex logic
 
-**Example Go Code:**
-```go
-func (s *PageService) CreatePage(page *models.Page) error {
-    if err := s.validatePage(page); err != nil {
-        return fmt.Errorf("validation failed: %w", err)
-    }
-    
-    if err := s.savePage(page); err != nil {
-        return fmt.Errorf("save failed: %w", err)
-    }
-    
-    return nil
-}
-```
-
 ### Svelte Code Style
 
 - **TypeScript First**: Use TypeScript for all components
@@ -166,23 +145,6 @@ func (s *PageService) CreatePage(page *models.Page) error {
 - **State Management**: Use Svelte stores for shared state
 - **Naming Conventions**: PascalCase for components, camelCase for variables
 - **Accessibility**: Include ARIA labels and semantic HTML
-
-**Example Svelte Component:**
-```svelte
-<script lang="ts">
-  import type { Page } from '$lib/types';
-  
-  export let page: Page;
-  export let onSave: (page: Page) => void;
-  
-  let isEditing = false;
-</script>
-
-<article class="page">
-  <h1>{page.metaData.title}</h1>
-  <!-- Component content -->
-</article>
-```
 
 ## Testing Strategy
 
@@ -200,40 +162,6 @@ cd backend && go test ./services -v
 cd backend && go test -cover ./...
 ```
 
-**Existing Tests:**
-- `services/page_service_test.go` - Page CRUD operations
-- `services/asset_service_test.go` - Asset management
-- `utils/utils_test.go` - Utility functions
-
-**Test Structure:**
-```go
-func TestPageService_CreatePage(t *testing.T) {
-    tests := []struct {
-        name    string
-        page    *models.Page
-        wantErr bool
-    }{
-        {
-            name: "valid page",
-            page: &models.Page{
-                MetaData: &models.PageMetaData{
-                    Title: "Test Page",
-                    Path:  "/test",
-                },
-                Content: "# Test",
-            },
-            wantErr: false,
-        },
-    }
-    
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            // Test implementation
-        })
-    }
-}
-```
-
 ### Frontend Testing
 
 **Component Tests:**
@@ -248,7 +176,7 @@ cd frontend && npm run test:coverage
 **E2E Tests:**
 ```bash
 # Run end-to-end tests
-make run-e2e
+make e2e
 
 # Run specific test
 cd frontend && npx playwright test page-creation
@@ -312,7 +240,7 @@ HTTP Request → Gin Router → Handler → Service → File System
 - **Handlers** (`internal/handlers/`) - HTTP request/response logic
 - **Services** (`internal/services/`) - Business logic and file operations
 - **Models** (`internal/models/`) - Data structures
-- **Parser** (`internal/parser/`) - Markdown + YAML front matter parsing
+- **Serializer** (`internal/serializer/`) - Markdown + YAML front matter serialization
 - **Config** (`internal/config/`) - Environment-based configuration
 
 **Service Layer:**
@@ -442,22 +370,6 @@ make run-frontend
 # Access source maps in browser debugger
 ```
 
-## Performance Considerations
-
-### Backend Performance
-
-- **File I/O Optimization** - Efficient file reading/writing
-- **Concurrent Handling** - Gin handles concurrent requests
-- **Memory Management** - Avoid loading large files into memory
-- **Path Validation** - Fast regex-based path checking
-
-### Frontend Performance
-
-- **Code Splitting** - SvelteKit automatically splits routes
-- **Asset Optimization** - Vite optimizes bundles
-- **Lazy Loading** - Components load on demand
-- **Efficient Rendering** - Svelte's reactive updates
-
 ## Deployment
 
 ### Development Deployment
@@ -479,34 +391,6 @@ cd frontend && npm run build
 cd ../backend && go build -o schist ./cmd/schist
 SCHIST_STATIC_DIR=../frontend/build ./schist
 ```
-
-## Common Development Tasks
-
-### Adding a New API Endpoint
-
-1. **Define Model** (if needed) in `internal/models/`
-2. **Add Service Method** in appropriate service
-3. **Create Handler** in `internal/handlers/`
-4. **Register Route** in main.go
-5. **Add Tests** for service and handler
-6. **Update API Documentation**
-
-### Adding a New Frontend Component
-
-1. **Create Component** in `frontend/src/lib/components/`
-2. **Add TypeScript Types** if needed
-3. **Write Component Tests**
-4. **Update Parent Components** to use new component
-5. **Add to Component Library** documentation
-
-### Database Schema Changes
-
-Since Schist is file-based, "schema changes" involve:
-1. **Update Models** in `internal/models/`
-2. **Update Parser** if YAML front matter changes
-3. **Add Migration Logic** if needed for existing files
-4. **Update API Documentation** with new field schemas
-
 ## Getting Help
 
 ### Resources

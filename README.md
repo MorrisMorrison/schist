@@ -49,7 +49,7 @@ make build
 cd backend && ./schist
 ```
 
-Your wiki will be available at http://localhost:8080
+Schist will be available at http://localhost:8080
 
 ## Documentation
 

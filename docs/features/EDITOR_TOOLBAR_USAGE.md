@@ -32,10 +32,10 @@ The toolbar provides the following formatting options:
 
 ## How to Use
 
-### In Edit Mode (`/edit/[slug]`)
+### In Edit Mode (`/edit/[...path]`)
 
 1. Navigate to any existing page
-2. Click the "Edit" button or visit `/edit/[slug]`
+2. Click the "Edit" button or visit `/edit/[...path]`
 3. The editor will load with:
    - Current page content
    - Auto-save enabled (saves every 10 seconds)

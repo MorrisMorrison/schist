@@ -158,63 +158,6 @@ The frontend is built with **SvelteKit** using **Svelte 5** with the new runes s
 - TypeScript for type safety
 - Svelte-specific linting rules
 
-## Data Flow
-
-### Page Creation Flow
-
-1. User navigates to `/new`
-2. Fills out form with title and content
-3. Client submits POST request to API
-4. Backend creates page with generated slug
-5. User redirected to new page view
-
-### Page Editing Flow
-
-1. User navigates to `/edit/[slug]`
-2. Page data loaded from API
-3. CodeMirror editor initialized with content
-4. User edits with live preview
-5. Changes saved via PUT request to API
-6. Success feedback and redirect to page view
-
-### Theme Toggle Flow
-
-1. User clicks theme toggle button
-2. Theme store updated with new value
-3. CSS custom properties updated
-4. Theme persisted to localStorage
-5. All components re-render with new theme
-
-## Key Technical Decisions
-
-### Why Svelte 5?
-
-- Modern reactive system with runes
-- Better TypeScript integration
-- Smaller bundle sizes
-- Simpler state management
-
-### Why CodeMirror 6?
-
-- Modern, extensible editor
-- Great markdown support
-- Theming capabilities
-- Good performance
-
-### Why CSS Custom Properties?
-
-- Cleaner theme implementation
-- Better performance than CSS-in-JS
-- Easier maintenance
-- Better browser support
-
-### Why Server-Side Rendering?
-
-- Better SEO for wiki content
-- Faster initial page loads
-- Progressive enhancement
-- Better accessibility
-
 ## File Structure
 
 ```
@@ -234,5 +177,3 @@ src/
 ├── app.html         # HTML template
 └── app.js           # Application entry point
 ```
-
-This architecture provides a solid foundation for a wiki application with modern web technologies, good performance, and excellent developer experience.

@@ -116,59 +116,6 @@ Your markdown content here with support for:
 - Standard markdown formatting
 ```
 
-## Docker Configuration
-
-### Production Deployment
-
-**docker-compose.yml:**
-```yaml
-services:
-  schist:
-    image: schist:latest
-    ports:
-      - "8080:8080"
-    environment:
-      - SCHIST_DATA_DIR=/app/data
-      - SCHIST_PORT=8080
-      - ENV=production
-    volumes:
-      - ./wiki-data:/app/data
-```
-
-### Development with Docker
-
-**docker-compose.yml (development profile):**
-```yaml
-services:
-  schist-dev:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      - SCHIST_DATA_DIR=/app/data
-      - ENV=development
-    volumes:
-      - ./data:/app/data
-      - ./backend:/app/backend
-    
-  frontend-dev:
-    build:
-      context: ./frontend
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-```
-
-**Commands:**
-```bash
-# Production
-make run-docker
-
-# Development
-make run-docker-dev
-```
-
 ## Asset Management Configuration
 
 ### Upload Settings
@@ -275,37 +222,6 @@ Available make targets and their purposes:
 | `make run-docker` | Build and start production container | Production |
 | `make run-docker-dev` | Start development containers | Development |
 
-## Troubleshooting Configuration
-
-### Common Issues
-
-**Port conflicts:**
-```bash
-# Change backend port
-SCHIST_PORT=8081 make run-backend
-
-# Change frontend port
-PORT=3000 make run-frontend
-```
-
-**Data directory permissions:**
-```bash
-# Ensure data directory is writable
-chmod 755 ./data
-mkdir -p ./data/pages ./data/assets
-```
-
-**CORS issues in development:**
-```bash
-# Verify frontend URL matches
-SCHIST_FRONTEND_URL=http://localhost:5173 make run-backend
-```
-
-**Docker volume issues:**
-```bash
-# Ensure host directory exists
-mkdir -p ./wiki-data
-```
 
 ### Configuration Validation
 

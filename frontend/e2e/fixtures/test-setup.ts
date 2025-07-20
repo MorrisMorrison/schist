@@ -55,7 +55,8 @@ export const test = base.extend<{
 	},
 
 	// Test ID fixture for unique identifiers
-	testId: async (_, use) => {
+	// eslint-disable-next-line no-empty-pattern
+	testId: async ({}, use) => {
 		const testId = generateTestId();
 		await use(testId);
 	}

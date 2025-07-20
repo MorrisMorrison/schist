@@ -77,7 +77,6 @@
 		}
 	}
 
-
 	function handleMovePage(page: Page) {
 		pageToMove = page;
 		showMoveModal = true;

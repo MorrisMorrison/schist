@@ -1,7 +1,8 @@
 import { test, expect } from '../fixtures/test-setup';
 import { createTestPage } from '../utils/test-data';
 
-test.describe('Page Lifecycle', () => {
+// serial enforces not running in parallel
+test.describe.serial('Page Lifecycle', () => {
 	test('should create a new page successfully', async ({
 		editorPage,
 		pageViewPage,

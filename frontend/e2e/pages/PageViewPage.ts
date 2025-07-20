@@ -31,6 +31,7 @@ export class PageViewPage extends BasePage {
 
 	// Error states
 	readonly notFoundMessage: Locator;
+	readonly notFoundHeading: Locator;
 	readonly errorMessage: Locator;
 	readonly loadingSpinner: Locator;
 
@@ -62,7 +63,8 @@ export class PageViewPage extends BasePage {
 		this.copyButtons = page.locator('[data-testid="copy-button"]');
 
 		// Error states
-		this.notFoundMessage = page.getByText(/not found|404/i);
+		this.notFoundMessage = page.getByText('404 - The page you\'re looking for doesn\'t exist.');
+		this.notFoundHeading = page.getByRole('heading', { name: 'Page Not Found' });
 		this.errorMessage = page.locator('[data-testid="error-message"]');
 		this.loadingSpinner = page.locator('[data-testid="loading"]');
 	}
@@ -238,8 +240,21 @@ export class PageViewPage extends BasePage {
 	 * Check if page displays 404 error
 	 */
 	async verifyPageNotFound() {
-		await this.waitForVisible(this.notFoundMessage);
-		await expect(this.notFoundMessage).toBeVisible();
+		// Try to find either the heading or the message
+		try {
+			await this.waitForVisible(this.notFoundHeading);
+		} catch {
+			// If heading not found, try the message
+			await this.waitForVisible(this.notFoundMessage);
+		}
+		
+		// Verify at least one of them is visible
+		const headingVisible = await this.notFoundHeading.isVisible();
+		const messageVisible = await this.notFoundMessage.isVisible();
+		
+		if (!headingVisible && !messageVisible) {
+			throw new Error('404 page elements not found');
+		}
 	}
 
 	/**

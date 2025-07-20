@@ -370,7 +370,7 @@
 					aria-label={`Open folder ${folder.name}`}
 				>
 					<!-- Folder Icon -->
-					<Folder class="h-4 w-4 flex-shrink-0 text-blue-500" />
+					<Folder class="text-blue-primary h-4 w-4 flex-shrink-0" />
 
 					<!-- Folder Name -->
 					<span class="flex-1 truncate font-medium">

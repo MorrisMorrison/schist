@@ -32,12 +32,13 @@
 	// Filter suggestions based on input
 	const filteredSuggestions = $derived(() => {
 		if (!inputValue.trim() || !suggestions.length) return [];
-		
+
 		const lowerInput = inputValue.toLowerCase();
 		return suggestions
-			.filter(suggestion => 
-				suggestion.toLowerCase().includes(lowerInput) && 
-				(!allowDuplicates ? !tags.includes(suggestion) : true)
+			.filter(
+				(suggestion) =>
+					suggestion.toLowerCase().includes(lowerInput) &&
+					(!allowDuplicates ? !tags.includes(suggestion) : true)
 			)
 			.slice(0, 5); // Limit to 5 suggestions
 	});
@@ -75,7 +76,10 @@
 		if (showSuggestions && filteredSuggestions.length > 0) {
 			if (event.key === 'ArrowDown') {
 				event.preventDefault();
-				selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, filteredSuggestions.length - 1);
+				selectedSuggestionIndex = Math.min(
+					selectedSuggestionIndex + 1,
+					filteredSuggestions.length - 1
+				);
 				return;
 			} else if (event.key === 'ArrowUp') {
 				event.preventDefault();
@@ -83,7 +87,7 @@
 				return;
 			} else if (event.key === 'Tab' && selectedSuggestionIndex >= 0) {
 				event.preventDefault();
-				addTag(filteredSuggestions[selectedSuggestionIndex]);
+				addTag(filteredSuggestions()[selectedSuggestionIndex]);
 				return;
 			} else if (event.key === 'Escape') {
 				showSuggestions = false;
@@ -95,8 +99,8 @@
 		// Standard tag input handling
 		if (event.key === 'Enter' || event.key === ',') {
 			event.preventDefault();
-			if (selectedSuggestionIndex >= 0 && filteredSuggestions.length > 0) {
-				addTag(filteredSuggestions[selectedSuggestionIndex]);
+			if (selectedSuggestionIndex >= 0 && filteredSuggestions().length > 0) {
+				addTag(filteredSuggestions()[selectedSuggestionIndex]);
 			} else {
 				addTag(inputValue);
 			}
@@ -114,7 +118,7 @@
 
 	// Handle input focus
 	function handleFocus() {
-		if (filteredSuggestions.length > 0) {
+		if (filteredSuggestions().length > 0) {
 			showSuggestions = true;
 		}
 	}
@@ -122,7 +126,7 @@
 	// Handle input change
 	function handleInput() {
 		selectedSuggestionIndex = -1;
-		showSuggestions = filteredSuggestions.length > 0 && inputValue.trim().length > 0;
+		showSuggestions = filteredSuggestions().length > 0 && inputValue.trim().length > 0;
 	}
 
 	// Handle input blur (add tag on blur if there's content)
@@ -149,12 +153,15 @@
 	{#if tags.length > 0}
 		<div class="flex flex-wrap gap-2">
 			{#each tags as tag, index (tag)}
-				<Badge variant="secondary" class="group flex items-center gap-1.5 pr-1.5 transition-all hover:bg-secondary/80">
+				<Badge
+					variant="secondary"
+					class="group hover:bg-secondary/80 flex items-center gap-1.5 pr-1.5 transition-all"
+				>
 					<span class="text-sm">{tag}</span>
 					<button
 						type="button"
 						onclick={() => removeTag(index)}
-						class="hover:bg-secondary-foreground/20 rounded-full p-0.5 transition-colors opacity-0 group-hover:opacity-100"
+						class="hover:bg-secondary-foreground/20 rounded-full p-0.5 opacity-0 transition-colors group-hover:opacity-100"
 						aria-label="Remove tag {tag}"
 						{disabled}
 					>
@@ -168,9 +175,9 @@
 	<!-- Tag Input Container -->
 	<div class="relative">
 		<div class="flex items-center gap-2">
-			<div class="relative flex-1 min-w-0">
+			<div class="relative min-w-0 flex-1">
 				<Input
-					bind:this={inputElement}
+					bind:ref={inputElement}
 					bind:value={inputValue}
 					onkeydown={handleKeydown}
 					onblur={handleBlur}
@@ -182,13 +189,15 @@
 					data-testid="tags-input"
 					autocomplete="off"
 				/>
-				
+
 				<!-- Input hint -->
-				<div class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+				<div
+					class="text-muted-foreground pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs"
+				>
 					{tags.length}/{maxTags}
 				</div>
 			</div>
-			
+
 			<Button
 				type="button"
 				variant="outline"
@@ -202,16 +211,18 @@
 		</div>
 
 		<!-- Autocomplete Suggestions -->
-		{#if showSuggestions && filteredSuggestions.length > 0}
-			<div class="absolute top-full left-0 right-16 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-lg">
-				{#each filteredSuggestions as suggestion, index (suggestion)}
+		{#if showSuggestions && filteredSuggestions().length > 0}
+			<div
+				class="border-border bg-popover absolute top-full right-16 left-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border shadow-lg"
+			>
+				{#each filteredSuggestions() as suggestion, index (suggestion)}
 					<button
 						type="button"
-						class="w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+						class="hover:bg-accent hover:text-accent-foreground w-full px-3 py-2 text-left text-sm transition-colors"
 						class:bg-accent={index === selectedSuggestionIndex}
 						class:text-accent-foreground={index === selectedSuggestionIndex}
 						onclick={() => handleSuggestionClick(suggestion)}
-						onmouseenter={() => selectedSuggestionIndex = index}
+						onmouseenter={() => (selectedSuggestionIndex = index)}
 					>
 						{suggestion}
 					</button>
@@ -222,10 +233,12 @@
 
 	<!-- Help Text -->
 	{#if !disabled}
-		<div class="text-xs text-muted-foreground">
-			Press <kbd class="rounded border px-1">Enter</kbd> or <kbd class="rounded border px-1">,</kbd> to add tags
+		<div class="text-muted-foreground text-xs">
+			Press <kbd class="rounded border px-1">Enter</kbd> or <kbd class="rounded border px-1">,</kbd>
+			to add tags
 			{#if suggestions.length > 0}
-				• Use <kbd class="rounded border px-1">↑</kbd><kbd class="rounded border px-1">↓</kbd> to navigate suggestions
+				• Use <kbd class="rounded border px-1">↑</kbd><kbd class="rounded border px-1">↓</kbd> to navigate
+				suggestions
 			{/if}
 		</div>
 	{/if}

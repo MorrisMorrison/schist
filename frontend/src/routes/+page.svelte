@@ -10,36 +10,12 @@
 	<meta name="description" content="A lightweight, fast wiki for your documentation needs" />
 </svelte:head>
 
-<!-- {#if data.totalPages === 0} -->
-<!-- <div class="space-y-8"> -->
-<!-- Hero Section -->
-<!-- <div class="text-center">
-		<div class="mx-auto max-w-3xl">
-			<h1 class="text-primary text-4xl font-bold tracking-tight sm:text-6xl">
-				Welcome to <span class="text-blue-primary">Schist</span>
-			</h1>
-			<p class="text-secondary mt-6 text-lg leading-8">
-				A lightweight, fast wiki for all your documentation needs. Create, edit, and organize your
-				knowledge with ease.
-			</p>
-			<div class="mt-10 flex items-center justify-center gap-x-6">
-				<Button href="/new" size="lg">Create Your First Page</Button>
-				<a href="/pages" class="text-sm leading-6 font-semibold text-gray-900">
-					Browse All Pages <span aria-hidden="true">→</span>
-				</a>
-			</div>
-		</div>
-	</div> -->
-<!-- </div> -->
-<!-- {:else} -->
-<!-- Use FolderView component to display folder structure -->
 <FolderView
 	path=""
 	showCreateButtons={true}
 	initialPages={data.pages}
 	initialFolders={data.folders}
 />
-<!-- {/if} -->
 
 <!-- Error Message -->
 {#if data.error}

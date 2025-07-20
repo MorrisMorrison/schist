@@ -123,9 +123,13 @@
 
 	.main-content {
 		flex: 1;
-		overflow-y: auto;
 		padding: 2rem;
 		transition: all 0.3s ease-in-out;
+	}
+
+	/* Only add overflow when sidebar is visible */
+	.main-content.sidebar-open {
+		overflow-y: auto;
 	}
 
 	/* When sidebar is not shown, center the content with max-width */

@@ -282,7 +282,7 @@
 								<CardHeader class="pb-4">
 									<div class="flex items-start gap-4">
 										<div
-											class="bg-primary/10 group-hover:bg-primary/15 rounded-lg p-3 transition-colors"
+											class="bg-primary/90 group-hover:bg-primary/70 rounded-lg p-3 transition-colors"
 										>
 											<Folder class="text-primary h-5 w-5 flex-shrink-0" />
 										</div>

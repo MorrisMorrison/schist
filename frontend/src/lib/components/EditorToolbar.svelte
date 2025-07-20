@@ -97,7 +97,7 @@
 	// Group buttons for better organization
 	const buttonGroups = $derived(() => {
 		const groups: Record<string, typeof toolbarButtons> = {};
-		toolbarButtons.forEach(button => {
+		toolbarButtons.forEach((button) => {
 			if (!groups[button.group]) {
 				groups[button.group] = [];
 			}
@@ -159,7 +159,7 @@
 		{/each}
 	</div>
 
-	<div class="w-px h-6 bg-border"></div>
+	<div class="bg-border h-6 w-px"></div>
 
 	<!-- Headings Group -->
 	<div class="flex items-center gap-1">
@@ -179,7 +179,7 @@
 		{/each}
 	</div>
 
-	<div class="w-px h-6 bg-border"></div>
+	<div class="bg-border h-6 w-px"></div>
 
 	<!-- Lists Group -->
 	<div class="flex items-center gap-1">
@@ -199,7 +199,7 @@
 		{/each}
 	</div>
 
-	<div class="w-px h-6 bg-border"></div>
+	<div class="bg-border h-6 w-px"></div>
 
 	<!-- Insert Group -->
 	<div class="flex items-center gap-1">
@@ -223,7 +223,7 @@
 	<div class="flex-1"></div>
 
 	<!-- Helpful hint -->
-	<div class="text-xs text-muted-foreground hidden sm:block">
+	<div class="text-muted-foreground hidden text-xs sm:block">
 		Use keyboard shortcuts for faster formatting
 	</div>
 </div>
@@ -241,12 +241,12 @@
 			gap: 0.5rem;
 			padding: 0.75rem;
 		}
-		
+
 		/* Hide separators on mobile */
 		.editor-toolbar .w-px {
 			display: none;
 		}
-		
+
 		/* Hide hint text on very small screens */
 		.editor-toolbar .text-xs {
 			display: none;

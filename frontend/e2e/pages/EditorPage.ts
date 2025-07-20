@@ -128,7 +128,10 @@ export class EditorPage extends BasePage {
 	 * Save and expect navigation to page view
 	 */
 	async saveAndExpectNavigation() {
-		await Promise.all([this.page.waitForURL(/\/pages\//, { timeout: 15000 }), this.saveButton.click()]);
+		await Promise.all([
+			this.page.waitForURL(/\/pages\//, { timeout: 15000 }),
+			this.saveButton.click()
+		]);
 	}
 
 	/**
@@ -211,9 +214,9 @@ export class EditorPage extends BasePage {
 		// Auto-save happens after 10 seconds of no changes + network request time
 		// First wait for unsaved indicator to appear (content was changed)
 		try {
-			await this.page.getByTestId('unsaved-indicator').waitFor({ 
-				state: 'visible', 
-				timeout: 2000 
+			await this.page.getByTestId('unsaved-indicator').waitFor({
+				state: 'visible',
+				timeout: 2000
 			});
 		} catch {
 			// Content might already be marked as dirty
@@ -221,9 +224,9 @@ export class EditorPage extends BasePage {
 
 		// Then wait for the auto-saved indicator to appear
 		try {
-			await this.page.getByTestId('auto-saved').waitFor({ 
-				state: 'visible', 
-				timeout: timeoutMs 
+			await this.page.getByTestId('auto-saved').waitFor({
+				state: 'visible',
+				timeout: timeoutMs
 			});
 		} catch {
 			// If no visual indicator, wait for network to settle

@@ -68,7 +68,7 @@
 		isCurrentFolder: boolean;
 		hasSubFolders: boolean;
 		depth: number;
-		children: any[];
+		children: ReturnType<typeof renderFolderTree>;
 	}> {
 		return folders.map((folder) => {
 			const isExpanded = expandedFolders.has(folder.path);

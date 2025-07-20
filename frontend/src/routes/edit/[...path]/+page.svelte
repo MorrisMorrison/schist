@@ -18,7 +18,7 @@
 
 	// Single auto-save timer
 	let autoSaveTimer: number | null = null;
-	
+
 	// Track original values to detect changes
 	const originalTitle = data.page.metaData.title;
 	const originalContent = data.page.content;
@@ -114,13 +114,13 @@
 		if (autoSaveTimer) {
 			clearTimeout(autoSaveTimer);
 		}
-		
+
 		// Only auto-save if there are actual changes
-		const hasChanges = 
+		const hasChanges =
 			title !== originalTitle ||
 			content !== originalContent ||
 			JSON.stringify(tags) !== originalTags;
-			
+
 		if (hasChanges) {
 			autoSaveTimer = setTimeout(async () => {
 				await handleSaveWithoutNavigation();
@@ -132,7 +132,6 @@
 		content = newContent;
 		await handleSave();
 	}
-
 
 	async function handleSaveWithoutNavigation() {
 		if (!title.trim()) {
@@ -273,7 +272,6 @@
 			</div>
 		</div>
 	</div>
-
 
 	<!-- Error Message -->
 	{#if saveError}

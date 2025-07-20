@@ -5,7 +5,7 @@
 import { APIRequestContext, expect } from '@playwright/test';
 import { TestPageData, TestFolderData } from './test-data';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
 	status: number;
 	data?: T;
 	error?: string;

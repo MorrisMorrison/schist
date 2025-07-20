@@ -7,13 +7,13 @@
 		placeholder = 'Search pages...',
 		showResults = true,
 		onSelect,
-		id='search-input',
+		id = 'search-input',
 		testId = 'search-input'
 	}: {
 		placeholder?: string;
 		showResults?: boolean;
 		onSelect?: (page: Page) => void;
-		id?:string;
+		id?: string;
 		testId?: string;
 	} = $props();
 
@@ -88,7 +88,7 @@
 <div class="search-container relative">
 	<div class="relative">
 		<input
-			id="{id}"
+			{id}
 			type="text"
 			bind:value={query}
 			onkeydown={handleKeydown}

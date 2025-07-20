@@ -47,19 +47,19 @@ test.describe('Navigation and Routing', () => {
 		await apiHelper.createPage(grandchildPage);
 
 		// Navigate to deepest page
-		await pageViewPage.navigateToPage(grandchildPage.path!!);
+		await pageViewPage.navigateToPage(grandchildPage.path!);
 		await pageViewPage.verifyPageLoaded(grandchildPage.title);
-		await pageViewPage.verifyPageUrl(grandchildPage.path!!);
+		await pageViewPage.verifyPageUrl(grandchildPage.path!);
 
 		const breadcrumbs = await pageViewPage.getBreadcrumbPath();
 		expect(breadcrumbs.length).toBeGreaterThan(0);
-		expect(breadcrumbs.some(bc => bc.trim() === 'Home')).toBeTruthy();
+		expect(breadcrumbs.some((bc) => bc.trim() === 'Home')).toBeTruthy();
 
 		const parentFolderName = `parent-${testId}`;
 		await pageViewPage.clickBreadcrumb(parentFolderName);
-		
+
 		await pageViewPage.expectUrl(`/folders/parent-${testId}`);
-		
+
 		const childText = `child-${testId}`;
 		await pageViewPage.page.getByText(childText, { exact: false }).waitFor({ timeout: 5000 });
 	});

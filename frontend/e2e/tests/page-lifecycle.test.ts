@@ -3,11 +3,7 @@ import { createTestPage } from '../utils/test-data';
 
 // serial enforces not running in parallel
 test.describe.serial('Page Lifecycle', () => {
-	test('should create a new page successfully', async ({
-		editorPage,
-		pageViewPage,
-		testId
-	}) => {
+	test('should create a new page successfully', async ({ editorPage, pageViewPage, testId }) => {
 		const testPage = createTestPage({
 			title: `Test Page ${testId}`,
 			content: `# Test Page ${testId}\n\nThis is a test page for page creation.`,
@@ -33,12 +29,7 @@ test.describe.serial('Page Lifecycle', () => {
 		await pageViewPage.verifyTags(testPage.tags!);
 	});
 
-	test('should edit an existing page', async ({
-		editorPage,
-		pageViewPage,
-		apiHelper,
-		testId
-	}) => {
+	test('should edit an existing page', async ({ editorPage, pageViewPage, apiHelper, testId }) => {
 		// Create a page via API first
 		const originalPage = createTestPage({
 			title: `Original Page ${testId}`,

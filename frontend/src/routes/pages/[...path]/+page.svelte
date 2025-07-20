@@ -135,17 +135,19 @@
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
 			<div class="mb-6 text-6xl">🔍</div>
 			<h1 class="text-foreground mb-4 text-3xl font-bold">Page Not Found</h1>
-			<p class="text-muted-foreground mb-2 text-lg">404 - The page you're looking for doesn't exist.</p>
+			<p class="text-muted-foreground mb-2 text-lg">
+				404 - The page you're looking for doesn't exist.
+			</p>
 			<p class="text-muted-foreground mb-8 max-w-2xl">
-				The page at <code
-					class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
+				The page at <code class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
 					>{fullPath}</code
 				> could not be found. It may have been moved, deleted, or never existed.
 			</p>
 			<div class="flex flex-wrap justify-center gap-4 md:flex-row">
 				<button
 					class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-					onclick={() => goto('/new?title=' + encodeURIComponent(fullPath.split('/').pop() || 'New Page'))}
+					onclick={() =>
+						goto('/new?title=' + encodeURIComponent(fullPath.split('/').pop() || 'New Page'))}
 				>
 					Create This Page
 				</button>

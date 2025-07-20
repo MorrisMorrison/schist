@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
-	$: status = page.status;
-	$: message = page.error?.message;
-	$: slug = page.url.pathname.split('/').pop() || '';
+	const status = $derived(page.status);
+	const message = $derived(page.error?.message);
+	const slug = $derived(page.url.pathname.split('/').pop() || '');
 </script>
 
 <svelte:head>

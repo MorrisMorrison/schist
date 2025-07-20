@@ -13,7 +13,7 @@ import {
 	TestPageData,
 	TestFolderData
 } from '../utils/test-data';
-import { ApiHelper, createTestPages, createTestFolders } from '../utils/api-helpers';
+import { createTestPages, createTestFolders } from '../utils/api-helpers';
 
 // Extend test with data fixtures
 export const test = base.extend<{
@@ -64,7 +64,7 @@ export const test = base.extend<{
 	},
 
 	nestedFolders: async ({ testId }, use) => {
-		const folders = createNestedFolders(3).map((folder, index) => ({
+		const folders = createNestedFolders(3).map((folder) => ({
 			...folder,
 			name: `${folder.name}-${testId}`,
 			path: `${folder.path}-${testId}`

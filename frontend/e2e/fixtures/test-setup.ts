@@ -8,7 +8,7 @@ import { EditorPage } from '../pages/EditorPage';
 import { PageViewPage } from '../pages/PageViewPage';
 import { FolderPage } from '../pages/FolderPage';
 import { ApiHelper } from '../utils/api-helpers';
-import { createTestPage, createTestFolder, generateTestId } from '../utils/test-data';
+import { generateTestId } from '../utils/test-data';
 
 // Extend base test with our fixtures
 export const test = base.extend<{
@@ -55,7 +55,7 @@ export const test = base.extend<{
 	},
 
 	// Test ID fixture for unique identifiers
-	testId: async ({}, use) => {
+	testId: async (_, use) => {
 		const testId = generateTestId();
 		await use(testId);
 	}

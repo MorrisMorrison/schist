@@ -48,9 +48,9 @@
 		</DialogHeader>
 		<DialogFooter>
 			<Button variant="outline" onclick={onCancel} disabled={isDeleting}>Cancel</Button>
-			<Button 
-				variant="destructive" 
-				onclick={handleConfirm} 
+			<Button
+				variant="destructive"
+				onclick={handleConfirm}
 				disabled={isDeleting}
 				data-testid="confirm-delete-button"
 			>

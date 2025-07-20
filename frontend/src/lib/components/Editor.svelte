@@ -460,7 +460,7 @@
 						</span>
 					{/if}
 					{#if lastSaved}
-						<span 
+						<span
 							class="text-xs {currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}"
 							data-testid="auto-saved"
 						>

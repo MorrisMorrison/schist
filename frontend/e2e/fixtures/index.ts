@@ -18,11 +18,11 @@ export * from '../utils/test-data';
 export * from '../utils/assertions';
 
 // Common test patterns and helpers
-export async function setupCleanState(apiHelper: any) {
+export async function setupCleanState(apiHelper: ApiHelper) {
 	await apiHelper.cleanupTestData();
 }
 
-export async function waitForAppReady(page: any) {
+export async function waitForAppReady(page: import('@playwright/test').Page) {
 	await page.waitForLoadState('networkidle');
 
 	// Wait for any loading indicators to disappear

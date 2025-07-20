@@ -59,15 +59,15 @@
 						{segment.name}
 					</span>
 				{:else} -->
-					<Button
-						variant="ghost"
-						size="sm"
-						class="text-secondary hover:text-primary h-8 px-2"
-						onclick={() => navigateToPath(segment.path)}
-						aria-label="Go to {segment.name}"
-					>
-						{segment.name}
-					</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					class="text-secondary hover:text-primary h-8 px-2"
+					onclick={() => navigateToPath(segment.path)}
+					aria-label="Go to {segment.name}"
+				>
+					{segment.name}
+				</Button>
 				<!-- {/if} -->
 			</li>
 		{/each}

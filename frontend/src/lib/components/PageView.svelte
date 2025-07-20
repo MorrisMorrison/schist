@@ -14,7 +14,6 @@
 		page: Page;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void;
-		onView?: (slug: string) => void;
 		onMove?: (page: Page) => void;
 	}
 
@@ -132,8 +131,10 @@
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each pageTags as tag (tag)}
-								<Badge variant="default" class="bg-blue-600 text-xs text-white hover:bg-blue-500" data-testid="page-tag"
-									>{tag}</Badge
+								<Badge
+									variant="default"
+									class="bg-blue-600 text-xs text-white hover:bg-blue-500"
+									data-testid="page-tag">{tag}</Badge
 								>
 							{/each}
 						</div>
@@ -144,10 +145,10 @@
 
 		<!-- Action Buttons -->
 		<div class="flex gap-2">
-			<Button 
-				variant="outline" 
-				size="sm" 
-				onclick={() => onEdit(pageSlug)} 
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={() => onEdit(pageSlug)}
 				title="Edit page"
 				data-testid="edit-page-button"
 			>
@@ -155,10 +156,10 @@
 				Edit
 			</Button>
 
-			<Button 
-				variant="outline" 
-				size="sm" 
-				onclick={() => onMove(page)} 
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={() => onMove(page)}
 				title="Move page"
 				data-testid="move-page-button"
 			>
@@ -184,7 +185,7 @@
 	<main class="bg-primary ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if page.content}
 			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
-				<!-- TODO FIX CSS !!!! -->
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html renderedMarkdown}
 			</div>
 		{:else}

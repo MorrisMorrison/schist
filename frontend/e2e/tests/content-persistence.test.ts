@@ -26,12 +26,8 @@ test.describe('Content Persistence and Data Integrity', () => {
 		const newPage = await context.newPage();
 
 		// Navigate to same page in new "session"
-		const newPageView = (await new Promise((resolve) => {
-			// Import classes within the test context
-			import('../pages/PageViewPage').then(({ PageViewPage }) => {
-				resolve(new PageViewPage(newPage));
-			});
-		})) as any;
+		const { PageViewPage } = await import('../pages/PageViewPage');
+		const newPageView = new PageViewPage(newPage);
 
 		await newPageView.navigateToPage(testPage.path!);
 		await newPageView.verifyPageLoaded(testPage.title);
@@ -59,11 +55,8 @@ test.describe('Content Persistence and Data Integrity', () => {
 
 		// Open second page context (simulating another user)
 		const page2 = await context.newPage();
-		const editorPage2 = (await new Promise((resolve) => {
-			import('../pages/EditorPage').then(({ EditorPage }) => {
-				resolve(new EditorPage(page2));
-			});
-		})) as any;
+		const { EditorPage } = await import('../pages/EditorPage');
+		const editorPage2 = new EditorPage(page2);
 
 		await editorPage2.navigateToEdit(testPage.path!);
 		await editorPage2.verifyLoaded();

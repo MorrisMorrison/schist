@@ -23,7 +23,6 @@
 	let copyState = $state<CopyState>('idle');
 	let errorMessage = $state('');
 
-	// Check if clipboard is supported
 	const clipboardSupported = isClipboardSupported();
 
 	async function handleCopy() {
@@ -37,14 +36,12 @@
 
 			if (result.success) {
 				copyState = 'success';
-				// Reset to idle after 2 seconds
 				setTimeout(() => {
 					copyState = 'idle';
 				}, 2000);
 			} else {
 				copyState = 'error';
 				errorMessage = result.error || 'Failed to copy';
-				// Reset to idle after 3 seconds
 				setTimeout(() => {
 					copyState = 'idle';
 					errorMessage = '';
@@ -67,7 +64,6 @@
 		}
 	}
 
-	// Dynamic title based on state
 	const buttonTitle = $derived(() => {
 		switch (copyState) {
 			case 'copying':
@@ -81,7 +77,6 @@
 		}
 	});
 
-	// Dynamic aria-label for accessibility
 	const ariaLabel = $derived(() => {
 		switch (copyState) {
 			case 'copying':

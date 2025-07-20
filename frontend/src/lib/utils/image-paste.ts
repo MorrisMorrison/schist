@@ -26,7 +26,6 @@ class ImagePasteHandler {
 	}
 
 	private async verifyImageAccess(assetPath: string): Promise<void> {
-		// Convert asset path to actual URL that will be used by the browser
 		const imageUrl = apiClient.getAssetUrl(assetPath);
 
 		return new Promise((resolve, reject) => {
@@ -47,7 +46,6 @@ class ImagePasteHandler {
 
 			img.onerror = () => {
 				cleanup();
-				// If image fails to load, wait a bit and try again
 				setTimeout(() => {
 					const retryImg = new Image();
 					retryImg.onload = () => resolve();
@@ -56,7 +54,6 @@ class ImagePasteHandler {
 				}, 200);
 			};
 
-			// Timeout after 3 seconds
 			timeoutId = window.setTimeout(() => {
 				cleanup();
 				reject(new Error(`Image load timeout for ${imageUrl}`));
@@ -97,19 +94,15 @@ class ImagePasteHandler {
 		const clipboardData = event.clipboardData;
 		if (!clipboardData) return false;
 
-		// Check for image files in clipboard
 		const files = Array.from(clipboardData.files);
 		const imageFiles = files.filter((file) => this.isImageFile(file));
 
 		if (imageFiles.length === 0) {
-			// No images, let default paste behavior handle it
 			return false;
 		}
 
-		// Prevent default paste behavior for images
 		event.preventDefault();
 
-		// Handle each image file
 		imageFiles.forEach((file) => {
 			this.handleImageUpload(file, view);
 		});
@@ -130,16 +123,13 @@ class ImagePasteHandler {
 
 		event.preventDefault();
 
-		// Get drop position
 		const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
 		if (pos === null) return true;
 
-		// Set cursor to drop position
 		view.dispatch({
 			selection: { anchor: pos }
 		});
 
-		// Handle each image file
 		imageFiles.forEach((file) => {
 			this.handleImageUpload(file, view);
 		});

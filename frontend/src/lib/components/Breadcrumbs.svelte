@@ -24,7 +24,6 @@
 		});
 	}
 
-	// Handle navigation to folder/path
 	function navigateToPath(targetPath: string) {
 		if (targetPath === '/') {
 			goto('/folders');
@@ -54,11 +53,6 @@
 		{#each segments as segment (segment.path)}
 			<li class="flex items-center gap-1">
 				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
-				<!-- {#if segment.isLast}
-					<span class="text-primary px-2 py-1 text-sm font-medium" aria-current="page">
-						{segment.name}
-					</span>
-				{:else} -->
 				<Button
 					variant="ghost"
 					size="sm"
@@ -68,7 +62,6 @@
 				>
 					{segment.name}
 				</Button>
-				<!-- {/if} -->
 			</li>
 		{/each}
 

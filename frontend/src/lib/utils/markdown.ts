@@ -3,7 +3,6 @@ import type { Tokens } from 'marked';
 import { apiClient } from '$lib/api/client';
 import hljs from 'highlight.js/lib/core';
 
-// Import commonly used languages
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
 import python from 'highlight.js/lib/languages/python';
@@ -20,7 +19,6 @@ import yaml from 'highlight.js/lib/languages/yaml';
 import dockerfile from 'highlight.js/lib/languages/dockerfile';
 import nginx from 'highlight.js/lib/languages/nginx';
 
-// Register languages
 hljs.registerLanguage('javascript', javascript);
 hljs.registerLanguage('js', javascript);
 hljs.registerLanguage('typescript', typescript);
@@ -47,21 +45,15 @@ hljs.registerLanguage('yml', yaml);
 hljs.registerLanguage('dockerfile', dockerfile);
 hljs.registerLanguage('nginx', nginx);
 
-/**
- * Enhanced markdown renderer with copy buttons for code blocks
- */
-
 // Custom renderer for code blocks and images
 const renderer = new marked.Renderer();
 
-// Override image rendering to handle local asset paths
 renderer.image = function ({ href, title, text }: Tokens.Image): string {
 	// Convert local asset paths to full URLs
 	let src = href;
 	// Check if href starts with /assets/ (ignoring query parameters)
 	const pathWithoutQuery = href.split('?')[0];
 	if (pathWithoutQuery.startsWith('/assets/')) {
-		// Use the API client's method to get the correct asset URL
 		src = apiClient.getAssetUrl(href);
 	}
 
@@ -71,9 +63,7 @@ renderer.image = function ({ href, title, text }: Tokens.Image): string {
 	return `<img src="${src}" alt="${alt}"${titleAttr} class="max-w-full h-auto rounded-lg shadow-sm" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
 };
 
-// Override code block rendering to add syntax highlighting and copy functionality
 renderer.code = function ({ text, lang }: Tokens.Code): string {
-	// Apply syntax highlighting if language is specified and supported
 	let highlightedCode = text;
 	if (lang && hljs.getLanguage(lang)) {
 		try {
@@ -81,7 +71,6 @@ renderer.code = function ({ text, lang }: Tokens.Code): string {
 			highlightedCode = result.value;
 		} catch (error) {
 			console.warn(`Failed to highlight code for language "${lang}":`, error);
-			// Fall back to escaped plain text
 			highlightedCode = text
 				.replace(/&/g, '&amp;')
 				.replace(/</g, '&lt;')
@@ -90,7 +79,6 @@ renderer.code = function ({ text, lang }: Tokens.Code): string {
 				.replace(/'/g, '&#39;');
 		}
 	} else {
-		// No language specified or not supported, escape HTML
 		highlightedCode = text
 			.replace(/&/g, '&amp;')
 			.replace(/</g, '&lt;')
@@ -99,7 +87,6 @@ renderer.code = function ({ text, lang }: Tokens.Code): string {
 			.replace(/'/g, '&#39;');
 	}
 
-	// Prepare escaped version for copy functionality
 	const escapedForCopy = text
 		.replace(/&/g, '&amp;')
 		.replace(/</g, '&lt;')
@@ -133,7 +120,6 @@ renderer.code = function ({ text, lang }: Tokens.Code): string {
 	`;
 };
 
-// Override inline code rendering - simpler without copy button for inline code
 renderer.codespan = function ({ text }: Tokens.Codespan): string {
 	const escapedCode = text
 		.replace(/&/g, '&amp;')
@@ -145,16 +131,12 @@ renderer.codespan = function ({ text }: Tokens.Codespan): string {
 	return `<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">${escapedCode}</code>`;
 };
 
-// Configure marked options
 marked.setOptions({
 	renderer,
 	breaks: true,
 	gfm: true
 });
 
-/**
- * Parse markdown with enhanced code block functionality
- */
 export async function parseMarkdownWithCopyButtons(content: string): Promise<string> {
 	try {
 		const result = await marked.parse(content);
@@ -165,30 +147,21 @@ export async function parseMarkdownWithCopyButtons(content: string): Promise<str
 	}
 }
 
-/**
- * Initialize copy button functionality for rendered code blocks
- * Call this after the HTML is inserted into the DOM
- */
 export function initializeCodeBlockCopyButtons(container: HTMLElement): void {
 	const copyButtons = container.querySelectorAll('.copy-button');
 
 	copyButtons.forEach((button) => {
-		// Remove existing listeners to prevent duplicates
 		button.removeEventListener('click', handleCopyClick);
 		button.addEventListener('click', handleCopyClick);
 	});
 }
 
-/**
- * Handle copy button click
- */
 async function handleCopyClick(event: Event): Promise<void> {
 	const button = event.currentTarget as HTMLButtonElement;
 	const copyText = button.getAttribute('data-copy-text');
 
 	if (!copyText) return;
 
-	// Decode HTML entities
 	const decodedText = copyText
 		.replace(/&quot;/g, '"')
 		.replace(/&#39;/g, "'")
@@ -197,11 +170,9 @@ async function handleCopyClick(event: Event): Promise<void> {
 		.replace(/&amp;/g, '&');
 
 	try {
-		// Modern clipboard API
 		if (navigator.clipboard && window.isSecureContext) {
 			await navigator.clipboard.writeText(decodedText);
 		} else {
-			// Fallback method
 			const textarea = document.createElement('textarea');
 			textarea.value = decodedText;
 			textarea.style.position = 'fixed';
@@ -212,7 +183,6 @@ async function handleCopyClick(event: Event): Promise<void> {
 			document.body.removeChild(textarea);
 		}
 
-		// Visual feedback
 		showCopyFeedback(button, true);
 	} catch (error) {
 		console.error('Copy failed:', error);
@@ -220,9 +190,6 @@ async function handleCopyClick(event: Event): Promise<void> {
 	}
 }
 
-/**
- * Show visual feedback for copy operation
- */
 function showCopyFeedback(button: HTMLElement, success: boolean): void {
 	const originalHTML = button.innerHTML;
 
@@ -244,7 +211,6 @@ function showCopyFeedback(button: HTMLElement, success: boolean): void {
 		button.setAttribute('title', 'Copy failed');
 	}
 
-	// Reset after 2 seconds
 	setTimeout(() => {
 		button.innerHTML = originalHTML;
 		button.setAttribute('title', 'Copy code');

@@ -1,7 +1,7 @@
 export interface PageMetaData {
 	slug?: string;
 	title: string;
-	path: string; // NEW: full path from root
+	path: string;
 	created?: string;
 	updated?: string;
 	tags?: string[];
@@ -78,7 +78,6 @@ export class ApiError extends Error {
 	}
 }
 
-// NEW: Folder interface for nested docs functionality
 export interface Folder {
 	name: string;
 	path: string;
@@ -87,7 +86,6 @@ export interface Folder {
 	sub_folders: Folder[];
 }
 
-// NEW: Response types for folder operations
 export interface FolderTreeResponse {
 	folders: Folder[];
 	total: number;
@@ -109,7 +107,6 @@ export interface MovePageResponse {
 	newPath: string;
 }
 
-// Helper functions for path operations
 export function getParentPath(path: string): string {
 	if (!path || path === '/') {
 		return '/';
@@ -133,17 +130,14 @@ export function isValidPath(path: string): boolean {
 		return false;
 	}
 
-	// Must start with '/'
 	if (!path.startsWith('/')) {
 		return false;
 	}
 
-	// Cannot contain consecutive slashes
 	if (path.includes('//')) {
 		return false;
 	}
 
-	// Cannot end with slash unless it's root
 	if (path.length > 1 && path.endsWith('/')) {
 		return false;
 	}
@@ -163,15 +157,12 @@ export function normalizePath(path: string): string {
 		return '/';
 	}
 
-	// Ensure starts with '/'
 	if (!path.startsWith('/')) {
 		path = '/' + path;
 	}
 
-	// Remove consecutive slashes
 	path = path.replace(/\/+/g, '/');
 
-	// Remove trailing slash unless it's root
 	if (path.length > 1 && path.endsWith('/')) {
 		path = path.slice(0, -1);
 	}

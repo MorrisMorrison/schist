@@ -9,8 +9,6 @@
 		DialogTitle
 	} from '$lib/components/ui/dialog/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	import { Input } from '$lib/components/ui/input/index.js';
 	import { FileText } from 'lucide-svelte';
 	import PageCard from './PageCard.svelte';
 	import LoadingSpinner from './LoadingSpinner.svelte';
@@ -83,13 +81,6 @@
 </script>
 
 <div class="space-y-4 {className}">
-	<!-- Search Input -->
-	<!-- {#if pages.length > 0}
-		<div class="mb-6">
-			<Input type="text" placeholder="Search pages..." bind:value={searchTerm} class="max-w-md" />
-		</div>
-	{/if} -->
-
 	<!-- Error Display -->
 	{#if error}
 		<ErrorAlert {error} onDismiss={() => pageActions.clearError()} />

@@ -11,7 +11,6 @@
 
 	let isMenuOpen = $state(false);
 
-	// Always show sidebar toggle - users should be able to toggle sidebar on any page
 	const showSidebarToggle = true;
 
 	function toggleMenu() {
@@ -22,7 +21,6 @@
 		isMenuOpen = false;
 	}
 
-	// Close menu when route changes
 	$effect(() => {
 		if (page.url) {
 			isMenuOpen = false;
@@ -32,7 +30,6 @@
 
 <nav class="border-primary bg-primary border-b shadow-sm transition-colors">
 	<div class="relative">
-		<!-- Burger icon - positioned absolutely at far left -->
 		<div class="absolute top-1/2 left-4 z-10 -translate-y-1/2 transform">
 			<BurgerIcon
 				isOpen={$sidebarOpen}
@@ -106,41 +103,7 @@
 							<SearchBox placeholder="Search pages..." testId="nav-search-input" />
 						</div>
 					</div>
-					<!-- Theme toggle -->
 					<ThemeToggle />
-					<!-- Create new page button -->
-					<!-- <a
-						href="/new"
-						class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-					>
-						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 4v16m8-8H4"
-							/>
-						</svg>
-						New Page
-					</a> -->
-
-					<!-- Edit current page button (if on a page) -->
-					<!-- {#if currentPageSlug && page.url.pathname !== '/new' && !page.url.pathname.startsWith('/edit/')}
-					<a
-						href="/edit/{currentPageSlug}"
-						class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
-					>
-						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
-							/>
-						</svg>
-						Edit
-					</a>
-				{/if} -->
 
 					<!-- Mobile menu button -->
 					<button

@@ -443,7 +443,6 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 				}
 			}
 		} else if strings.HasSuffix(d.Name(), MARKDOWN_FILE_ENDING) {
-			// Count pages in folders
 			folderPath := filepath.Dir(logicalPath)
 			if folderPath == "." {
 				folderPath = "/"

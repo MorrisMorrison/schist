@@ -23,7 +23,6 @@
 	let showDropdown = $state(false);
 	let searchTimeout: number;
 
-	// Reactive search
 	$effect(() => {
 		if (query.trim().length > 0) {
 			clearTimeout(searchTimeout);
@@ -57,7 +56,6 @@
 		if (onSelect) {
 			onSelect(page);
 		} else {
-			// Default behavior: navigate to page using correct path
 			window.location.href = `/pages${page.metaData.path}`;
 		}
 	}
@@ -69,7 +67,6 @@
 		}
 	}
 
-	// Close dropdown when clicking outside
 	function handleClickOutside(event: MouseEvent) {
 		const target = event.target as Element;
 		if (!target.closest('.search-container')) {

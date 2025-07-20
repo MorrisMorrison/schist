@@ -10,10 +10,8 @@
 	// Container reference for initializing copy buttons
 	let containerRef: HTMLDivElement;
 
-	// State for HTML content
 	let htmlContent = $state('');
 
-	// Update HTML content when content changes
 	$effect(() => {
 		const updateContent = async () => {
 			try {
@@ -30,12 +28,10 @@
 		updateContent();
 	});
 
-	// Theme classes
 	const themeClasses = $derived(
 		theme === 'dark' ? 'bg-gray-900 text-gray-100 dark' : 'bg-white text-gray-900'
 	);
 
-	// Base prose classes for markdown styling
 	const proseClasses = 'prose max-w-none';
 </script>
 

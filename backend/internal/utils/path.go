@@ -80,13 +80,11 @@ func SanitizePath(path string) string {
 		return PathSeparator
 	}
 
-	// Convert to lowercase
 	path = strings.ToLower(path)
 
-	// Replace spaces with hyphens
 	path = strings.ReplaceAll(path, " ", "-")
 
-	// Remove invalid characters (keep only letters, numbers, hyphens, underscores, slashes)
+	// only letters, numbers, hyphens, underscores, slashes
 	reg := regexp.MustCompile(`[^a-z0-9\-_/]`)
 	path = reg.ReplaceAllString(path, "")
 
@@ -96,7 +94,6 @@ func SanitizePath(path string) string {
 	// Clean up multiple consecutive slashes
 	path = regexp.MustCompile(`/+`).ReplaceAllString(path, PathSeparator)
 
-	// Ensure it starts with a slash
 	if !strings.HasPrefix(path, PathSeparator) {
 		path = PathSeparator + path
 	}
@@ -140,7 +137,6 @@ func NormalizePath(path string) string {
 		path = strings.TrimSuffix(path, PathSeparator)
 	}
 
-	// Ensure it starts with a slash
 	if !strings.HasPrefix(path, PathSeparator) {
 		path = PathSeparator + path
 	}
@@ -148,8 +144,6 @@ func NormalizePath(path string) string {
 	return path
 }
 
-// IsValidFolderName checks if a folder name is valid.
-// Valid folder names are lowercase with hyphens, numbers, and letters only.
 func IsValidFolderName(name string) bool {
 	if name == "" || name == "." || name == ".." {
 		return false
@@ -158,33 +152,24 @@ func IsValidFolderName(name string) bool {
 	return validFolderNameRegex.MatchString(name)
 }
 
-// BuildFilePath builds a full filesystem path for a page given the data directory
-// and the logical path. Uses filepath package for cross-platform compatibility.
 func BuildFilePath(dataDir, path string) string {
-	// Normalize the path first
 	normalizedPath := NormalizePath(path)
 
-	// Remove leading slash for filepath operations
 	relativePath := strings.TrimPrefix(normalizedPath, PathSeparator)
 
 	// Convert forward slashes to OS-specific separators
 	osPath := filepath.FromSlash(relativePath)
 
-	// Join with data directory
 	return filepath.Join(dataDir, osPath)
 }
 
-// ExtractSlugFromPath gets the last segment of a path as a slug.
-// This is used for generating filenames from paths.
 func ExtractSlugFromPath(path string) string {
 	if path == "" || path == PathSeparator {
 		return "index"
 	}
 
-	// Normalize the path first
 	normalizedPath := NormalizePath(path)
 
-	// Split into segments
 	segments := strings.Split(strings.Trim(normalizedPath, PathSeparator), PathSeparator)
 
 	// Get the last non-empty segment

@@ -1,11 +1,5 @@
-/**
- * Editor theme options
- */
 export type EditorTheme = 'light' | 'dark';
 
-/**
- * Toolbar button configuration
- */
 export interface ToolbarButton {
 	id: string;
 	label: string;
@@ -15,9 +9,6 @@ export interface ToolbarButton {
 	active?: boolean;
 }
 
-/**
- * Editor configuration options
- */
 export interface EditorConfig {
 	theme: EditorTheme;
 	lineNumbers: boolean;
@@ -26,9 +17,6 @@ export interface EditorConfig {
 	shortcuts: boolean;
 }
 
-/**
- * Editor state interface
- */
 export interface EditorState {
 	content: string;
 	isDirty: boolean;
@@ -37,18 +25,12 @@ export interface EditorState {
 	lineCount: number;
 }
 
-/**
- * Auto-save configuration
- */
 export interface AutoSaveConfig {
 	enabled: boolean;
-	interval: number; // in milliseconds
+	intervalInMillis: number;
 	onSave: (content: string) => Promise<void> | void;
 }
 
-/**
- * Editor props interface
- */
 export interface EditorProps {
 	initialContent?: string;
 	theme?: EditorTheme;
@@ -60,18 +42,12 @@ export interface EditorProps {
 	placeholder?: string;
 }
 
-/**
- * Preview props interface
- */
 export interface PreviewProps {
 	content: string;
 	theme?: EditorTheme;
 	className?: string;
 }
 
-/**
- * Toolbar props interface
- */
 export interface ToolbarProps {
 	onFormat: (type: FormattingType, value?: string) => void;
 	theme?: EditorTheme;
@@ -79,9 +55,6 @@ export interface ToolbarProps {
 	disabled?: boolean;
 }
 
-/**
- * Formatting types for toolbar actions
- */
 export type FormattingType =
 	| 'bold'
 	| 'italic'
@@ -94,16 +67,10 @@ export type FormattingType =
 	| 'code'
 	| 'quote';
 
-/**
- * Keyboard shortcut mapping
- */
 export interface KeyboardShortcuts {
 	[key: string]: FormattingType;
 }
 
-/**
- * Editor events
- */
 export interface EditorEvents {
 	contentChange: (content: string) => void;
 	save: (content: string) => void;

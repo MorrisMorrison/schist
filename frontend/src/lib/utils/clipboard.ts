@@ -1,15 +1,8 @@
-/**
- * Modern clipboard utilities with fallback support
- */
-
 export interface CopyResult {
 	success: boolean;
 	error?: string;
 }
 
-/**
- * Copy text to clipboard using modern Clipboard API with fallback
- */
 export async function copyToClipboard(text: string): Promise<CopyResult> {
 	// Modern Clipboard API (preferred)
 	if (navigator.clipboard && window.isSecureContext) {
@@ -18,20 +11,14 @@ export async function copyToClipboard(text: string): Promise<CopyResult> {
 			return { success: true };
 		} catch (error) {
 			console.warn('Clipboard API failed, trying fallback:', error);
-			// Fall through to fallback method
 		}
 	}
 
-	// Fallback method using execCommand
 	return copyToClipboardFallback(text);
 }
 
-/**
- * Fallback clipboard copy using document.execCommand
- */
 function copyToClipboardFallback(text: string): CopyResult {
 	try {
-		// Create a temporary textarea element
 		const textarea = document.createElement('textarea');
 		textarea.value = text;
 		textarea.style.position = 'fixed';
@@ -39,7 +26,6 @@ function copyToClipboardFallback(text: string): CopyResult {
 		textarea.style.top = '-999999px';
 		document.body.appendChild(textarea);
 
-		// Select and copy the text
 		textarea.focus();
 		textarea.select();
 
@@ -62,9 +48,6 @@ function copyToClipboardFallback(text: string): CopyResult {
 	}
 }
 
-/**
- * Check if clipboard functionality is available
- */
 export function isClipboardSupported(): boolean {
 	return (
 		(navigator.clipboard && window.isSecureContext) ||
@@ -73,9 +56,6 @@ export function isClipboardSupported(): boolean {
 	);
 }
 
-/**
- * Request clipboard permissions (for modern API)
- */
 export async function requestClipboardPermission(): Promise<boolean> {
 	if (!navigator.permissions || !navigator.clipboard) {
 		return false;

@@ -30,26 +30,19 @@
 	function validateFolderName(name: string): boolean {
 		if (!name.trim()) return false;
 
-		// Check for invalid characters
 		if (!/^[a-zA-Z0-9\-_\s]+$/.test(name)) {
-			// error = 'Folder name can only contain letters, numbers, hyphens, underscores, and spaces';
 			return false;
 		}
 
-		// Check length
 		if (name.length > 50) {
-			// error = 'Folder name must be 50 characters or less';
 			return false;
 		}
 
-		// Check for reserved names
-		const reserved = ['api', 'admin', 'pages', 'folders', 'auth', 'docs'];
-		if (reserved.includes(name.toLowerCase())) {
-			// error = 'This folder name is reserved';
-			return false;
-		}
+		// const reserved = ['api', 'admin', 'pages', 'folders', 'auth', 'docs'];
+		// if (reserved.includes(name.toLowerCase())) {
+		// 	return false;
+		// }
 
-		// error = '';
 		return true;
 	}
 
@@ -60,7 +53,6 @@
 		error = '';
 
 		try {
-			// Normalize the folder name (convert to URL-friendly format)
 			const normalizedName = folderName.trim().toLowerCase().replace(/\s+/g, '-');
 			const fullPath = parentPath ? `${parentPath}/${normalizedName}` : `/${normalizedName}`;
 

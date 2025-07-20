@@ -81,7 +81,7 @@
 
 		autoSaveTimer = setTimeout(async () => {
 			await saveContent();
-		}, autoSaveConfig.interval);
+		}, autoSaveConfig.intervalInMillis);
 	}
 
 	// Save content

@@ -25,7 +25,6 @@ class SchістApiClient {
 	}
 
 	private encodePath(path: string): string {
-		// Normalize the path first
 		const normalizedPath = normalizePath(path);
 
 		// Split path into segments, encode each segment, then rejoin
@@ -61,7 +60,6 @@ class SchістApiClient {
 				throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
 			}
 
-			// Handle empty responses (like DELETE)
 			if (response.status === 204 || response.headers.get('content-length') === '0') {
 				return {} as T;
 			}
@@ -76,12 +74,10 @@ class SchістApiClient {
 		}
 	}
 
-	// Health check
 	async health(): Promise<HealthResponse> {
 		return this.request<HealthResponse>('/health');
 	}
 
-	// Page operations
 	async getPages(): Promise<Page[]> {
 		const response = await this.request<PageListResponse>('/pages');
 		return response.pages;
@@ -92,7 +88,6 @@ class SchістApiClient {
 	}
 
 	async createPage(pageData: CreatePageRequest): Promise<CreatePageResponse> {
-		// Ensure path is normalized if provided
 		const normalizedPageData = {
 			...pageData,
 			metaData: {
@@ -108,7 +103,6 @@ class SchістApiClient {
 	}
 
 	async updatePage(slug: string, pageData: UpdatePageRequest): Promise<Page> {
-		// Ensure path is normalized if provided
 		const normalizedPageData = {
 			...pageData,
 			metaData: {
@@ -129,7 +123,6 @@ class SchістApiClient {
 		});
 	}
 
-	// Path-based page operations
 	async getPageByPath(path: string): Promise<Page> {
 		const encodedPath = this.encodePath(path);
 		return this.request<Page>(`/pages${encodedPath}`);
@@ -138,7 +131,6 @@ class SchістApiClient {
 	async updatePageByPath(path: string, pageData: UpdatePageRequest): Promise<Page> {
 		const encodedPath = this.encodePath(path);
 
-		// Ensure path is normalized if provided in pageData
 		const normalizedPageData = {
 			...pageData,
 			metaData: {
@@ -265,8 +257,6 @@ class SchістApiClient {
 	}
 }
 
-// Singleton instance
 export const apiClient = new SchістApiClient();
 
-// Export class for testing
 export { SchістApiClient };

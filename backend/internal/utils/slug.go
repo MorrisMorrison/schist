@@ -11,7 +11,6 @@ func GenerateSlug(title string) string {
 
 	// remove common special characters
 	slug = regexp.MustCompile(`[^\w\-]`).ReplaceAllString(slug, "")
-	// remove multiple consecutive hyphens
 	slug = regexp.MustCompile(`-+`).ReplaceAllString(slug, "-")
 
 	slug = strings.Trim(slug, "-")

@@ -20,7 +20,6 @@
 		disabled = false
 	}: Omit<ToolbarProps, 'onThemeToggle'> = $props();
 
-	// Toolbar button configurations with Lucide icons
 	const toolbarButtons = [
 		{
 			type: 'bold' as FormattingType,
@@ -94,7 +93,6 @@
 		}
 	];
 
-	// Group buttons for better organization
 	const buttonGroups = $derived(() => {
 		const groups: Record<string, typeof toolbarButtons> = {};
 		toolbarButtons.forEach((button) => {
@@ -106,20 +104,17 @@
 		return groups;
 	});
 
-	// Individual group accessors for cleaner template
 	const textButtons = $derived(buttonGroups().text || []);
 	const headingButtons = $derived(buttonGroups().headings || []);
 	const listButtons = $derived(buttonGroups().lists || []);
 	const insertButtons = $derived(buttonGroups().insert || []);
 
-	// Theme classes
 	const themeClasses = $derived(
 		theme === 'dark'
 			? 'bg-card border-border text-foreground'
 			: 'bg-card border-border text-foreground'
 	);
 
-	// Handle button click
 	function handleButtonClick(type: FormattingType) {
 		if (disabled) return;
 
@@ -132,8 +127,6 @@
 			onFormat(type);
 		}
 	}
-
-	// Theme toggle is now handled globally in the navigation
 </script>
 
 <div
@@ -234,7 +227,6 @@
 		min-height: 3.5rem;
 	}
 
-	/* Make toolbar responsive */
 	@media (max-width: 640px) {
 		.editor-toolbar {
 			flex-wrap: wrap;

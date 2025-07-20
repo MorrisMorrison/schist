@@ -45,7 +45,6 @@
 	// Enhanced markdown rendering with copy buttons
 	let renderedMarkdown = $state('');
 
-	// Parse markdown content asynchronously
 	$effect(() => {
 		if (page.content) {
 			parseMarkdownWithCopyButtons(page.content).then((html) => {
@@ -56,10 +55,8 @@
 		}
 	});
 
-	// Initialize copy buttons after content is rendered
 	$effect(() => {
 		if (contentContainer && renderedMarkdown) {
-			// Use a small delay to ensure DOM is updated
 			setTimeout(() => {
 				if (contentContainer) {
 					initializeCodeBlockCopyButtons(contentContainer);
@@ -101,7 +98,6 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl space-y-8 p-6">
-	<!-- Breadcrumbs -->
 	<Breadcrumbs path={pagePath} currentPageTitle={pageTitle} />
 
 	<!-- Page Header -->
@@ -207,46 +203,3 @@
 	onConfirm={handleConfirmDelete}
 	onCancel={handleCancelDelete}
 />
-
-<style>
-	/* Code block enhancements */
-	/* :global(.code-block-container) {
-		@apply border-border bg-muted relative mb-4 rounded-lg border;
-	}
-
-	:global(.code-block-header) {
-		@apply border-border bg-muted/50 flex items-center justify-between border-b px-4 py-2;
-	}
-
-	:global(.code-lang) {
-		@apply text-muted-foreground text-xs font-medium tracking-wide uppercase;
-	}
-
-	:global(.copy-button) {
-		@apply bg-background/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-background hover:border-border flex h-8 w-8 items-center justify-center rounded-md border transition-all duration-200;
-	}
-
-	:global(.copy-button:hover) {
-		@apply shadow-sm;
-	}
-
-	:global(.copy-button:focus) {
-		@apply ring-primary ring-2 ring-offset-2 outline-none;
-	}
-
-	:global(.copy-icon) {
-		@apply h-4 w-4;
-	}
-
-	:global(.code-block-container pre) {
-		@apply m-0 rounded-none border-0 bg-transparent p-4;
-	}
-
-	:global(.code-block-container code) {
-		@apply bg-transparent text-sm;
-	}
-
-	:global(.inline-code) {
-		@apply bg-muted border-border rounded border px-1.5 py-0.5 text-sm;
-	} */
-</style>

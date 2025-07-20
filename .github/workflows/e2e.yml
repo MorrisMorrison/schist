@@ -20,7 +20,7 @@ jobs:
           node-version: '20'
       - name: Install Playwright
         run: |
-          cd frontend && npx install playwright
+          cd frontend && npx playwright install
 
       - name: Run E2E tests
         run: |

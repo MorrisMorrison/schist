@@ -208,11 +208,7 @@
 			</div>
 
 			<div class="flex items-center gap-3">
-				<Button 
-					variant="outline" 
-					href="/pages/{data.path}"
-					data-testid="cancel-button"
-				>
+				<Button variant="outline" href="/pages/{data.path}" data-testid="cancel-button">
 					Cancel
 				</Button>
 

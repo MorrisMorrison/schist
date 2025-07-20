@@ -140,17 +140,17 @@
 	}
 
 	function isCurrentPath(path: string): boolean {
-	if (path === '/') {
-		return currentPath === path || currentPath === '/folders'
-	}
+		if (path === '/') {
+			return currentPath === path || currentPath === '/folders';
+		}
 		return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
 	}
 
-	function isCurrentFile(path: string) : boolean {
+	function isCurrentFile(path: string): boolean {
 		return `/pages${path}` === currentPath;
 	}
 
-	function isSelectedFile(path: string) : boolean {
+	function isSelectedFile(path: string): boolean {
 		return `/pages${path}` === currentPath;
 	}
 
@@ -407,12 +407,12 @@
 				{#if showPages}
 					{#each getPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
 						<div
-									class={cn(
-				'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-				'hover:bg-accent hover:text-accent-foreground',
-				isSelectedFile(page.metaData.path) && 'bg-accent text-accent-foreground',
-				isCurrentFile(page.metaData.path) && 'bg-accent font-medium'
-			)}
+							class={cn(
+								'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+								'hover:bg-accent hover:text-accent-foreground',
+								isSelectedFile(page.metaData.path) && 'bg-accent text-accent-foreground',
+								isCurrentFile(page.metaData.path) && 'bg-accent font-medium'
+							)}
 							style="margin-left: {(depth + 1) * 16}px"
 						>
 							<div class="h-4 w-4"></div>
@@ -421,7 +421,7 @@
 								class="focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 								onclick={() => onpageselect?.({ page })}
 							>
-								<File class="h-4 w-4 text-blue-primary" />
+								<File class="text-blue-primary h-4 w-4" />
 								<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span>
 							</button>
 						</div>

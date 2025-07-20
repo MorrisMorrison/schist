@@ -5,12 +5,13 @@
 - [ ] Investigate if we can leverage PageList in FolderView to avoid duplication
 - [ ] Allow resizing of images
 - [ ] Image on click should open the image in new tab / full screen view
-- [ ] Setup e2e tests
+- [x] Setup e2e tests
 - [ ] General Search in Navigation
+- [ ] Rename Folder
 
 ## Backend
-
-
+- [ ] Optional Auth
+- [ ] Rate Limiting
 
 ## Feature Ideas
 - [ ] Git integration
@@ -21,7 +22,7 @@
 - [ ] Collaboration Features
 - [ ] Plugins
 
-### Phase 3: Wiki Linking (Week 3-4)
+### Wiki Linking
 **Goal**: Core wiki functionality with internal linking
 
 1. **Link Parser (Backend)**
@@ -39,5 +40,3 @@
    - Broken link styling
    - Backlinks section in page view
    - Link suggestions in editor
-
-**Milestone**: Full wiki linking functionality workin

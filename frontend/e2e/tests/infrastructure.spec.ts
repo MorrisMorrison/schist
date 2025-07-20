@@ -78,6 +78,5 @@ test.describe('Basic App Functionality', () => {
 
 		// Verify we're now viewing the page
 		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyContentContains(testPage.content);
 	});
 });

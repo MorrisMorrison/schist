@@ -20,7 +20,7 @@ export class PageViewPage extends BasePage {
 
 	// Navigation
 	readonly breadcrumbs: Locator;
-	readonly breadcrumbLinks: Locator;
+	readonly breadcrumbButtons: Locator;
 
 	// Content elements
 	readonly headings: Locator;
@@ -53,7 +53,7 @@ export class PageViewPage extends BasePage {
 
 		// Navigation
 		this.breadcrumbs = page.locator('[data-testid="breadcrumbs"]');
-		this.breadcrumbLinks = this.breadcrumbs.locator('a');
+		this.breadcrumbButtons = this.breadcrumbs.locator('button');
 
 		// Content elements
 		this.headings = this.pageContent.locator('h1, h2, h3, h4, h5, h6');
@@ -148,7 +148,7 @@ export class PageViewPage extends BasePage {
 	 * Navigate using breadcrumbs
 	 */
 	async clickBreadcrumb(breadcrumbText: string) {
-		const breadcrumb = this.breadcrumbLinks.getByText(breadcrumbText);
+	const breadcrumb = this.breadcrumbButtons.getByText(breadcrumbText);
 		await breadcrumb.click();
 		await this.waitForLoad();
 	}
@@ -157,7 +157,7 @@ export class PageViewPage extends BasePage {
 	 * Get breadcrumb path
 	 */
 	async getBreadcrumbPath(): Promise<string[]> {
-		return await this.breadcrumbLinks.allTextContents();
+		return await this.breadcrumbButtons.allTextContents();
 	}
 
 	/**

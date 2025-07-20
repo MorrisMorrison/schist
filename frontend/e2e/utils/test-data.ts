@@ -7,6 +7,7 @@ export interface TestPageData {
 	content: string;
 	tags?: string[];
 	path?: string;
+	slug?: string;
 }
 
 export interface TestFolderData {
@@ -22,15 +23,27 @@ export function generateTestId(): string {
 	return `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+	function generateSlug(title: string): string {
+		return (
+			title
+				.trim()
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-|-$/g, '') || ''
+		);
+	}
 /**
  * Generate test page data
  */
 export function createTestPage(overrides: Partial<TestPageData> = {}): TestPageData {
 	const testId = generateTestId();
+	const slug = generateSlug(overrides.title!);
+	
 	return {
 		title: `Test Page ${testId}`,
 		content: `# Test Page ${testId}\n\nThis is a test page created for e2e testing.\n\n## Features\n\n- **Bold text**\n- *Italic text*\n- \`Inline code\`\n\n### Code Block\n\n\`\`\`javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n\`\`\`\n\n### Links\n\n[Test Link](https://example.com)\n\n### Image\n\n![Test Image](https://via.placeholder.com/300x200?text=Test+Image)\n\n---\n\nCreated at: ${new Date().toISOString()}`,
 		tags: ['test', 'e2e'],
+		slug: slug,
 		...overrides
 	};
 }

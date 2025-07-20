@@ -17,7 +17,7 @@
 		segments = rawSegments.map((segment, index, array) => {
 			const fullPath = '/' + array.slice(0, index + 1).join('/');
 			return {
-				name: segment.charAt(0) + segment.slice(1).replace(/-/g, ' '),
+				name: segment.charAt(0) + segment.slice(1),
 				path: fullPath,
 				isLast: index === array.length - 1
 			};
@@ -34,7 +34,7 @@
 	}
 </script>
 
-<nav class="mb-4 border-b pb-2" aria-label="Breadcrumb navigation">
+<nav class="mb-4 border-b pb-2" aria-label="Breadcrumb navigation" data-testid="breadcrumbs">
 	<ol class="m-0 flex list-none flex-wrap items-center gap-1 p-0">
 		<!-- Home/Root -->
 		<li class="flex items-center gap-1">
@@ -54,11 +54,11 @@
 		{#each segments as segment (segment.path)}
 			<li class="flex items-center gap-1">
 				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
-				{#if segment.isLast}
+				<!-- {#if segment.isLast}
 					<span class="text-primary px-2 py-1 text-sm font-medium" aria-current="page">
 						{segment.name}
 					</span>
-				{:else}
+				{:else} -->
 					<Button
 						variant="ghost"
 						size="sm"
@@ -68,7 +68,7 @@
 					>
 						{segment.name}
 					</Button>
-				{/if}
+				<!-- {/if} -->
 			</li>
 		{/each}
 

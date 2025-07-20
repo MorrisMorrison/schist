@@ -61,13 +61,15 @@
 	);
 </script>
 
-<Card class="group border-border bg-card transition-all duration-200 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5">
+<Card
+	class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 transition-all duration-200 hover:shadow-lg"
+>
 	<CardHeader class="pb-4">
 		<div class="space-y-3">
 			<!-- Row 1: Title and Buttons -->
 			<div class="flex items-start justify-between gap-4">
 				<CardTitle
-					class="hover:text-primary cursor-pointer truncate text-lg font-semibold leading-tight transition-colors"
+					class="hover:text-primary cursor-pointer truncate text-lg leading-tight font-semibold transition-colors"
 					onclick={() => onView?.(pagePathDerived)}
 				>
 					{page.metaData.title}

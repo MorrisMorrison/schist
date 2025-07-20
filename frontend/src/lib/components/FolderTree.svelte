@@ -25,7 +25,6 @@
 	import { browser } from '$app/environment';
 	import { cn } from '$lib/utils.js';
 
-	// Props
 	interface Props {
 		selectedPath?: string;
 		className?: string;
@@ -66,21 +65,17 @@
 		oncollapseall
 	}: Props = $props();
 
-	// Local state
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
 	let contextMenuOpen = $state<string | null>(null);
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let searchQuery = $state('');
 
-	// Derived state
 	const pages = $derived($pagesStore.pages || []);
 
-	// Filter folders based on search
 	const filteredFolders = $derived(
 		searchQuery.trim() ? filterFolders($folders || [], searchQuery.toLowerCase()) : $folders || []
 	);
 
-	// Load folders on mount
 	$effect(() => {
 		folderActions.loadFolderTree().catch(console.error);
 		if (showPages) {
@@ -88,7 +83,6 @@
 		}
 	});
 
-	// Load expanded folders from localStorage on mount
 	$effect(() => {
 		if (browser && storageKey) {
 			const savedExpanded = localStorage.getItem(storageKey);
@@ -102,14 +96,12 @@
 		}
 	});
 
-	// Save expanded folders to localStorage
 	function saveExpandedFolders() {
 		if (browser && storageKey) {
 			localStorage.setItem(storageKey, JSON.stringify([...expandedFolders]));
 		}
 	}
 
-	// Filter folders based on search
 	function filterFolders(folders: FolderType[], query: string): FolderType[] {
 		return folders
 			.filter((folder) => {
@@ -125,7 +117,6 @@
 			}));
 	}
 
-	// Get pages for a specific folder path
 	function getPagesForFolder(folderPath: string) {
 		return pages.filter((page) => {
 			const pagePath = page.metaData?.path || '';
@@ -148,12 +139,21 @@
 		});
 	}
 
-	// Check if path is current
 	function isCurrentPath(path: string): boolean {
+	if (path === '/') {
+		return currentPath === path || currentPath === '/folders'
+	}
 		return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
 	}
 
-	// Expand all folders
+	function isCurrentFile(path: string) : boolean {
+		return `/pages${path}` === currentPath;
+	}
+
+	function isSelectedFile(path: string) : boolean {
+		return `/pages${path}` === currentPath;
+	}
+
 	function expandAll() {
 		const getAllFolderPaths = (folders: FolderType[]): string[] => {
 			let paths: string[] = [];
@@ -167,7 +167,6 @@
 		};
 
 		const allPaths = getAllFolderPaths($folders);
-		// Include root folder if we're showing pages and have content
 		if (showPages && (getPagesForFolder('/').length > 0 || $folders.length > 0)) {
 			allPaths.push('/');
 		}
@@ -176,14 +175,12 @@
 		onexpandall?.();
 	}
 
-	// Collapse all folders
 	function collapseAll() {
 		expandedFolders = new Set();
 		saveExpandedFolders();
 		oncollapseall?.();
 	}
 
-	// Context menu handling
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
 		if (!enableContextMenu) return;
 
@@ -227,7 +224,6 @@
 		contextMenuOpen = null;
 	}
 
-	// Folder interaction handlers
 	function toggleExpanded(path: string) {
 		if (expandedFolders.has(path)) {
 			expandedFolders.delete(path);
@@ -242,12 +238,10 @@
 	function handleChevronClick(event: MouseEvent, folder: FolderType) {
 		event.preventDefault();
 		event.stopPropagation();
-		// Only toggle expansion, no navigation
 		toggleExpanded(folder.path);
 	}
 
 	function handleFolderNameClick(folder: FolderType) {
-		// Only call selection callback for navigation, no expansion
 		onselect?.({ path: folder.path, folder });
 	}
 
@@ -289,7 +283,6 @@
 		closeContextMenu();
 	}
 
-	// Helper function to find folder by path in nested structure
 	function findFolderByPath(folders: FolderType[], path: string): FolderType | null {
 		for (const folder of folders) {
 			if (folder.path === path) {
@@ -303,15 +296,14 @@
 		return null;
 	}
 
-	// Handle clicks outside context menu
-	function handleDocumentClick() {
+	function handleOutsideClick() {
 		closeContextMenu();
 	}
 
 	$effect(() => {
-		document.addEventListener('click', handleDocumentClick);
+		document.addEventListener('click', handleOutsideClick);
 		return () => {
-			document.removeEventListener('click', handleDocumentClick);
+			document.removeEventListener('click', handleOutsideClick);
 		};
 	});
 </script>
@@ -332,7 +324,7 @@
 				'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
 				'hover:bg-accent hover:text-accent-foreground',
 				isSelected && 'bg-accent text-accent-foreground',
-				isCurrent && 'bg-blue-100 font-medium text-blue-700'
+				isCurrent && 'bg-accent font-medium'
 			)}
 			oncontextmenu={(e) => handleContextMenu(e, folder)}
 			role="treeitem"
@@ -415,7 +407,12 @@
 				{#if showPages}
 					{#each getPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
 						<div
-							class="group hover:bg-accent hover:text-accent-foreground relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors"
+									class={cn(
+				'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+				'hover:bg-accent hover:text-accent-foreground',
+				isSelectedFile(page.metaData.path) && 'bg-accent text-accent-foreground',
+				isCurrentFile(page.metaData.path) && 'bg-accent font-medium'
+			)}
 							style="margin-left: {(depth + 1) * 16}px"
 						>
 							<div class="h-4 w-4"></div>
@@ -424,7 +421,7 @@
 								class="focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 								onclick={() => onpageselect?.({ page })}
 							>
-								<File class="h-4 w-4 text-gray-500" />
+								<File class="h-4 w-4 text-blue-primary" />
 								<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span>
 							</button>
 						</div>
@@ -442,7 +439,7 @@
 	</div>
 {/snippet}
 
-<svelte:window onclick={handleDocumentClick} />
+<svelte:window onclick={handleOutsideClick} />
 
 <div class={cn('select-none', className)}>
 	<!-- Actions Header -->

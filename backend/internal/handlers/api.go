@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -159,7 +160,12 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 	}
 
 	updatedPage.MetaData.Updated = time.Now()
-	h.PageService.MovePage(path, updatedPage.MetaData.Path)
+	if err := h.PageService.MovePage(path, updatedPage.MetaData.Path); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("failed to move page: %v", err),
+		})
+		return
+	}
 
 	err = h.PageService.UpdatePage(updatedPage)
 	if err != nil {

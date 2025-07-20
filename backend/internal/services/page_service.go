@@ -246,9 +246,21 @@ func (p *PageService) GetFolder(path string) (*models.Folder, error) {
 		return p.getRootFolder()
 	}
 
-	folderPath := pathutils.BuildFilePath(p.dataDir, path)
+	return p.buildFolderFromPath(path)
+}
 
-	// Check if folder exists
+func (p *PageService) buildFolderFromPath(path string) (*models.Folder, error) {
+	folderPath := pathutils.BuildFilePath(p.dataDir, path)
+	info, err := p.validateFolderPath(folderPath, path)
+	if err != nil {
+		return nil, err
+	}
+
+	folder := p.createFolderStruct(path, info)
+	return p.populateFolderContents(folder, folderPath)
+}
+
+func (p *PageService) validateFolderPath(folderPath, path string) (os.FileInfo, error) {
 	info, err := os.Stat(folderPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -261,63 +273,79 @@ func (p *PageService) GetFolder(path string) (*models.Folder, error) {
 		return nil, fmt.Errorf("path %s is not a directory", path)
 	}
 
-	// Extract folder name from path
+	return info, nil
+}
+
+func (p *PageService) createFolderStruct(path string, info os.FileInfo) *models.Folder {
 	folderName := filepath.Base(path)
 	if folderName == "." || folderName == "/" {
 		folderName = "Root"
 	}
 
-	// Create folder struct
-	folder := &models.Folder{
+	return &models.Folder{
 		Name:       folderName,
 		Path:       path,
 		Created:    info.ModTime(),
 		PageCount:  0,
 		SubFolders: []*models.Folder{},
 	}
+}
 
-	// Read directory contents
+func (p *PageService) populateFolderContents(folder *models.Folder, folderPath string) (*models.Folder, error) {
 	entries, err := os.ReadDir(folderPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read folder contents at path %s: %w", path, err)
+		return nil, fmt.Errorf("failed to read folder contents at path %s: %w", folder.Path, err)
 	}
 
-	// Process directory entries
 	for _, entry := range entries {
 		if entry.IsDir() {
-			// Add subfolder
-			entryInfo, err := entry.Info()
-			if err != nil {
-				continue // Skip entries we can't read
-			}
-
-			subfolderPath := pathutils.NormalizePath(path + "/" + entry.Name())
-			subfolder := &models.Folder{
-				Name:       entry.Name(),
-				Path:       subfolderPath,
-				Created:    entryInfo.ModTime(),
-				PageCount:  0,
-				SubFolders: []*models.Folder{},
-			}
-
-			// Count pages in subfolder
-			subfolderFilePath := pathutils.BuildFilePath(p.dataDir, subfolderPath)
-			if subEntries, err := os.ReadDir(subfolderFilePath); err == nil {
-				for _, subEntry := range subEntries {
-					if !subEntry.IsDir() && strings.HasSuffix(subEntry.Name(), MARKDOWN_FILE_ENDING) {
-						subfolder.PageCount++
-					}
-				}
-			}
-
+			subfolder := p.createSubfolder(folder.Path, entry)
 			folder.SubFolders = append(folder.SubFolders, subfolder)
 		} else if strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
-			// Count pages in current folder
 			folder.PageCount++
 		}
 	}
 
 	return folder, nil
+}
+
+func (p *PageService) createSubfolder(parentPath string, entry os.DirEntry) *models.Folder {
+	entryInfo, err := entry.Info()
+	if err != nil {
+		// Return empty subfolder if we can't read entry info
+		return &models.Folder{
+			Name:       entry.Name(),
+			Path:       pathutils.NormalizePath(parentPath + "/" + entry.Name()),
+			SubFolders: []*models.Folder{},
+		}
+	}
+
+	subfolderPath := pathutils.NormalizePath(parentPath + "/" + entry.Name())
+	subfolder := &models.Folder{
+		Name:       entry.Name(),
+		Path:       subfolderPath,
+		Created:    entryInfo.ModTime(),
+		PageCount:  p.countPagesInFolder(subfolderPath),
+		SubFolders: []*models.Folder{},
+	}
+
+	return subfolder
+}
+
+func (p *PageService) countPagesInFolder(folderPath string) int {
+	subfolderFilePath := pathutils.BuildFilePath(p.dataDir, folderPath)
+	subEntries, err := os.ReadDir(subfolderFilePath)
+	if err != nil {
+		return 0
+	}
+
+	count := 0
+	for _, subEntry := range subEntries {
+		if !subEntry.IsDir() && strings.HasSuffix(subEntry.Name(), MARKDOWN_FILE_ENDING) {
+			count++
+		}
+	}
+	return count
 }
 
 func (p *PageService) getRootFolder() (*models.Folder, error) {

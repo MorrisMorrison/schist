@@ -2,4 +2,21 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 echo "Running pre-commit hooks..."
+
+# Format and lint frontend
+echo "🎨 Formatting and linting frontend..."
 cd frontend && npm run format && npm run lint
+
+# Format and lint backend  
+echo "🔧 Formatting and linting backend..."
+cd ../backend && go fmt ./...
+
+# Run golangci-lint if available
+if command -v golangci-lint &> /dev/null; then
+    echo "🔍 Running golangci-lint..."
+    golangci-lint run
+else
+    echo "⚠️ golangci-lint not found, skipping Go linting"
+fi
+
+echo "✅ Pre-commit hooks completed!"

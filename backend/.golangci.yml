@@ -1,0 +1,43 @@
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/schist
+  misspell:
+    locale: US
+  lll:
+    line-length: 120
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - staticcheck
+    - typecheck
+    - unused
+    - lll
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - lll
+  exclude-dirs:
+    - test-data
+    - data
+    - cmd/schist/test-data
+
+run:
+  timeout: 5m

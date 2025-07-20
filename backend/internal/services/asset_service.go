@@ -68,8 +68,8 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 
 	// Create asset directory structure
 	assetDir := filepath.Join(s.dataDir, ASSETS_DIR, IMAGES_DIR)
-	if err := os.MkdirAll(assetDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create asset directory: %w", err)
+	if mkdirErr := os.MkdirAll(assetDir, 0755); mkdirErr != nil {
+		return nil, fmt.Errorf("failed to create asset directory: %w", mkdirErr)
 	}
 
 	// Create destination file

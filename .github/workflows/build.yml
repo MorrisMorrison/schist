@@ -9,15 +9,44 @@ on:
 
 jobs:
   build:
+    name: Build All
+    runs-on: ubuntu-latest
     env:
       PUBLIC_API_URL: http://localhost:8080/api
-    runs-on: ubuntu-latest
+    
     steps:
       - uses: actions/checkout@v4
+      
+      # Set up Go for backend
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: backend/go.sum
+      
+      # Set up Node.js for frontend  
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - name: Install dependencies and build all
-        run: |
-          make build
+          node-version: '22.12.0'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      # Build everything
+      - name: Install dependencies and build
+        run: make build
+      
+      # Upload build artifacts
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build/
+          retention-days: 7
+      
+      - name: Upload backend binary
+        uses: actions/upload-artifact@v4  
+        with:
+          name: backend-binary
+          path: backend/cmd/schist/schist
+          retention-days: 7

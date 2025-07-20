@@ -1,5 +1,18 @@
 <script lang="ts">
 	import type { ToolbarProps, FormattingType } from '$lib/types/editor';
+	import { Button } from '$lib/components/ui/button';
+	import {
+		Bold,
+		Italic,
+		Heading1,
+		Heading2,
+		Heading3,
+		List,
+		ListOrdered,
+		Link,
+		Code,
+		Quote
+	} from 'lucide-svelte';
 
 	let {
 		onFormat,
@@ -7,83 +20,103 @@
 		disabled = false
 	}: Omit<ToolbarProps, 'onThemeToggle'> = $props();
 
-	// Toolbar button configurations
+	// Toolbar button configurations with Lucide icons
 	const toolbarButtons = [
 		{
 			type: 'bold' as FormattingType,
 			label: 'Bold',
-			icon: 'B',
+			icon: Bold,
 			shortcut: 'Ctrl+B',
-			className: 'font-bold'
+			group: 'text'
 		},
 		{
 			type: 'italic' as FormattingType,
 			label: 'Italic',
-			icon: 'I',
+			icon: Italic,
 			shortcut: 'Ctrl+I',
-			className: 'italic'
+			group: 'text'
 		},
 		{
 			type: 'heading1' as FormattingType,
 			label: 'Heading 1',
-			icon: 'H1',
-			shortcut: 'Ctrl+1'
+			icon: Heading1,
+			shortcut: 'Ctrl+1',
+			group: 'headings'
 		},
 		{
 			type: 'heading2' as FormattingType,
 			label: 'Heading 2',
-			icon: 'H2',
-			shortcut: 'Ctrl+2'
+			icon: Heading2,
+			shortcut: 'Ctrl+2',
+			group: 'headings'
 		},
 		{
 			type: 'heading3' as FormattingType,
 			label: 'Heading 3',
-			icon: 'H3',
-			shortcut: 'Ctrl+3'
+			icon: Heading3,
+			shortcut: 'Ctrl+3',
+			group: 'headings'
 		},
 		{
 			type: 'bulletList' as FormattingType,
 			label: 'Bullet List',
-			icon: '•',
-			shortcut: 'Ctrl+Shift+8'
+			icon: List,
+			shortcut: 'Ctrl+Shift+8',
+			group: 'lists'
 		},
 		{
 			type: 'numberedList' as FormattingType,
 			label: 'Numbered List',
-			icon: '1.',
-			shortcut: 'Ctrl+Shift+7'
+			icon: ListOrdered,
+			shortcut: 'Ctrl+Shift+7',
+			group: 'lists'
 		},
 		{
 			type: 'link' as FormattingType,
-			label: 'Link',
-			icon: '🔗',
-			shortcut: 'Ctrl+K'
+			label: 'Insert Link',
+			icon: Link,
+			shortcut: 'Ctrl+K',
+			group: 'insert'
 		},
 		{
 			type: 'code' as FormattingType,
-			label: 'Code',
-			icon: '</>',
-			shortcut: 'Ctrl+`'
+			label: 'Inline Code',
+			icon: Code,
+			shortcut: 'Ctrl+`',
+			group: 'insert'
 		},
 		{
 			type: 'quote' as FormattingType,
-			label: 'Quote',
-			icon: '"',
-			shortcut: 'Ctrl+Shift+>'
+			label: 'Quote Block',
+			icon: Quote,
+			shortcut: 'Ctrl+Shift+>',
+			group: 'insert'
 		}
 	];
+
+	// Group buttons for better organization
+	const buttonGroups = $derived(() => {
+		const groups: Record<string, typeof toolbarButtons> = {};
+		toolbarButtons.forEach(button => {
+			if (!groups[button.group]) {
+				groups[button.group] = [];
+			}
+			groups[button.group].push(button);
+		});
+		return groups;
+	});
+
+	// Individual group accessors for cleaner template
+	const textButtons = $derived(buttonGroups().text || []);
+	const headingButtons = $derived(buttonGroups().headings || []);
+	const listButtons = $derived(buttonGroups().lists || []);
+	const insertButtons = $derived(buttonGroups().insert || []);
 
 	// Theme classes
 	const themeClasses = $derived(
 		theme === 'dark'
-			? 'bg-gray-800 border-gray-700 text-gray-200'
-			: 'bg-gray-50 border-gray-200 text-gray-700'
-	);
-
-	const buttonThemeClasses = $derived(
-		theme === 'dark'
-			? 'hover:bg-gray-700 focus:bg-gray-700 border-gray-600'
-			: 'hover:bg-gray-100 focus:bg-gray-100 border-gray-300'
+			? 'bg-card border-border text-foreground'
+			: 'bg-card border-border text-foreground'
 	);
 
 	// Handle button click
@@ -104,73 +137,119 @@
 </script>
 
 <div
-	class="editor-toolbar flex items-center gap-1 border-b p-2 {themeClasses}"
+	class="editor-toolbar flex items-center gap-3 border-b p-3 {themeClasses}"
 	role="toolbar"
 	aria-label="Formatting toolbar"
 >
-	<!-- Formatting buttons -->
-	{#each toolbarButtons as button (button.type)}
-		<button
-			class="toolbar-btn rounded border px-3 py-1.5 text-sm font-medium transition-colors duration-200
-					focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none
-					{buttonThemeClasses} {button.className || ''}"
-			class:opacity-50={disabled}
-			class:cursor-not-allowed={disabled}
-			onclick={() => handleButtonClick(button.type)}
-			title="{button.label} ({button.shortcut})"
-			aria-label={button.label}
-			{disabled}
-		>
-			<span class="select-none">{button.icon}</span>
-		</button>
-	{/each}
+	<!-- Text Formatting Group -->
+	<div class="flex items-center gap-1">
+		{#each textButtons as button (button.type)}
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={() => handleButtonClick(button.type)}
+				title="{button.label} ({button.shortcut})"
+				aria-label={button.label}
+				{disabled}
+				class="h-8 w-8 p-0"
+			>
+				{@const IconComponent = button.icon}
+				<IconComponent class="h-4 w-4" />
+			</Button>
+		{/each}
+	</div>
+
+	<div class="w-px h-6 bg-border"></div>
+
+	<!-- Headings Group -->
+	<div class="flex items-center gap-1">
+		{#each headingButtons as button (button.type)}
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={() => handleButtonClick(button.type)}
+				title="{button.label} ({button.shortcut})"
+				aria-label={button.label}
+				{disabled}
+				class="h-8 w-8 p-0"
+			>
+				{@const IconComponent = button.icon}
+				<IconComponent class="h-4 w-4" />
+			</Button>
+		{/each}
+	</div>
+
+	<div class="w-px h-6 bg-border"></div>
+
+	<!-- Lists Group -->
+	<div class="flex items-center gap-1">
+		{#each listButtons as button (button.type)}
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={() => handleButtonClick(button.type)}
+				title="{button.label} ({button.shortcut})"
+				aria-label={button.label}
+				{disabled}
+				class="h-8 w-8 p-0"
+			>
+				{@const IconComponent = button.icon}
+				<IconComponent class="h-4 w-4" />
+			</Button>
+		{/each}
+	</div>
+
+	<div class="w-px h-6 bg-border"></div>
+
+	<!-- Insert Group -->
+	<div class="flex items-center gap-1">
+		{#each insertButtons as button (button.type)}
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={() => handleButtonClick(button.type)}
+				title="{button.label} ({button.shortcut})"
+				aria-label={button.label}
+				{disabled}
+				class="h-8 w-8 p-0"
+			>
+				{@const IconComponent = button.icon}
+				<IconComponent class="h-4 w-4" />
+			</Button>
+		{/each}
+	</div>
 
 	<!-- Spacer -->
 	<div class="flex-1"></div>
 
-	<!-- Additional actions can go here -->
-	<div class="text-xs {theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}">
+	<!-- Helpful hint -->
+	<div class="text-xs text-muted-foreground hidden sm:block">
 		Use keyboard shortcuts for faster formatting
 	</div>
 </div>
 
 <style>
-	.toolbar-btn {
-		min-width: 2rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.toolbar-btn:disabled {
-		pointer-events: none;
-	}
-
-	.toolbar-btn:not(:disabled):active {
-		transform: translateY(1px);
-	}
-
-	/* Improve accessibility */
-	.toolbar-btn:focus {
-		z-index: 10;
-	}
-
-	/* Ensure consistent button heights */
+	/* Ensure consistent toolbar heights */
 	.editor-toolbar {
-		min-height: 3rem;
+		min-height: 3.5rem;
 	}
 
 	/* Make toolbar responsive */
 	@media (max-width: 640px) {
 		.editor-toolbar {
 			flex-wrap: wrap;
-			gap: 0.25rem;
+			gap: 0.5rem;
+			padding: 0.75rem;
 		}
-
-		.toolbar-btn {
-			min-width: 1.75rem;
-			padding: 0.375rem 0.5rem;
-			font-size: 0.75rem;
+		
+		/* Hide separators on mobile */
+		.editor-toolbar .w-px {
+			display: none;
+		}
+		
+		/* Hide hint text on very small screens */
+		.editor-toolbar .text-xs {
+			display: none;
 		}
 	}
 </style>

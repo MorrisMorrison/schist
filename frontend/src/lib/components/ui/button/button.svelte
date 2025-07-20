@@ -10,7 +10,7 @@
 				destructive:
 					'bg-destructive text-white shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/20 transition-colors',
 				outline:
-					'text-black border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors',
+					'text-black dark:text-white border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors',
 				secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors',
 				ghost: 'hover:bg-accent hover:text-accent-foreground transition-colors',
 				link: 'text-primary underline-offset-4 hover:underline transition-colors'

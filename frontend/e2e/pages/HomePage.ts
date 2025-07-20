@@ -20,7 +20,7 @@ export class HomePage extends BasePage {
 		// Initialize locators
 		this.pageTitle = page.locator('h1').first();
 		this.newPageButton = page.getByRole('link', { name: /Create.*First.*Page|Create.*Page/i }).first();
-		this.searchBox = page.getByPlaceholder(/search/i);
+		this.searchBox = page.getByTestId('nav-search-input').first();
 		this.searchResults = page.locator('[data-testid="search-results"]');
 		this.recentPages = page.locator('[data-testid="recent-pages"]');
 		this.sidebar = page.locator('[data-testid="sidebar"]');
@@ -55,6 +55,7 @@ export class HomePage extends BasePage {
 	 * Search for content
 	 */
 	async search(query: string) {
+		await this.searchBox.waitFor({ state: 'visible' });
 		await this.searchBox.fill(query);
 		// Wait for search results to appear
 		await this.page.waitForTimeout(500); // Debounce delay

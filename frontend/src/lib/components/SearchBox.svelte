@@ -6,11 +6,15 @@
 	let {
 		placeholder = 'Search pages...',
 		showResults = true,
-		onSelect
+		onSelect,
+		id='search-input',
+		testId = 'search-input'
 	}: {
 		placeholder?: string;
 		showResults?: boolean;
 		onSelect?: (page: Page) => void;
+		id?:string;
+		testId?: string;
 	} = $props();
 
 	let query = $state('');
@@ -53,8 +57,8 @@
 		if (onSelect) {
 			onSelect(page);
 		} else {
-			// Default behavior: navigate to page
-			window.location.href = `/${page.metaData.slug}`;
+			// Default behavior: navigate to page using correct path
+			window.location.href = `/pages${page.metaData.path}`;
 		}
 	}
 
@@ -84,10 +88,12 @@
 <div class="search-container relative">
 	<div class="relative">
 		<input
+			id="{id}"
 			type="text"
 			bind:value={query}
 			onkeydown={handleKeydown}
 			{placeholder}
+			data-testid={testId}
 			class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pl-10 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
 		/>
 		<div class="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -111,6 +117,7 @@
 	{#if showDropdown}
 		<div
 			class="absolute top-full z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
+			data-testid="search-results"
 		>
 			<div class="max-h-60 overflow-y-auto">
 				{#each results as page, i (page.metaData.slug)}

@@ -103,7 +103,7 @@
 					<!-- Search box - always on the right -->
 					<div class="hidden md:block">
 						<div class="w-64">
-							<SearchBox placeholder="Search pages..." />
+							<SearchBox placeholder="Search pages..." testId="nav-search-input" />
 						</div>
 					</div>
 					<!-- Theme toggle -->
@@ -178,7 +178,7 @@
 				<div class="border-primary space-y-1 border-t pt-2 pb-3">
 					<!-- Mobile search -->
 					<div class="px-4 pb-3">
-						<SearchBox placeholder="Search pages..." />
+						<SearchBox placeholder="Search pages..." testId="nav-search-input" />
 					</div>
 
 					<!-- Mobile theme toggle -->

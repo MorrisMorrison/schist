@@ -186,7 +186,7 @@
 
 	<!-- Folder Header -->
 	<div
-		class="flex w-full flex-col items-start gap-4 border-b pb-6 md:flex-row md:items-start md:justify-between md:gap-6"
+		class="flex w-full flex-col items-start gap-6 border-b border-border pb-8 md:flex-row md:items-start md:justify-between md:gap-8"
 	>
 		<div class="space-y-2">
 			<h1 class="text-primary text-3xl font-bold">
@@ -267,26 +267,28 @@
 	</div>
 
 	<!-- Folder Contents -->
-	<Card class="p-6">
-		<CardContent class="space-y-8">
+	<Card class="border-border bg-card shadow-sm">
+		<CardContent class="space-y-10 p-8">
 			<!-- Subfolders -->
 			{#if subFolders.length > 0}
-				<section class="space-y-4">
-					<h2 class="text-primary text-lg font-medium">Folders</h2>
+				<section class="space-y-6">
+					<h2 class="text-foreground text-xl font-semibold">Folders</h2>
 					<div
-						class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 sm:grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(280px,1fr))]"
+						class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 					>
 						{#each subFolders as folder (folder.path)}
 							<Card
-								class="cursor-pointer transition-shadow hover:shadow-md"
+								class="group cursor-pointer border-border bg-card transition-all duration-200 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5"
 								onclick={() => navigateToFolder(folder.path)}
 							>
-								<CardHeader class="pb-3">
-									<div class="flex items-center gap-3">
-										<Folder class="h-5 w-5 flex-shrink-0 text-blue-500" />
-										<div class="min-w-0 flex-1">
-											<CardTitle class="truncate text-base font-semibold">{folder.name}</CardTitle>
-											<CardDescription class="text-sm">
+								<CardHeader class="pb-4">
+									<div class="flex items-start gap-4">
+										<div class="rounded-lg bg-primary/10 p-3 transition-colors group-hover:bg-primary/15">
+											<Folder class="h-5 w-5 flex-shrink-0 text-primary" />
+										</div>
+										<div class="min-w-0 flex-1 space-y-1">
+											<CardTitle class="truncate text-base font-semibold leading-tight">{folder.name}</CardTitle>
+											<CardDescription class="text-sm text-muted-foreground">
 												{folder.page_count}
 												{folder.page_count === 1 ? 'page' : 'pages'}
 											</CardDescription>
@@ -301,10 +303,10 @@
 
 			<!-- Pages -->
 			{#if currentFolderPages.length > 0}
-				<section class="space-y-4">
-					<h2 class="text-primary text-lg font-medium">Pages</h2>
+				<section class="space-y-6">
+					<h2 class="text-foreground text-xl font-semibold">Pages</h2>
 					<div
-						class="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4 sm:grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(320px,1fr))]"
+						class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
 					>
 						{#each currentFolderPages as page (page.metaData.slug)}
 							<PageCard

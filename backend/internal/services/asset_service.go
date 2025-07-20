@@ -60,19 +60,16 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 	}
 	defer src.Close()
 
-	// Generate unique filename to prevent conflicts
 	filename, err := s.generateUniqueFilename(file.Filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate filename: %w", err)
 	}
 
-	// Create asset directory structure
 	assetDir := filepath.Join(s.dataDir, ASSETS_DIR, IMAGES_DIR)
 	if mkdirErr := os.MkdirAll(assetDir, 0755); mkdirErr != nil {
 		return nil, fmt.Errorf("failed to create asset directory: %w", mkdirErr)
 	}
 
-	// Create destination file
 	destPath := filepath.Join(assetDir, filename)
 	dst, err := os.Create(destPath)
 	if err != nil {
@@ -80,13 +77,11 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 	}
 	defer dst.Close()
 
-	// Copy file contents
 	size, err := io.Copy(dst, src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save file: %w", err)
 	}
 
-	// Create asset metadata
 	asset := &models.Asset{
 		Name:         filename,
 		OriginalName: file.Filename,
@@ -100,7 +95,6 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 }
 
 func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
-	// Basic path validation for assets (allow dots for file extensions)
 	if relativePath == "" {
 		return "", fmt.Errorf("asset path cannot be empty")
 	}
@@ -109,7 +103,6 @@ func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
 		return "", fmt.Errorf("asset path must start with '/'")
 	}
 
-	// Prevent directory traversal
 	if strings.Contains(relativePath, "..") {
 		return "", fmt.Errorf("asset path cannot contain '..'")
 	}
@@ -125,13 +118,10 @@ func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
 		return "", fmt.Errorf("invalid asset path: path contains invalid characters")
 	}
 
-	// Remove leading slash if present
 	cleanPath := strings.TrimPrefix(relativePath, "/")
 
-	// Build full file path
 	fullPath := filepath.Join(s.dataDir, cleanPath)
 
-	// Ensure path is within dataDir for security
 	absDataDir, err := filepath.Abs(s.dataDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve data directory: %w", err)
@@ -146,7 +136,6 @@ func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
 		return "", fmt.Errorf("invalid asset path: outside data directory")
 	}
 
-	// Check if file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return "", fmt.Errorf("asset not found: %s", relativePath)
 	}
@@ -168,18 +157,15 @@ func (s *AssetService) DeleteAsset(relativePath string) error {
 }
 
 func (s *AssetService) validateImageFile(file *multipart.FileHeader) error {
-	// Check file size
 	if file.Size > MAX_IMAGE_SIZE {
 		return fmt.Errorf("file too large: %d bytes (max %d bytes)", file.Size, MAX_IMAGE_SIZE)
 	}
 
-	// Check file extension
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if !ALLOWED_EXTENSIONS[ext] {
 		return fmt.Errorf("unsupported file extension: %s", ext)
 	}
 
-	// Check content type
 	contentType := file.Header.Get("Content-Type")
 	if !ALLOWED_IMAGE_TYPES[contentType] {
 		return fmt.Errorf("unsupported content type: %s", contentType)
@@ -192,17 +178,13 @@ func (s *AssetService) generateUniqueFilename(originalName string) (string, erro
 	ext := filepath.Ext(originalName)
 	nameWithoutExt := strings.TrimSuffix(originalName, ext)
 
-	// Generate hash of original name + timestamp for uniqueness
 	hash := md5.Sum([]byte(fmt.Sprintf("%s_%d", nameWithoutExt, time.Now().UnixNano())))
 	hashStr := fmt.Sprintf("%x", hash)
 
-	// Take first 8 characters of hash
 	shortHash := hashStr[:8]
 
-	// Create filename: originalname_hash.ext
 	filename := fmt.Sprintf("%s_%s%s", nameWithoutExt, shortHash, ext)
 
-	// Sanitize filename for filesystem
 	filename = utils.GenerateSlug(filename) + ext
 
 	return filename, nil

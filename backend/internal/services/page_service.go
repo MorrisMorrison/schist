@@ -97,29 +97,23 @@ func (p *PageService) ListPages() ([]*models.Page, error) {
 			return err
 		}
 
-		// Skip directories
 		if d.IsDir() {
 			return nil
 		}
 
-		// Only process markdown files
 		if !strings.HasSuffix(d.Name(), MARKDOWN_FILE_ENDING) {
 			return nil
 		}
 
-		// Get relative path from data directory
 		relPath, err := filepath.Rel(p.dataDir, path)
 		if err != nil {
 			return err
 		}
 
-		// Convert to logical path (Unix-style separators)
 		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
 
-		// Remove .md extension from logical path
 		logicalPath = strings.TrimSuffix(logicalPath, MARKDOWN_FILE_ENDING)
 
-		// Read the page using the logical path
 		page, err := p.GetPageByPath(logicalPath)
 		if err != nil {
 			return err
@@ -157,7 +151,6 @@ func (p *PageService) savePage(page *models.Page) error {
 
 	fileName := p.buildFilePathFromPath(page.MetaData.Path)
 
-	// Create directory structure if it doesn't exist
 	dir := filepath.Dir(fileName)
 	fileMode := os.FileMode(0755)
 	if err := os.MkdirAll(dir, fileMode); err != nil {
@@ -241,7 +234,6 @@ func (p *PageService) GetFolder(path string) (*models.Folder, error) {
 		return nil, fmt.Errorf("invalid folder path: %w", err)
 	}
 
-	// Handle root folder case
 	if path == "/" {
 		return p.getRootFolder()
 	}
@@ -312,7 +304,6 @@ func (p *PageService) populateFolderContents(folder *models.Folder, folderPath s
 func (p *PageService) createSubfolder(parentPath string, entry os.DirEntry) *models.Folder {
 	entryInfo, err := entry.Info()
 	if err != nil {
-		// Return empty subfolder if we can't read entry info
 		return &models.Folder{
 			Name:       entry.Name(),
 			Path:       pathutils.NormalizePath(parentPath + "/" + entry.Name()),
@@ -362,19 +353,16 @@ func (p *PageService) getRootFolder() (*models.Folder, error) {
 		SubFolders: []*models.Folder{},
 	}
 
-	// Read root directory contents
 	entries, err := os.ReadDir(p.dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read root folder contents: %w", err)
 	}
 
-	// Process directory entries
 	for _, entry := range entries {
 		if entry.IsDir() {
-			// Add subfolder
 			entryInfo, err := entry.Info()
 			if err != nil {
-				continue // Skip entries we can't read
+				continue
 			}
 
 			subfolderPath := "/" + entry.Name()
@@ -386,7 +374,6 @@ func (p *PageService) getRootFolder() (*models.Folder, error) {
 				SubFolders: []*models.Folder{},
 			}
 
-			// Count pages in subfolder
 			subfolderFilePath := filepath.Join(p.dataDir, entry.Name())
 			if subEntries, err := os.ReadDir(subfolderFilePath); err == nil {
 				for _, subEntry := range subEntries {
@@ -398,7 +385,6 @@ func (p *PageService) getRootFolder() (*models.Folder, error) {
 
 			folder.SubFolders = append(folder.SubFolders, subfolder)
 		} else if strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
-			// Count pages in root folder
 			folder.PageCount++
 		}
 	}

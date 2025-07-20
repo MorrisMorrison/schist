@@ -61,19 +61,19 @@
 	);
 </script>
 
-<Card class="transition-shadow hover:shadow-md">
-	<CardHeader class="pb-3">
-		<div class="space-y-2">
+<Card class="group border-border bg-card transition-all duration-200 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5">
+	<CardHeader class="pb-4">
+		<div class="space-y-3">
 			<!-- Row 1: Title and Buttons -->
-			<div class="flex items-center justify-between gap-3">
+			<div class="flex items-start justify-between gap-4">
 				<CardTitle
-					class="hover:text-primary cursor-pointer truncate text-lg font-semibold"
+					class="hover:text-primary cursor-pointer truncate text-lg font-semibold leading-tight transition-colors"
 					onclick={() => onView?.(pagePathDerived)}
 				>
 					{page.metaData.title}
 				</CardTitle>
 
-				<div class="flex shrink-0 gap-1">
+				<div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
 					{#if onView}
 						<Button variant="ghost" size="sm" onclick={() => onView(pagePathDerived)}>
 							<Eye class="h-4 w-4" />
@@ -98,7 +98,7 @@
 			</div>
 
 			<!-- Row 2: Path and Dates (full width) -->
-			<div class="space-y-1">
+			<div class="space-y-2">
 				{#if showPath}
 					<CardDescription class="text-muted-foreground flex items-center gap-1 text-sm">
 						<FolderOpen class="h-3 w-3 flex-shrink-0" />
@@ -123,20 +123,22 @@
 	</CardHeader>
 
 	<CardContent class="pt-0">
-		{#if page.content}
-			<p class="text-muted-foreground mb-3 text-sm">
-				{getExcerpt(page.content)}
-			</p>
-		{/if}
+		<div class="space-y-4">
+			{#if page.content}
+				<p class="text-muted-foreground text-sm leading-relaxed">
+					{getExcerpt(page.content)}
+				</p>
+			{/if}
 
-		{#if showTags && page.metaData.tags && page.metaData.tags.length > 0}
-			<div class="flex flex-wrap gap-1">
-				{#each page.metaData.tags as tag (tag)}
-					<Badge variant="secondary" class="text-xs">
-						{tag}
-					</Badge>
-				{/each}
-			</div>
-		{/if}
+			{#if showTags && page.metaData.tags && page.metaData.tags.length > 0}
+				<div class="flex flex-wrap gap-2">
+					{#each page.metaData.tags as tag (tag)}
+						<Badge variant="secondary" class="text-xs">
+							{tag}
+						</Badge>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	</CardContent>
 </Card>

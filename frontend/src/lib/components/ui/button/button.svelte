@@ -11,12 +11,9 @@
 					'bg-destructive text-white shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/20 transition-colors',
 				outline:
 					'border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors',
-				secondary: 
-					'bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors',
-				ghost: 
-					'hover:bg-accent hover:text-accent-foreground transition-colors',
-				link: 
-					'text-primary underline-offset-4 hover:underline transition-colors'
+				secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors',
+				ghost: 'hover:bg-accent hover:text-accent-foreground transition-colors',
+				link: 'text-primary underline-offset-4 hover:underline transition-colors'
 			},
 			size: {
 				default: 'h-9 px-4 py-2 has-[>svg]:px-3',

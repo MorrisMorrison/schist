@@ -415,13 +415,13 @@
 				{#if showPages}
 					{#each getPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
 						<div
-							class="group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+							class="group hover:bg-accent hover:text-accent-foreground relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors"
 							style="margin-left: {(depth + 1) * 16}px"
 						>
 							<div class="h-4 w-4"></div>
 							<button
 								type="button"
-								class="flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:outline-none"
+								class="focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 								onclick={() => onpageselect?.({ page })}
 							>
 								<File class="h-4 w-4 text-gray-500" />

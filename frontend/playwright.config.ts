@@ -69,7 +69,7 @@ export default defineConfig({
 		{
 			name: 'Mobile Chrome',
 			use: { ...devices['Pixel 5'] }
-		},
+		}
 		// {
 		// 	name: 'Mobile Safari',
 		// 	use: { ...devices['iPhone 12'] }
@@ -89,7 +89,8 @@ export default defineConfig({
 	/* Run your local dev server before starting the tests */
 	webServer: [
 		{
-			command: 'cd ../backend/cmd/schist && NODE_ENV=development SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data go run main.go',
+			command:
+				'cd ../backend/cmd/schist && NODE_ENV=development SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data go run main.go',
 			port: 8080,
 			reuseExistingServer: !process.env.CI,
 			timeout: 60 * 1000 // 1 minute for backend start

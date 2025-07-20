@@ -24,9 +24,10 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 ### Development
 
 ```bash
-# Clone and start development servers
+# Clone and install dependencies
 git clone https://github.com/MorrisMorrison/schist.git
 cd schist
+cd frontend && npm install && cd ..
 
 # Terminal 1: Backend
 NODE_ENV=development make run-backend
@@ -44,9 +45,8 @@ Open http://localhost:5173 in your browser.
 make run-docker
 
 # Or build manually
-cd frontend && npm run build
-cd backend && go build -o schist ./cmd/schist
-./backend/schist
+make build
+cd backend && ./schist
 ```
 
 Your wiki will be available at http://localhost:8080

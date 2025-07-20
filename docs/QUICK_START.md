@@ -27,18 +27,12 @@ cd ..
 
 ### 3. Start Development Servers
 
-**Option A: Two Terminals (Recommended)**
 ```bash
 # Terminal 1: Start backend
 NODE_ENV=development make run-backend
 
 # Terminal 2: Start frontend dev server
 make run-frontend
-```
-
-**Option B: Docker Development**
-```bash
-make run-docker-dev
 ```
 
 ### 4. Access the Application
@@ -110,7 +104,6 @@ mkdir -p data/pages data/assets
 | `make fmt` | Format both frontend and backend code | Code quality |
 | `make lint` | Lint frontend code (ESLint) | Code quality |
 | `make run-docker` | Build and run production container | Production |
-| `make run-docker-dev` | Run development containers | Development |
 
 ## First Steps
 

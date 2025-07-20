@@ -26,8 +26,6 @@ run-backend-test:
 run-docker:
 	docker-compose --profile prod up --build
 
-run-docker-dev:
-	docker-compose --profile dev up --build
 
 run-backend:
 	cd backend/cmd/schist && go run main.go

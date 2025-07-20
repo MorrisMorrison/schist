@@ -57,7 +57,7 @@ schist/
 │   ├── DEVELOPMENT.md       # This file
 │   └── QUICK_START.md
 ├── http/                      # HTTP API testing files
-├── docker-compose.yml         # Docker orchestration
+├── docker-compose.yml         # Production Docker setup
 ├── Dockerfile                 # Docker build configuration
 └── Makefile                   # Build and development commands
 ```
@@ -463,12 +463,9 @@ make run-frontend
 ### Development Deployment
 
 ```bash
-# Two-server development
+# Two-server development (recommended)
 NODE_ENV=development make run-backend    # :8080
 make run-frontend                        # :5173
-
-# Docker development
-make run-docker-dev
 ```
 
 ### Production Deployment

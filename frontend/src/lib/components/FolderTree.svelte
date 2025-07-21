@@ -41,6 +41,8 @@
 		oncreate?: (event: { parentPath: string }) => void;
 		ondelete?: (event: { path: string; folder: FolderType }) => void;
 		onrename?: (event: { path: string; folder: FolderType }) => void;
+		onpagedelete?: (event: { page: Page }) => void;
+		onpagerename?: (event: { page: Page }) => void;
 		onexpandall?: () => void;
 		oncollapseall?: () => void;
 	}
@@ -61,6 +63,8 @@
 		oncreate,
 		ondelete,
 		onrename,
+		onpagedelete,
+		onpagerename,
 		onexpandall,
 		oncollapseall
 	}: Props = $props();
@@ -68,6 +72,8 @@
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
 	let contextMenuOpen = $state<string | null>(null);
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
+	let pageContextMenuOpen = $state<string | null>(null);
+	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let searchQuery = $state('');
 
 	const pages = $derived($pagesStore.pages || []);
@@ -225,6 +231,7 @@
 
 	function closeContextMenu() {
 		contextMenuOpen = null;
+		pageContextMenuOpen = null;
 	}
 
 	function toggleExpanded(path: string) {
@@ -284,6 +291,58 @@
 	function handleRenameFolder(folder: FolderType) {
 		onrename?.({ path: folder.path, folder });
 		closeContextMenu();
+	}
+
+	// Page context menu handlers
+	function handlePageContextMenu(event: MouseEvent | KeyboardEvent, page: Page) {
+		if (!enableContextMenu) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+
+		const target = event.currentTarget as HTMLElement;
+		const rect = target.getBoundingClientRect();
+
+		let x: number, y: number;
+
+		if (event instanceof MouseEvent) {
+			x = event.clientX + 5;
+			y = event.clientY - 50;
+		} else {
+			x = rect.left;
+			y = rect.bottom + 2;
+		}
+
+		// Ensure the menu doesn't go off screen
+		const menuWidth = 160;
+		const menuHeight = 80;
+
+		if (x + menuWidth > window.innerWidth) {
+			x = window.innerWidth - menuWidth - 10;
+		}
+		if (y < 0) {
+			y = 10;
+		}
+		if (y + menuHeight > window.innerHeight) {
+			y = window.innerHeight - menuHeight - 10;
+		}
+
+		pageContextMenuPosition = { x, y };
+		pageContextMenuOpen = page.metaData?.path || '';
+	}
+
+	function handleDeletePage(page: Page) {
+		onpagedelete?.({ page });
+		closeContextMenu();
+	}
+
+	function handleRenamePage(page: Page) {
+		onpagerename?.({ page });
+		closeContextMenu();
+	}
+
+	function findPageByPath(path: string): Page | null {
+		return pages.find((page) => page.metaData?.path === path) || null;
 	}
 
 	function findFolderByPath(folders: FolderType[], path: string): FolderType | null {
@@ -421,17 +480,51 @@
 								isSelectedFile(page.metaData.path) && 'bg-accent text-accent-foreground',
 								isCurrentFile(page.metaData.path) && 'bg-accent font-medium'
 							)}
-							style="margin-left: {(depth + 1) * 16}px"
+							oncontextmenu={(e) => handlePageContextMenu(e, page)}
+							role="treeitem"
+							aria-label={`Page: ${page.metaData?.title || 'Untitled'}`}
+							aria-selected={isSelectedFile(page.metaData.path)}
+							tabindex="-1"
 						>
-							<div class="h-4 w-4"></div>
-							<button
-								type="button"
-								class="focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
-								onclick={() => onpageselect?.({ page })}
+							<!-- Indented content container -->
+							<div
+								class="flex w-full items-center gap-2 pr-8"
+								style="margin-left: {(depth + 1) * 16}px"
 							>
-								<File class="text-blue-primary h-4 w-4" />
-								<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span>
-							</button>
+								<div class="h-4 w-4"></div>
+								<button
+									type="button"
+									class="focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
+									onclick={() => onpageselect?.({ page })}
+								>
+									<File class="text-blue-primary h-4 w-4" />
+									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span
+									>
+								</button>
+							</div>
+
+							<!-- Page Context Menu Trigger - Positioned absolutely to the right -->
+							{#if enableContextMenu}
+								<span
+									class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
+									onclick={(e) => {
+										e.stopPropagation();
+										handlePageContextMenu(e, page);
+									}}
+									onkeydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											e.stopPropagation();
+											handlePageContextMenu(e, page);
+										}
+									}}
+									role="button"
+									tabindex="0"
+									aria-label="Page options"
+								>
+									<MoreVertical class="h-3 w-3" />
+								</span>
+							{/if}
 						</div>
 					{/each}
 				{/if}
@@ -592,6 +685,46 @@
 				onclick={() => {
 					const folder = findFolderByPath($folders, contextMenuOpen || '');
 					if (folder) handleDeleteFolder(folder);
+				}}
+			>
+				<Trash2 class="h-4 w-4" />
+				Delete
+			</button>
+		</div>
+	{/if}
+
+	<!-- Page Context Menu -->
+	{#if pageContextMenuOpen}
+		<div
+			class="bg-primary border-primary fixed z-50 min-w-[160px] rounded-lg border py-1 shadow-lg"
+			style="left: {pageContextMenuPosition.x}px; top: {pageContextMenuPosition.y}px"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => {
+				if (e.key === 'Escape') {
+					closeContextMenu();
+				}
+			}}
+			role="menu"
+			aria-label="Page actions"
+			tabindex="-1"
+		>
+			<button
+				type="button"
+				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+				onclick={() => {
+					const page = findPageByPath(pageContextMenuOpen || '');
+					if (page) handleRenamePage(page);
+				}}
+			>
+				<Edit class="h-4 w-4" />
+				Rename
+			</button>
+			<button
+				type="button"
+				class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
+				onclick={() => {
+					const page = findPageByPath(pageContextMenuOpen || '');
+					if (page) handleDeletePage(page);
 				}}
 			>
 				<Trash2 class="h-4 w-4" />

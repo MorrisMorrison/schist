@@ -4,13 +4,19 @@
 	import FolderTree from './FolderTree.svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
 	import RenameFolderModal from './RenameFolderModal.svelte';
+	import RenamePageModal from './RenamePageModal.svelte';
+	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
 	import type { Folder as FolderType, Page } from '$lib/api/types';
-	import { folderActions } from '$lib/stores/pages';
+	import { folderActions, pageActions } from '$lib/stores/pages';
 
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
 	let showRenameFolderModal = $state(false);
-	let folderToRename = $state<FolderType | null>(null);
+	let folderToRename = $state<FolderType | undefined>(undefined);
+	let showRenamePageModal = $state(false);
+	let showDeletePageModal = $state(false);
+	let pageToRename = $state<Page | null>(null);
+	let pageToDelete = $state<Page | null>(null);
 
 	const currentPath = $derived(page.url.pathname);
 
@@ -49,8 +55,36 @@
 
 	function handleFolderRenamed() {
 		showRenameFolderModal = false;
-		folderToRename = null;
+		folderToRename = undefined;
 		folderActions.loadFolderTree();
+	}
+
+	function handlePageDelete(event: { page: Page }) {
+		pageToDelete = event.page;
+		showDeletePageModal = true;
+	}
+
+	function handlePageRename(event: { page: Page }) {
+		pageToRename = event.page;
+		showRenamePageModal = true;
+	}
+
+	async function confirmDeletePage() {
+		if (pageToDelete?.metaData?.path) {
+			try {
+				await pageActions.deletePageByPath(pageToDelete.metaData.path);
+				showDeletePageModal = false;
+				pageToDelete = null;
+			} catch (error) {
+				console.error('Failed to delete page:', error);
+			}
+		}
+	}
+
+	function handlePageRenamed() {
+		showRenamePageModal = false;
+		pageToRename = null;
+		pageActions.loadPages();
 	}
 </script>
 
@@ -67,6 +101,8 @@
 			oncreate={handleCreateFolder}
 			ondelete={handleDeleteFolder}
 			onrename={handleRenameFolder}
+			onpagedelete={handlePageDelete}
+			onpagerename={handlePageRename}
 		/>
 	</div>
 </aside>
@@ -88,7 +124,34 @@
 	folder={folderToRename}
 	onClose={() => {
 		showRenameFolderModal = false;
-		folderToRename = null;
+		folderToRename = undefined;
 	}}
 	onRenamed={handleFolderRenamed}
 />
+
+<!-- Rename Page Modal -->
+{#if pageToRename}
+	<RenamePageModal
+		open={showRenamePageModal}
+		page={pageToRename}
+		onClose={() => {
+			showRenamePageModal = false;
+			pageToRename = null;
+		}}
+		onRenamed={handlePageRenamed}
+	/>
+{/if}
+
+<!-- Delete Page Modal -->
+{#if pageToDelete}
+	<DeleteConfirmModal
+		open={showDeletePageModal}
+		title="Delete Page"
+		description={`Are you sure you want to delete "${pageToDelete.metaData?.title || 'this page'}"? This action cannot be undone.`}
+		onCancel={() => {
+			showDeletePageModal = false;
+			pageToDelete = null;
+		}}
+		onConfirm={confirmDeletePage}
+	/>
+{/if}

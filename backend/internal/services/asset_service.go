@@ -2,6 +2,8 @@ package services
 
 import (
 	"crypto/md5"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -21,7 +23,8 @@ const (
 	IMAGES_DIR     = "images"
 )
 
-var ALLOWED_IMAGE_TYPES = map[string]bool{
+// allowedImageTypes contains the set of permitted image MIME types
+var allowedImageTypes = map[string]bool{
 	"image/jpeg":    true,
 	"image/jpg":     true,
 	"image/png":     true,
@@ -30,7 +33,8 @@ var ALLOWED_IMAGE_TYPES = map[string]bool{
 	"image/svg+xml": true,
 }
 
-var ALLOWED_EXTENSIONS = map[string]bool{
+// allowedExtensions contains the set of permitted file extensions
+var allowedExtensions = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,
 	".png":  true,
@@ -162,12 +166,12 @@ func (s *AssetService) validateImageFile(file *multipart.FileHeader) error {
 	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if !ALLOWED_EXTENSIONS[ext] {
+	if !allowedExtensions[ext] {
 		return fmt.Errorf("unsupported file extension: %s", ext)
 	}
 
 	contentType := file.Header.Get("Content-Type")
-	if !ALLOWED_IMAGE_TYPES[contentType] {
+	if !allowedImageTypes[contentType] {
 		return fmt.Errorf("unsupported content type: %s", contentType)
 	}
 
@@ -178,10 +182,20 @@ func (s *AssetService) generateUniqueFilename(originalName string) (string, erro
 	ext := filepath.Ext(originalName)
 	nameWithoutExt := strings.TrimSuffix(originalName, ext)
 
-	hash := md5.Sum([]byte(fmt.Sprintf("%s_%d", nameWithoutExt, time.Now().UnixNano())))
-	hashStr := fmt.Sprintf("%x", hash)
+	// Generate random bytes for uniqueness
+	randomBytes := make([]byte, 8)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
+	}
 
-	shortHash := hashStr[:8]
+	// Create hash with name, timestamp, and random data
+	hasher := md5.New()
+	hasher.Write([]byte(fmt.Sprintf("%s_%d", nameWithoutExt, time.Now().UnixNano())))
+	hasher.Write(randomBytes)
+	hashBytes := hasher.Sum(nil)
+
+	// Use first 8 characters of hex representation
+	shortHash := hex.EncodeToString(hashBytes)[:8]
 
 	filename := fmt.Sprintf("%s_%s%s", nameWithoutExt, shortHash, ext)
 

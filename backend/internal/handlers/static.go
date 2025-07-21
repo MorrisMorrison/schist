@@ -43,11 +43,11 @@ func (h *StaticHandler) ServeStatic() gin.HandlerFunc {
 }
 
 // SetupStaticRoutes configures static file serving
-func (h *StaticHandler) SetupStaticRoutes(r *gin.Engine) {
+func (h *StaticHandler) SetupStaticRoutes(router *gin.Engine) {
 	// Serve static assets (CSS, JS, images)
-	r.Static("/assets", filepath.Join(h.staticDir, "assets"))
-	r.Static("/_app", filepath.Join(h.staticDir, "_app"))
+	router.Static("/assets", filepath.Join(h.staticDir, "assets"))
+	router.Static("/_app", filepath.Join(h.staticDir, "_app"))
 
 	// Handle all other routes (SPA fallback)
-	r.NoRoute(h.ServeStatic())
+	router.NoRoute(h.ServeStatic())
 }

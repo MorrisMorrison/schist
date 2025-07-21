@@ -132,7 +132,7 @@ func TestPageService_ReadPage(t *testing.T) {
 		// Create a simple markdown file without front matter
 		simplePage := "# Simple Page\n\nJust content, no metadata."
 		filePath := filepath.Join(testDir, "simple.md")
-		err := os.WriteFile(filePath, []byte(simplePage), 0644)
+		err := os.WriteFile(filePath, []byte(simplePage), 0600)
 		require.NoError(t, err)
 
 		// Read the page without front matter
@@ -279,7 +279,7 @@ func TestPageService_ListPages(t *testing.T) {
 
 		// Create a non-markdown file
 		txtFile := filepath.Join(testDir, "readme.txt")
-		err = os.WriteFile(txtFile, []byte("This is a text file"), 0644)
+		err = os.WriteFile(txtFile, []byte("This is a text file"), 0600)
 		require.NoError(t, err)
 
 		// List pages should only return markdown files

@@ -86,28 +86,31 @@ func (p *PageService) UpdatePage(page *models.Page) error {
 func (p *PageService) DeletePage(slug string) error {
 
 	filePath := p.buildFilePath(slug)
-	return os.Remove(filePath)
+	if err := os.Remove(filePath); err != nil {
+		return fmt.Errorf("failed to delete page file: %w", err)
+	}
+	return nil
 }
 
 func (p *PageService) ListPages() ([]*models.Page, error) {
 	var pages []*models.Page
 
-	err := filepath.WalkDir(p.dataDir, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(p.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if d.IsDir() {
+		if dirEntry.IsDir() {
 			return nil
 		}
 
-		if !strings.HasSuffix(d.Name(), MARKDOWN_FILE_ENDING) {
+		if !strings.HasSuffix(dirEntry.Name(), MARKDOWN_FILE_ENDING) {
 			return nil
 		}
 
 		relPath, err := filepath.Rel(p.dataDir, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get relative path: %w", err)
 		}
 
 		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
@@ -146,7 +149,7 @@ func (p *PageService) buildFilePathFromPath(path string) string {
 func (p *PageService) savePage(page *models.Page) error {
 	content, err := serializer.SerializePage(page)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to serialize page: %w", err)
 	}
 
 	fileName := p.buildFilePathFromPath(page.MetaData.Path)
@@ -159,7 +162,10 @@ func (p *PageService) savePage(page *models.Page) error {
 
 	// 0644 = -rw-r--r-- = read/write permission for owner, read for others
 	fileMode = os.FileMode(0644)
-	return os.WriteFile(fileName, content, fileMode)
+	if err := os.WriteFile(fileName, content, fileMode); err != nil {
+		return fmt.Errorf("failed to write page file: %w", err)
+	}
+	return nil
 }
 
 func (p *PageService) GetPageByPath(path string) (*models.Page, error) {
@@ -396,7 +402,7 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 	folderMap := make(map[string]*models.Folder)
 	var rootFolders []*models.Folder
 
-	err := filepath.WalkDir(p.dataDir, func(path string, d os.DirEntry, err error) error {
+	err := filepath.WalkDir(p.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -412,19 +418,19 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 
 		relPath, err := filepath.Rel(p.dataDir, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get relative path: %w", err)
 		}
 
 		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
 
-		if d.IsDir() {
-			info, err := d.Info()
+		if dirEntry.IsDir() {
+			info, err := dirEntry.Info()
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get file info: %w", err)
 			}
 
 			folder := &models.Folder{
-				Name:       d.Name(),
+				Name:       dirEntry.Name(),
 				Path:       logicalPath,
 				Created:    info.ModTime(),
 				PageCount:  0,
@@ -442,7 +448,7 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 					parent.SubFolders = append(parent.SubFolders, folder)
 				}
 			}
-		} else if strings.HasSuffix(d.Name(), MARKDOWN_FILE_ENDING) {
+		} else if strings.HasSuffix(dirEntry.Name(), MARKDOWN_FILE_ENDING) {
 			folderPath := filepath.Dir(logicalPath)
 			if folderPath == "." {
 				folderPath = "/"

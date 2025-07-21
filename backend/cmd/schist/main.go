@@ -26,27 +26,27 @@ func main() {
 
 	initDataDir(cfg)
 
-	r := gin.Default()
+	router := gin.Default()
 
-	setupCORS(r, cfg)
+	setupCORS(router, cfg)
 
 	apiHandler := handlers.NewAPIHandler()
 	staticHandler := handlers.NewStaticHandler(cfg.StaticDir)
 
-	api := r.Group("/api")
+	api := router.Group("/api")
 	apiHandler.SetupAPIRoutes(api)
 
 	// Serve user-uploaded assets from data directory
-	r.Static("/uploads", filepath.Join(cfg.DataDir, "assets"))
+	router.Static("/uploads", filepath.Join(cfg.DataDir, "assets"))
 
 	if !cfg.IsDevelopment() {
-		staticHandler.SetupStaticRoutes(r)
+		staticHandler.SetupStaticRoutes(router)
 	}
 
 	port := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Starting Schist server on port %s (env: %s)", cfg.Port, cfg.Environment)
 
-	if err := r.Run(port); err != nil {
+	if err := router.Run(port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
@@ -62,13 +62,13 @@ func initDataDir(config *config.Config) {
 	log.Printf("dataDir %s successfully created", config.DataDir)
 }
 
-func setupCORS(r *gin.Engine, cfg *config.Config) {
+func setupCORS(router *gin.Engine, cfg *config.Config) {
 	if !cfg.IsDevelopment() {
 		return
 	}
 
 	// Development: Allow frontend dev server
-	r.Use(cors.New(cors.Config{
+	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},

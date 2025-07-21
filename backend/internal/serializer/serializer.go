@@ -25,10 +25,7 @@ func DeserializePage(fileContent []byte) (*models.Page, error) {
 		return nil, fmt.Errorf("invalid meta data")
 	}
 
-	content, err := deserializeContent(parts[1])
-	if err != nil {
-		return nil, fmt.Errorf("invalid content")
-	}
+	content := deserializeContent(parts[1])
 
 	page := &models.Page{
 		MetaData: metaData,
@@ -47,8 +44,8 @@ func deserializeYAMLMetaData(metaDataPart []byte) (*models.PageMetaData, error) 
 	return metaData, nil
 }
 
-func deserializeContent(contentPart []byte) (string, error) {
-	return string(contentPart), nil
+func deserializeContent(contentPart []byte) string {
+	return string(contentPart)
 }
 
 // Page -> raw file content
@@ -72,7 +69,7 @@ func serializeMetaData(metaData *models.PageMetaData) ([]byte, error) {
 
 	yamlData, err := yaml.Marshal(metaData)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
 	buf.Write(yamlData)

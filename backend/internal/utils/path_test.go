@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 )
@@ -75,7 +76,7 @@ func TestValidatePath(t *testing.T) {
 				t.Errorf("ValidatePath() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if tt.wantErr && err != tt.expected {
+			if tt.wantErr && !errors.Is(err, tt.expected) {
 				t.Errorf("ValidatePath() error = %v, expected %v", err, tt.expected)
 			}
 		})
@@ -259,7 +260,7 @@ func TestBuildFilePath(t *testing.T) {
 			name:     "root path",
 			dataDir:  "/data",
 			path:     "/",
-			expected: filepath.Join("/data"),
+			expected: "/data",
 		},
 	}
 

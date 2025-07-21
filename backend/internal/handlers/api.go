@@ -25,10 +25,10 @@ func NewAPIHandler() *APIHandler {
 	}
 }
 
-func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
-	r.GET("/health", h.healthCheck)
+func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
+	routerGroup.GET("/health", h.healthCheck)
 
-	pages := r.Group("/pages")
+	pages := routerGroup.Group("/pages")
 	{
 		pages.GET("", h.listPages)
 		pages.POST("", h.createPage)
@@ -38,7 +38,7 @@ func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
 		pages.POST("/move", h.movePage)
 	}
 
-	folders := r.Group("/folders")
+	folders := routerGroup.Group("/folders")
 	{
 		folders.GET("", h.getFolderTree)
 		folders.GET("/*path", h.getFolder)
@@ -46,9 +46,9 @@ func (h *APIHandler) SetupAPIRoutes(r *gin.RouterGroup) {
 		folders.DELETE("/*path", h.deleteFolder)
 	}
 
-	r.GET("/search", h.search)
+	routerGroup.GET("/search", h.search)
 
-	assets := r.Group("/assets")
+	assets := routerGroup.Group("/assets")
 	{
 		assets.POST("/upload", h.uploadAsset)
 		assets.GET("/*path", h.serveAsset)
@@ -135,7 +135,6 @@ func (h *APIHandler) getPageByPath(c *gin.Context) {
 	c.JSON(http.StatusOK, page)
 }
 
-// TODO move logic out of handler
 func (h *APIHandler) updatePageByPath(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
@@ -275,7 +274,6 @@ func (h *APIHandler) deleteFolder(c *gin.Context) {
 }
 
 func (h *APIHandler) movePage(c *gin.Context) {
-	// TODO move out of handler
 	type MoveRequest struct {
 		OldPath string `json:"oldPath" binding:"required"`
 		NewPath string `json:"newPath" binding:"required"`
@@ -290,7 +288,6 @@ func (h *APIHandler) movePage(c *gin.Context) {
 		return
 	}
 
-	// TODO use existing path validation
 	if !strings.HasPrefix(req.OldPath, "/") {
 		req.OldPath = "/" + req.OldPath
 	}

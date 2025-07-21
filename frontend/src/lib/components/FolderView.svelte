@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { pagesStore, foldersStore, folderActions, pageActions } from '$lib/stores/pages';
-	import PageCard from './PageCard.svelte';
+	import PageGrid from './PageGrid.svelte';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
-	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
 	import { Plus, FolderPlus, File, Folder } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -18,6 +17,8 @@
 
 	interface Props {
 		path?: string;
+		mode?: 'folder' | 'recent' | 'all';
+		recentLimit?: number;
 		showCreateButtons?: boolean;
 		initialPages?: Page[];
 		initialFolders?: FolderType[];
@@ -25,6 +26,8 @@
 
 	let {
 		path = '',
+		mode = 'folder',
+		recentLimit = 10,
 		showCreateButtons = true,
 		initialPages = [],
 		initialFolders = []
@@ -32,11 +35,8 @@
 
 	let showCreateFolderModal = $state(false);
 	let isLoadingFolderData = $state(false);
-	let sortBy = $state('name'); // 'name', 'created', 'modified'
-	let sortOrder = $state('asc'); // 'asc', 'desc'
-	let deleteDialogOpen = $state(false);
-	let pageToDelete = $state<string | null>(null);
-	let isDeleting = $state(false);
+	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name'); // 'name', 'created', 'modified'
+	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc'); // 'asc', 'desc'
 
 	const currentFolderData = $derived(() => {
 		const isRoot = path === '' || path === '/';
@@ -60,9 +60,23 @@
 		}
 		return $foldersStore.folders?.find((f) => f.path === path);
 	});
-	const currentFolderPages = $derived(
-		$pagesStore.pages
-			.filter((page) => {
+	const currentFolderPages = $derived(() => {
+		if (mode === 'recent') {
+			// Return recent pages sorted by modification date
+			return $pagesStore.pages
+				.filter((page) => !page.metaData.path.includes('/trash'))
+				.sort((a, b) => {
+					const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
+					const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
+					return dateB - dateA; // Newest first
+				})
+				.slice(0, recentLimit);
+		} else if (mode === 'all') {
+			// Return all pages
+			return $pagesStore.pages.filter((page) => !page.metaData.path.includes('/trash'));
+		} else {
+			// Original folder filtering logic
+			return $pagesStore.pages.filter((page) => {
 				const pagePath = page.metaData?.path || '';
 				const isRoot = path === '' || path === '/';
 				if (isRoot) {
@@ -79,32 +93,19 @@
 					pageSegments.length === folderSegments.length + 1 &&
 					pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
 				);
-			})
-			.sort((a, b) => {
-				let result = 0;
+			});
+		}
+	});
 
-				if (sortBy === 'name') {
-					result = (a.metaData.title || '').localeCompare(b.metaData.title || '');
-				} else if (sortBy === 'created') {
-					const dateA = new Date(a.metaData.created || '').getTime();
-					const dateB = new Date(b.metaData.created || '').getTime();
-					result = dateB - dateA; // Newest first by default
-				} else if (sortBy === 'modified') {
-					const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
-					const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
-					result = dateB - dateA; // Newest first by default
-				}
-
-				return sortOrder === 'desc' ? -result : result;
-			})
-	);
-
-	const subFolders = $derived(
-		(currentFolderData()?.sub_folders || []).sort((a, b) => {
+	const subFolders = $derived(() => {
+		if (mode === 'recent' || mode === 'all') {
+			return []; // No folders in recent/all modes
+		}
+		return (currentFolderData()?.sub_folders || []).sort((a, b) => {
 			const result = a.name.localeCompare(b.name);
 			return sortOrder === 'desc' ? -result : result;
-		})
-	);
+		});
+	});
 
 	// Load folder contents on mount and path changes
 	$effect(() => {
@@ -137,42 +138,8 @@
 		goto(`/folders${folderPath}`);
 	}
 
-	function navigateToPage(pagePath: string) {
-		goto(`/pages${pagePath}`);
-	}
-
 	function navigateToNewPage(path: string) {
 		goto(`/new${path}`);
-	}
-
-	function navigateToEditPage(path: string) {
-		goto(`/edit${path}`);
-	}
-
-	function handleDeletePage(slug: string) {
-		pageToDelete = slug;
-		deleteDialogOpen = true;
-	}
-
-	async function confirmDelete() {
-		if (!pageToDelete) return;
-
-		try {
-			isDeleting = true;
-			await pageActions.deletePage(pageToDelete);
-			deleteDialogOpen = false;
-			pageToDelete = null;
-		} catch (err) {
-			console.error('Failed to delete page:', err);
-		} finally {
-			isDeleting = false;
-		}
-	}
-
-	function cancelDelete() {
-		deleteDialogOpen = false;
-		pageToDelete = null;
-		isDeleting = false;
 	}
 
 	async function handleFolderCreated() {
@@ -182,7 +149,9 @@
 </script>
 
 <div class="mx-auto max-w-7xl space-y-8 p-6">
-	<Breadcrumbs {path} />
+	{#if mode === 'folder'}
+		<Breadcrumbs {path} />
+	{/if}
 
 	<!-- Folder Header -->
 	<div
@@ -190,7 +159,11 @@
 	>
 		<div class="space-y-2">
 			<h1 class="text-primary text-3xl font-bold">
-				{#if path === ''}
+				{#if mode === 'recent'}
+					Recent Pages
+				{:else if mode === 'all'}
+					All Pages
+				{:else if path === ''}
 					root
 				{:else}
 					{(() => {
@@ -201,17 +174,30 @@
 				{/if}
 			</h1>
 
-			<!-- Folder Statistics -->
+			<!-- Statistics -->
 			<div class="text-secondary flex items-center gap-2 text-sm">
-				<span class="font-medium">
-					{subFolders.length}
-					{subFolders.length === 1 ? 'folder' : 'folders'}
-				</span>
-				<span class="text-muted">•</span>
-				<span class="font-medium">
-					{currentFolderPages.length}
-					{currentFolderPages.length === 1 ? 'page' : 'pages'}
-				</span>
+				{#if mode === 'recent'}
+					<span class="font-medium">
+						{currentFolderPages().length > 0
+							? `Showing ${currentFolderPages().length} of ${$pagesStore.pages.length} pages, sorted by most recent activity`
+							: 'No pages found'}
+					</span>
+				{:else if mode === 'all'}
+					<span class="font-medium">
+						{currentFolderPages().length}
+						{currentFolderPages().length === 1 ? 'page' : 'pages'} total
+					</span>
+				{:else}
+					<span class="font-medium">
+						{subFolders().length}
+						{subFolders().length === 1 ? 'folder' : 'folders'}
+					</span>
+					<span class="text-muted">•</span>
+					<span class="font-medium">
+						{currentFolderPages().length}
+						{currentFolderPages().length === 1 ? 'page' : 'pages'}
+					</span>
+				{/if}
 			</div>
 
 			{#if isLoadingFolderData}
@@ -266,20 +252,20 @@
 		</div>
 	</div>
 
-	<!-- Folder Contents -->
+	<!-- Content -->
 	<Card class="border-border bg-card shadow-sm">
 		<CardContent class="space-y-10 p-8">
 			<!-- Subfolders -->
-			{#if subFolders.length > 0}
+			{#if subFolders().length > 0}
 				<section class="space-y-6">
 					<h2 class="text-foreground text-xl font-semibold">Folders</h2>
 					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{#each subFolders as folder (folder.path)}
+						{#each subFolders() as folder (folder.path)}
 							<Card
 								class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg"
 								onclick={() => navigateToFolder(folder.path)}
 							>
-								<CardHeader class="pb-4">
+								<CardHeader>
 									<div class="flex items-start gap-4">
 										<div
 											class="bg-primary/90 group-hover:bg-primary/70 rounded-lg p-3 transition-colors"
@@ -304,36 +290,42 @@
 			{/if}
 
 			<!-- Pages -->
-			{#if currentFolderPages.length > 0}
+			{#if currentFolderPages().length > 0}
 				<section class="space-y-6">
 					<h2 class="text-foreground text-xl font-semibold">Pages</h2>
-					<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-						{#each currentFolderPages as page (page.metaData.slug)}
-							<PageCard
-								{page}
-								showPath={false}
-								onView={navigateToPage}
-								onEdit={navigateToEditPage}
-								onDelete={handleDeletePage}
-							/>
-						{/each}
-					</div>
+					<PageGrid
+						pages={currentFolderPages()}
+						showPath={mode !== 'folder'}
+						emptyMessage={mode === 'recent'
+							? 'No recent activity yet. Create your first page to get started!'
+							: mode === 'all'
+								? 'No pages found. Create your first page to get started!'
+								: 'This folder is empty. Create your first page to get started.'}
+					/>
 				</section>
 			{/if}
 
 			<!-- Empty State -->
-			{#if subFolders.length === 0 && currentFolderPages.length === 0}
+			{#if subFolders().length === 0 && currentFolderPages().length === 0}
 				<div class="flex flex-col items-center justify-center py-12 text-center">
 					<File class="text-muted mb-4 h-12 w-12" />
 					<h3 class="text-primary mb-2 text-lg font-medium">
-						{#if path === ''}
+						{#if mode === 'recent'}
+							No recent activity
+						{:else if mode === 'all'}
+							No pages yet
+						{:else if path === ''}
 							Welcome to your documentation
 						{:else}
 							This folder is empty
 						{/if}
 					</h3>
 					<p class="text-muted mb-6 max-w-md">
-						{#if path === ''}
+						{#if mode === 'recent'}
+							Create or edit some pages to see recent activity here.
+						{:else if mode === 'all'}
+							Start building your knowledge base by creating your first page.
+						{:else if path === ''}
 							Start organizing your knowledge by creating your first page or folder.
 						{:else}
 							Add some content to this folder to get started.
@@ -356,12 +348,6 @@
 		</CardContent>
 	</Card>
 </div>
-<DeleteConfirmModal
-	open={deleteDialogOpen}
-	{isDeleting}
-	onConfirm={confirmDelete}
-	onCancel={cancelDelete}
-/>
 
 <CreateFolderModal
 	open={showCreateFolderModal}

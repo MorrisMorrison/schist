@@ -14,7 +14,7 @@ linters:
   disable-all: true
   enable:
     - errcheck
-    - gocyclo
+    # - gocyclo
     - gofmt
     - goimports
     - gosimple

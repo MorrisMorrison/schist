@@ -76,6 +76,12 @@
 	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let searchQuery = $state('');
 
+	// Drag and Drop State
+	let draggedItem = $state<{ type: 'folder' | 'page'; path: string; data: any } | null>(null);
+	let dropTarget = $state<string | null>(null);
+	let isDragging = $state(false);
+	let dragOverTarget = $state<string | null>(null);
+
 	const pages = $derived($pagesStore.pages || []);
 
 	const filteredFolders = $derived(
@@ -368,6 +374,114 @@
 			document.removeEventListener('click', handleOutsideClick);
 		};
 	});
+
+	// Drag and Drop Handlers
+	function handleDragStart(event: DragEvent, type: 'folder' | 'page', path: string, data: any) {
+		if (!event.dataTransfer) return;
+
+		draggedItem = { type, path, data };
+		isDragging = true;
+
+		// Set drag data for native drag and drop
+		event.dataTransfer.effectAllowed = 'move';
+		event.dataTransfer.setData('application/json', JSON.stringify({ type, path, data }));
+
+		// Add a drag image (optional - browser will use default)
+		if (event.target instanceof HTMLElement) {
+			const dragImage = event.target.cloneNode(true) as HTMLElement;
+			dragImage.style.opacity = '0.7';
+			event.dataTransfer.setDragImage(dragImage, 0, 0);
+		}
+	}
+
+	function handleDragEnd(_event: DragEvent) {
+		draggedItem = null;
+		isDragging = false;
+		dropTarget = null;
+		dragOverTarget = null;
+	}
+
+	function handleDragOver(event: DragEvent, targetPath: string) {
+		if (!draggedItem || draggedItem.path === targetPath) return;
+
+		// Prevent dropping folder into itself or its children
+		if (draggedItem.type === 'folder' && targetPath.startsWith(draggedItem.path + '/')) {
+			return;
+		}
+
+		event.preventDefault();
+		event.dataTransfer!.dropEffect = 'move';
+		dragOverTarget = targetPath;
+	}
+
+	function handleDragEnter(event: DragEvent, targetPath: string) {
+		if (!draggedItem || draggedItem.path === targetPath) return;
+
+		// Prevent dropping folder into itself or its children
+		if (draggedItem.type === 'folder' && targetPath.startsWith(draggedItem.path + '/')) {
+			return;
+		}
+
+		event.preventDefault();
+		dropTarget = targetPath;
+	}
+
+	function handleDragLeave(event: DragEvent, targetPath: string) {
+		// Only clear drop target if we're actually leaving this element
+		if (event.currentTarget === event.target) {
+			if (dropTarget === targetPath) {
+				dropTarget = null;
+			}
+			if (dragOverTarget === targetPath) {
+				dragOverTarget = null;
+			}
+		}
+	}
+
+	async function handleDrop(event: DragEvent, targetPath: string) {
+		event.preventDefault();
+
+		if (!draggedItem) return;
+
+		const { type, path: sourcePath } = draggedItem;
+
+		// Don't drop on itself
+		if (sourcePath === targetPath) return;
+
+		// Prevent dropping folder into itself or its children
+		if (type === 'folder' && targetPath.startsWith(sourcePath + '/')) {
+			return;
+		}
+
+		try {
+			// Calculate new path
+			const sourcePathSegments = sourcePath.split('/').filter(Boolean);
+			const targetPathSegments = targetPath.split('/').filter(Boolean);
+			const itemName = sourcePathSegments[sourcePathSegments.length - 1];
+			const newPath = targetPath === '/' ? `/${itemName}` : `${targetPath}/${itemName}`;
+
+			if (type === 'folder') {
+				await folderActions.moveFolder(sourcePath, newPath);
+			} else {
+				await pageActions.movePagePath(sourcePath, newPath);
+			}
+
+			// Refresh the tree
+			await folderActions.loadFolderTree();
+			if (showPages) {
+				await pageActions.loadPages();
+			}
+		} catch (error) {
+			console.error('Failed to move item:', error);
+			// You could show a toast notification here
+		} finally {
+			// Reset drag state
+			draggedItem = null;
+			isDragging = false;
+			dropTarget = null;
+			dragOverTarget = null;
+		}
+	}
 </script>
 
 {#snippet folderNode(folder: FolderType, depth: number)}
@@ -378,6 +492,9 @@
 	{@const hasPages = showPages && getPagesForFolder(folder.path).length > 0}
 	{@const hasExpandableContent = hasSubFolders || hasPages}
 	{@const indentLevel = Math.min(depth, maxDepth)}
+	{@const isBeingDragged = isDragging && draggedItem?.path === folder.path}
+	{@const isDropTarget = dropTarget === folder.path}
+	{@const isDragOver = dragOverTarget === folder.path}
 
 	<div class="relative">
 		<!-- Folder Row -->
@@ -386,8 +503,18 @@
 				'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
 				'hover:bg-accent hover:text-accent-foreground',
 				isSelected && 'bg-accent text-accent-foreground',
-				isCurrent && 'bg-accent font-medium'
+				isCurrent && 'bg-accent font-medium',
+				isBeingDragged && 'opacity-50',
+				isDropTarget && 'bg-primary/10 ring-primary ring-2',
+				isDragOver && 'bg-primary/20'
 			)}
+			draggable="true"
+			ondragstart={(e) => handleDragStart(e, 'folder', folder.path, folder)}
+			ondragend={handleDragEnd}
+			ondragover={(e) => handleDragOver(e, folder.path)}
+			ondragenter={(e) => handleDragEnter(e, folder.path)}
+			ondragleave={(e) => handleDragLeave(e, folder.path)}
+			ondrop={(e) => handleDrop(e, folder.path)}
 			oncontextmenu={(e) => {
 				// Only handle context menu for non-root folders
 				if (folder.path !== '/' && folder.path !== '') {
@@ -473,13 +600,26 @@
 				<!-- Render pages in current folder first if showPages is enabled -->
 				{#if showPages}
 					{#each getPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
+						{@const pageIsBeingDragged = isDragging && draggedItem?.path === page.metaData.path}
+						{@const pageIsDropTarget = dropTarget === page.metaData.path}
+						{@const pageIsDragOver = dragOverTarget === page.metaData.path}
 						<div
 							class={cn(
 								'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
 								'hover:bg-accent hover:text-accent-foreground',
 								isSelectedFile(page.metaData.path) && 'bg-accent text-accent-foreground',
-								isCurrentFile(page.metaData.path) && 'bg-accent font-medium'
+								isCurrentFile(page.metaData.path) && 'bg-accent font-medium',
+								pageIsBeingDragged && 'opacity-50',
+								pageIsDropTarget && 'bg-primary/10 ring-primary ring-2',
+								pageIsDragOver && 'bg-primary/20'
 							)}
+							draggable="true"
+							ondragstart={(e) => handleDragStart(e, 'page', page.metaData.path, page)}
+							ondragend={handleDragEnd}
+							ondragover={(e) => handleDragOver(e, folder.path)}
+							ondragenter={(e) => handleDragEnter(e, folder.path)}
+							ondragleave={(e) => handleDragLeave(e, folder.path)}
+							ondrop={(e) => handleDrop(e, folder.path)}
 							oncontextmenu={(e) => handlePageContextMenu(e, page)}
 							role="treeitem"
 							aria-label={`Page: ${page.metaData?.title || 'Untitled'}`}

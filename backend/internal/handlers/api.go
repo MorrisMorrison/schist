@@ -32,17 +32,18 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	{
 		pages.GET("", h.listPages)
 		pages.POST("", h.createPage)
+		pages.POST("/move", h.movePage)
 		pages.GET("/*path", h.getPageByPath)
 		pages.PUT("/*path", h.updatePageByPath)
 		pages.DELETE("/*path", h.deletePageByPath)
-		pages.POST("/move", h.movePage)
 	}
 
 	folders := routerGroup.Group("/folders")
 	{
 		folders.GET("", h.getFolderTree)
+		folders.POST("", h.createFolder)
+		folders.POST("/move", h.moveFolder)
 		folders.GET("/*path", h.getFolder)
-		folders.POST("/*path", h.createFolder)
 		folders.PUT("/*path", h.renameFolder)
 		folders.DELETE("/*path", h.deleteFolder)
 	}
@@ -305,6 +306,43 @@ func (h *APIHandler) deleteFolder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Folder deleted successfully",
 		"path":    path,
+	})
+}
+
+func (h *APIHandler) moveFolder(c *gin.Context) {
+	type MoveFolderRequest struct {
+		OldPath string `json:"oldPath" binding:"required"`
+		NewPath string `json:"newPath" binding:"required"`
+	}
+
+	var req MoveFolderRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if !strings.HasPrefix(req.OldPath, "/") {
+		req.OldPath = "/" + req.OldPath
+	}
+	if !strings.HasPrefix(req.NewPath, "/") {
+		req.NewPath = "/" + req.NewPath
+	}
+
+	err = h.PageService.MoveFolder(req.OldPath, req.NewPath)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Folder moved successfully",
+		"oldPath": req.OldPath,
+		"newPath": req.NewPath,
 	})
 }
 

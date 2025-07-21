@@ -161,7 +161,7 @@ class SchістApiClient {
 
 	async createFolder(path: string): Promise<FolderOperationResponse> {
 		const normalizedPath = normalizePath(path);
-		return this.request<FolderOperationResponse>('/folders' + path, {
+		return this.request<FolderOperationResponse>('/folders', {
 			method: 'POST',
 			body: JSON.stringify({ path: normalizedPath })
 		});
@@ -189,6 +189,17 @@ class SchістApiClient {
 			newPath: normalizePath(moveRequest.newPath)
 		};
 		return this.request<MovePageResponse>('/pages/move', {
+			method: 'POST',
+			body: JSON.stringify(normalizedRequest)
+		});
+	}
+
+	async moveFolder(moveRequest: MovePageRequest): Promise<MovePageResponse> {
+		const normalizedRequest = {
+			oldPath: normalizePath(moveRequest.oldPath),
+			newPath: normalizePath(moveRequest.newPath)
+		};
+		return this.request<MovePageResponse>('/folders//move', {
 			method: 'POST',
 			body: JSON.stringify(normalizedRequest)
 		});

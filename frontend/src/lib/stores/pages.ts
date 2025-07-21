@@ -471,6 +471,27 @@ export const folderActions = {
 		}
 	},
 
+	async moveFolder(oldPath: string, newPath: string) {
+		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
+
+		try {
+			const moveRequest: MovePageRequest = { oldPath, newPath };
+			const result = await apiClient.moveFolder(moveRequest);
+
+			await Promise.all([folderActions.loadFolderTree(), pageActions.loadPages()]);
+
+			foldersStore.update((state) => ({ ...state, loading: false }));
+			return result;
+		} catch (error) {
+			foldersStore.update((state) => ({
+				...state,
+				loading: false,
+				error: error instanceof Error ? error.message : 'Failed to move folder'
+			}));
+			throw error;
+		}
+	},
+
 	clearError() {
 		foldersStore.update((state) => ({ ...state, error: null }));
 	}

@@ -745,3 +745,104 @@ func TestPageService_RenameFolder(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestPageService_MoveFolder(t *testing.T) {
+	t.Run("successfully moves folder to different parent", func(t *testing.T) {
+		testDir := t.TempDir()
+		pageService := services.NewPageService(testDir)
+
+		// Create folder structure: /source/child-folder with a page
+		sourceDir := filepath.Join(testDir, "source")
+		childDir := filepath.Join(sourceDir, "child-folder")
+		targetDir := filepath.Join(testDir, "target")
+
+		err := os.MkdirAll(childDir, 0755)
+		require.NoError(t, err)
+		err = os.MkdirAll(targetDir, 0755)
+		require.NoError(t, err)
+
+		// Create a page in the child folder
+		testPage := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Test Page",
+				Path:  "/source/child-folder/test-page",
+				Slug:  "test-page",
+			},
+			Content: "Test content",
+		}
+		err = pageService.CreatePage(testPage)
+		require.NoError(t, err)
+
+		// Move /source/child-folder to /target/child-folder
+		err = pageService.MoveFolder("/source/child-folder", "/target/child-folder")
+		assert.NoError(t, err)
+
+		// Verify the folder was moved physically
+		oldPath := filepath.Join(testDir, "source", "child-folder")
+		newPath := filepath.Join(testDir, "target", "child-folder")
+
+		_, err = os.Stat(oldPath)
+		assert.True(t, os.IsNotExist(err), "Old folder should not exist")
+
+		_, err = os.Stat(newPath)
+		assert.NoError(t, err, "New folder should exist")
+
+		// Verify the page metadata was updated
+		movedPage, err := pageService.GetPageByPath("/target/child-folder/test-page")
+		assert.NoError(t, err)
+		assert.Equal(t, "/target/child-folder/test-page", movedPage.MetaData.Path)
+		assert.Equal(t, "test-page", movedPage.MetaData.Slug)
+		assert.Contains(t, movedPage.Content, "Test content")
+	})
+
+	t.Run("fails to move folder into itself", func(t *testing.T) {
+		testDir := t.TempDir()
+		pageService := services.NewPageService(testDir)
+
+		// Create folder structure
+		sourceDir := filepath.Join(testDir, "parent")
+		childDir := filepath.Join(sourceDir, "child")
+		err := os.MkdirAll(childDir, 0755)
+		require.NoError(t, err)
+
+		// Try to move parent into child (circular reference)
+		err = pageService.MoveFolder("/parent", "/parent/child/parent")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot move folder into itself")
+	})
+
+	t.Run("fails to move non-existent folder", func(t *testing.T) {
+		testDir := t.TempDir()
+		pageService := services.NewPageService(testDir)
+
+		err := pageService.MoveFolder("/non-existent", "/target/folder")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "folder does not exist")
+	})
+
+	t.Run("fails to move to existing destination", func(t *testing.T) {
+		testDir := t.TempDir()
+		pageService := services.NewPageService(testDir)
+
+		// Create both source and destination folders
+		sourceDir := filepath.Join(testDir, "source")
+		targetDir := filepath.Join(testDir, "target", "source")
+		err := os.MkdirAll(sourceDir, 0755)
+		require.NoError(t, err)
+		err = os.MkdirAll(targetDir, 0755)
+		require.NoError(t, err)
+
+		err = pageService.MoveFolder("/source", "/target/source")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "destination folder already exists")
+	})
+
+	t.Run("fails to move root folder", func(t *testing.T) {
+		testDir := t.TempDir()
+		pageService := services.NewPageService(testDir)
+
+		err := pageService.MoveFolder("/", "/target")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot move root folder")
+	})
+}

@@ -579,6 +579,115 @@ func (p *PageService) updatePagePath(
 	return false, nil
 }
 
+func (p *PageService) MoveFolder(oldPath, newPath string) error {
+	if err := utils.ValidatePath(oldPath); err != nil {
+		return fmt.Errorf("invalid old folder path: %w", err)
+	}
+	if err := utils.ValidatePath(newPath); err != nil {
+		return fmt.Errorf("invalid new folder path: %w", err)
+	}
+
+	if oldPath == "/" {
+		return fmt.Errorf("cannot move root folder")
+	}
+
+	if strings.Count(newPath, "/") < 2 {
+		return fmt.Errorf("cannot move folder to root level - use rename instead")
+	}
+
+	if strings.HasPrefix(newPath, oldPath+"/") {
+		return fmt.Errorf("cannot move folder into itself or its subdirectory")
+	}
+
+	oldFolderPath := utils.BuildFilePath(p.dataDir, oldPath)
+	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
+		return fmt.Errorf("folder does not exist at path %s", oldPath)
+	}
+
+	newFolderPath := utils.BuildFilePath(p.dataDir, newPath)
+	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
+		return fmt.Errorf("destination folder already exists at path %s", newPath)
+	}
+
+	parentPath := filepath.Dir(newFolderPath)
+	if err := os.MkdirAll(parentPath, 0755); err != nil {
+		return fmt.Errorf("failed to create parent directory: %w", err)
+	}
+
+	if err := os.Rename(oldFolderPath, newFolderPath); err != nil {
+		return fmt.Errorf("failed to move folder from %s to %s: %w", oldFolderPath, newFolderPath, err)
+	}
+
+	pages, err := p.ListPages()
+	if err != nil {
+		if rollbackErr := os.Rename(newFolderPath, oldFolderPath); rollbackErr != nil {
+			return fmt.Errorf("failed to list pages after move AND failed to rollback: %w (rollback error: %v)",
+				err,
+				rollbackErr)
+		}
+		return fmt.Errorf("failed to list pages after folder move: %w", err)
+	}
+
+	var affectedPages []*models.Page
+	for _, page := range pages {
+		pagePath := page.MetaData.Path
+		if pagePath == oldPath || strings.HasPrefix(pagePath, oldPath+"/") {
+			affectedPages = append(affectedPages, page)
+		}
+	}
+
+	for _, page := range affectedPages {
+		if err := p.updatePagePathForMove(page, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
+			if rollbackErr := os.Rename(newFolderPath, oldFolderPath); rollbackErr != nil {
+				return fmt.Errorf("failed to update page metadata AND failed to rollback: %w (rollback error: %v)",
+					err,
+					rollbackErr)
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *PageService) updatePagePathForMove(
+	page *models.Page,
+	oldPath string,
+	newPath string,
+	oldFolderPath string,
+	newFolderPath string) error {
+
+	oldPagePath := page.MetaData.Path
+	newPagePath := strings.Replace(oldPagePath, oldPath, newPath, 1)
+
+	newFileInNewFolder := strings.Replace(p.buildFilePathFromPath(oldPagePath), oldFolderPath, newFolderPath, 1)
+
+	fileContent, err := os.ReadFile(newFileInNewFolder)
+	if err != nil {
+		return fmt.Errorf("failed to read page file at %s: %w", newFileInNewFolder, err)
+	}
+
+	freshPage, err := serializer.DeserializePage(fileContent)
+	if err != nil {
+		return fmt.Errorf("failed to deserialize page: %w", err)
+	}
+
+	freshPage.MetaData.Path = utils.NormalizePath(newPagePath)
+	freshPage.MetaData.Slug = utils.ExtractSlugFromPath(newPagePath)
+	freshPage.MetaData.Updated = time.Now()
+
+	content, err := serializer.SerializePage(freshPage)
+	if err != nil {
+		return fmt.Errorf("failed to serialize page: %w", err)
+	}
+
+	if err := os.WriteFile(newFileInNewFolder, content, 0644); err != nil {
+		return fmt.Errorf("failed to write updated page file: %w", err)
+	}
+
+	return nil
+}
+
 func (p *PageService) DeleteFolder(path string) error {
 	if err := utils.ValidatePath(path); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)

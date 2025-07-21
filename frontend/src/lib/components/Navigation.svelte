@@ -55,11 +55,11 @@
 							<!-- Clean geometric logo -->
 							<div class="relative h-8 w-8">
 								<!-- Base layer - solid diamond -->
-								<div class="bg-primary absolute inset-0 h-8 w-8 rotate-45 transform rounded"></div>
-								<!-- Inner cutout to create frame effect -->
 								<div
-									class="bg-background absolute inset-1 h-6 w-6 rotate-45 transform rounded"
+									class="bg-primary/90 absolute inset-0 h-8 w-8 rotate-45 transform rounded"
 								></div>
+								<!-- Inner cutout to create frame effect -->
+								<div class="bg-primary absolute inset-1 h-6 w-6 rotate-45 transform rounded"></div>
 								<!-- Small accent dot in center -->
 								<div
 									class="bg-primary absolute top-1/2 left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 transform rounded-full"

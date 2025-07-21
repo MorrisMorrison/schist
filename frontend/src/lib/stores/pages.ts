@@ -45,7 +45,7 @@ export const searchStore = writable<SearchState>({
 
 export const foldersStore = writable<FoldersState>({
 	folders: [],
-	loading: false,
+	loading: true,
 	error: null
 });
 

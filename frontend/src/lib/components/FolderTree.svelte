@@ -184,6 +184,9 @@
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
 		if (!enableContextMenu) return;
 
+		// Prevent context menu for root folder
+		if (folder.path === '/' || folder.path === '') return;
+
 		event.preventDefault();
 		event.stopPropagation();
 
@@ -326,7 +329,12 @@
 				isSelected && 'bg-accent text-accent-foreground',
 				isCurrent && 'bg-accent font-medium'
 			)}
-			oncontextmenu={(e) => handleContextMenu(e, folder)}
+			oncontextmenu={(e) => {
+				// Only handle context menu for non-root folders
+				if (folder.path !== '/' && folder.path !== '') {
+					handleContextMenu(e, folder);
+				}
+			}}
 			role="treeitem"
 			aria-expanded={hasExpandableContent ? isExpanded : undefined}
 			aria-selected={isSelected}
@@ -377,7 +385,7 @@
 			</div>
 
 			<!-- Context Menu Trigger - Positioned absolutely to the right -->
-			{#if enableContextMenu}
+			{#if enableContextMenu && folder.path !== '/' && folder.path !== ''}
 				<span
 					class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
 					onclick={(e) => {
@@ -487,7 +495,7 @@
 					type="text"
 					bind:value={searchQuery}
 					placeholder="Search folders..."
-					class="bg-secondary border-border focus:ring-primary focus:border-primary w-full rounded-md border py-2 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
+					class="bg-secondary border-border focus:ring-primary focus:border-primary placeholder:text-muted-foreground w-full rounded-md border py-2 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
 				/>
 			</div>
 		</div>
@@ -503,7 +511,7 @@
 		<div class="flex items-center justify-center py-8">
 			<div class="border-border border-t-primary h-6 w-6 animate-spin rounded-full border-2"></div>
 		</div>
-	{:else if filteredFolders.length === 0}
+	{:else if !$isFoldersLoading && $folders !== null && filteredFolders.length === 0}
 		<!-- Empty State -->
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if searchQuery.trim()}

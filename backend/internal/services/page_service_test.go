@@ -412,3 +412,336 @@ func TestPageService_Integration(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestPageService_RenameFolder(t *testing.T) {
+	testDir, cleanup := setupTestDir(t)
+	defer cleanup()
+
+	pageService := services.NewPageService(testDir)
+
+	t.Run("successfully renames empty folder", func(t *testing.T) {
+		// Create a folder
+		folderPath := "/test-folder"
+		err := pageService.CreateFolder(folderPath)
+		require.NoError(t, err)
+
+		// Rename the folder
+		err = pageService.RenameFolder(folderPath, "renamed-folder")
+		assert.NoError(t, err)
+
+		// Verify old folder is gone
+		oldPath := filepath.Join(testDir, "test-folder")
+		_, err = os.Stat(oldPath)
+		assert.True(t, os.IsNotExist(err))
+
+		// Verify new folder exists
+		newPath := filepath.Join(testDir, "renamed-folder")
+		_, err = os.Stat(newPath)
+		assert.NoError(t, err)
+	})
+
+	t.Run("successfully renames folder with pages", func(t *testing.T) {
+		// Create a folder
+		folderPath := "/docs"
+		err := pageService.CreateFolder(folderPath)
+		require.NoError(t, err)
+
+		// Create pages in the folder
+		page1 := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Page One",
+				Path:  "/docs/page-one",
+				Slug:  "page-one",
+			},
+			Content: "Content for page one",
+		}
+		page2 := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Page Two",
+				Path:  "/docs/page-two",
+				Slug:  "page-two",
+			},
+			Content: "Content for page two",
+		}
+
+		err = pageService.CreatePage(page1)
+		require.NoError(t, err)
+		err = pageService.CreatePage(page2)
+		require.NoError(t, err)
+
+		// Rename the folder
+		err = pageService.RenameFolder("/docs", "documentation")
+		assert.NoError(t, err)
+
+		// Verify old folder is gone
+		oldPath := filepath.Join(testDir, "docs")
+		_, err = os.Stat(oldPath)
+		assert.True(t, os.IsNotExist(err))
+
+		// Verify new folder exists
+		newPath := filepath.Join(testDir, "documentation")
+		_, err = os.Stat(newPath)
+		assert.NoError(t, err)
+
+		// Verify pages were moved and their metadata updated
+		updatedPage1, err := pageService.GetPageByPath("/documentation/page-one")
+		assert.NoError(t, err)
+		assert.Equal(t, "/documentation/page-one", updatedPage1.MetaData.Path)
+		assert.Equal(t, "page-one", updatedPage1.MetaData.Slug)
+		assert.Equal(t, "Page One", updatedPage1.MetaData.Title)
+
+		updatedPage2, err := pageService.GetPageByPath("/documentation/page-two")
+		assert.NoError(t, err)
+		assert.Equal(t, "/documentation/page-two", updatedPage2.MetaData.Path)
+		assert.Equal(t, "page-two", updatedPage2.MetaData.Slug)
+		assert.Equal(t, "Page Two", updatedPage2.MetaData.Title)
+
+		// Verify old page paths no longer exist
+		_, err = pageService.GetPageByPath("/docs/page-one")
+		assert.Error(t, err)
+		_, err = pageService.GetPageByPath("/docs/page-two")
+		assert.Error(t, err)
+	})
+
+	t.Run("successfully renames nested folder with pages", func(t *testing.T) {
+		// Create nested folder structure
+		err := pageService.CreateFolder("/parent")
+		require.NoError(t, err)
+		err = pageService.CreateFolder("/parent/child")
+		require.NoError(t, err)
+
+		// Create a page in the nested folder
+		page := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Nested Page",
+				Path:  "/parent/child/nested-page",
+				Slug:  "nested-page",
+			},
+			Content: "Content for nested page",
+		}
+		err = pageService.CreatePage(page)
+		require.NoError(t, err)
+
+		// Rename the child folder
+		err = pageService.RenameFolder("/parent/child", "renamed-child")
+		assert.NoError(t, err)
+
+		// Verify old folder is gone
+		oldPath := filepath.Join(testDir, "parent", "child")
+		_, err = os.Stat(oldPath)
+		assert.True(t, os.IsNotExist(err))
+
+		// Verify new folder exists
+		newPath := filepath.Join(testDir, "parent", "renamed-child")
+		_, err = os.Stat(newPath)
+		assert.NoError(t, err)
+
+		// Verify page metadata was updated
+		updatedPage, err := pageService.GetPageByPath("/parent/renamed-child/nested-page")
+		assert.NoError(t, err)
+		assert.Equal(t, "/parent/renamed-child/nested-page", updatedPage.MetaData.Path)
+		assert.Equal(t, "nested-page", updatedPage.MetaData.Slug)
+		assert.Equal(t, "Nested Page", updatedPage.MetaData.Title)
+
+		// Verify old page path no longer exists
+		_, err = pageService.GetPageByPath("/parent/child/nested-page")
+		assert.Error(t, err)
+	})
+
+	t.Run("updates multiple pages with path prefix matching", func(t *testing.T) {
+		// Create folders with similar names to test path prefix matching
+		err := pageService.CreateFolder("/api")
+		require.NoError(t, err)
+		err = pageService.CreateFolder("/api-docs")
+		require.NoError(t, err)
+
+		// Create pages in both folders
+		apiPage := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "API Page",
+				Path:  "/api/endpoint",
+				Slug:  "endpoint",
+			},
+			Content: "API endpoint documentation",
+		}
+		docsPage := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Docs Page",
+				Path:  "/api-docs/getting-started",
+				Slug:  "getting-started",
+			},
+			Content: "Getting started documentation",
+		}
+
+		err = pageService.CreatePage(apiPage)
+		require.NoError(t, err)
+		err = pageService.CreatePage(docsPage)
+		require.NoError(t, err)
+
+		// Rename /api folder
+		err = pageService.RenameFolder("/api", "endpoints")
+		assert.NoError(t, err)
+
+		// Verify only the /api page was affected, not /api-docs
+		updatedApiPage, err := pageService.GetPageByPath("/endpoints/endpoint")
+		assert.NoError(t, err)
+		assert.Equal(t, "/endpoints/endpoint", updatedApiPage.MetaData.Path)
+
+		// Verify /api-docs page was not affected
+		unchangedDocsPage, err := pageService.GetPageByPath("/api-docs/getting-started")
+		assert.NoError(t, err)
+		assert.Equal(t, "/api-docs/getting-started", unchangedDocsPage.MetaData.Path)
+	})
+
+	t.Run("fails to rename non-existent folder", func(t *testing.T) {
+		err := pageService.RenameFolder("/non-existent", "new-name")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "folder does not exist")
+	})
+
+	t.Run("fails to rename root folder", func(t *testing.T) {
+		err := pageService.RenameFolder("/", "new-name")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot rename root folder")
+	})
+
+	t.Run("fails with empty new name", func(t *testing.T) {
+		// Create a folder first
+		err := pageService.CreateFolder("/test")
+		require.NoError(t, err)
+
+		err = pageService.RenameFolder("/test", "")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "new folder name cannot be empty")
+	})
+
+	t.Run("fails with invalid new name containing slash", func(t *testing.T) {
+		// Create a folder first
+		err := pageService.CreateFolder("/test")
+		require.NoError(t, err)
+
+		err = pageService.RenameFolder("/test", "invalid/name")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "folder name cannot contain '/' character")
+	})
+
+	t.Run("fails when destination folder already exists", func(t *testing.T) {
+		// Create two folders
+		err := pageService.CreateFolder("/folder1")
+		require.NoError(t, err)
+		err = pageService.CreateFolder("/folder2")
+		require.NoError(t, err)
+
+		// Try to rename folder1 to folder2 (which already exists)
+		err = pageService.RenameFolder("/folder1", "folder2")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "folder already exists")
+	})
+
+	t.Run("fails with invalid old path", func(t *testing.T) {
+		err := pageService.RenameFolder("", "new-name")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid folder path")
+	})
+
+	t.Run("updates page timestamps on rename", func(t *testing.T) {
+		// Create folder and page
+		err := pageService.CreateFolder("/timestest")
+		require.NoError(t, err)
+
+		page := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Timestamp Test",
+				Path:  "/timestest/page",
+				Slug:  "page",
+			},
+			Content: "Test content",
+		}
+		err = pageService.CreatePage(page)
+		require.NoError(t, err)
+
+		// Get original timestamp
+		originalPage, err := pageService.GetPageByPath("/timestest/page")
+		require.NoError(t, err)
+		originalUpdated := originalPage.MetaData.Updated
+
+		// Small delay to ensure timestamp difference
+		time.Sleep(10 * time.Millisecond)
+
+		// Rename folder
+		err = pageService.RenameFolder("/timestest", "renamed-timestest")
+		assert.NoError(t, err)
+
+		// Verify updated timestamp changed
+		updatedPage, err := pageService.GetPageByPath("/renamed-timestest/page")
+		assert.NoError(t, err)
+		assert.True(t, updatedPage.MetaData.Updated.After(originalUpdated))
+	})
+
+	t.Run("handles folder with subfolder correctly", func(t *testing.T) {
+		// Create nested structure
+		err := pageService.CreateFolder("/main")
+		require.NoError(t, err)
+		err = pageService.CreateFolder("/main/sub1")
+		require.NoError(t, err)
+		err = pageService.CreateFolder("/main/sub2")
+		require.NoError(t, err)
+
+		// Create pages in different levels
+		mainPage := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Main Page",
+				Path:  "/main/main-page",
+				Slug:  "main-page",
+			},
+			Content: "Main content",
+		}
+		sub1Page := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Sub1 Page",
+				Path:  "/main/sub1/sub1-page",
+				Slug:  "sub1-page",
+			},
+			Content: "Sub1 content",
+		}
+		sub2Page := &models.Page{
+			MetaData: &models.PageMetaData{
+				Title: "Sub2 Page",
+				Path:  "/main/sub2/sub2-page",
+				Slug:  "sub2-page",
+			},
+			Content: "Sub2 content",
+		}
+
+		err = pageService.CreatePage(mainPage)
+		require.NoError(t, err)
+		err = pageService.CreatePage(sub1Page)
+		require.NoError(t, err)
+		err = pageService.CreatePage(sub2Page)
+		require.NoError(t, err)
+
+		// Rename main folder
+		err = pageService.RenameFolder("/main", "primary")
+		assert.NoError(t, err)
+
+		// Verify all pages and subfolders were moved
+		_, err = pageService.GetPageByPath("/primary/main-page")
+		assert.NoError(t, err)
+		_, err = pageService.GetPageByPath("/primary/sub1/sub1-page")
+		assert.NoError(t, err)
+		_, err = pageService.GetPageByPath("/primary/sub2/sub2-page")
+		assert.NoError(t, err)
+
+		// Verify subfolders exist
+		newMainPath := filepath.Join(testDir, "primary")
+		newSub1Path := filepath.Join(testDir, "primary", "sub1")
+		newSub2Path := filepath.Join(testDir, "primary", "sub2")
+
+		_, err = os.Stat(newMainPath)
+		assert.NoError(t, err)
+		_, err = os.Stat(newSub1Path)
+		assert.NoError(t, err)
+		_, err = os.Stat(newSub2Path)
+		assert.NoError(t, err)
+	})
+}

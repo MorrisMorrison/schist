@@ -434,6 +434,23 @@ export const folderActions = {
 		}
 	},
 
+	async renameFolder(path: string, newName: string) {
+		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
+		try {
+			const result = await apiClient.renameFolder(path, newName);
+			await Promise.all([folderActions.loadFolderTree(), pageActions.loadPages()]);
+			foldersStore.update((state) => ({ ...state, loading: false }));
+			return result;
+		} catch (error) {
+			foldersStore.update((state) => ({
+				...state,
+				loading: false,
+				error: error instanceof Error ? error.message : 'Failed to rename folder'
+			}));
+			throw error;
+		}
+	},
+
 	async deleteFolder(path: string) {
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 

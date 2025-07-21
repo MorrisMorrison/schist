@@ -10,7 +10,6 @@ import (
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/serializer"
 	"github.com/MorrisMorrison/schist/internal/utils"
-	pathutils "github.com/MorrisMorrison/schist/internal/utils"
 )
 
 const MARKDOWN_FILE_ENDING = ".md"
@@ -138,9 +137,9 @@ func (p *PageService) buildFilePath(slug string) string {
 }
 
 func (p *PageService) buildFilePathFromPath(path string) string {
-	slug := pathutils.ExtractSlugFromPath(path)
+	slug := utils.ExtractSlugFromPath(path)
 
-	fullPath := pathutils.BuildFilePath(p.dataDir, path)
+	fullPath := utils.BuildFilePath(p.dataDir, path)
 
 	dir := filepath.Dir(fullPath)
 	return filepath.Join(dir, slug+MARKDOWN_FILE_ENDING)
@@ -169,7 +168,7 @@ func (p *PageService) savePage(page *models.Page) error {
 }
 
 func (p *PageService) GetPageByPath(path string) (*models.Page, error) {
-	if err := pathutils.ValidatePath(path); err != nil {
+	if err := utils.ValidatePath(path); err != nil {
 		return nil, fmt.Errorf("invalid path: %w", err)
 	}
 
@@ -189,7 +188,7 @@ func (p *PageService) GetPageByPath(path string) (*models.Page, error) {
 }
 
 func (p *PageService) CreatePageInFolder(folderPath string, page *models.Page) error {
-	if err := pathutils.ValidatePath(folderPath); err != nil {
+	if err := utils.ValidatePath(folderPath); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
 
@@ -197,7 +196,7 @@ func (p *PageService) CreatePageInFolder(folderPath string, page *models.Page) e
 		page.MetaData.Slug = utils.GenerateSlug(page.MetaData.Title)
 	}
 
-	page.MetaData.Path = pathutils.NormalizePath(folderPath + "/" + page.MetaData.Slug)
+	page.MetaData.Path = utils.NormalizePath(folderPath + "/" + page.MetaData.Slug)
 
 	now := time.Now()
 	page.MetaData.Created = now
@@ -207,10 +206,10 @@ func (p *PageService) CreatePageInFolder(folderPath string, page *models.Page) e
 }
 
 func (p *PageService) MovePage(oldPath, newPath string) error {
-	if err := pathutils.ValidatePath(oldPath); err != nil {
+	if err := utils.ValidatePath(oldPath); err != nil {
 		return fmt.Errorf("invalid old path: %w", err)
 	}
-	if err := pathutils.ValidatePath(newPath); err != nil {
+	if err := utils.ValidatePath(newPath); err != nil {
 		return fmt.Errorf("invalid new path: %w", err)
 	}
 
@@ -219,8 +218,8 @@ func (p *PageService) MovePage(oldPath, newPath string) error {
 		return fmt.Errorf("could not read page from old path: %w", err)
 	}
 
-	page.MetaData.Path = pathutils.NormalizePath(newPath)
-	page.MetaData.Slug = pathutils.ExtractSlugFromPath(newPath)
+	page.MetaData.Path = utils.NormalizePath(newPath)
+	page.MetaData.Slug = utils.ExtractSlugFromPath(newPath)
 	page.MetaData.Updated = time.Now()
 
 	if err := p.savePage(page); err != nil {
@@ -236,7 +235,7 @@ func (p *PageService) MovePage(oldPath, newPath string) error {
 }
 
 func (p *PageService) GetFolder(path string) (*models.Folder, error) {
-	if err := pathutils.ValidatePath(path); err != nil {
+	if err := utils.ValidatePath(path); err != nil {
 		return nil, fmt.Errorf("invalid folder path: %w", err)
 	}
 
@@ -248,7 +247,7 @@ func (p *PageService) GetFolder(path string) (*models.Folder, error) {
 }
 
 func (p *PageService) buildFolderFromPath(path string) (*models.Folder, error) {
-	folderPath := pathutils.BuildFilePath(p.dataDir, path)
+	folderPath := utils.BuildFilePath(p.dataDir, path)
 	info, err := p.validateFolderPath(folderPath, path)
 	if err != nil {
 		return nil, err
@@ -312,12 +311,12 @@ func (p *PageService) createSubfolder(parentPath string, entry os.DirEntry) *mod
 	if err != nil {
 		return &models.Folder{
 			Name:       entry.Name(),
-			Path:       pathutils.NormalizePath(parentPath + "/" + entry.Name()),
+			Path:       utils.NormalizePath(parentPath + "/" + entry.Name()),
 			SubFolders: []*models.Folder{},
 		}
 	}
 
-	subfolderPath := pathutils.NormalizePath(parentPath + "/" + entry.Name())
+	subfolderPath := utils.NormalizePath(parentPath + "/" + entry.Name())
 	subfolder := &models.Folder{
 		Name:       entry.Name(),
 		Path:       subfolderPath,
@@ -330,7 +329,7 @@ func (p *PageService) createSubfolder(parentPath string, entry os.DirEntry) *mod
 }
 
 func (p *PageService) countPagesInFolder(folderPath string) int {
-	subfolderFilePath := pathutils.BuildFilePath(p.dataDir, folderPath)
+	subfolderFilePath := utils.BuildFilePath(p.dataDir, folderPath)
 	subEntries, err := os.ReadDir(subfolderFilePath)
 	if err != nil {
 		return 0
@@ -470,11 +469,11 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 }
 
 func (p *PageService) CreateFolder(path string) error {
-	if err := pathutils.ValidatePath(path); err != nil {
+	if err := utils.ValidatePath(path); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
 
-	folderPath := pathutils.BuildFilePath(p.dataDir, path)
+	folderPath := utils.BuildFilePath(p.dataDir, path)
 
 	fileMode := os.FileMode(0755)
 	if err := os.MkdirAll(folderPath, fileMode); err != nil {
@@ -484,8 +483,104 @@ func (p *PageService) CreateFolder(path string) error {
 	return nil
 }
 
+func (p *PageService) RenameFolder(oldPath, newName string) error {
+	if err := utils.ValidatePath(oldPath); err != nil {
+		return fmt.Errorf("invalid folder path: %w", err)
+	}
+	if oldPath == "/" {
+		return fmt.Errorf("cannot rename root folder")
+	}
+
+	if newName == "" {
+		return fmt.Errorf("new folder name cannot be empty")
+	}
+	if strings.Contains(newName, "/") {
+		return fmt.Errorf("folder name cannot contain '/' character")
+	}
+
+	parentPath := filepath.Dir(oldPath)
+	newPath := utils.NormalizePath(parentPath + "/" + newName)
+
+	oldFolderPath := utils.BuildFilePath(p.dataDir, oldPath)
+	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
+		return fmt.Errorf("folder does not exist at path %s", oldPath)
+	}
+
+	newFolderPath := utils.BuildFilePath(p.dataDir, newPath)
+	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
+		return fmt.Errorf("folder already exists at path %s", newPath)
+	}
+
+	if err := os.Rename(oldFolderPath, newFolderPath); err != nil {
+		return fmt.Errorf("failed to rename folder from %s to %s: %w", oldFolderPath, newFolderPath, err)
+	}
+
+	pages, err := p.ListPages()
+	if err != nil {
+		if err := os.Rename(newFolderPath, oldFolderPath); err != nil {
+			return fmt.Errorf("failed to rename folder from %s to %s: %w", newFolderPath, oldFolderPath, err)
+		}
+		return fmt.Errorf("failed to list pages: %w", err)
+	}
+
+	var affectedPages []*models.Page
+	for _, page := range pages {
+		pagePath := page.MetaData.Path
+		if pagePath == oldPath || strings.HasPrefix(pagePath, oldPath+"/") {
+			affectedPages = append(affectedPages, page)
+		}
+	}
+
+	for _, page := range affectedPages {
+		shouldReturn, err1 := p.updatePagePath(page, oldPath, newPath, oldFolderPath, newFolderPath)
+		if shouldReturn {
+			return err1
+		}
+	}
+
+	return nil
+}
+
+func (p *PageService) updatePagePath(
+	page *models.Page,
+	oldPath string,
+	newPath string,
+	oldFolderPath string,
+	newFolderPath string) (bool, error) {
+
+	oldPagePath := page.MetaData.Path
+	newPagePath := strings.Replace(oldPagePath, oldPath, newPath, 1)
+
+	oldFileInNewFolder := p.buildFilePathFromPath(oldPagePath)
+	newFileInNewFolder := strings.Replace(oldFileInNewFolder, oldFolderPath, newFolderPath, 1)
+
+	fileContent, err := os.ReadFile(newFileInNewFolder)
+	if err != nil {
+		return true, fmt.Errorf("failed to read page file at %s: %w", newFileInNewFolder, err)
+	}
+
+	freshPage, err := serializer.DeserializePage(fileContent)
+	if err != nil {
+		return true, fmt.Errorf("failed to deserialize page: %w", err)
+	}
+
+	freshPage.MetaData.Path = utils.NormalizePath(newPagePath)
+	freshPage.MetaData.Slug = utils.ExtractSlugFromPath(newPagePath)
+	freshPage.MetaData.Updated = time.Now()
+
+	content, err := serializer.SerializePage(freshPage)
+	if err != nil {
+		return true, fmt.Errorf("failed to serialize page: %w", err)
+	}
+
+	if err := os.WriteFile(newFileInNewFolder, content, 0644); err != nil {
+		return true, fmt.Errorf("failed to write updated page file: %w", err)
+	}
+	return false, nil
+}
+
 func (p *PageService) DeleteFolder(path string) error {
-	if err := pathutils.ValidatePath(path); err != nil {
+	if err := utils.ValidatePath(path); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
 
@@ -493,7 +588,7 @@ func (p *PageService) DeleteFolder(path string) error {
 		return fmt.Errorf("cannot delete root folder")
 	}
 
-	folderPath := pathutils.BuildFilePath(p.dataDir, path)
+	folderPath := utils.BuildFilePath(p.dataDir, path)
 
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		return fmt.Errorf("folder does not exist at path %s", path)

@@ -167,6 +167,14 @@ class SchістApiClient {
 		});
 	}
 
+	async renameFolder(path: string, newName: string): Promise<FolderOperationResponse> {
+		const encodedPath = this.encodePath(path);
+		return this.request<FolderOperationResponse>(`/folders${encodedPath}`, {
+			method: 'PUT',
+			body: JSON.stringify({ newName })
+		});
+	}
+
 	async deleteFolder(path: string): Promise<FolderOperationResponse> {
 		const encodedPath = this.encodePath(path);
 		return this.request<FolderOperationResponse>(`/folders${encodedPath}`, {

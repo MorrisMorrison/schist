@@ -3,11 +3,14 @@
 	import { goto } from '$app/navigation';
 	import FolderTree from './FolderTree.svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
+	import RenameFolderModal from './RenameFolderModal.svelte';
 	import type { Folder as FolderType, Page } from '$lib/api/types';
 	import { folderActions } from '$lib/stores/pages';
 
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
+	let showRenameFolderModal = $state(false);
+	let folderToRename = $state<FolderType | null>(null);
 
 	const currentPath = $derived(page.url.pathname);
 
@@ -30,6 +33,25 @@
 		parentPathForModal = '';
 		folderActions.loadFolderTree();
 	}
+
+	async function handleDeleteFolder(event: { path: string; folder: FolderType }) {
+		try {
+			await folderActions.deleteFolder(event.path);
+		} catch (error) {
+			console.error('Failed to delete folder:', error);
+		}
+	}
+
+	function handleRenameFolder(event: { path: string; folder: FolderType }) {
+		folderToRename = event.folder;
+		showRenameFolderModal = true;
+	}
+
+	function handleFolderRenamed() {
+		showRenameFolderModal = false;
+		folderToRename = null;
+		folderActions.loadFolderTree();
+	}
 </script>
 
 <aside class="bg-primary border-border flex h-full w-full flex-col overflow-hidden border-r">
@@ -43,6 +65,8 @@
 			onselect={handleFolderSelect}
 			onpageselect={handlePageSelect}
 			oncreate={handleCreateFolder}
+			ondelete={handleDeleteFolder}
+			onrename={handleRenameFolder}
 		/>
 	</div>
 </aside>
@@ -56,4 +80,15 @@
 		parentPathForModal = '';
 	}}
 	onCreated={handleFolderCreated}
+/>
+
+<!-- Rename Folder Modal -->
+<RenameFolderModal
+	open={showRenameFolderModal}
+	folder={folderToRename}
+	onClose={() => {
+		showRenameFolderModal = false;
+		folderToRename = null;
+	}}
+	onRenamed={handleFolderRenamed}
 />

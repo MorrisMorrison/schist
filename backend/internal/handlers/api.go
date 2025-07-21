@@ -43,6 +43,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		folders.GET("", h.getFolderTree)
 		folders.GET("/*path", h.getFolder)
 		folders.POST("/*path", h.createFolder)
+		folders.PUT("/*path", h.renameFolder)
 		folders.DELETE("/*path", h.deleteFolder)
 	}
 
@@ -250,6 +251,40 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Folder created successfully",
 		"path":    path,
+	})
+}
+
+func (h *APIHandler) renameFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	type RenameRequest struct {
+		NewName string `json:"newName" binding:"required"`
+	}
+
+	var req RenameRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	err = h.PageService.RenameFolder(path, req.NewName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Folder renamed successfully",
+		"path":    path,
+		"newName": req.NewName,
 	})
 }
 

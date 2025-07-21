@@ -68,7 +68,7 @@
 	<CardHeader class="pb-3">
 		<div class="flex items-start gap-4">
 			<div class="bg-primary/90 group-hover:bg-primary/70 rounded-lg p-3 transition-colors">
-				<FileText class="text-primary h-5 w-5 flex-shrink-0" />
+				<FileText class="h-5 w-5 flex-shrink-0 text-white" />
 			</div>
 			<div class="min-w-0 flex-1 space-y-1">
 				<div class="flex items-start justify-between gap-4">

@@ -83,7 +83,7 @@ export class PageViewPage extends BasePage {
 	async verifyPageLoaded(expectedTitle?: string) {
 		// Wait for loading to complete first
 		await this.page.waitForLoadState('networkidle');
-		
+
 		// Wait for loading spinner to disappear if present
 		const loadingSpinner = this.page.locator('.animate-spin');
 		if (await loadingSpinner.isVisible()) {

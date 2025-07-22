@@ -2,22 +2,6 @@ import { test, expect } from '../fixtures/test-setup';
 import { createTestPage } from '../utils/test-data';
 
 test.describe('Navigation and Routing', () => {
-	// TODO test is navigating to wrong page  via homePage.goToPages()
-	// test('should navigate between home and pages sections', async ({ homePage, pageViewPage }) => {
-	// 	// Start at home
-	// 	await homePage.navigate();
-	// 	await homePage.verifyLoaded();
-	// 	await homePage.expectUrl('/');
-
-	// 	// Navigate to pages section
-	// 	await homePage.goToPages();
-	// 	await pageViewPage.expectUrl('/pages');
-
-	// 	// Navigate back to home via breadcrumbs or navigation
-	// 	await homePage.navigate();
-	// 	await homePage.expectUrl('/');
-	// });
-
 	test('should handle deep path navigation correctly', async ({
 		pageViewPage,
 		apiHelper,
@@ -134,19 +118,6 @@ test.describe('Navigation and Routing', () => {
 		await page.goBack();
 		await homePage.verifyLoaded();
 	});
-
-	// test('should handle invalid routes gracefully', async ({ pageViewPage, page }) => {
-	// 	// Navigate to completely invalid route
-	// 	await page.goto('/totally-invalid-route-that-does-not-exist');
-
-	// 	// Should either redirect to 404 page or home
-	// 	const currentUrl = page.url();
-	// 	const isHome = currentUrl.endsWith('/');
-	// 	const is404 =
-	// 		currentUrl.includes('404') || (await pageViewPage.elementExists('[data-testid="not-found"]'));
-
-	// 	expect(isHome || is404).toBeTruthy();
-	// });
 
 	test('should maintain navigation state across page refreshes', async ({
 		pageViewPage,

@@ -3,8 +3,8 @@
 - [ ] Fix possible XSS in PageView
 - [x] Update Recent Pages, lots of duplicated layout with e.g. FolderView
 - [x] Investigate if we can leverage PageList in FolderView to avoid duplication
-- [ ] Allow resizing of images
-- [ ] Image on click should open the image in new tab / full screen view
+- [x] Allow resizing of images
+- [x] Image on click should open the image in new tab / full screen view
 - [x] Setup e2e tests
 - [x] General Search in Navigation
 - [ ] Rename Folder

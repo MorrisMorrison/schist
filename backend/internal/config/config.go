@@ -16,7 +16,7 @@ type Config struct {
 func Load() *Config {
 	return &Config{
 		Port:        getEnv("SCHIST_PORT", "8080"),
-		DataDir:     getEnv("SCHIST_DATA_DIR", "../../data"),
+		DataDir:     getEnv("SCHIST_DATA_DIR", "data"),
 		Environment: getEnv("ENV", "development"),
 		StaticDir:   getEnv("SCHIST_STATIC_DIR", "./web"),
 		FrontendURL: getEnv("SCHIST_FRONTEND_URL", "http://localhost:5173"),

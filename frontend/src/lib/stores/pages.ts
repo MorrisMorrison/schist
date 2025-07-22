@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { apiClient } from '../api/client.js';
 import type {
 	Page,
@@ -18,6 +18,7 @@ interface PagesState {
 
 interface SearchState {
 	query: string;
+	selectedTags: string[];
 	results: Page[];
 	loading: boolean;
 	error: string | null;
@@ -38,6 +39,7 @@ export const pagesStore = writable<PagesState>({
 
 export const searchStore = writable<SearchState>({
 	query: '',
+	selectedTags: [],
 	results: [],
 	loading: false,
 	error: null
@@ -55,6 +57,7 @@ export const isLoading = derived(pagesStore, ($store) => $store.loading);
 export const error = derived(pagesStore, ($store) => $store.error);
 
 export const searchQuery = derived(searchStore, ($store) => $store.query);
+export const selectedTags = derived(searchStore, ($store) => $store.selectedTags);
 export const searchResults = derived(searchStore, ($store) => $store.results);
 export const isSearching = derived(searchStore, ($store) => $store.loading);
 
@@ -317,17 +320,43 @@ export const pageActions = {
 	}
 };
 
+// Helper function to combine text query and tag filters
+function buildSearchQuery(textQuery: string, tags: string[]): string {
+	const parts: string[] = [];
+
+	// Add text query if present
+	if (textQuery.trim()) {
+		parts.push(textQuery.trim());
+	}
+
+	// Add tag filters
+	for (const tag of tags) {
+		parts.push(`tag:${tag}`);
+	}
+
+	return parts.join(' ');
+}
+
 export const searchActions = {
-	async search(query: string) {
+	async search(query?: string, tags?: string[]) {
+		// Get current state for defaults
+		const currentState = get(searchStore);
+		const finalQuery = query ?? currentState.query;
+		const finalTags = tags ?? currentState.selectedTags;
+
 		searchStore.update((state) => ({
 			...state,
-			query,
+			query: finalQuery,
+			selectedTags: finalTags,
 			loading: true,
 			error: null
 		}));
 
 		try {
-			const results = await apiClient.searchPages(query);
+			// Combine text query and tag filters into a single search query
+			const combinedQuery = buildSearchQuery(finalQuery, finalTags);
+			const results = await apiClient.searchPages(combinedQuery);
+
 			searchStore.update((state) => ({
 				...state,
 				results: results.pages,
@@ -349,6 +378,7 @@ export const searchActions = {
 		searchStore.update((state) => ({
 			...state,
 			query: '',
+			selectedTags: [],
 			results: [],
 			error: null
 		}));
@@ -356,6 +386,36 @@ export const searchActions = {
 
 	setQuery(query: string) {
 		searchStore.update((state) => ({ ...state, query }));
+	},
+
+	setSelectedTags(tags: string[]) {
+		searchStore.update((state) => ({ ...state, selectedTags: tags }));
+	},
+
+	addTag(tag: string) {
+		searchStore.update((state) => {
+			const newTags = state.selectedTags.includes(tag)
+				? state.selectedTags
+				: [...state.selectedTags, tag];
+			return { ...state, selectedTags: newTags };
+		});
+	},
+
+	removeTag(tag: string) {
+		searchStore.update((state) => ({
+			...state,
+			selectedTags: state.selectedTags.filter((t) => t !== tag)
+		}));
+	},
+
+	clearTags() {
+		searchStore.update((state) => ({ ...state, selectedTags: [] }));
+	},
+
+	// Perform search with current state
+	async performSearch() {
+		const currentState = get(searchStore);
+		return this.search(currentState.query, currentState.selectedTags);
 	},
 
 	async searchInFolder(query: string, folderPath: string) {

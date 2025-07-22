@@ -55,9 +55,14 @@ export class FolderPage extends BasePage {
 		this.pages = page.locator('[data-testid="folder-pages"]');
 		this.emptyFolderMessage = page.getByText(/empty folder|no content/i);
 
-		// Folder actions
-		this.createFolderButton = page.getByRole('button', { name: /create folder|new folder/i });
-		this.createPageButton = page.getByRole('button', { name: /create page|new page/i });
+		// Folder actions (be more specific to avoid sidebar button conflicts)
+		this.createFolderButton = page
+			.locator('main, [data-testid="folder-view"]')
+			.getByRole('button', { name: /create folder|new folder/i })
+			.first();
+		this.createPageButton = page
+			.locator('main, [data-testid="folder-view"]')
+			.getByRole('button', { name: /create page|new page/i });
 		this.folderActionsMenu = page.locator('[data-testid="folder-actions"]');
 
 		// Create folder modal

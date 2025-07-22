@@ -266,7 +266,19 @@ func (h *APIHandler) getFolderTree(c *gin.Context) {
 }
 
 func (h *APIHandler) createFolder(c *gin.Context) {
-	path := c.Param("path")
+	type CreateFolderRequest struct {
+		Path string `json:"path" binding:"required"`
+	}
+
+	var req CreateFolderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	path := req.Path
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}

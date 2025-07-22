@@ -8,11 +8,11 @@
 		Plus,
 		Trash2,
 		Edit,
-		MoreVertical,
-		Search
+		MoreVertical
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from './ErrorAlert.svelte';
+	import UnifiedSidebarSearch from './UnifiedSidebarSearch.svelte';
 	import type { Folder as FolderType, Page } from '$lib/api/types.js';
 	import {
 		folders,
@@ -74,7 +74,7 @@
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let pageContextMenuOpen = $state<string | null>(null);
 	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
-	let searchQuery = $state('');
+	let unifiedSearchQuery = $state('');
 
 	// Drag and Drop State
 	let draggedItem = $state<{
@@ -89,7 +89,9 @@
 	const pages = $derived($pagesStore.pages || []);
 
 	const filteredFolders = $derived(
-		searchQuery.trim() ? filterFolders($folders || [], searchQuery.toLowerCase()) : $folders || []
+		unifiedSearchQuery.trim()
+			? filterFoldersAndPages($folders || [], pages, unifiedSearchQuery.toLowerCase())
+			: $folders || []
 	);
 
 	$effect(() => {
@@ -118,19 +120,83 @@
 		}
 	}
 
-	function filterFolders(folders: FolderType[], query: string): FolderType[] {
-		return folders
-			.filter((folder) => {
-				const matchesName = folder.name.toLowerCase().includes(query);
-				const hasMatchingSubfolder = folder.sub_folders?.some(
-					(sub) => filterFolders([sub], query).length > 0
-				);
-				return matchesName || hasMatchingSubfolder;
-			})
-			.map((folder) => ({
-				...folder,
-				sub_folders: folder.sub_folders ? filterFolders(folder.sub_folders, query) : []
-			}));
+	function parseUnifiedQuery(query: string): { textQuery: string; tagFilters: string[] } {
+		const words = query.split(/\s+/);
+		const textParts: string[] = [];
+		const tagFilters: string[] = [];
+
+		for (const word of words) {
+			if (word.toLowerCase().startsWith('tag:')) {
+				const tagName = word.substring(4).toLowerCase();
+				if (tagName) tagFilters.push(tagName);
+			} else if (word.trim()) {
+				textParts.push(word.toLowerCase());
+			}
+		}
+
+		return {
+			textQuery: textParts.join(' '),
+			tagFilters
+		};
+	}
+
+	function pageMatchesFilters(page: Page, textQuery: string, tagFilters: string[]): boolean {
+		// Check text match in page title
+		const textMatch = !textQuery || page.metaData.title.toLowerCase().includes(textQuery);
+
+		// Check tag matches (AND logic - must match all specified tags with prefix matching)
+		const tagMatch =
+			tagFilters.length === 0 ||
+			(page.metaData.tags &&
+				tagFilters.every((requiredTag) =>
+					page.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
+				));
+
+		return textMatch && tagMatch;
+	}
+
+	function filterFoldersAndPages(
+		folders: FolderType[],
+		allPages: Page[],
+		query: string
+	): FolderType[] {
+		const { textQuery, tagFilters } = parseUnifiedQuery(query);
+
+		function filterFolderRecursive(folder: FolderType): FolderType | null {
+			// Check if folder name matches text query
+			const folderNameMatches = !textQuery || folder.name.toLowerCase().includes(textQuery);
+
+			// Get pages in this folder that match the filters
+			const folderPages = getPagesForFolder(folder.path);
+			const matchingPages = folderPages.filter((page) =>
+				pageMatchesFilters(page, textQuery, tagFilters)
+			);
+
+			// Recursively filter subfolders
+			const filteredSubFolders =
+				folder.sub_folders
+					?.map(filterFolderRecursive)
+					?.filter((f): f is FolderType => f !== null) || [];
+
+			// Include folder if:
+			// 1. Folder name matches, OR
+			// 2. Has matching pages, OR
+			// 3. Has matching subfolders
+			const shouldInclude =
+				folderNameMatches || matchingPages.length > 0 || filteredSubFolders.length > 0;
+
+			if (shouldInclude) {
+				return {
+					...folder,
+					sub_folders: filteredSubFolders,
+					page_count: matchingPages.length
+				};
+			}
+
+			return null;
+		}
+
+		return folders.map(filterFolderRecursive).filter((f): f is FolderType => f !== null);
 	}
 
 	function getPagesForFolder(folderPath: string) {
@@ -153,6 +219,32 @@
 				pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
 			);
 		});
+	}
+
+	function getFilteredRootPages() {
+		const rootPages = getPagesForFolder('/');
+
+		// If no search query, return all root pages
+		if (!unifiedSearchQuery.trim()) {
+			return rootPages;
+		}
+
+		// Apply the same filtering logic as used in filterFoldersAndPages
+		const { textQuery, tagFilters } = parseUnifiedQuery(unifiedSearchQuery.toLowerCase());
+		return rootPages.filter((page) => pageMatchesFilters(page, textQuery, tagFilters));
+	}
+
+	function getFilteredPagesForFolder(folderPath: string) {
+		const folderPages = getPagesForFolder(folderPath);
+
+		// If no search query, return all pages in folder
+		if (!unifiedSearchQuery.trim()) {
+			return folderPages;
+		}
+
+		// Apply the same filtering logic as used in filterFoldersAndPages
+		const { textQuery, tagFilters } = parseUnifiedQuery(unifiedSearchQuery.toLowerCase());
+		return folderPages.filter((page) => pageMatchesFilters(page, textQuery, tagFilters));
 	}
 
 	function isCurrentPath(path: string): boolean {
@@ -485,7 +577,7 @@
 	{@const isSelected = selectedPath === folder.path}
 	{@const isCurrent = isCurrentPath(folder.path)}
 	{@const hasSubFolders = folder.sub_folders && folder.sub_folders.length > 0}
-	{@const hasPages = showPages && getPagesForFolder(folder.path).length > 0}
+	{@const hasPages = showPages && getFilteredPagesForFolder(folder.path).length > 0}
 	{@const hasExpandableContent = hasSubFolders || hasPages}
 	{@const indentLevel = Math.min(depth, maxDepth)}
 	{@const isBeingDragged = isDragging && draggedItem?.path === folder.path}
@@ -595,7 +687,7 @@
 			<div class="mt-1">
 				<!-- Render pages in current folder first if showPages is enabled -->
 				{#if showPages}
-					{#each getPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
+					{#each getFilteredPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
 						{@const pageIsBeingDragged = isDragging && draggedItem?.path === page.metaData.path}
 						{@const pageIsDropTarget = dropTarget === page.metaData.path}
 						{@const pageIsDragOver = dragOverTarget === page.metaData.path}
@@ -715,18 +807,16 @@
 		</div>
 	{/if}
 
-	<!-- Search -->
+	<!-- Enhanced Search with Tag Support -->
 	{#if showSearch}
 		<div class="border-border border-b p-3">
-			<div class="relative">
-				<Search class="text-muted absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
-				<input
-					type="text"
-					bind:value={searchQuery}
-					placeholder="Search folders..."
-					class="bg-secondary border-border focus:ring-primary focus:border-primary placeholder:text-muted-foreground w-full rounded-md border py-2 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
-				/>
-			</div>
+			<UnifiedSidebarSearch
+				value={unifiedSearchQuery}
+				placeholder="Filter folders, pages... (try 'tag:name')"
+				onSearch={(query) => {
+					unifiedSearchQuery = query;
+				}}
+			/>
 		</div>
 	{/if}
 
@@ -743,7 +833,7 @@
 	{:else if !$isFoldersLoading && $folders !== null && filteredFolders.length === 0}
 		<!-- Empty State -->
 		<div class="flex flex-col items-center justify-center py-8 text-center">
-			{#if searchQuery.trim()}
+			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>
 			{:else}
 				<Folder class="text-muted-foreground mb-4 h-12 w-12" />
@@ -759,13 +849,13 @@
 		<!-- Folder Tree -->
 		<div class="space-y-1" role="tree" aria-label="Folder tree">
 			<!-- Root folder containing root pages and root-level folders -->
-			{#if showPages && (getPagesForFolder('/').length > 0 || filteredFolders.length > 0)}
+			{#if showPages && (getFilteredRootPages().length > 0 || filteredFolders.length > 0)}
 				{@render folderNode(
 					{
 						name: '/',
 						path: '/',
 						created: new Date().toISOString(),
-						page_count: getPagesForFolder('/').length,
+						page_count: getFilteredRootPages().length,
 						sub_folders: filteredFolders
 					},
 					0

@@ -67,7 +67,7 @@
 </script>
 
 <Dialog {open} onOpenChange={(openState) => !openState && onClose()}>
-	<DialogContent class="max-w-md">
+	<DialogContent class="max-w-md" data-testid="create-folder-modal">
 		<DialogHeader>
 			<DialogTitle class="flex items-center gap-3">
 				<Folder class="h-5 w-5 text-blue-500" />

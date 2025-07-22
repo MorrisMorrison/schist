@@ -390,6 +390,9 @@ func (p *PageService) populateFolderContents(folder *models.Folder, folderPath s
 
 	for _, entry := range entries {
 		if entry.IsDir() {
+			if entry.Name() == "trash" {
+				continue
+			}
 			subfolder := p.createSubfolder(folder.Path, entry)
 			folder.SubFolders = append(folder.SubFolders, subfolder)
 		} else if strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
@@ -459,6 +462,11 @@ func (p *PageService) getRootFolder() (*models.Folder, error) {
 
 	for _, entry := range entries {
 		if entry.IsDir() {
+			// Skip trash folder
+			if entry.Name() == "trash" {
+				continue
+			}
+
 			entryInfo, err := entry.Info()
 			if err != nil {
 				continue

@@ -62,7 +62,7 @@
 	});
 	const currentFolderPages = $derived(() => {
 		let filteredPages;
-		
+
 		if (mode === 'recent') {
 			// Filter pages excluding trash
 			filteredPages = $pagesStore.pages
@@ -96,7 +96,7 @@
 		// Apply sorting to all pages
 		return filteredPages.sort((a, b) => {
 			let comparison = 0;
-			
+
 			if (sortBy === 'name') {
 				comparison = a.metaData.title.localeCompare(b.metaData.title);
 			} else if (sortBy === 'created') {
@@ -108,7 +108,7 @@
 				const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
 				comparison = dateA - dateB;
 			}
-			
+
 			return sortOrder === 'desc' ? -comparison : comparison;
 		});
 	});

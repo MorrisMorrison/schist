@@ -163,8 +163,8 @@
 		const { textQuery, tagFilters } = parseUnifiedQuery(query);
 
 		function filterFolderRecursive(folder: FolderType): FolderType | null {
-			// Check if folder name matches text query
-			const folderNameMatches = !textQuery || folder.name.toLowerCase().includes(textQuery);
+			// Check if folder name matches text query (only when there IS a text query)
+			const folderNameMatches = textQuery && folder.name.toLowerCase().includes(textQuery);
 
 			// Get pages in this folder that match the filters
 			const folderPages = getPagesForFolder(folder.path);
@@ -179,7 +179,7 @@
 					?.filter((f): f is FolderType => f !== null) || [];
 
 			// Include folder if:
-			// 1. Folder name matches, OR
+			// 1. Folder name matches text query (only when text query exists), OR
 			// 2. Has matching pages, OR
 			// 3. Has matching subfolders
 			const shouldInclude =

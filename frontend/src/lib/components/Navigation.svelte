@@ -85,7 +85,7 @@
 							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {page
 								.url.pathname === '/recent'
 								? 'text-primary border-blue-500'
-								: 'text-secondary hover:text-primary border-transparent hover:border-gray-300'}"
+								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"
 						>
 							Recent
 						</a>

@@ -180,7 +180,7 @@
 	</header>
 
 	<!-- Page Content -->
-	<main class="bg-primary ring-border-primary rounded-lg p-8 shadow-sm ring-1">
+	<main class="bg-secondary ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if page.content}
 			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->

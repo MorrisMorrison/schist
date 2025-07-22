@@ -61,22 +61,19 @@
 		return $foldersStore.folders?.find((f) => f.path === path);
 	});
 	const currentFolderPages = $derived(() => {
+		let filteredPages;
+		
 		if (mode === 'recent') {
-			// Return recent pages sorted by modification date
-			return $pagesStore.pages
+			// Filter pages excluding trash
+			filteredPages = $pagesStore.pages
 				.filter((page) => !page.metaData.path.includes('/trash'))
-				.sort((a, b) => {
-					const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
-					const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
-					return dateB - dateA; // Newest first
-				})
 				.slice(0, recentLimit);
 		} else if (mode === 'all') {
 			// Return all pages
-			return $pagesStore.pages.filter((page) => !page.metaData.path.includes('/trash'));
+			filteredPages = $pagesStore.pages.filter((page) => !page.metaData.path.includes('/trash'));
 		} else {
 			// Original folder filtering logic
-			return $pagesStore.pages.filter((page) => {
+			filteredPages = $pagesStore.pages.filter((page) => {
 				const pagePath = page.metaData?.path || '';
 				const isRoot = path === '' || path === '/';
 				if (isRoot) {
@@ -95,6 +92,25 @@
 				);
 			});
 		}
+
+		// Apply sorting to all pages
+		return filteredPages.sort((a, b) => {
+			let comparison = 0;
+			
+			if (sortBy === 'name') {
+				comparison = a.metaData.title.localeCompare(b.metaData.title);
+			} else if (sortBy === 'created') {
+				const dateA = new Date(a.metaData.created || '').getTime();
+				const dateB = new Date(b.metaData.created || '').getTime();
+				comparison = dateA - dateB;
+			} else if (sortBy === 'modified') {
+				const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
+				const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
+				comparison = dateA - dateB;
+			}
+			
+			return sortOrder === 'desc' ? -comparison : comparison;
+		});
 	});
 
 	const subFolders = $derived(() => {

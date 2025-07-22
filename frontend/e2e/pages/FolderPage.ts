@@ -56,14 +56,18 @@ export class FolderPage extends BasePage {
 		this.emptyFolderMessage = page.getByText(/empty folder|no content/i);
 
 		// Folder actions (be more specific to avoid sidebar button conflicts)
-		this.createFolderButton = page.getByRole('button', { name: /new folder|create folder/i }).first();
+		this.createFolderButton = page
+			.getByRole('button', { name: /new folder|create folder/i })
+			.first();
 		this.createPageButton = page.getByRole('button', { name: /new page|create page/i }).first();
 		this.folderActionsMenu = page.locator('[data-testid="folder-actions"]');
 
 		// Create folder modal
 		this.createFolderModal = page.locator('[data-testid="create-folder-modal"]');
 		this.folderNameInput = page.getByLabel(/folder name/i);
-		this.confirmCreateFolder = this.createFolderModal.getByRole('button', { name: /create|confirm/i });
+		this.confirmCreateFolder = this.createFolderModal.getByRole('button', {
+			name: /create|confirm/i
+		});
 		this.cancelCreateFolder = this.createFolderModal.getByRole('button', { name: /cancel/i });
 
 		// Folder tree
@@ -149,7 +153,10 @@ export class FolderPage extends BasePage {
 	 * Navigate to a subfolder
 	 */
 	async openSubFolder(folderName: string) {
-		const folderCard = this.subFolders.locator('[role="button"], a, .cursor-pointer').filter({ hasText: folderName }).first();
+		const folderCard = this.subFolders
+			.locator('[role="button"], a, .cursor-pointer')
+			.filter({ hasText: folderName })
+			.first();
 		await folderCard.click();
 		await this.waitForLoad();
 	}
@@ -184,7 +191,9 @@ export class FolderPage extends BasePage {
 	 */
 	async verifyContainsFolder(folderName: string) {
 		// Look for folder cards or links within the subfolders section
-		const folderCard = this.subFolders.locator('[role="button"], a, .cursor-pointer').filter({ hasText: folderName });
+		const folderCard = this.subFolders
+			.locator('[role="button"], a, .cursor-pointer')
+			.filter({ hasText: folderName });
 		await expect(folderCard).toBeVisible();
 	}
 

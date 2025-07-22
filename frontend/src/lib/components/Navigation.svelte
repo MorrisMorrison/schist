@@ -73,16 +73,16 @@
 					<div class="hidden md:ml-6 md:flex md:space-x-8">
 						<a
 							href="/"
-							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {page
+							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page
 								.url.pathname === '/' || page.url.pathname.startsWith('/folders')
 								? 'text-primary border-blue-500'
-								: 'text-secondary hover:text-primary border-transparent hover:border-gray-300'}"
+								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"
 						>
 							Home
 						</a>
 						<a
 							href="/recent"
-							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium transition-colors {page
+							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page
 								.url.pathname === '/recent'
 								? 'text-primary border-blue-500'
 								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"

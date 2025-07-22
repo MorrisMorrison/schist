@@ -129,10 +129,8 @@
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each pageTags as tag (tag)}
-								<Badge
-									variant="default"
-									class="text-xs text-white "
-									data-testid="page-tag">{tag}</Badge
+								<Badge variant="default" class="text-xs text-white " data-testid="page-tag"
+									>{tag}</Badge
 								>
 							{/each}
 						</div>

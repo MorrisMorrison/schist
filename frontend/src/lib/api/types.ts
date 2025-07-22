@@ -38,6 +38,16 @@ export interface SearchResult {
 	total: number;
 }
 
+export interface TagInfo {
+	name: string;
+	count: number;
+}
+
+export interface TagsResponse {
+	tags: TagInfo[];
+	total: number;
+}
+
 export interface ApiResponse<T> {
 	data?: T;
 	error?: string;

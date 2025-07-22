@@ -13,7 +13,8 @@ import type {
 	CreatePageResponse,
 	Asset,
 	AssetUploadResponse,
-	SearchResult
+	SearchResult,
+	TagsResponse
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -209,6 +210,11 @@ class SchістApiClient {
 	async searchPages(query: string): Promise<SearchResult> {
 		const params = new URLSearchParams({ q: query });
 		return this.request<SearchResult>(`/search?${params}`);
+	}
+
+	// Get all tags with counts
+	async getAllTags(): Promise<TagsResponse> {
+		return this.request<TagsResponse>('/tags');
 	}
 
 	// Asset operations

@@ -30,20 +30,114 @@ func (p *PageService) Search(query string) ([]*models.Page, error) {
 		return nil, err
 	}
 
+	// Parse query for text search and tag filters
+	textQuery, tagFilters := p.parseSearchQuery(query)
+
 	var filtered []*models.Page
-	lowerQuery := strings.ToLower(query)
+	lowerTextQuery := strings.ToLower(textQuery)
 
 	for _, page := range pages {
 		if strings.Contains(page.MetaData.Path, "/trash") {
 			continue
 		}
-		if strings.Contains(strings.ToLower(page.MetaData.Title), lowerQuery) {
+
+		// Check text match (if textQuery is not empty)
+		textMatch := textQuery == "" || strings.Contains(strings.ToLower(page.MetaData.Title), lowerTextQuery)
+
+		// Check tag match (if tagFilters are specified)
+		tagMatch := p.matchesTags(page, tagFilters)
+
+		// Include page if both text and tag conditions are met
+		if textMatch && tagMatch {
 			filtered = append(filtered, page)
 		}
 	}
 
 	return filtered, nil
+}
 
+// parseSearchQuery extracts text query and tag filters from search string
+// Supports syntax like: "authentication tag:security tag:golang"
+func (p *PageService) parseSearchQuery(query string) (string, []string) {
+	var textParts []string
+	var tagFilters []string
+
+	// Split query into words
+	words := strings.Fields(query)
+
+	for _, word := range words {
+		if strings.HasPrefix(strings.ToLower(word), "tag:") {
+			// Extract tag name (case-insensitive matching)
+			tagName := strings.TrimPrefix(strings.ToLower(word), "tag:")
+			if tagName != "" {
+				tagFilters = append(tagFilters, tagName)
+			}
+		} else {
+			// Regular text search word
+			textParts = append(textParts, word)
+		}
+	}
+
+	textQuery := strings.Join(textParts, " ")
+	return textQuery, tagFilters
+}
+
+// matchesTags checks if a page has all required tags (case-insensitive, supports partial matching)
+func (p *PageService) matchesTags(page *models.Page, requiredTags []string) bool {
+	if len(requiredTags) == 0 {
+		return true // No tag filter specified
+	}
+
+	if page.MetaData.Tags == nil {
+		return false // Page has no tags but tags are required
+	}
+
+	// Check if all required tags match (partial matching supported)
+	for _, requiredTag := range requiredTags {
+		requiredLower := strings.ToLower(requiredTag)
+		found := false
+
+		// Check if any page tag contains the required tag as substring
+		for _, pageTag := range page.MetaData.Tags {
+			if strings.Contains(strings.ToLower(pageTag), requiredLower) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return false // Required tag not found in any page tag
+		}
+	}
+
+	return true
+}
+
+// GetAllTags returns all unique tags across all pages with their usage counts
+func (p *PageService) GetAllTags() (map[string]int, error) {
+	pages, err := p.ListPages()
+	if err != nil {
+		return nil, err
+	}
+
+	tagCounts := make(map[string]int)
+
+	for _, page := range pages {
+		// Skip trash pages
+		if strings.Contains(page.MetaData.Path, "/trash") {
+			continue
+		}
+
+		// Count each tag
+		if page.MetaData.Tags != nil {
+			for _, tag := range page.MetaData.Tags {
+				// Store tags in original case but allow case-insensitive searching
+				tagCounts[tag]++
+			}
+		}
+	}
+
+	return tagCounts, nil
 }
 
 func (p *PageService) CreatePage(page *models.Page) error {

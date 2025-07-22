@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 
 	let {
-		placeholder = 'Search pages...',
+		placeholder = 'Search pages... (try "tag:name")',
 		showResults = true,
 		onSelect,
 		id = 'search-input',

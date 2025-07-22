@@ -49,6 +49,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	}
 
 	routerGroup.GET("/search", h.search)
+	routerGroup.GET("/tags", h.getAllTags)
 
 	assets := routerGroup.Group("/assets")
 	{
@@ -117,6 +118,35 @@ func (h *APIHandler) search(c *gin.Context) {
 		"query": query,
 		"pages": pages,
 		"total": len(pages),
+	})
+}
+
+func (h *APIHandler) getAllTags(c *gin.Context) {
+	tagCounts, err := h.PageService.GetAllTags()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Convert map to sorted slice for consistent output
+	type TagInfo struct {
+		Name  string `json:"name"`
+		Count int    `json:"count"`
+	}
+
+	var tags []TagInfo
+	for name, count := range tagCounts {
+		tags = append(tags, TagInfo{
+			Name:  name,
+			Count: count,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"tags":  tags,
+		"total": len(tags),
 	})
 }
 

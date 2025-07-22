@@ -77,7 +77,11 @@
 	let searchQuery = $state('');
 
 	// Drag and Drop State
-	let draggedItem = $state<{ type: 'folder' | 'page'; path: string; data: any } | null>(null);
+	let draggedItem = $state<{
+		type: 'folder' | 'page';
+		path: string;
+		data: FolderType | Page;
+	} | null>(null);
 	let dropTarget = $state<string | null>(null);
 	let isDragging = $state(false);
 	let dragOverTarget = $state<string | null>(null);
@@ -375,18 +379,20 @@
 		};
 	});
 
-	// Drag and Drop Handlers
-	function handleDragStart(event: DragEvent, type: 'folder' | 'page', path: string, data: any) {
+	function handleDragStart(
+		event: DragEvent,
+		type: 'folder' | 'page',
+		path: string,
+		data: FolderType | Page
+	) {
 		if (!event.dataTransfer) return;
 
 		draggedItem = { type, path, data };
 		isDragging = true;
 
-		// Set drag data for native drag and drop
 		event.dataTransfer.effectAllowed = 'move';
 		event.dataTransfer.setData('application/json', JSON.stringify({ type, path, data }));
 
-		// Add a drag image (optional - browser will use default)
 		if (event.target instanceof HTMLElement) {
 			const dragImage = event.target.cloneNode(true) as HTMLElement;
 			dragImage.style.opacity = '0.7';
@@ -394,7 +400,7 @@
 		}
 	}
 
-	function handleDragEnd(_event: DragEvent) {
+	function handleDragEnd() {
 		draggedItem = null;
 		isDragging = false;
 		dropTarget = null;
@@ -404,7 +410,6 @@
 	function handleDragOver(event: DragEvent, targetPath: string) {
 		if (!draggedItem || draggedItem.path === targetPath) return;
 
-		// Prevent dropping folder into itself or its children
 		if (draggedItem.type === 'folder' && targetPath.startsWith(draggedItem.path + '/')) {
 			return;
 		}
@@ -417,7 +422,6 @@
 	function handleDragEnter(event: DragEvent, targetPath: string) {
 		if (!draggedItem || draggedItem.path === targetPath) return;
 
-		// Prevent dropping folder into itself or its children
 		if (draggedItem.type === 'folder' && targetPath.startsWith(draggedItem.path + '/')) {
 			return;
 		}
@@ -427,7 +431,6 @@
 	}
 
 	function handleDragLeave(event: DragEvent, targetPath: string) {
-		// Only clear drop target if we're actually leaving this element
 		if (event.currentTarget === event.target) {
 			if (dropTarget === targetPath) {
 				dropTarget = null;
@@ -445,18 +448,14 @@
 
 		const { type, path: sourcePath } = draggedItem;
 
-		// Don't drop on itself
 		if (sourcePath === targetPath) return;
 
-		// Prevent dropping folder into itself or its children
 		if (type === 'folder' && targetPath.startsWith(sourcePath + '/')) {
 			return;
 		}
 
 		try {
-			// Calculate new path
 			const sourcePathSegments = sourcePath.split('/').filter(Boolean);
-			const targetPathSegments = targetPath.split('/').filter(Boolean);
 			const itemName = sourcePathSegments[sourcePathSegments.length - 1];
 			const newPath = targetPath === '/' ? `/${itemName}` : `${targetPath}/${itemName}`;
 
@@ -466,16 +465,13 @@
 				await pageActions.movePagePath(sourcePath, newPath);
 			}
 
-			// Refresh the tree
 			await folderActions.loadFolderTree();
 			if (showPages) {
 				await pageActions.loadPages();
 			}
 		} catch (error) {
 			console.error('Failed to move item:', error);
-			// You could show a toast notification here
 		} finally {
-			// Reset drag state
 			draggedItem = null;
 			isDragging = false;
 			dropTarget = null;

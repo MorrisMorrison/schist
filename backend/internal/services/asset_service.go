@@ -23,7 +23,6 @@ const (
 	IMAGES_DIR     = "images"
 )
 
-// allowedImageTypes contains the set of permitted image MIME types
 var allowedImageTypes = map[string]bool{
 	"image/jpeg":    true,
 	"image/jpg":     true,
@@ -33,7 +32,6 @@ var allowedImageTypes = map[string]bool{
 	"image/svg+xml": true,
 }
 
-// allowedExtensions contains the set of permitted file extensions
 var allowedExtensions = map[string]bool{
 	".jpg":  true,
 	".jpeg": true,

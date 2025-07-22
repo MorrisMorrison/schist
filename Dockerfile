@@ -11,7 +11,9 @@ RUN npm ci
 # Copy frontend source
 COPY frontend/ ./
 
-# Build static files
+# Build static files with environment variable
+ARG PUBLIC_API_URL
+ENV PUBLIC_API_URL=$PUBLIC_API_URL
 RUN npm run build
 
 # Stage 2: Build backend

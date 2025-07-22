@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "dockerfilePath": "./Dockerfile",
+  "volumes": [
+    {
+      "hostPath": "/captain/data/schist-data",
+      "containerPath": "/app/data"
+    }
+  ]
+}

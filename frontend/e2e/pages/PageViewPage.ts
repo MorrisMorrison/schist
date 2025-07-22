@@ -40,7 +40,7 @@ export class PageViewPage extends BasePage {
 
 		// Page content
 		this.pageTitle = page.locator('h1').first();
-		this.pageContent = page.locator('.prose, [data-testid="page-content"]').first();
+		this.pageContent = page.locator('.prose').first();
 		this.pageTags = page.getByTestId('page-tag');
 		this.pageMetadata = page.locator('[data-testid="page-metadata"]');
 		this.createdDate = page.locator('[data-testid="created-date"]');
@@ -81,6 +81,16 @@ export class PageViewPage extends BasePage {
 	 * Verify page is loaded and displays content
 	 */
 	async verifyPageLoaded(expectedTitle?: string) {
+		// Wait for loading to complete first
+		await this.page.waitForLoadState('networkidle');
+		
+		// Wait for loading spinner to disappear if present
+		const loadingSpinner = this.page.locator('.animate-spin');
+		if (await loadingSpinner.isVisible()) {
+			await loadingSpinner.waitFor({ state: 'hidden', timeout: 10000 });
+		}
+
+		// Now wait for page title to be visible
 		await this.waitForVisible(this.pageTitle);
 
 		if (expectedTitle) {

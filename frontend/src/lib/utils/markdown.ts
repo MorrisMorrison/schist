@@ -48,19 +48,48 @@ hljs.registerLanguage('nginx', nginx);
 // Custom renderer for code blocks and images
 const renderer = new marked.Renderer();
 
+function parseSizeToClass(size: string): string {
+	const sizeMap: Record<string, string> = {
+		small: 'max-w-[33%]',
+		medium: 'max-w-[50%]',
+		large: 'max-w-[75%]',
+		full: 'max-w-full'
+	};
+
+	if (sizeMap[size]) return sizeMap[size];
+	if (size.includes('%') || size.includes('px')) {
+		return `max-w-[${size}]`;
+	}
+	if (/^\d+$/.test(size)) {
+		return `max-w-[${size}px]`;
+	}
+
+	return 'max-w-[75%]'; // Default fallback
+}
+
 renderer.image = function ({ href, title, text }: Tokens.Image): string {
 	// Convert local asset paths to full URLs
 	let src = href;
+	const alt = text || '';
+	let sizeClass = 'max-w-[75%]'; // Default to large size
+	let actualTitle = title || '';
+
+	// Parse size from title (format: "Title|size")
+	if (title && title.includes('|')) {
+		const [titlePart, sizePart] = title.split('|', 2);
+		actualTitle = titlePart;
+		sizeClass = parseSizeToClass(sizePart);
+	}
+
 	// Check if href starts with /assets/ (ignoring query parameters)
 	const pathWithoutQuery = href.split('?')[0];
 	if (pathWithoutQuery.startsWith('/assets/')) {
 		src = apiClient.getAssetUrl(href);
 	}
 
-	const titleAttr = title ? ` title="${title}"` : '';
-	const alt = text || '';
+	const titleAttr = actualTitle ? ` title="${actualTitle}"` : '';
 
-	return `<img src="${src}" alt="${alt}"${titleAttr} class="max-w-full h-auto rounded-lg shadow-sm" loading="lazy" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
+	return `<img src="${src}" alt="${alt}"${titleAttr} class="${sizeClass} h-auto rounded-lg shadow-sm cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" data-lightbox="true" data-original-src="${src}" onclick="window.openImageLightbox('${src}', '${alt}')" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
 };
 
 renderer.code = function ({ text, lang }: Tokens.Code): string {

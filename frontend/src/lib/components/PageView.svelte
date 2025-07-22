@@ -9,6 +9,8 @@
 		initializeCodeBlockCopyButtons
 	} from '$lib/utils/markdown';
 	import type { Page } from '$lib/api/types';
+	import ImageLightbox from './ImageLightbox.svelte';
+	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 
 	interface Props {
 		page: Page;
@@ -202,4 +204,12 @@
 	{isDeleting}
 	onConfirm={handleConfirmDelete}
 	onCancel={handleCancelDelete}
+/>
+
+<!-- Image Lightbox Modal -->
+<ImageLightbox
+	src={$imageLightbox.src}
+	alt={$imageLightbox.alt}
+	open={$imageLightbox.open}
+	onClose={imageLightboxActions.close}
 />

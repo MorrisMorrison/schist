@@ -4,6 +4,8 @@
 		parseMarkdownWithCopyButtons,
 		initializeCodeBlockCopyButtons
 	} from '$lib/utils/markdown';
+	import ImageLightbox from './ImageLightbox.svelte';
+	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 
 	let { content, theme = 'light', className = '' }: PreviewProps = $props();
 
@@ -46,6 +48,14 @@
 		{@html htmlContent}
 	</div>
 </div>
+
+<!-- Image Lightbox Modal -->
+<ImageLightbox
+	src={$imageLightbox.src}
+	alt={$imageLightbox.alt}
+	open={$imageLightbox.open}
+	onClose={imageLightboxActions.close}
+/>
 
 <style>
 	.markdown-preview {

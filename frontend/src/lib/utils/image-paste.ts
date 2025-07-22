@@ -75,7 +75,7 @@ class ImagePasteHandler {
 			const cursor = view.state.selection.main.head;
 			// Add timestamp to bust browser cache for newly uploaded images
 			const cacheBustPath = `${asset.path}?t=${Date.now()}`;
-			const imageMarkdown = `![${asset.original_name}](${cacheBustPath})`;
+			const imageMarkdown = `![${asset.original_name}](${cacheBustPath} "${asset.original_name}|large")`;
 
 			const transaction = view.state.update({
 				changes: { from: cursor, insert: imageMarkdown },

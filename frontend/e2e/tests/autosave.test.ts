@@ -79,44 +79,6 @@ test.describe('Auto-save Functionality', () => {
 		await editorPage.verifyContent('Modified Content');
 	});
 
-	// test('should handle rapid content changes during auto-save', async ({
-	// 	editorPage,
-	// 	apiHelper,
-	// 	testId
-	// }) => {
-	// 	const testPage = createTestPage({
-	// 		title: `Rapid Changes ${testId}`,
-	// 		content: '# Base Content',
-	// 		path: `/rapid-test-${testId}`
-	// 	});
-
-	// 	await apiHelper.createPage(testPage);
-
-	// 	// Navigate to edit
-	// 	await editorPage.navigateToEdit(testPage.path);
-	// 	await editorPage.verifyLoaded();
-
-	// 	// Make rapid changes
-	// 	await editorPage.clearContent();
-	// 	await editorPage.typeContent('# Change 1');
-
-	// 	// Wait a moment then make another change
-	// 	await editorPage.page.waitForTimeout(500);
-	// 	await editorPage.typeContent('\n\nChange 2');
-
-	// 	// Another quick change
-	// 	await editorPage.page.waitForTimeout(300);
-	// 	await editorPage.typeContent('\n\nChange 3');
-
-	// 	// Wait for auto-save to complete all changes
-	// 	await editorPage.waitForAutoSave(20000); // Longer timeout for multiple saves
-
-	// 	// Verify final content is preserved
-	// 	await editorPage.verifyContent('Change 1');
-	// 	await editorPage.verifyContent('Change 2');
-	// 	await editorPage.verifyContent('Change 3');
-	// });
-
 	test('should distinguish between auto-save and manual save', async ({
 		editorPage,
 		pageViewPage,
@@ -250,36 +212,6 @@ test.describe('Auto-save Functionality', () => {
 			await editorPage.verifyContent(`Change ${i}`);
 		}
 	});
-
-	// test('should auto-save title changes', async ({
-	// 	editorPage,
-	// 	pageViewPage,
-	// 	apiHelper,
-	// 	testId
-	// }) => {
-	// 	const testPage = createTestPage({
-	// 		title: `Original Title ${testId}`,
-	// 		content: '# Content',
-	// 		path: `/title-test-${testId}`
-	// 	});
-
-	// 	await apiHelper.createPage(testPage);
-
-	// 	// Navigate to edit
-	// 	await editorPage.navigateToEdit(testPage.path);
-	// 	await editorPage.verifyLoaded();
-
-	// 	// Change title
-	// 	const newTitle = `Updated Title ${testId}`;
-	// 	await editorPage.fillInput(editorPage.titleInput, newTitle);
-
-	// 	// Wait for auto-save
-	// 	await editorPage.waitForAutoSave();
-
-	// 	// Verify title change is auto-saved
-	// 	await pageViewPage.navigateToPage(testPage.path);
-	// 	await pageViewPage.verifyPageLoaded(newTitle);
-	// });
 
 	test('should auto-save tag changes', async ({ editorPage, pageViewPage, apiHelper, testId }) => {
 		const testPage = createTestPage({

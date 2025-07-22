@@ -125,13 +125,13 @@
 					</div>
 				{/if}
 				{#if pageTags.length > 0}
-					<div class="flex items-center gap-2 pt-2" data-testid="page-tags">
+					<div class="flex items-center gap-2" data-testid="page-tags">
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each pageTags as tag (tag)}
 								<Badge
 									variant="default"
-									class="bg-blue-600 text-xs text-white hover:bg-blue-500"
+									class="text-xs text-white "
 									data-testid="page-tag">{tag}</Badge
 								>
 							{/each}

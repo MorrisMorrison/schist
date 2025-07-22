@@ -152,7 +152,7 @@
 			{#if showTags && page.metaData.tags && page.metaData.tags.length > 0}
 				<div class="flex flex-wrap gap-1.5">
 					{#each page.metaData.tags as tag (tag)}
-						<Badge variant="secondary" class="px-2 py-0.5 text-xs">
+						<Badge variant="default" class="px-2 py-0.5 text-xs">
 							{tag}
 						</Badge>
 					{/each}

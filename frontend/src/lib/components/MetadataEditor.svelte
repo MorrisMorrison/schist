@@ -168,7 +168,7 @@
 						<Label class="text-sm font-medium">Tag Summary</Label>
 						<div class="flex flex-wrap gap-2">
 							{#each tags as tag (tag)}
-								<Badge variant="outline" class="text-xs">
+								<Badge variant="default" class="text-xs">
 									<Tag class="mr-1 h-2 w-2" />
 									{tag}
 								</Badge>

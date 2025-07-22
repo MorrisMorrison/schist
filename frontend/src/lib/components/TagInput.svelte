@@ -139,8 +139,8 @@
 		<div class="flex flex-wrap gap-2">
 			{#each tags as tag, index (tag)}
 				<Badge
-					variant="secondary"
-					class="group hover:bg-secondary/80 flex items-center gap-1.5 pr-1.5 transition-all"
+					variant="default"
+					class="group flex items-center gap-1.5 pr-1.5 transition-all"
 				>
 					<span class="text-sm">{tag}</span>
 					<button

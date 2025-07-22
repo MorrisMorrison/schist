@@ -295,6 +295,10 @@
 		background-color: var(--bg-muted);
 	}
 
+	.bg-blue{
+		background-color: var(--blue-secondary)
+	}
+
 	/* Border utilities */
 	.border-primary {
 		border-color: var(--border-primary);

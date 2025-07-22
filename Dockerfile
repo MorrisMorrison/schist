@@ -6,7 +6,7 @@ WORKDIR /app/frontend
 
 # Copy package files
 COPY frontend/package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy frontend source
 COPY frontend/ ./

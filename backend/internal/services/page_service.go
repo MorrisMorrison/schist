@@ -509,6 +509,10 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 			return nil
 		}
 
+		if strings.Contains(path, "/trash") {
+			return nil
+		}
+
 		relPath, err := filepath.Rel(p.dataDir, path)
 		if err != nil {
 			return fmt.Errorf("failed to get relative path: %w", err)

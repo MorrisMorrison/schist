@@ -295,8 +295,8 @@
 		background-color: var(--bg-muted);
 	}
 
-	.bg-blue{
-		background-color: var(--blue-secondary)
+	.bg-blue {
+		background-color: var(--blue-secondary);
 	}
 
 	/* Border utilities */

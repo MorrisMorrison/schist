@@ -115,6 +115,9 @@ test.describe.serial('Folder Creation', () => {
 		// Create a new folder
 		await folderPage.createFolder(testFolderName);
 
+		// Wait for the folder to appear in the UI before counting
+		await folderPage.verifyContainsFolder(cleanFolderName);
+
 		// Verify folder count increased
 		const newCount = await folderPage.getSubFolderCount();
 		expect(newCount).toBe(initialCount + 1);
@@ -123,7 +126,9 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.verifyContainsFolder(cleanFolderName);
 
 		// Check if folder appears in sidebar tree (if visible)
-		const sidebarFolder = folderPage.folderTree.getByText(cleanFolderName);
+		const sidebarFolder = folderPage.folderTree
+			.locator('[data-testid="folder-tree-item"]')
+			.filter({ hasText: cleanFolderName });
 		if (await sidebarFolder.isVisible()) {
 			await expect(sidebarFolder).toBeVisible();
 		}

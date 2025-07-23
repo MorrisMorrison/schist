@@ -51,9 +51,9 @@ export class FolderPage extends BasePage {
 		// Folder content
 		this.folderTitle = page.locator('h1').first();
 		this.folderPath = page.locator('[data-testid="folder-path"]');
-		this.subFolders = page.locator('section').filter({ hasText: 'Folders' });
-		this.pages = page.locator('section').filter({ hasText: 'Pages' });
-		this.emptyFolderMessage = page.getByText(/empty folder|no content/i);
+		this.subFolders = page.locator('[data-testid="folders-section"]');
+		this.pages = page.locator('[data-testid="pages-section"]');
+		this.emptyFolderMessage = page.locator('[data-testid="empty-folder-message"]');
 
 		// Folder actions (be more specific to avoid sidebar button conflicts)
 		this.createFolderButton = page
@@ -157,7 +157,7 @@ export class FolderPage extends BasePage {
 	 */
 	async openSubFolder(folderName: string) {
 		const folderCard = this.subFolders
-			.locator('[role="button"], a, .cursor-pointer')
+			.locator('[data-testid="folder-item"]')
 			.filter({ hasText: folderName })
 			.first();
 		await folderCard.click();
@@ -177,7 +177,7 @@ export class FolderPage extends BasePage {
 	 * Get list of subfolder names
 	 */
 	async getSubFolderNames(): Promise<string[]> {
-		const folderCards = this.subFolders.locator('[role="button"], a, .cursor-pointer');
+		const folderCards = this.subFolders.locator('[data-testid="folder-item"]');
 		return await folderCards.allTextContents();
 	}
 
@@ -195,7 +195,7 @@ export class FolderPage extends BasePage {
 	async verifyContainsFolder(folderName: string) {
 		// Look for folder cards or links within the subfolders section
 		const folderCard = this.subFolders
-			.locator('[role="button"], a, .cursor-pointer')
+			.locator('[data-testid="folder-item"]')
 			.filter({ hasText: folderName });
 		await expect(folderCard).toBeVisible();
 	}
@@ -236,8 +236,10 @@ export class FolderPage extends BasePage {
 	 * Expand folder tree node
 	 */
 	async expandTreeNode(folderName: string) {
-		const node = this.folderTreeItems.filter({ hasText: folderName });
-		const expandButton = node.locator('[aria-expanded="false"]');
+		const node = this.folderTree.getByTestId('folder-tree-item').filter({ hasText: folderName });
+		const expandButton = node
+			.getByTestId('folder-expand-button')
+			.locator('[aria-expanded="false"]');
 
 		if (await expandButton.isVisible()) {
 			await expandButton.click();
@@ -248,8 +250,10 @@ export class FolderPage extends BasePage {
 	 * Collapse folder tree node
 	 */
 	async collapseTreeNode(folderName: string) {
-		const node = this.folderTreeItems.filter({ hasText: folderName });
-		const collapseButton = node.locator('[aria-expanded="true"]');
+		const node = this.folderTree.getByTestId('folder-tree-item').filter({ hasText: folderName });
+		const collapseButton = node
+			.getByTestId('folder-expand-button')
+			.locator('[aria-expanded="true"]');
 
 		if (await collapseButton.isVisible()) {
 			await collapseButton.click();
@@ -303,7 +307,7 @@ export class FolderPage extends BasePage {
 	 * Count subfolders
 	 */
 	async getSubFolderCount(): Promise<number> {
-		return await this.subFolders.locator('[role="button"], a, .cursor-pointer').count();
+		return await this.subFolders.locator('[data-testid="folder-item"]').count();
 	}
 
 	/**

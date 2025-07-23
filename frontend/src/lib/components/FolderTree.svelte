@@ -642,6 +642,7 @@
 			aria-selected={isSelected}
 			aria-level={depth + 1}
 			tabindex="-1"
+			data-testid="folder-tree-item"
 		>
 			<!-- Indented content container -->
 			<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {indentLevel * 16}px">
@@ -653,6 +654,7 @@
 					tabindex={hasExpandableContent ? 0 : -1}
 					aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
 					disabled={!hasExpandableContent}
+					data-testid="folder-expand-button"
 				>
 					{#if hasExpandableContent}
 						{#if isExpanded}
@@ -670,6 +672,7 @@
 					onkeydown={(e) => handleKeydown(e, folder)}
 					tabindex="0"
 					aria-label={`Open folder ${folder.name}`}
+					data-testid="folder-name-button"
 				>
 					<!-- Folder Icon -->
 					<Folder class="text-blue-primary h-4 w-4 flex-shrink-0" />
@@ -704,6 +707,7 @@
 					role="button"
 					tabindex="0"
 					aria-label="Folder options"
+					data-testid="folder-context-menu-trigger"
 				>
 					<MoreVertical class="h-3 w-3" />
 				</span>
@@ -741,6 +745,7 @@
 							aria-label={`Page: ${page.metaData?.title || 'Untitled'}`}
 							aria-selected={isSelectedFile(page.metaData.path)}
 							tabindex="-1"
+							data-testid="page-item"
 						>
 							<!-- Indented content container -->
 							<div
@@ -752,6 +757,7 @@
 									type="button"
 									class="focus:ring-ring flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 									onclick={() => onpageselect?.({ page })}
+									data-testid="page-name-button"
 								>
 									<File class="text-blue-primary h-4 w-4" />
 									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span

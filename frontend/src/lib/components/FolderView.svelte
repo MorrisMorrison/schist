@@ -133,7 +133,7 @@
 			foldersStore.update((state) => ({ ...state, folders: initialFolders }));
 		}
 
-		// Load fresh data if not provided
+		// Load fresh data if not provided or when path changes
 		if (initialPages?.length === 0 || initialFolders?.length === 0) {
 			loadFolderData();
 		}
@@ -273,13 +273,14 @@
 		<CardContent class="space-y-10 p-8">
 			<!-- Subfolders -->
 			{#if subFolders().length > 0}
-				<section class="space-y-6">
+				<section class="space-y-6" data-testid="folders-section">
 					<h2 class="text-foreground text-xl font-semibold">Folders</h2>
 					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 						{#each subFolders() as folder (folder.path)}
 							<Card
 								class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg"
 								onclick={() => navigateToFolder(folder.path)}
+								data-testid="folder-item"
 							>
 								<CardHeader>
 									<div class="flex items-start gap-4">
@@ -307,7 +308,7 @@
 
 			<!-- Pages -->
 			{#if currentFolderPages().length > 0}
-				<section class="space-y-6">
+				<section class="space-y-6" data-testid="pages-section">
 					<h2 class="text-foreground text-xl font-semibold">Pages</h2>
 					<PageGrid
 						pages={currentFolderPages()}
@@ -323,7 +324,10 @@
 
 			<!-- Empty State -->
 			{#if subFolders().length === 0 && currentFolderPages().length === 0}
-				<div class="flex flex-col items-center justify-center py-12 text-center">
+				<div
+					class="flex flex-col items-center justify-center py-12 text-center"
+					data-testid="empty-folder-message"
+				>
 					<File class="text-muted mb-4 h-12 w-12" />
 					<h3 class="text-primary mb-2 text-lg font-medium">
 						{#if mode === 'recent'}

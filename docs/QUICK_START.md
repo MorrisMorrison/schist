@@ -116,11 +116,19 @@ Most common configurations:
 # Change backend port (default: 8080)
 SCHIST_PORT=8081 make run-backend
 
-# Change data directory (default: ../../data)
+# Change data directory (default: ../../data)  
 SCHIST_DATA_DIR=/custom/path make run-backend
 
 # Frontend API URL (default: http://localhost:8080/api)
 PUBLIC_API_URL=http://localhost:8081/api make run-frontend
+
+# Enable security features (production use)
+SCHIST_RATE_LIMIT_ENABLED=true SCHIST_RATE_LIMIT_RPM=60 make run-backend
+SCHIST_AUTH_ENABLED=true SCHIST_AUTH_USERS="admin:hash" make run-backend
+
+# Generate password hash for authentication
+cd backend && go build -o generate-hash ./cmd/generate-hash
+./generate-hash mypassword  # Outputs bcrypt hash for SCHIST_AUTH_USERS
 ```
 
 ### Data Storage

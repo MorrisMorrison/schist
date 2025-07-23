@@ -9,7 +9,58 @@ Schist provides a complete RESTful API for managing a hierarchical markdown wiki
 
 ## Authentication
 
-Currently, no authentication is required for any endpoints.
+Authentication is **optional** and can be enabled via environment variables.
+
+### No Authentication (Default)
+By default, all endpoints are publicly accessible without authentication.
+
+### Basic Authentication (Optional)
+When enabled (`SCHIST_AUTH_ENABLED=true`), all endpoints except `/api/health` require HTTP Basic Authentication.
+
+**Configuration:**
+```bash
+SCHIST_AUTH_ENABLED=true
+SCHIST_AUTH_USERS="admin:$2a$10$hash,editor:$2a$10$hash2"
+```
+
+**Request Headers:**
+```http
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+```
+
+**Unauthorized Response (401):**
+```json
+{
+  "error": "Unauthorized",
+  "message": "Authentication required to access this resource"
+}
+```
+
+## Rate Limiting
+
+Rate limiting is **optional** and can be enabled to prevent abuse.
+
+**Configuration:**
+```bash
+SCHIST_RATE_LIMIT_ENABLED=true
+SCHIST_RATE_LIMIT_RPM=100  # requests per minute per IP
+```
+
+**Response Headers:**
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1642694400
+```
+
+**Rate Limited Response (429):**
+```json
+{
+  "error": "Rate limit exceeded", 
+  "message": "Too many requests. Please try again later.",
+  "retryAfter": 60
+}
+```
 
 ## Data Models
 

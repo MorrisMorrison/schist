@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -11,6 +12,15 @@ type Config struct {
 	Environment string
 	StaticDir   string
 	FrontendURL string
+
+	// Rate limiting configuration
+	RateLimitEnabled bool
+	RateLimitRPM     int
+
+	// Authentication configuration
+	AuthEnabled bool
+	AuthUsers   map[string]string // username -> bcrypt hash
+	AuthRealm   string
 }
 
 func Load() *Config {
@@ -20,6 +30,15 @@ func Load() *Config {
 		Environment: getEnv("ENV", "development"),
 		StaticDir:   getEnv("SCHIST_STATIC_DIR", "./web"),
 		FrontendURL: getEnv("SCHIST_FRONTEND_URL", "http://localhost:5173"),
+
+		// Rate limiting configuration
+		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
+		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),
+
+		// Authentication configuration
+		AuthEnabled: getEnvBool("SCHIST_AUTH_ENABLED", false),
+		AuthUsers:   parseAuthUsers(getEnv("SCHIST_AUTH_USERS", "")),
+		AuthRealm:   getEnv("SCHIST_AUTH_REALM", "Schist Wiki"),
 	}
 }
 
@@ -40,4 +59,45 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		switch strings.ToLower(value) {
+		case "true", "1", "yes", "on":
+			return true
+		case "false", "0", "no", "off":
+			return false
+		}
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func parseAuthUsers(userStr string) map[string]string {
+	users := make(map[string]string)
+	if userStr == "" {
+		return users
+	}
+
+	pairs := strings.Split(userStr, ",")
+	for _, pair := range pairs {
+		parts := strings.SplitN(strings.TrimSpace(pair), ":", 2)
+		if len(parts) == 2 {
+			username := strings.TrimSpace(parts[0])
+			hash := strings.TrimSpace(parts[1])
+			if username != "" && hash != "" {
+				users[username] = hash
+			}
+		}
+	}
+	return users
 }

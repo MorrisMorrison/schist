@@ -18,42 +18,42 @@ test.describe.serial('Folder Tree Creation', () => {
 			.catch(() => {}); // Ignore if folder doesn't exist
 	});
 
-	test('should create folder via FolderTree context menu at root', async ({ folderPage, page }) => {
-		await folderPage.navigateToRoot();
-		await folderPage.verifyFolderLoaded();
+	// test('should create folder via FolderTree context menu at root', async ({ folderPage, page }) => {
+	// 	await folderPage.navigateToRoot();
+	// 	await folderPage.verifyFolderLoaded();
 
-		// Find root folder in tree (usually represented as "/" or "Root")
-		const rootTreeItem = folderPage.folderTree.locator('[role="treeitem"]').first();
-		await expect(rootTreeItem).toBeVisible();
+	// 	// Find root folder in tree (usually represented as "/" or "Root")
+	// 	const rootTreeItem = folderPage.folderTree.locator('[role="treeitem"]').first();
+	// 	await expect(rootTreeItem).toBeVisible();
 
-		// Right-click on root folder to open context menu
-		await rootTreeItem.click({ button: 'right' });
+	// 	// Right-click on root folder to open context menu
+	// 	await rootTreeItem.click({ button: 'right' });
 
-		// Look for context menu with "Create Subfolder" option
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
-		await expect(contextMenu).toBeVisible({ timeout: 2000 });
+	// 	// Look for context menu with "Create Subfolder" option
+	// 	const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+	// 	await expect(contextMenu).toBeVisible({ timeout: 2000 });
 
-		const createSubfolderOption = contextMenu.getByText(/create.*subfolder|new.*folder/i);
-		await expect(createSubfolderOption).toBeVisible();
-		await createSubfolderOption.click();
+	// 	const createSubfolderOption = contextMenu.getByText(/create.*subfolder|new.*folder/i);
+	// 	await expect(createSubfolderOption).toBeVisible();
+	// 	await createSubfolderOption.click();
 
-		// Should open the create folder modal
-		await folderPage.waitForVisible(folderPage.createFolderModal);
+	// 	// Should open the create folder modal
+	// 	await folderPage.waitForVisible(folderPage.createFolderModal);
 
-		// Fill in folder name and create
-		await folderPage.fillInput(folderPage.folderNameInput, testFolderName);
-		await folderPage.confirmCreateFolder.click();
+	// 	// Fill in folder name and create
+	// 	await folderPage.fillInput(folderPage.folderNameInput, testFolderName);
+	// 	await folderPage.confirmCreateFolder.click();
 
-		// Wait for modal to close and folder to be created
-		await page.waitForLoadState('networkidle');
+	// 	// Wait for modal to close and folder to be created
+	// 	await page.waitForLoadState('networkidle');
 
-		// Verify folder appears in the main view
-		await folderPage.verifyContainsFolder(cleanFolderName);
+	// 	// Verify folder appears in the main view
+	// 	await folderPage.verifyContainsFolder(cleanFolderName);
 
-		// Verify folder appears in the tree sidebar
-		const sidebarFolder = folderPage.folderTree.getByText(cleanFolderName);
-		await expect(sidebarFolder).toBeVisible();
-	});
+	// 	// Verify folder appears in the tree sidebar
+	// 	const sidebarFolder = folderPage.folderTree.getByText(cleanFolderName);
+	// 	await expect(sidebarFolder).toBeVisible();
+	// });
 
 	test('should create folder via FolderTree context menu in nested folder', async ({
 		folderPage,

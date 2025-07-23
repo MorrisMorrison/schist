@@ -6,13 +6,15 @@
 		placeholder?: string;
 		onSearch?: (query: string) => void;
 		className?: string;
+		dataTestId?: string;
 	}
 
 	let {
 		value = '',
 		placeholder = 'Filter folders, pages... (try "tag:name")',
 		onSearch = () => {},
-		className = ''
+		className = '',
+		dataTestId = 'sidebar-search'
 	}: Props = $props();
 
 	let currentQuery = $state(value);
@@ -41,6 +43,7 @@
 			class="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform"
 		/>
 		<input
+			data-testid="${dataTestId}"
 			bind:value={currentQuery}
 			type="text"
 			{placeholder}

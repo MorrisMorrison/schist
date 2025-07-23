@@ -104,6 +104,7 @@
 					<label for="folder-name" class="text-primary text-sm font-medium">New Folder Name</label>
 					<Input
 						id="folder-name"
+						data-testid="folder-name"
 						type="text"
 						bind:value={folderName}
 						placeholder="Enter new folder name"
@@ -141,10 +142,16 @@
 			</div>
 
 			<DialogFooter>
-				<Button type="button" variant="outline" onclick={handleClose} disabled={isLoading}>
+				<Button
+					type="button"
+					data-testid="cancel-rename-folder-btn"
+					variant="outline"
+					onclick={handleClose}
+					disabled={isLoading}
+				>
 					Cancel
 				</Button>
-				<Button type="submit" disabled={!isValidName || isLoading}>
+				<Button data-testid="rename-folder-btn" type="submit" disabled={!isValidName || isLoading}>
 					{#if isLoading}
 						Renaming...
 					{:else}

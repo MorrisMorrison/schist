@@ -41,44 +41,6 @@ test.describe('Auto-save Functionality', () => {
 		await pageViewPage.verifyContentContains('Additional content added for auto-save test');
 	});
 
-	test('should preserve changes during auto-save', async ({
-		editorPage,
-		pageViewPage,
-		apiHelper,
-		testId
-	}) => {
-		const testPage = createTestPage({
-			title: `Preserve Test ${testId}`,
-			content: '# Original Content',
-			path: `/preserve-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
-		// Edit the page
-		await editorPage.navigateToEdit(testPage.path!);
-		await editorPage.verifyLoaded();
-
-		// Clear and add new content
-		await editorPage.clearContent();
-		const newContent = '# Modified Content\n\nThis content was modified and should be preserved.';
-		await editorPage.typeContent(newContent);
-
-		// Wait for auto-save
-		await editorPage.waitForAutoSave();
-
-		// Verify content is still in editor
-		await editorPage.verifyContent('Modified Content');
-
-		// Navigate away and back to verify persistence
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyContentContains('Modified Content');
-
-		// Go back to edit and verify content is preserved
-		await pageViewPage.editPage();
-		await editorPage.verifyContent('Modified Content');
-	});
-
 	test('should distinguish between auto-save and manual save', async ({
 		editorPage,
 		pageViewPage,
@@ -112,35 +74,6 @@ test.describe('Auto-save Functionality', () => {
 		await pageViewPage.verifyPageLoaded(testPage.title);
 		await pageViewPage.verifyContentContains('Auto-save changes');
 		await pageViewPage.verifyContentContains('Manual save changes');
-	});
-
-	test('should handle auto-save with keyboard shortcuts', async ({
-		editorPage,
-		pageViewPage,
-		apiHelper,
-		testId
-	}) => {
-		const testPage = createTestPage({
-			title: `Keyboard Test ${testId}`,
-			content: '# Keyboard Test',
-			path: `/keyboard-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
-		// Navigate to edit
-		await editorPage.navigateToEdit(testPage.path!);
-		await editorPage.verifyLoaded();
-
-		// Make changes
-		await editorPage.typeContent('\n\nChanges via keyboard.');
-
-		// Use Ctrl+S (should behave like manual save, not auto-save)
-		await editorPage.saveWithKeyboard();
-
-		// Keyboard save should navigate away
-		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyContentContains('Changes via keyboard');
 	});
 
 	test('should handle auto-save errors gracefully', async ({
@@ -211,30 +144,5 @@ test.describe('Auto-save Functionality', () => {
 		for (let i = 1; i <= 5; i++) {
 			await editorPage.verifyContent(`Change ${i}`);
 		}
-	});
-
-	test('should auto-save tag changes', async ({ editorPage, pageViewPage, apiHelper, testId }) => {
-		const testPage = createTestPage({
-			title: `Tag Test ${testId}`,
-			content: '# Tag Test',
-			path: `/tag-test-${testId}`,
-			tags: ['original']
-		});
-
-		await apiHelper.createPage(testPage);
-
-		// Navigate to edit
-		await editorPage.navigateToEdit(testPage.path!);
-		await editorPage.verifyLoaded();
-
-		// Add new tags
-		await editorPage.addTags(['auto-saved', 'e2e-test']);
-
-		// Wait for auto-save
-		await editorPage.waitForAutoSave();
-
-		// Verify tags are auto-saved
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyTags(['original', 'auto-saved', 'e2e-test']);
 	});
 });

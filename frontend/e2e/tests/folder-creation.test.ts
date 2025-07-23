@@ -168,7 +168,7 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.page.waitForTimeout(1000);
 
 		// Verify only one folder exists (not duplicated)
-		const folderLinks = folderPage.subFolders.getByRole('link', { name: cleanFolderName });
+		const folderLinks = folderPage.subFolders.getByText(cleanFolderName);
 		const count = await folderLinks.count();
 		expect(count).toBe(1);
 

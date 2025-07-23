@@ -264,6 +264,35 @@
 		return `/pages${path}` === currentPath;
 	}
 
+	function getCurrentFolderPath(): string {
+		console.log(currentPath);
+		if (!currentPath || currentPath === '/' || currentPath === '' || currentPath === '/folders') {
+			return '';
+		}
+
+		if (currentPath.startsWith('/folders')) {
+			// Remove /folders prefix and return the remaining path
+			const folderPath = currentPath.substring(8); // Remove '/folders'
+			return folderPath || '';
+		}
+
+		if (currentPath.startsWith('/pages')) {
+			// Remove /pages prefix and remove the last element (page name)
+			const pagePath = currentPath.substring(6); // Remove '/pages'
+			const pathSegments = pagePath.split('/').filter(Boolean);
+
+			// Remove the last segment (page name) and reconstruct the folder path
+			if (pathSegments.length <= 1) {
+				return '';
+			}
+
+			pathSegments.pop(); // Remove last element (page name)
+			return '/' + pathSegments.join('/');
+		}
+
+		return '';
+	}
+
 	function expandAll() {
 		const getAllFolderPaths = (folders: FolderType[]): string[] => {
 			let paths: string[] = [];
@@ -797,7 +826,7 @@
 					variant="ghost"
 					size="icon"
 					class="h-6 w-6"
-					onclick={() => oncreate?.({ parentPath: '' })}
+					onclick={() => oncreate?.({ parentPath: getCurrentFolderPath() })}
 					title="Create new folder"
 				>
 					<Plus class="h-4 w-4" />
@@ -810,6 +839,7 @@
 	{#if showSearch}
 		<div class="border-border border-b p-3">
 			<UnifiedSidebarSearch
+				dataTestId="sidebar-search"
 				value={unifiedSearchQuery}
 				placeholder="Filter folders, pages... (try 'tag:name')"
 				onSearch={(query) => {

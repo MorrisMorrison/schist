@@ -68,9 +68,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.navigateToRoot();
 
 		// Use unified search box
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
+		const searchInput = page.getByTestId('sidebar-search');
 
 		if (await searchInput.isVisible()) {
 			// Search for specific text
@@ -78,7 +76,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			await page.waitForTimeout(500); // Wait for search to apply
 
 			// Verify only relevant items are visible
-			const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+			const folderTree = page.getByTestId('folder-tree');
 
 			// Should show pages with "searchable" in title
 			await expect(folderTree.getByText('Searchable Page')).toBeVisible();
@@ -135,16 +133,14 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.navigateToRoot();
 
 		// Use tag search
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
+		const searchInput = page.getByTestId('sidebar-search');
 
 		if (await searchInput.isVisible()) {
 			// Search for pages with specific tag
 			await searchInput.fill('tag:important');
 			await page.waitForTimeout(500);
 
-			const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+			const folderTree = page.getByTestId('folder-tree');
 
 			// Should show only pages with "important" tag
 			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
@@ -209,16 +205,14 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
+		const searchInput = page.getByTestId('sidebar-search');
 
 		if (await searchInput.isVisible()) {
 			// Combined search: text + tag
 			await searchInput.fill('important tag:project');
 			await page.waitForTimeout(500);
 
-			const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+			const folderTree = page.getByTestId('folder-tree');
 
 			// Should show only pages that match both criteria
 			// "Important Doc" has both "important" in title/content AND "project" tag
@@ -275,16 +269,16 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.navigateToRoot();
 
 		// Check initial page count for folder
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+
+		const folderTree = page.getByTestId('folder-tree');
+
 		const folderItem = folderTree.locator(`text=${testFolderName}`).first();
 
 		// Should show total count initially (3)
 		await expect(folderItem.locator('text="(3)"')).toBeVisible();
 
 		// Apply search filter
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
+		const searchInput = page.getByTestId('sidebar-search');
 
 		if (await searchInput.isVisible()) {
 			await searchInput.fill('tag:special');
@@ -293,7 +287,6 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			// Page count should update to show only matching pages (2)
 			await expect(folderItem.locator('text="(2)"')).toBeVisible();
 
-			// Clear search
 			await searchInput.clear();
 			await page.waitForTimeout(500);
 
@@ -334,10 +327,10 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+
+		const searchInput = page.getByTestId('sidebar-search');
+;
+		const folderTree = page.getByTestId('folder-tree');
 
 		if (await searchInput.isVisible()) {
 			// Search for unique content
@@ -366,9 +359,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 	test('should handle search with no results gracefully', async ({ folderPage, page }) => {
 		await folderPage.navigateToRoot();
 
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
+		const searchInput = page.getByTestId('sidebar-search');
 
 		if (await searchInput.isVisible()) {
 			// Search for something that doesn't exist
@@ -422,9 +413,9 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
+
+		const searchInput = page.getByTestId('sidebar-search');
+;
 		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
 
 		if (await searchInput.isVisible()) {
@@ -460,9 +451,9 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await apiHelper.createPage(testPage);
 		await folderPage.navigateToRoot();
 
-		const searchInput = page
-			.locator('[placeholder*="Filter folders"], [placeholder*="search"], input[type="search"]')
-			.first();
+
+		const searchInput = page.getByTestId('sidebar-search');
+;
 
 		if (await searchInput.isVisible()) {
 			// Apply search

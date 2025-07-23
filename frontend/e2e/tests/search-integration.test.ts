@@ -327,9 +327,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-
 		const searchInput = page.getByTestId('sidebar-search');
-;
 		const folderTree = page.getByTestId('folder-tree');
 
 		if (await searchInput.isVisible()) {
@@ -413,9 +411,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-
 		const searchInput = page.getByTestId('sidebar-search');
-;
 		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
 
 		if (await searchInput.isVisible()) {
@@ -451,10 +447,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await apiHelper.createPage(testPage);
 		await folderPage.navigateToRoot();
 
-
 		const searchInput = page.getByTestId('sidebar-search');
-;
-
 		if (await searchInput.isVisible()) {
 			// Apply search
 			await searchInput.fill('persistent');

@@ -9,9 +9,14 @@ schist/
 ├── backend/                    # Go backend
 │   ├── cmd/schist/            # Main application entry point
 │   │   └── main.go
+│   ├── cmd/generate-hash/     # Password hash utility
+│   │   └── main.go
 │   ├── internal/              # Internal packages
 │   │   ├── config/           # Configuration management
 │   │   ├── handlers/         # HTTP route handlers
+│   │   ├── middleware/       # HTTP middleware (auth, rate limiting)
+│   │   │   ├── auth.go       # Basic authentication middleware
+│   │   │   └── ratelimit.go  # Rate limiting middleware
 │   │   ├── models/           # Data models and structures
 │   │   ├── serializer/       # Data serialization utilities
 │   │   └── services/         # Business logic services
@@ -103,6 +108,9 @@ cd cmd/schist && go run main.go
 - **Asset Management** - Image upload and serving
 - **Hierarchical Pages** - Folder-based organization
 - **CORS Support** - Development-mode CORS for frontend
+- **Rate Limiting** - IP-based request limiting with configurable thresholds
+- **Basic Authentication** - Optional authentication for all endpoints
+- **Security Middleware** - Modular middleware for authentication and rate limiting
 
 ### Frontend Development
 
@@ -160,6 +168,22 @@ cd backend && go test ./services -v
 
 # Run with coverage
 cd backend && go test -cover ./...
+```
+
+**Security Testing:**
+```bash
+# Test rate limiting (requires server running)
+for i in {1..10}; do curl http://localhost:8080/api/health; done
+
+# Test authentication (with auth enabled)
+curl -u admin:password http://localhost:8080/api/pages
+
+# Test without credentials (should return 401)
+curl http://localhost:8080/api/pages
+
+# Generate password hashes
+cd backend && go build -o generate-hash ./cmd/generate-hash
+./generate-hash mypassword
 ```
 
 ### Frontend Testing
@@ -233,15 +257,22 @@ git commit -m "feat: add new feature"
 
 **Request Flow:**
 ```
-HTTP Request → Gin Router → Handler → Service → File System
+HTTP Request → Gin Router → Middleware → Handler → Service → File System
+                              ↓
+                    [Rate Limiting] → [Authentication]
 ```
 
 **Key Components:**
 - **Handlers** (`internal/handlers/`) - HTTP request/response logic
+- **Middleware** (`internal/middleware/`) - Security and request processing
 - **Services** (`internal/services/`) - Business logic and file operations
 - **Models** (`internal/models/`) - Data structures
 - **Serializer** (`internal/serializer/`) - Markdown + YAML front matter serialization
 - **Config** (`internal/config/`) - Environment-based configuration
+
+**Middleware Layer:**
+- `RateLimitMiddleware` - IP-based request rate limiting
+- `BasicAuthMiddleware` - HTTP basic authentication
 
 **Service Layer:**
 - `PageService` - CRUD operations for pages
@@ -342,6 +373,21 @@ ENV=development make run-backend
 # Logs include file:line information
 # CORS requests are logged
 # Gin debug mode shows all routes
+# Security middleware status is logged
+```
+
+**Security Development:**
+```bash
+# Test with security features enabled
+SCHIST_RATE_LIMIT_ENABLED=true \
+SCHIST_RATE_LIMIT_RPM=5 \
+SCHIST_AUTH_ENABLED=true \
+SCHIST_AUTH_USERS="admin:$2a$10$hash" \
+ENV=development make run-backend
+
+# Development logs will show:
+# "Rate limiting enabled: 5 requests per minute"
+# "Basic authentication enabled for all endpoints"
 ```
 
 **Using Delve Debugger:**

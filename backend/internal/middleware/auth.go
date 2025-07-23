@@ -85,7 +85,11 @@ func (ba *BasicAuth) verifyCredentials(username, password string) bool {
 	hash, exists := ba.users[username]
 	if !exists {
 		// Use a dummy hash to prevent timing attacks
-		bcrypt.CompareHashAndPassword([]byte("$2a$10$dummy"), []byte(password))
+		err := bcrypt.CompareHashAndPassword([]byte("$2a$10$dummy"), []byte(password))
+		if err != nil {
+			return false
+		}
+
 		return false
 	}
 

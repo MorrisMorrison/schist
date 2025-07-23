@@ -13,6 +13,11 @@ Schist is designed with minimal configuration using environment variables and se
 | `SCHIST_STATIC_DIR` | `./web` | Directory for serving static frontend files (production) |
 | `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Frontend URL for CORS configuration (development) |
 | `ENV` | `development` | Environment mode (development/production) |
+| `SCHIST_RATE_LIMIT_ENABLED` | `false` | Enable/disable rate limiting |
+| `SCHIST_RATE_LIMIT_RPM` | `100` | Rate limit: requests per minute per IP |
+| `SCHIST_AUTH_ENABLED` | `false` | Enable/disable basic authentication |
+| `SCHIST_AUTH_USERS` | `""` | Basic auth users (format: `user1:hash1,user2:hash2`) |
+| `SCHIST_AUTH_REALM` | `"Schist Wiki"` | Authentication realm name |
 
 ### Frontend Configuration
 
@@ -165,6 +170,85 @@ export default {
 
 ## Security Configuration
 
+### Rate Limiting
+
+**Configuration:**
+```bash
+# Enable rate limiting
+SCHIST_RATE_LIMIT_ENABLED=true
+
+# Set requests per minute per IP (default: 100)
+SCHIST_RATE_LIMIT_RPM=60
+```
+
+**Features:**
+- **IP-based limiting**: Each IP address has independent rate limits
+- **Standard HTTP headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- **Automatic cleanup**: Old rate limiters removed periodically
+- **429 responses**: Proper "Too Many Requests" status with retry information
+
+**Development vs Production:**
+- **Development**: Rate limiting disabled by default for easier testing
+- **Production**: Recommended to enable with appropriate limits for your use case
+
+### Basic Authentication
+
+**Configuration:**
+```bash
+# Enable authentication for all endpoints
+SCHIST_AUTH_ENABLED=true
+
+# Set username:password_hash pairs
+SCHIST_AUTH_USERS="admin:$2a$10$hash1,editor:$2a$10$hash2"
+
+# Set authentication realm (optional)
+SCHIST_AUTH_REALM="My Private Wiki"
+```
+
+**Password Hash Generation:**
+```bash
+# Using the provided utility
+cd backend && go build -o generate-hash ./cmd/generate-hash
+./generate-hash mypassword
+
+# Output:
+# Password hash: $2a$10$VPt/2dQPJTfeef0XPrBq8OhcifyVejXctDUSpPdvfQ7kl2BjKLsr6
+# Environment variable example:
+# SCHIST_AUTH_USERS="admin:$2a$10$VPt/2dQPJTfeef0XPrBq8OhcifyVejXctDUSpPdvfQ7kl2BjKLsr6"
+```
+
+**Authentication Features:**
+- **All endpoints protected**: When enabled, authentication required for all API endpoints
+- **Health endpoint exception**: `/api/health` remains unprotected for monitoring
+- **Multiple users**: Support for multiple username/password combinations
+- **Secure hashing**: bcrypt with configurable cost (default: 10)
+- **Browser compatibility**: Works with browser basic auth prompts and custom forms
+- **Timing attack prevention**: Constant-time password comparison
+
+**Authentication Headers:**
+```http
+# Request
+Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+
+# Response (unauthorized)
+WWW-Authenticate: Basic realm="Schist Wiki"
+```
+
+### Combined Security Example
+
+**Production Security Configuration:**
+```bash
+# Production environment
+ENV=production
+
+# Enable both security features
+SCHIST_RATE_LIMIT_ENABLED=true
+SCHIST_RATE_LIMIT_RPM=60
+SCHIST_AUTH_ENABLED=true
+SCHIST_AUTH_USERS="admin:$2a$10$hash,editor:$2a$10$hash2"
+SCHIST_AUTH_REALM="Company Wiki"
+```
+
 ### CORS Policy
 
 **Development Mode:**
@@ -173,6 +257,7 @@ export default {
 AllowOrigins: [SCHIST_FRONTEND_URL]
 AllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 AllowHeaders: ["Origin", "Content-Type", "Accept", "Authorization"]
+ExposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"]
 AllowCredentials: true
 ```
 

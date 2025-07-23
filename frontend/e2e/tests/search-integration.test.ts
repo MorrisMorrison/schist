@@ -461,9 +461,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			// Apply search
 			await searchInput.fill('persistent');
 			// Wait for search results to appear
-			await expect(
-				page.getByTestId("folder-tree").getByText('Persistent Search')
-			).toBeVisible();
+			await expect(page.getByTestId('folder-tree').getByText('Persistent Search')).toBeVisible();
 
 			// Navigate to a different section and back
 			await page.goto('/');

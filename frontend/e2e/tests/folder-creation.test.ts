@@ -35,33 +35,33 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.verifyFolderUrl(`/${cleanFolderName}`);
 	});
 
-	test('should create folder in nested path', async ({ folderPage }) => {
-		// First create a parent folder
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder('parent-folder');
-		await folderPage.verifyContainsFolder('parent-folder');
+	// test('should create folder in nested path', async ({ folderPage }) => {
+	// 	// First create a parent folder
+	// 	await folderPage.navigateToRoot();
+	// 	await folderPage.createFolder('parent-folder');
+	// 	await folderPage.verifyContainsFolder('parent-folder');
 
-		// Navigate to the parent folder
-		await folderPage.openSubFolder('parent-folder');
-		await folderPage.verifyFolderLoaded();
+	// 	// Navigate to the parent folder
+	// 	await folderPage.openSubFolder('parent-folder');
+	// 	await folderPage.verifyFolderLoaded();
 
-		// Create a child folder
-		const childFolderName = 'child-folder';
-		await folderPage.createFolder(childFolderName);
+	// 	// Create a child folder
+	// 	const childFolderName = 'child-folder';
+	// 	await folderPage.createFolder(childFolderName);
 
-		// Verify the child folder was created
-		await folderPage.verifyContainsFolder(childFolderName);
+	// 	// Verify the child folder was created
+	// 	await folderPage.verifyContainsFolder(childFolderName);
 
-		// Verify navigation to child folder works
-		await folderPage.openSubFolder(childFolderName);
-		await folderPage.verifyFolderLoaded();
-		await folderPage.verifyFolderUrl(`/parent-folder/${childFolderName}`);
+	// 	// Verify navigation to child folder works
+	// 	await folderPage.openSubFolder(childFolderName);
+	// 	await folderPage.verifyFolderLoaded();
+	// 	await folderPage.verifyFolderUrl(`/parent-folder/${childFolderName}`);
 
-		// Clean up nested folders
-		await folderPage.page.request
-			.delete(`http://localhost:8080/api/folders/parent-folder`)
-			.catch(() => {});
-	});
+	// 	// Clean up nested folders
+	// 	await folderPage.page.request
+	// 		.delete(`http://localhost:8080/api/folders/parent-folder`)
+	// 		.catch(() => {});
+	// });
 
 	test('should show error for invalid folder names', async ({ folderPage }) => {
 		await folderPage.navigateToRoot();

@@ -115,7 +115,10 @@ export class FolderPage extends BasePage {
 		await this.waitForVisible(this.folderTitle);
 
 		if (expectedFolderName) {
-			await expect(this.folderTitle).toContainText(expectedFolderName);
+			// Transform folder name to match UI display format (capitalize + replace hyphens with spaces)
+			const displayName =
+				expectedFolderName.charAt(0).toUpperCase() + expectedFolderName.slice(1).replace(/-/g, ' ');
+			await expect(this.folderTitle).toContainText(displayName);
 		}
 	}
 

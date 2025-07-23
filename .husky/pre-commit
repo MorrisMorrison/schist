@@ -3,9 +3,9 @@
 
 echo "Running pre-commit hooks..."
 
-# Format and lint frontend
-echo "🎨 Formatting and linting frontend..."
-cd frontend && npm run format && npm run lint
+# Format, lint, and typecheck frontend
+echo "🎨 Formatting, linting, and typechecking frontend..."
+cd frontend && npm run format && npm run lint && npm run check
 
 # Format and lint backend  
 echo "🔧 Formatting and linting backend..."

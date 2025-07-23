@@ -10,7 +10,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// RateLimiter stores rate limiters for different IP addresses
 type RateLimiter struct {
 	limiters map[string]*rate.Limiter
 	mu       sync.RWMutex
@@ -18,18 +17,15 @@ type RateLimiter struct {
 	burst    int
 }
 
-// NewRateLimiter creates a new rate limiter with the specified requests per minute
 func NewRateLimiter(rpm int) *RateLimiter {
-	// Convert requests per minute to requests per second
 	rps := rate.Limit(float64(rpm) / 60.0)
 	return &RateLimiter{
 		limiters: make(map[string]*rate.Limiter),
 		rps:      rps,
-		burst:    rpm, // Allow burst up to the per-minute limit
+		burst:    rpm,
 	}
 }
 
-// GetLimiter returns a rate limiter for the given IP address
 func (rl *RateLimiter) GetLimiter(ip string) *rate.Limiter {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
@@ -43,24 +39,20 @@ func (rl *RateLimiter) GetLimiter(ip string) *rate.Limiter {
 	return limiter
 }
 
-// CleanupOldLimiters removes limiters that haven't been used recently
 func (rl *RateLimiter) CleanupOldLimiters() {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
 	for ip, limiter := range rl.limiters {
-		// Remove limiters that allow full burst (haven't been used recently)
 		if limiter.Tokens() == float64(rl.burst) {
 			delete(rl.limiters, ip)
 		}
 	}
 }
 
-// RateLimitMiddleware returns a Gin middleware that implements rate limiting
 func RateLimitMiddleware(rpm int) gin.HandlerFunc {
 	rateLimiter := NewRateLimiter(rpm)
 
-	// Start cleanup routine
 	go func() {
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
@@ -74,7 +66,6 @@ func RateLimitMiddleware(rpm int) gin.HandlerFunc {
 		limiter := rateLimiter.GetLimiter(ip)
 
 		if !limiter.Allow() {
-			// Simple retry after calculation - 60 seconds
 			retryAfter := 60
 
 			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", rpm))
@@ -91,7 +82,6 @@ func RateLimitMiddleware(rpm int) gin.HandlerFunc {
 			return
 		}
 
-		// Add rate limit headers for successful requests
 		remaining := int(limiter.Tokens())
 		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", rpm))
 		c.Header("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))

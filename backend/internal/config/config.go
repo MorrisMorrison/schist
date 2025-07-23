@@ -13,11 +13,9 @@ type Config struct {
 	StaticDir   string
 	FrontendURL string
 
-	// Rate limiting configuration
 	RateLimitEnabled bool
 	RateLimitRPM     int
 
-	// Authentication configuration
 	AuthEnabled bool
 	AuthUsers   map[string]string // username -> bcrypt hash
 	AuthRealm   string
@@ -31,11 +29,9 @@ func Load() *Config {
 		StaticDir:   getEnv("SCHIST_STATIC_DIR", "./web"),
 		FrontendURL: getEnv("SCHIST_FRONTEND_URL", "http://localhost:5173"),
 
-		// Rate limiting configuration
 		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
 		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),
 
-		// Authentication configuration
 		AuthEnabled: getEnvBool("SCHIST_AUTH_ENABLED", false),
 		AuthUsers:   parseAuthUsers(getEnv("SCHIST_AUTH_USERS", "")),
 		AuthRealm:   getEnv("SCHIST_AUTH_REALM", "Schist Wiki"),

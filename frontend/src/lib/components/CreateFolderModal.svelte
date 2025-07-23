@@ -120,10 +120,16 @@
 			</div>
 
 			<DialogFooter>
-				<Button type="button" variant="outline" onclick={onClose} disabled={isLoading}>
+				<Button
+					type="button"
+					data-testid="cancel-create-folder-btn"
+					variant="outline"
+					onclick={onClose}
+					disabled={isLoading}
+				>
 					Cancel
 				</Button>
-				<Button type="submit" disabled={!isValidName || isLoading}>
+				<Button type="submit" data-testid="create-folder-btn" disabled={!isValidName || isLoading}>
 					{#if isLoading}
 						Creating...
 					{:else}

@@ -204,7 +204,7 @@ export class FolderPage extends BasePage {
 	 * Verify folder contains specific page
 	 */
 	async verifyContainsPage(pageName: string) {
-		const pageLink = this.pages.getByRole('link', { name: pageName });
+		const pageLink = this.pages.getByText(pageName);
 		await expect(pageLink).toBeVisible();
 	}
 

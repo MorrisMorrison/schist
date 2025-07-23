@@ -103,6 +103,7 @@
 					<Input
 						id="page-title"
 						type="text"
+						data-testId="page-name"
 						bind:value={pageTitle}
 						placeholder="Enter new page title"
 						class={error && pageTitle ? 'border-red-500' : ''}
@@ -144,7 +145,7 @@
 				<Button type="button" variant="outline" onclick={handleClose} disabled={isLoading}>
 					Cancel
 				</Button>
-				<Button type="submit" disabled={!isValidTitle || isLoading}>
+				<Button type="submit" data-testId="rename-page-btn" disabled={!isValidTitle || isLoading}>
 					{#if isLoading}
 						Renaming...
 					{:else}

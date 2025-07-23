@@ -12,7 +12,9 @@
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
 	let showRenameFolderModal = $state(false);
+	let showDeleteFolderModal = $state(false);
 	let folderToRename = $state<FolderType | undefined>(undefined);
+	let folderToDelete = $state<FolderType | undefined>(undefined);
 	let showRenamePageModal = $state(false);
 	let showDeletePageModal = $state(false);
 	let pageToRename = $state<Page | null>(null);
@@ -41,11 +43,8 @@
 	}
 
 	async function handleDeleteFolder(event: { path: string; folder: FolderType }) {
-		try {
-			await folderActions.deleteFolder(event.path);
-		} catch (error) {
-			console.error('Failed to delete folder:', error);
-		}
+		folderToDelete = event.folder;
+		showDeleteFolderModal = true;
 	}
 
 	function handleRenameFolder(event: { path: string; folder: FolderType }) {
@@ -77,6 +76,18 @@
 				pageToDelete = null;
 			} catch (error) {
 				console.error('Failed to delete page:', error);
+			}
+		}
+	}
+
+	async function confirmDeleteFolder() {
+		if (folderToDelete) {
+			try {
+				await folderActions.deleteFolder(folderToDelete.path);
+				showDeleteFolderModal = false;
+				folderToDelete = undefined;
+			} catch (error) {
+				console.error('Failed to delete folder:', error);
 			}
 		}
 	}
@@ -153,5 +164,19 @@
 			pageToDelete = null;
 		}}
 		onConfirm={confirmDeletePage}
+	/>
+{/if}
+
+<!-- Delete Folder Modal -->
+{#if folderToDelete}
+	<DeleteConfirmModal
+		open={showDeleteFolderModal}
+		title="Delete Folder"
+		description={`Are you sure you want to delete "${folderToDelete?.name || 'this page'}"? This action cannot be undone.`}
+		onCancel={() => {
+			showDeleteFolderModal = false;
+			folderToDelete = undefined;
+		}}
+		onConfirm={confirmDeleteFolder}
 	/>
 {/if}

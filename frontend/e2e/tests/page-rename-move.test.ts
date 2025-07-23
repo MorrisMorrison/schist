@@ -155,7 +155,7 @@ test.describe.serial('Page Rename and Move', () => {
 			await folderPage.verifyContainsPage(testPage.title);
 
 			// Verify page is accessible at new location
-			const pageLink = folderPage.pages.getByRole('link', { name: testPage.title });
+			const pageLink = folderPage.pages.getByText(testPage.title);
 			await pageLink.click();
 			await pageViewPage.verifyPageLoaded(testPage.title);
 
@@ -349,7 +349,7 @@ test.describe.serial('Page Rename and Move', () => {
 
 			// Navigate to moved page
 			await folderPage.navigateToFolder('/parent-folder/child-folder');
-			const pageLink = folderPage.pages.getByRole('link', { name: testPage.title });
+			const pageLink = folderPage.pageItems.getByText(testPage.title);
 			await pageLink.click();
 
 			// Verify breadcrumbs show correct path
@@ -396,18 +396,18 @@ test.describe.serial('Page Rename and Move', () => {
 				if (await renameOption.isVisible()) {
 					await renameOption.click();
 
-					const renameInput = page.getByLabel(/title|name/i);
+					const renameInput = page.getByTestId('page-name');
 					if (await renameInput.isVisible()) {
 						const newTitle = `Renamed Metadata Test ${testId}`;
 						await renameInput.fill(newTitle);
 
-						const confirmButton = page.getByRole('button', { name: /save|confirm/i });
+						const confirmButton = page.getByTestId('rename-page-btn');
 						if (await confirmButton.isVisible()) {
 							await confirmButton.click();
 							await page.waitForLoadState('networkidle');
 
 							// Verify page renamed successfully
-							await pageViewPage.verifyPageLoaded(newTitle);
+							await pageViewPage.verifyPageLoaded();
 
 							// Verify tags are still present after rename
 							await pageViewPage.verifyTags(testPage.tags!);

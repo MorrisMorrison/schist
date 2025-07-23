@@ -84,7 +84,8 @@ test.describe('Basic CRUD Functionality', () => {
 		if (await searchInput.isVisible()) {
 			// Test basic text search
 			await searchInput.fill('searchable');
-			await page.waitForTimeout(500);
+			// Wait for search to be processed - verify input has the value
+			await expect(searchInput).toHaveValue('searchable');
 
 			// Verify some filtering occurred (tree should change)
 			const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]').first();

@@ -23,9 +23,9 @@ export class HomePage extends BasePage {
 			.getByRole('link', { name: /Create.*First.*Page|Create.*Page/i })
 			.first();
 		this.searchBox = page.getByTestId('nav-search-input').first();
-		this.searchResults = page.locator('[data-testid="search-results"]');
-		this.recentPages = page.locator('[data-testid="recent-pages"]');
-		this.sidebar = page.locator('[data-testid="sidebar"]');
+		this.searchResults = page.getByTestId('search-results');
+		this.recentPages = page.getByTestId('recent-pages');
+		this.sidebar = page.getByTestId('sidebar');
 		this.navigation = page.locator('nav');
 	}
 
@@ -60,7 +60,9 @@ export class HomePage extends BasePage {
 		await this.searchBox.waitFor({ state: 'visible' });
 		await this.searchBox.fill(query);
 		// Wait for search results to appear
-		await this.page.waitForTimeout(500); // Debounce delay
+		await this.searchResults.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {
+			// Search may not have results, which is fine
+		});
 	}
 
 	/**

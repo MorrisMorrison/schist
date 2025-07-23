@@ -42,9 +42,9 @@ export class PageViewPage extends BasePage {
 		this.pageTitle = page.locator('h1').first();
 		this.pageContent = page.locator('.prose').first();
 		this.pageTags = page.getByTestId('page-tag');
-		this.pageMetadata = page.locator('[data-testid="page-metadata"]');
-		this.createdDate = page.locator('[data-testid="created-date"]');
-		this.updatedDate = page.locator('[data-testid="updated-date"]');
+		this.pageMetadata = page.getByTestId('page-metadata');
+		this.createdDate = page.getByTestId('created-date');
+		this.updatedDate = page.getByTestId('updated-date');
 
 		// Action buttons
 		this.editButton = page.getByTestId('edit-page-button');
@@ -52,7 +52,7 @@ export class PageViewPage extends BasePage {
 		this.moveButton = page.getByTestId('move-page-button');
 
 		// Navigation
-		this.breadcrumbs = page.locator('[data-testid="breadcrumbs"]');
+		this.breadcrumbs = page.getByTestId('breadcrumbs');
 		this.breadcrumbButtons = this.breadcrumbs.locator('button');
 
 		// Content elements
@@ -60,13 +60,13 @@ export class PageViewPage extends BasePage {
 		this.links = this.pageContent.locator('a');
 		this.images = this.pageContent.locator('img');
 		this.codeBlocks = this.pageContent.locator('pre, code');
-		this.copyButtons = page.locator('[data-testid="copy-button"]');
+		this.copyButtons = page.getByTestId('copy-button');
 
 		// Error states
 		this.notFoundMessage = page.getByText("404 - The page you're looking for doesn't exist.");
 		this.notFoundHeading = page.getByRole('heading', { name: 'Page Not Found' });
-		this.errorMessage = page.locator('[data-testid="error-message"]');
-		this.loadingSpinner = page.locator('[data-testid="loading"]');
+		this.errorMessage = page.getByTestId('error-message');
+		this.loadingSpinner = page.getByTestId('loading');
 	}
 
 	/**
@@ -87,7 +87,7 @@ export class PageViewPage extends BasePage {
 		// Wait for loading spinner to disappear if present
 		const loadingSpinner = this.page.locator('.animate-spin');
 		if (await loadingSpinner.isVisible()) {
-			await loadingSpinner.waitFor({ state: 'hidden', timeout: 10000 });
+			await loadingSpinner.waitFor({ state: 'hidden', timeout: 5000 });
 		}
 
 		// Now wait for page title to be visible
@@ -150,7 +150,7 @@ export class PageViewPage extends BasePage {
 		await this.moveButton.click();
 
 		// Wait for move modal to appear
-		const moveModal = this.page.locator('[data-testid="move-modal"]');
+		const moveModal = this.page.getByTestId('move-modal');
 		await this.waitForVisible(moveModal);
 	}
 
@@ -215,7 +215,7 @@ export class PageViewPage extends BasePage {
 		await copyButton.click();
 
 		// Verify copy feedback (if available)
-		const copyFeedback = this.page.locator('[data-testid="copy-success"]');
+		const copyFeedback = this.page.getByTestId('copy-success');
 		if (await copyFeedback.isVisible({ timeout: 1000 })) {
 			await expect(copyFeedback).toBeVisible();
 		}

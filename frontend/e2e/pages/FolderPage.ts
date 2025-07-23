@@ -50,46 +50,44 @@ export class FolderPage extends BasePage {
 
 		// Folder content
 		this.folderTitle = page.locator('h1').first();
-		this.folderPath = page.locator('[data-testid="folder-path"]');
-		this.subFolders = page.locator('[data-testid="folders-section"]');
-		this.pages = page.locator('[data-testid="pages-section"]');
-		this.emptyFolderMessage = page.locator('[data-testid="empty-folder-message"]');
+		this.folderPath = page.getByTestId('folder-path');
+		this.subFolders = page.getByTestId('folders-section');
+		this.pages = page.getByTestId('pages-section');
+		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
 		// Folder actions (be more specific to avoid sidebar button conflicts)
 		this.createFolderButton = page
 			.getByRole('button', { name: /new folder|create folder/i })
 			.first();
 		this.createPageButton = page.getByRole('button', { name: /new page|create page/i }).first();
-		this.folderActionsMenu = page.locator('[data-testid="folder-actions"]');
+		this.folderActionsMenu = page.getByTestId('folder-actions');
 
 		// Create folder modal
-		this.createFolderModal = page.locator('[data-testid="create-folder-modal"]');
-		this.folderNameInput = page.getByLabel(/folder name/i);
-		this.confirmCreateFolder = this.createFolderModal.getByRole('button', {
-			name: /create|confirm/i
-		});
-		this.cancelCreateFolder = this.createFolderModal.getByRole('button', { name: /cancel/i });
+		this.createFolderModal = page.getByTestId('create-folder-modal');
+		this.folderNameInput = page.getByTestId('folder-name');
+		this.confirmCreateFolder = this.createFolderModal.getByTestId('create-folder-btn');
+		this.cancelCreateFolder = this.createFolderModal.getByTestId('cancel-create-folder-btn');
 
 		// Folder tree
-		this.folderTree = page.locator('[data-testid="folder-tree"]');
+		this.folderTree = page.getByTestId('folder-tree');
 		this.folderTreeItems = this.folderTree.locator('[role="treeitem"]');
 		this.expandableNodes = this.folderTree.locator('[aria-expanded]');
 
 		// List view
-		this.itemsList = page.locator('[data-testid="items-list"]');
-		this.folderItems = this.itemsList.locator('[data-testid="folder-item"]');
-		this.pageItems = this.itemsList.locator('[data-testid="page-item"]');
-		this.itemNames = this.itemsList.locator('[data-testid="item-name"]');
-		this.itemDates = this.itemsList.locator('[data-testid="item-date"]');
+		this.itemsList = page.getByTestId('items-list');
+		this.folderItems = this.itemsList.getByTestId('folder-item');
+		this.pageItems = this.itemsList.getByTestId('page-item');
+		this.itemNames = this.itemsList.getByTestId('item-name');
+		this.itemDates = this.itemsList.getByTestId('item-date');
 
 		// Navigation
-		this.breadcrumbs = page.locator('[data-testid="breadcrumbs"]');
+		this.breadcrumbs = page.getByTestId('breadcrumbs');
 		this.backButton = page.getByRole('button', { name: /back/i });
 		this.homeLink = page.getByRole('link', { name: /home/i });
 
 		// View controls
-		this.viewToggle = page.locator('[data-testid="view-toggle"]');
-		this.sortOptions = page.locator('[data-testid="sort-options"]');
+		this.viewToggle = page.getByTestId('view-toggle');
+		this.sortOptions = page.getByTestId('sort-options');
 		this.filterInput = page.getByPlaceholder(/filter|search/i);
 	}
 
@@ -157,7 +155,7 @@ export class FolderPage extends BasePage {
 	 */
 	async openSubFolder(folderName: string) {
 		const folderCard = this.subFolders
-			.locator('[data-testid="folder-item"]')
+			.getByTestId('folder-item')
 			.filter({ hasText: folderName })
 			.first();
 		await folderCard.click();
@@ -177,7 +175,7 @@ export class FolderPage extends BasePage {
 	 * Get list of subfolder names
 	 */
 	async getSubFolderNames(): Promise<string[]> {
-		const folderCards = this.subFolders.locator('[data-testid="folder-item"]');
+		const folderCards = this.subFolders.getByTestId('folder-item');
 		return await folderCards.allTextContents();
 	}
 
@@ -194,9 +192,7 @@ export class FolderPage extends BasePage {
 	 */
 	async verifyContainsFolder(folderName: string) {
 		// Look for folder cards or links within the subfolders section
-		const folderCard = this.subFolders
-			.locator('[data-testid="folder-item"]')
-			.filter({ hasText: folderName });
+		const folderCard = this.subFolders.getByTestId('folder-item').filter({ hasText: folderName });
 		await expect(folderCard).toBeVisible();
 	}
 
@@ -274,7 +270,10 @@ export class FolderPage extends BasePage {
 	 */
 	async filterContents(searchTerm: string) {
 		await this.filterInput.fill(searchTerm);
-		await this.page.waitForTimeout(500); // Wait for filter to apply
+		// Wait for filter to apply - check that filter value is set
+		await expect(this.filterInput).toHaveValue(searchTerm);
+		// Allow brief moment for filtering to complete
+		await this.page.waitForLoadState('networkidle');
 	}
 
 	/**
@@ -307,7 +306,7 @@ export class FolderPage extends BasePage {
 	 * Count subfolders
 	 */
 	async getSubFolderCount(): Promise<number> {
-		return await this.subFolders.locator('[data-testid="folder-item"]').count();
+		return await this.subFolders.getByTestId('folder-item').count();
 	}
 
 	/**

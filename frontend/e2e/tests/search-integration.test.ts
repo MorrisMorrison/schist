@@ -69,14 +69,15 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		// Use unified search box
 		const searchInput = page.getByTestId('sidebar-search');
+		const folderTree = page.getByTestId('folder-tree');
 
 		if (await searchInput.isVisible()) {
 			// Search for specific text
 			await searchInput.fill('searchable');
-			await page.waitForTimeout(500); // Wait for search to apply
+			// Wait for search results to update
+			await expect(folderTree.getByText('Searchable Page')).toBeVisible();
 
 			// Verify only relevant items are visible
-			const folderTree = page.getByTestId('folder-tree');
 
 			// Should show pages with "searchable" in title
 			await expect(folderTree.getByText('Searchable Page')).toBeVisible();
@@ -92,7 +93,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 			// Clear search
 			await searchInput.clear();
-			await page.waitForTimeout(500);
+			// Wait for all content to be visible again
+			await expect(folderTree.getByText('Another Page')).toBeVisible();
 
 			// All items should be visible again
 			await expect(folderTree.getByText('Another Page')).toBeVisible();
@@ -134,13 +136,13 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		// Use tag search
 		const searchInput = page.getByTestId('sidebar-search');
+		const folderTree = page.getByTestId('folder-tree');
 
 		if (await searchInput.isVisible()) {
 			// Search for pages with specific tag
 			await searchInput.fill('tag:important');
-			await page.waitForTimeout(500);
-
-			const folderTree = page.getByTestId('folder-tree');
+			// Wait for filtered results to appear
+			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
 
 			// Should show only pages with "important" tag
 			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
@@ -158,7 +160,9 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 			// Test multiple tag search
 			await searchInput.fill('tag:search');
-			await page.waitForTimeout(500);
+			// Wait for both matching pages to be visible
+			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
+			await expect(folderTree.getByText('Tagged Page 2')).toBeVisible();
 
 			// Should show both pages with "search" tag
 			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
@@ -206,13 +210,13 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.navigateToRoot();
 
 		const searchInput = page.getByTestId('sidebar-search');
+		const folderTree = page.getByTestId('folder-tree');
 
 		if (await searchInput.isVisible()) {
 			// Combined search: text + tag
 			await searchInput.fill('important tag:project');
-			await page.waitForTimeout(500);
-
-			const folderTree = page.getByTestId('folder-tree');
+			// Wait for filtered results to appear
+			await expect(folderTree.getByText('Important Doc')).toBeVisible();
 
 			// Should show only pages that match both criteria
 			// "Important Doc" has both "important" in title/content AND "project" tag
@@ -333,7 +337,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		if (await searchInput.isVisible()) {
 			// Search for unique content
 			await searchInput.fill('unique');
-			await page.waitForTimeout(500);
+			// Wait for matching content to appear
+			await expect(folderTree.getByText('Unique Content')).toBeVisible();
 
 			// Should show folder with matching content
 			await expect(folderTree.getByText('folder-with-matches')).toBeVisible();
@@ -362,7 +367,10 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		if (await searchInput.isVisible()) {
 			// Search for something that doesn't exist
 			await searchInput.fill('nonexistent-content-xyz-123');
-			await page.waitForTimeout(500);
+			// Wait for search to complete - verify search input has the value
+			await expect(searchInput).toHaveValue('nonexistent-content-xyz-123');
+			// Brief wait for search processing
+			await page.waitForLoadState('domcontentloaded');
 
 			// Should show empty state or message
 			const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
@@ -417,7 +425,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		if (await searchInput.isVisible()) {
 			// Search for tag prefix
 			await searchInput.fill('tag:project');
-			await page.waitForTimeout(500);
+			// Wait for matching pages to appear
+			await expect(folderTree.getByText('Prefix Test 1')).toBeVisible();
 
 			// Should match tags that START with "project"
 			await expect(folderTree.getByText('Prefix Test 1')).toBeVisible(); // has "project-alpha"
@@ -451,7 +460,10 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		if (await searchInput.isVisible()) {
 			// Apply search
 			await searchInput.fill('persistent');
-			await page.waitForTimeout(500);
+			// Wait for search results to appear
+			await expect(
+				page.getByTestId("folder-tree").getByText('Persistent Search')
+			).toBeVisible();
 
 			// Navigate to a different section and back
 			await page.goto('/');

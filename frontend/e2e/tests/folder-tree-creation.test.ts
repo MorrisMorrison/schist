@@ -192,10 +192,12 @@ test.describe.serial('Folder Tree Creation', () => {
 
 		// Either no context menu should appear, or it should be a generic one
 		// This test ensures we don't crash or show incorrect context menus
-		await page.waitForTimeout(500);
-
 		// If a context menu appears, it shouldn't have folder-specific options
 		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+		// Wait briefly for context menu to potentially appear
+		await contextMenu.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {
+			// Context menu may not appear, which is fine
+		});
 		const isVisible = await contextMenu.isVisible().catch(() => false);
 
 		if (isVisible) {

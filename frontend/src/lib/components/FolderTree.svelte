@@ -147,10 +147,12 @@
 		// Check tag matches (AND logic - must match all specified tags with prefix matching)
 		const tagMatch =
 			tagFilters.length === 0 ||
-			(page.metaData.tags &&
-				tagFilters.every((requiredTag) =>
-					page.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
-				));
+			Boolean(
+				page.metaData.tags &&
+					tagFilters.every((requiredTag) =>
+						page.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
+					)
+			);
 
 		return textMatch && tagMatch;
 	}
@@ -164,7 +166,7 @@
 
 		function filterFolderRecursive(folder: FolderType): FolderType | null {
 			// Check if folder name matches text query (only when there IS a text query)
-			const folderNameMatches = textQuery && folder.name.toLowerCase().includes(textQuery);
+			const folderNameMatches = !textQuery || folder.name.toLowerCase().includes(textQuery);
 
 			// Get pages in this folder that match the filters
 			const folderPages = getPagesForFolder(folder.path);
@@ -291,9 +293,6 @@
 
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
 		if (!enableContextMenu) return;
-
-		// Prevent context menu for root folder
-		if (folder.path === '/' || folder.path === '') return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -847,7 +846,7 @@
 		</div>
 	{:else}
 		<!-- Folder Tree -->
-		<div class="space-y-1" role="tree" aria-label="Folder tree">
+		<div class="space-y-1" role="tree" aria-label="Folder tree" data-testid="folder-tree">
 			<!-- Root folder containing root pages and root-level folders -->
 			{#if showPages && (getFilteredRootPages().length > 0 || filteredFolders.length > 0)}
 				{@render folderNode(
@@ -881,6 +880,7 @@
 			}}
 			role="menu"
 			aria-label="Folder actions"
+			data-testid="context-menu"
 			tabindex="-1"
 		>
 			<button
@@ -894,28 +894,30 @@
 				<Plus class="h-4 w-4" />
 				Create Subfolder
 			</button>
-			<button
-				type="button"
-				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-				onclick={() => {
-					const folder = findFolderByPath($folders, contextMenuOpen || '');
-					if (folder) handleRenameFolder(folder);
-				}}
-			>
-				<Edit class="h-4 w-4" />
-				Rename
-			</button>
-			<button
-				type="button"
-				class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
-				onclick={() => {
-					const folder = findFolderByPath($folders, contextMenuOpen || '');
-					if (folder) handleDeleteFolder(folder);
-				}}
-			>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</button>
+			{#if contextMenuOpen !== '/' && contextMenuOpen !== ''}
+				<button
+					type="button"
+					class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+					onclick={() => {
+						const folder = findFolderByPath($folders, contextMenuOpen || '');
+						if (folder) handleRenameFolder(folder);
+					}}
+				>
+					<Edit class="h-4 w-4" />
+					Rename
+				</button>
+				<button
+					type="button"
+					class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
+					onclick={() => {
+						const folder = findFolderByPath($folders, contextMenuOpen || '');
+						if (folder) handleDeleteFolder(folder);
+					}}
+				>
+					<Trash2 class="h-4 w-4" />
+					Delete
+				</button>
+			{/if}
 		</div>
 	{/if}
 

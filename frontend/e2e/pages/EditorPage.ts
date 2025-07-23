@@ -45,20 +45,20 @@ export class EditorPage extends BasePage {
 		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
 
 		// Editor features
-		this.editorToolbar = page.locator('[data-testid="editor-toolbar"]');
+		this.editorToolbar = page.getByTestId('editor-toolbar');
 		this.previewToggle = page.getByRole('button', { name: /preview/i });
-		this.previewPane = page.locator('[data-testid="preview-pane"]');
+		this.previewPane = page.getByTestId('preview-pane');
 		this.imageUploadButton = page.getByRole('button', { name: /upload image|image/i });
 		this.fileUploadInput = page.locator('input[type="file"]');
 
 		// Status indicators
-		this.saveStatus = page.locator('[data-testid="save-status"]');
+		this.saveStatus = page.getByTestId('save-status');
 		this.errorMessage = page.locator('[data-testid="error-message"], .error');
 		this.loadingSpinner = page.locator('[data-testid="loading"], .loading');
 
 		// Page info
-		this.pagePathInfo = page.locator('[data-testid="page-path"]');
-		this.breadcrumbs = page.locator('[data-testid="breadcrumbs"]');
+		this.pagePathInfo = page.getByTestId('page-path');
+		this.breadcrumbs = page.getByTestId('breadcrumbs');
 	}
 
 	/**
@@ -111,8 +111,8 @@ export class EditorPage extends BasePage {
 			await this.tagsInput.clear();
 			await this.tagsInput.fill(tag);
 			await this.page.keyboard.press('Enter');
-			// Wait a moment for the tag to be added before continuing
-			await this.page.waitForTimeout(100);
+			// Wait for the tag to be added - check input is cleared after adding
+			await expect(this.tagsInput).toHaveValue('');
 		}
 	}
 
@@ -129,7 +129,7 @@ export class EditorPage extends BasePage {
 	 */
 	async saveAndExpectNavigation() {
 		await Promise.all([
-			this.page.waitForURL(/\/pages\//, { timeout: 15000 }),
+			this.page.waitForURL(/\/pages\//, { timeout: 5000 }),
 			this.saveButton.click()
 		]);
 	}

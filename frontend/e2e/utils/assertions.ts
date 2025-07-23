@@ -55,7 +55,7 @@ export async function expectElementNotExists(page: Page, selector: string) {
  */
 export async function expectPageLoaded(page: Page) {
 	await page.waitForLoadState('networkidle');
-	await expect(page.locator('[data-testid="loading"]')).not.toBeVisible();
+	await expect(page.getByTestId('loading')).not.toBeVisible();
 }
 
 /**
@@ -189,7 +189,7 @@ export async function expectBreadcrumbPath(page: Page, expectedPath: string[]) {
  * Assert that search results are displayed
  */
 export async function expectSearchResults(page: Page, resultCount?: number) {
-	const results = page.locator('[data-testid="search-results"] [data-testid="search-result"]');
+	const results = page.getByTestId('search-results').getByTestId('search-result');
 	await expect(results.first()).toBeVisible();
 
 	if (resultCount !== undefined) {

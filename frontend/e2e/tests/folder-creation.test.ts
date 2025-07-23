@@ -169,19 +169,15 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.confirmCreateFolder.click();
 
 		// Should show error or fail to create
-		// Wait a moment for any error message
-		await folderPage.page.waitForTimeout(1000);
+		// Wait for any error message or UI to stabilize
+		await folderPage.page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {
+			// Continue if network doesn't idle
+		});
 
 		// Verify only one folder exists (not duplicated)
 		const folderLinks = folderPage.subFolders.getByText(cleanFolderName);
 		const count = await folderLinks.count();
 		expect(count).toBe(1);
-
-		// Close modal if it's still open
-		const cancelButton = folderPage.cancelCreateFolder;
-		if (await cancelButton.isVisible()) {
-			await cancelButton.click();
-		}
 	});
 
 	test('should allow folder creation in empty root', async ({ folderPage }) => {

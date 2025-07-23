@@ -28,6 +28,6 @@ export async function waitForAppReady(page: import('@playwright/test').Page) {
 	// Wait for any loading indicators to disappear
 	const loadingIndicators = page.locator('[data-testid="loading"], .loading');
 	if ((await loadingIndicators.count()) > 0) {
-		await loadingIndicators.first().waitFor({ state: 'hidden', timeout: 10000 });
+		await loadingIndicators.first().waitFor({ state: 'hidden', timeout: 5000 });
 	}
 }

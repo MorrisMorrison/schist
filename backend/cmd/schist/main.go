@@ -8,6 +8,7 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/handlers"
+	"github.com/MorrisMorrison/schist/internal/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -29,6 +30,7 @@ func main() {
 	router := gin.Default()
 
 	setupCORS(router, cfg)
+	setupMiddleware(router, cfg)
 
 	apiHandler := handlers.NewAPIHandler()
 	staticHandler := handlers.NewStaticHandler(cfg.StaticDir)
@@ -72,8 +74,22 @@ func setupCORS(router *gin.Engine, cfg *config.Config) {
 		AllowOrigins:     []string{cfg.FrontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"},
 		AllowCredentials: true,
 	}))
 	log.Printf("CORS enabled for development: %s", cfg.FrontendURL)
+}
+
+func setupMiddleware(router *gin.Engine, cfg *config.Config) {
+	// Rate limiting middleware
+	if cfg.RateLimitEnabled {
+		router.Use(middleware.RateLimitMiddleware(cfg.RateLimitRPM))
+		log.Printf("Rate limiting enabled: %d requests per minute", cfg.RateLimitRPM)
+	}
+
+	// Basic authentication middleware
+	if cfg.AuthEnabled {
+		router.Use(middleware.BasicAuthMiddleware(cfg.AuthUsers, cfg.AuthRealm))
+		log.Printf("Basic authentication enabled for all endpoints (realm: %s)", cfg.AuthRealm)
+	}
 }

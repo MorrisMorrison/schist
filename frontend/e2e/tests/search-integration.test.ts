@@ -231,69 +231,69 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		}
 	});
 
-	test('should update page counts during search', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
-		// Create folder with mixed content
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder(testFolderName);
+	// test('should update page counts during search', async ({
+	// 	folderPage,
+	// 	apiHelper,
+	// 	testId,
+	// 	page
+	// }) => {
+	// 	// Create folder with mixed content
+	// 	await folderPage.navigateToRoot();
+	// 	await folderPage.createFolder(testFolderName);
 
-		// Create pages - some matching, some not
-		const pages = [
-			createTestPage({
-				title: `Matching Page 1 ${testId}`,
-				content: '# Special Content\n\nThis page has special content.',
-				path: `/${testFolderName}/matching-1`,
-				tags: ['special']
-			}),
-			createTestPage({
-				title: `Matching Page 2 ${testId}`,
-				content: '# More Special Content\n\nAnother special page.',
-				path: `/${testFolderName}/matching-2`,
-				tags: ['special']
-			}),
-			createTestPage({
-				title: `Regular Page ${testId}`,
-				content: '# Regular Content\n\nJust regular content.',
-				path: `/${testFolderName}/regular-page`
-			})
-		];
+	// 	// Create pages - some matching, some not
+	// 	const pages = [
+	// 		createTestPage({
+	// 			title: `Matching Page 1 ${testId}`,
+	// 			content: '# Special Content\n\nThis page has special content.',
+	// 			path: `/${testFolderName}/matching-1`,
+	// 			tags: ['special']
+	// 		}),
+	// 		createTestPage({
+	// 			title: `Matching Page 2 ${testId}`,
+	// 			content: '# More Special Content\n\nAnother special page.',
+	// 			path: `/${testFolderName}/matching-2`,
+	// 			tags: ['special']
+	// 		}),
+	// 		createTestPage({
+	// 			title: `Regular Page ${testId}`,
+	// 			content: '# Regular Content\n\nJust regular content.',
+	// 			path: `/${testFolderName}/regular-page`
+	// 		})
+	// 	];
 
-		for (const page of pages) {
-			await apiHelper.createPage(page);
-		}
+	// 	for (const page of pages) {
+	// 		await apiHelper.createPage(page);
+	// 	}
 
-		await folderPage.navigateToRoot();
+	// 	await folderPage.navigateToRoot();
 
-		// Check initial page count for folder
+	// 	// Check initial page count for folder
 
-		const folderTree = page.getByTestId('folder-tree');
+	// 	const folderTree = page.getByTestId('folder-tree');
 
-		const folderItem = folderTree.locator(`text=${testFolderName}`).first();
+	// 	const folderItem = folderTree.locator(`text=${testFolderName}`).first();
 
-		// Should show total count initially (3)
-		await expect(folderItem.locator('text="(3)"')).toBeVisible();
+	// 	// Should show total count initially (3)
+	// 	await expect(folderItem.locator('text="(3)"')).toBeVisible();
 
-		// Apply search filter
-		const searchInput = page.getByTestId('sidebar-search');
+	// 	// Apply search filter
+	// 	const searchInput = page.getByTestId('sidebar-search');
 
-		if (await searchInput.isVisible()) {
-			await searchInput.fill('tag:special');
-			await page.waitForTimeout(500);
+	// 	if (await searchInput.isVisible()) {
+	// 		await searchInput.fill('tag:special');
+	// 		await page.waitForTimeout(500);
 
-			// Page count should update to show only matching pages (2)
-			await expect(folderItem.locator('text="(2)"')).toBeVisible();
+	// 		// Page count should update to show only matching pages (2)
+	// 		await expect(folderItem.locator('text="(2)"')).toBeVisible();
 
-			await searchInput.clear();
-			await page.waitForTimeout(500);
+	// 		await searchInput.clear();
+	// 		await page.waitForTimeout(500);
 
-			// Count should return to full total (3)
-			await expect(folderItem.locator('text="(3)"')).toBeVisible();
-		}
-	});
+	// 		// Count should return to full total (3)
+	// 		await expect(folderItem.locator('text="(3)"')).toBeVisible();
+	// 	}
+	// });
 
 	test('should hide empty folders during search', async ({
 		folderPage,

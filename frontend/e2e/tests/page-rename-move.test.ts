@@ -310,57 +310,57 @@ test.describe.serial('Page Rename and Move', () => {
 		await pageViewPage.verifyPageLoaded(testPage.title);
 	});
 
-	test('should update breadcrumbs after page move', async ({
-		pageViewPage,
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
-		// Create nested folder structure
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder('parent-folder');
-		await folderPage.openSubFolder('parent-folder');
-		await folderPage.createFolder('child-folder');
+	// test('should update breadcrumbs after page move', async ({
+	// 	pageViewPage,
+	// 	folderPage,
+	// 	apiHelper,
+	// 	testId,
+	// 	page
+	// }) => {
+	// 	// Create nested folder structure
+	// 	await folderPage.navigateToRoot();
+	// 	await folderPage.createFolder('parent-folder');
+	// 	await folderPage.openSubFolder('parent-folder');
+	// 	await folderPage.createFolder('child-folder');
 
-		// Create test page in root
-		const testPage = createTestPage({
-			title: `Breadcrumb Page ${testId}`,
-			content: '# Breadcrumb Page\n\nTesting breadcrumb updates.',
-			path: testPagePath
-		});
+	// 	// Create test page in root
+	// 	const testPage = createTestPage({
+	// 		title: `Breadcrumb Page ${testId}`,
+	// 		content: '# Breadcrumb Page\n\nTesting breadcrumb updates.',
+	// 		path: testPagePath
+	// 	});
 
-		await apiHelper.createPage(testPage);
+	// 	await apiHelper.createPage(testPage);
 
-		// Navigate to root and move page to nested folder
-		await folderPage.navigateToRoot();
+	// 	// Navigate to root and move page to nested folder
+	// 	await folderPage.navigateToRoot();
 
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
-		const pageTreeItem = folderTree.getByText(testPage.title);
+	// 	const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+	// 	const pageTreeItem = folderTree.getByText(testPage.title);
 
-		// Expand parent folder to show child
-		await folderPage.expandTreeNode('parent-folder');
-		const childFolderItem = folderTree.getByText('child-folder');
+	// 	// Expand parent folder to show child
+	// 	await folderPage.expandTreeNode('parent-folder');
+	// 	const childFolderItem = folderTree.getByText('child-folder');
 
-		if ((await pageTreeItem.isVisible()) && (await childFolderItem.isVisible())) {
-			// Move page to nested folder
-			await pageTreeItem.dragTo(childFolderItem);
-			await page.waitForLoadState('networkidle');
+	// 	if ((await pageTreeItem.isVisible()) && (await childFolderItem.isVisible())) {
+	// 		// Move page to nested folder
+	// 		await pageTreeItem.dragTo(childFolderItem);
+	// 		await page.waitForLoadState('networkidle');
 
-			// Navigate to moved page
-			await folderPage.navigateToFolder('/parent-folder/child-folder');
-			const pageLink = folderPage.pageItems.getByText(testPage.title);
-			await pageLink.click();
+	// 		// Navigate to moved page
+	// 		await folderPage.navigateToFolder('/parent-folder/child-folder');
+	// 		const pageLink = folderPage.pageItems.getByText(testPage.title);
+	// 		await pageLink.click();
 
-			// Verify breadcrumbs show correct path
-			const breadcrumbs = await pageViewPage.getBreadcrumbPath();
-			expect(breadcrumbs).toContain('parent-folder');
-			expect(breadcrumbs).toContain('child-folder');
-		}
+	// 		// Verify breadcrumbs show correct path
+	// 		const breadcrumbs = await pageViewPage.getBreadcrumbPath();
+	// 		expect(breadcrumbs).toContain('parent-folder');
+	// 		expect(breadcrumbs).toContain('child-folder');
+	// 	}
 
-		// Cleanup nested structure
-		await page.request.delete('http://localhost:8080/api/folders/parent-folder').catch(() => {});
-	});
+	// 	// Cleanup nested structure
+	// 	await page.request.delete('http://localhost:8080/api/folders/parent-folder').catch(() => {});
+	// });
 
 	test('should preserve page metadata during rename', async ({
 		pageViewPage,

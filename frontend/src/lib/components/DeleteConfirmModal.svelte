@@ -39,7 +39,7 @@
 </script>
 
 <Dialog {open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
-	<DialogContent>
+	<DialogContent data-testid="confirm-dialog">
 		<DialogHeader>
 			<DialogTitle>{title}</DialogTitle>
 			<DialogDescription>

@@ -31,12 +31,14 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.verifyContainsFolder(testFolderName);
 
 		// Find folder in tree and open context menu
-		const folderTreeItem = folderPage.folderTree.getByText(testFolderName);
+		const folderTreeItem = folderPage.folderTree
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName });
 		await expect(folderTreeItem).toBeVisible();
 		await folderTreeItem.click({ button: 'right' });
 
 		// Look for rename option in context menu
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+		const contextMenu = page.getByTestId('context-menu');
 		await expect(contextMenu).toBeVisible({ timeout: 2000 });
 
 		const renameOption = contextMenu.getByText(/rename/i);
@@ -86,33 +88,36 @@ test.describe.serial('Folder Rename and Delete', () => {
 		const initialCount = await folderPage.getSubFolderCount();
 
 		// Find folder in tree and open context menu
-		const folderTreeItem = folderPage.folderTree.getByText(testFolderName);
+		const folderTreeItem = folderPage.folderTree
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName });
 		await expect(folderTreeItem).toBeVisible();
 		await folderTreeItem.click({ button: 'right' });
 
 		// Look for delete option in context menu
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+		const contextMenu = page.getByTestId('context-menu');
 		await expect(contextMenu).toBeVisible({ timeout: 2000 });
 
 		const deleteOption = contextMenu.getByText(/delete/i);
 		await expect(deleteOption).toBeVisible();
 		await deleteOption.click();
 
-		// Handle confirmation dialog if it appears
-		const confirmDialog = page.locator('[role="dialog"], [data-testid="confirm-dialog"]');
-		if (await confirmDialog.isVisible()) {
-			const confirmDeleteButton = confirmDialog.getByRole('button', { name: /delete|confirm/i });
-			await confirmDeleteButton.click();
-		}
+		// Handle confirmation dialog - it should appear
+		const confirmDialog = page.getByTestId('confirm-dialog');
+		await expect(confirmDialog).toBeVisible({ timeout: 3000 });
 
+		const confirmDeleteButton = confirmDialog.getByTestId('confirm-delete-button');
+		await expect(confirmDeleteButton).toBeVisible();
+		await confirmDeleteButton.click();
+
+		// Wait for dialog to close and network operations to complete
+		await expect(confirmDialog).not.toBeVisible();
 		await page.waitForLoadState('networkidle');
 
-		// Verify folder was deleted
-		const folderExists = await folderPage.subFolders
-			.getByRole('link', { name: testFolderName })
-			.isVisible()
-			.catch(() => false);
-		expect(folderExists).toBe(false);
+		// Wait for the folder to be removed from the UI before checking count
+		await expect(folderPage.subFolders.getByText(testFolderName)).not.toBeVisible({
+			timeout: 5000
+		});
 
 		// Verify folder count decreased
 		const newCount = await folderPage.getSubFolderCount();
@@ -120,7 +125,8 @@ test.describe.serial('Folder Rename and Delete', () => {
 
 		// Verify folder no longer appears in tree
 		const treeItemExists = await folderPage.folderTree
-			.getByText(testFolderName)
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName })
 			.isVisible()
 			.catch(() => false);
 		expect(treeItemExists).toBe(false);
@@ -157,18 +163,20 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.navigateToRoot();
 
 		// Delete folder with content
-		const folderTreeItem = folderPage.folderTree.getByText(testFolderName);
+		const folderTreeItem = folderPage.folderTree
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName });
 		await expect(folderTreeItem).toBeVisible();
 		await folderTreeItem.click({ button: 'right' });
 
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+		const contextMenu = page.getByTestId('context-menu');
 		await expect(contextMenu).toBeVisible({ timeout: 2000 });
 
 		const deleteOption = contextMenu.getByText(/delete/i);
 		await deleteOption.click();
 
 		// Should show confirmation for non-empty folder
-		const confirmDialog = page.locator('[role="dialog"], [data-testid="confirm-dialog"]');
+		const confirmDialog = page.getByTestId('confirm-dialog');
 		if (await confirmDialog.isVisible()) {
 			// Should warn about moving to trash
 			await expect(confirmDialog).toContainText(/trash|delete/i);
@@ -206,17 +214,19 @@ test.describe.serial('Folder Rename and Delete', () => {
 		const initialCount = await folderPage.getSubFolderCount();
 
 		// Open context menu and select delete
-		const folderTreeItem = folderPage.folderTree.getByText(testFolderName);
+		const folderTreeItem = folderPage.folderTree
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName });
 		await folderTreeItem.click({ button: 'right' });
 
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+		const contextMenu = page.getByTestId('context-menu');
 		await expect(contextMenu).toBeVisible({ timeout: 2000 });
 
 		const deleteOption = contextMenu.getByText(/delete/i);
 		await deleteOption.click();
 
 		// Cancel if confirmation dialog appears
-		const confirmDialog = page.locator('[role="dialog"], [data-testid="confirm-dialog"]');
+		const confirmDialog = page.getByTestId('confirm-dialog');
 		if (await confirmDialog.isVisible()) {
 			const cancelButton = confirmDialog.getByRole('button', { name: /cancel|no/i });
 			await cancelButton.click();
@@ -236,10 +246,12 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.verifyContainsFolder(testFolderName);
 
 		// Try to rename with invalid name
-		const folderTreeItem = folderPage.folderTree.getByText(testFolderName);
+		const folderTreeItem = folderPage.folderTree
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName });
 		await folderTreeItem.click({ button: 'right' });
 
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+		const contextMenu = page.getByTestId('context-menu');
 		await expect(contextMenu).toBeVisible({ timeout: 2000 });
 
 		const renameOption = contextMenu.getByText(/rename/i);
@@ -276,10 +288,12 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.verifyContainsFolder(renamedFolderName);
 
 		// Try to rename first folder to same name as second
-		const folderTreeItem = folderPage.folderTree.getByText(testFolderName);
+		const folderTreeItem = folderPage.folderTree
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName });
 		await folderTreeItem.click({ button: 'right' });
 
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
+		const contextMenu = page.getByTestId('context-menu');
 		await expect(contextMenu).toBeVisible({ timeout: 2000 });
 
 		const renameOption = contextMenu.getByText(/rename/i);

@@ -6,22 +6,18 @@ test.describe.serial('Page Rename and Move', () => {
 	const renamedPagePath = '/renamed-test-page';
 	const testFolderName = 'test-move-folder';
 
-	test.beforeEach(async ({ page }) => {
+	test.beforeEach(async ({ apiHelper }) => {
 		// Clean up any existing test data
-		await page.request.delete(`http://localhost:8080/api/pages${testPagePath}`).catch(() => {});
-		await page.request.delete(`http://localhost:8080/api/pages${renamedPagePath}`).catch(() => {});
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {});
+		await apiHelper.deletePage(testPagePath).catch(() => {});
+		await apiHelper.deletePage(renamedPagePath).catch(() => {});
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
 	});
 
-	test.afterEach(async ({ page }) => {
+	test.afterEach(async ({ apiHelper }) => {
 		// Clean up test data after each test
-		await page.request.delete(`http://localhost:8080/api/pages${testPagePath}`).catch(() => {});
-		await page.request.delete(`http://localhost:8080/api/pages${renamedPagePath}`).catch(() => {});
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {});
+		await apiHelper.deletePage(testPagePath).catch(() => {});
+		await apiHelper.deletePage(renamedPagePath).catch(() => {});
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
 	});
 
 	test('should rename page via context menu', async ({ pageViewPage, apiHelper, testId, page }) => {
@@ -359,7 +355,7 @@ test.describe.serial('Page Rename and Move', () => {
 	// 	}
 
 	// 	// Cleanup nested structure
-	// 	await page.request.delete('http://localhost:8080/api/folders/parent-folder').catch(() => {});
+	// 	await page.request.delete('http://localhost:8081/api/folders/parent-folder').catch(() => {});
 	// });
 
 	test('should preserve page metadata during rename', async ({

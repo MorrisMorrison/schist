@@ -124,13 +124,30 @@ export class FolderPage extends BasePage {
 	 * Create a new folder
 	 */
 	async createFolder(folderName: string) {
+		// Click create folder button
 		await this.createFolderButton.click();
+		
+		// Wait for modal to be visible
 		await this.waitForVisible(this.createFolderModal);
-
+		
+		// Wait for input field to be ready
+		await this.waitForVisible(this.folderNameInput);
+		
+		// Fill the folder name
 		await this.fillInput(this.folderNameInput, folderName);
+		
+		// Click create button
 		await this.confirmCreateFolder.click();
-
+		
+		// Wait for modal to close
+		await expect(this.createFolderModal).toBeHidden();
+		
+		// Wait for network requests to complete
 		await this.page.waitForLoadState('networkidle');
+		
+		// Add additional wait to ensure backend processing completes
+		// This helps with parallel test execution timing issues
+		await this.page.waitForTimeout(200);
 	}
 
 	/**

@@ -87,6 +87,7 @@
 					<label for="folder-name" class="text-primary text-sm font-medium">Folder Name</label>
 					<Input
 						id="folder-name"
+						data-testid="folder-name"
 						type="text"
 						bind:value={folderName}
 						placeholder="Enter folder name"

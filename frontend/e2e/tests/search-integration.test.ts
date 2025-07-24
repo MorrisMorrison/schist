@@ -5,28 +5,14 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 	const testFolderName = 'search-test-folder';
 	const nestedFolderName = 'nested-search-folder';
 
-	test.beforeEach(async ({ page }) => {
-		// Clean up any existing test data
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {});
-		await page.request.delete(`http://localhost:8080/api/pages/search-page-1`).catch(() => {});
-		await page.request.delete(`http://localhost:8080/api/pages/search-page-2`).catch(() => {});
-		await page.request
-			.delete(`http://localhost:8080/api/pages/${testFolderName}/nested-page`)
-			.catch(() => {});
+	test.beforeEach(async ({ apiHelper }) => {
+		// Clean up any existing test data - use comprehensive cleanup instead of hardcoded paths
+		await apiHelper.cleanupTestData();
 	});
 
-	test.afterEach(async ({ page }) => {
-		// Clean up test data after each test
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {});
-		await page.request.delete(`http://localhost:8080/api/pages/search-page-1`).catch(() => {});
-		await page.request.delete(`http://localhost:8080/api/pages/search-page-2`).catch(() => {});
-		await page.request
-			.delete(`http://localhost:8080/api/pages/${testFolderName}/nested-page`)
-			.catch(() => {});
+	test.afterEach(async ({ apiHelper }) => {
+		// Clean up test data after each test - use comprehensive cleanup
+		await apiHelper.cleanupTestData();
 	});
 
 	test('should filter folder tree by text query', async ({
@@ -35,13 +21,11 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		testId,
 		page
 	}) => {
-		// Create test folder structure
 		await folderPage.navigateToRoot();
 		await folderPage.createFolder(testFolderName);
 		await folderPage.openSubFolder(testFolderName);
 		await folderPage.createFolder(nestedFolderName);
 
-		// Create pages with searchable content
 		const pages = [
 			createTestPage({
 				title: `Searchable Page ${testId}`,
@@ -350,13 +334,9 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			expect(isEmptyFolderVisible).toBe(false);
 		}
 
-		// Cleanup
-		await page.request
-			.delete('http://localhost:8080/api/folders/folder-with-matches')
-			.catch(() => {});
-		await page.request
-			.delete('http://localhost:8080/api/folders/empty-folder-no-matches')
-			.catch(() => {});
+		// Cleanup using ApiHelper
+		await apiHelper.deleteFolder('/folder-with-matches').catch(() => {});
+		await apiHelper.deleteFolder('/empty-folder-no-matches').catch(() => {});
 	});
 
 	test('should handle search with no results gracefully', async ({ folderPage, page }) => {
@@ -473,7 +453,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 			if (isSearchPersistent) {
 				// If search persists, verify filtered results
-				const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+				const folderTree = page.getByTestId('folder-tree');
 				await expect(folderTree.getByText('Persistent Search')).toBeVisible();
 			} else {
 				// If search clears, verify all content is visible

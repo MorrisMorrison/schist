@@ -39,7 +39,7 @@ test.describe('Basic CRUD Functionality', () => {
 		await pageViewPage.verifyPageNotFound();
 	});
 
-	test('should create folders via FolderView (existing functionality)', async ({ folderPage }) => {
+	test('should create folders via FolderView (existing functionality)', async ({ folderPage, apiHelper }) => {
 		const testFolderName = 'basic-crud-folder';
 
 		// Navigate to root and create folder
@@ -54,9 +54,7 @@ test.describe('Basic CRUD Functionality', () => {
 		await folderPage.verifyFolderUrl(`/${testFolderName}`);
 
 		// Clean up
-		await folderPage.page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {});
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
 	});
 
 	test('should display folder tree with search (existing functionality)', async ({

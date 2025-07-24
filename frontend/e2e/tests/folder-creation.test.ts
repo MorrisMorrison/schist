@@ -4,18 +4,14 @@ test.describe.serial('Folder Creation', () => {
 	const testFolderName = 'test-folder-e2e';
 	const cleanFolderName = 'test-folder-e2e'; // Expected normalized name
 
-	test.beforeEach(async ({ page }) => {
+	test.beforeEach(async ({ apiHelper }) => {
 		// Clean up any existing test folders
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {}); // Ignore if folder doesn't exist
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {}); // Ignore if folder doesn't exist
 	});
 
-	test.afterEach(async ({ page }) => {
+	test.afterEach(async ({ apiHelper }) => {
 		// Clean up test folders after each test
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {}); // Ignore if folder doesn't exist
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {}); // Ignore if folder doesn't exist
 	});
 
 	test('should create folder via FolderView at root level', async ({ folderPage }) => {
@@ -59,7 +55,7 @@ test.describe.serial('Folder Creation', () => {
 
 	// 	// Clean up nested folders
 	// 	await folderPage.page.request
-	// 		.delete(`http://localhost:8080/api/folders/parent-folder`)
+	// 		.delete(`http://localhost:8081/api/folders/parent-folder`)
 	// 		.catch(() => {});
 	// });
 
@@ -88,7 +84,7 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.cancelCreateFolder.click();
 	});
 
-	test('should normalize folder names properly', async ({ folderPage }) => {
+	test('should normalize folder names properly', async ({ folderPage, apiHelper }) => {
 		await folderPage.navigateToRoot();
 
 		// Create folder with spaces and mixed case
@@ -101,9 +97,7 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.verifyContainsFolder(expectedName);
 
 		// Clean up
-		await folderPage.page.request
-			.delete(`http://localhost:8080/api/folders/${expectedName}`)
-			.catch(() => {});
+		await apiHelper.deleteFolder(`/${expectedName}`).catch(() => {});
 	});
 
 	test('should update folder tree after creation', async ({ folderPage }) => {

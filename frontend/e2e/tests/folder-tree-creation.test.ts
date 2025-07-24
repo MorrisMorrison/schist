@@ -4,18 +4,14 @@ test.describe.serial('Folder Tree Creation', () => {
 	const testFolderName = 'tree-test-folder';
 	const cleanFolderName = 'tree-test-folder';
 
-	test.beforeEach(async ({ page }) => {
+	test.beforeEach(async ({ apiHelper }) => {
 		// Clean up any existing test folders
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {}); // Ignore if folder doesn't exist
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {}); // Ignore if folder doesn't exist
 	});
 
-	test.afterEach(async ({ page }) => {
+	test.afterEach(async ({ apiHelper }) => {
 		// Clean up test folders after each test
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {}); // Ignore if folder doesn't exist
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {}); // Ignore if folder doesn't exist
 	});
 
 	// test('should create folder via FolderTree context menu at root', async ({ folderPage, page }) => {
@@ -57,6 +53,7 @@ test.describe.serial('Folder Tree Creation', () => {
 
 	test('should create folder via FolderTree context menu in nested folder', async ({
 		folderPage,
+		apiHelper,
 		page
 	}) => {
 		// First create a parent folder to test nested creation
@@ -94,9 +91,7 @@ test.describe.serial('Folder Tree Creation', () => {
 		await folderPage.verifyContainsFolder(nestedFolderName);
 
 		// Clean up nested structure
-		await page.request
-			.delete(`http://localhost:8080/api/folders/parent-tree-folder`)
-			.catch(() => {});
+		await apiHelper.deleteFolder('/parent-tree-folder').catch(() => {});
 	});
 
 	test('should show context menu on folder tree items', async ({ folderPage, page }) => {
@@ -149,7 +144,7 @@ test.describe.serial('Folder Tree Creation', () => {
 
 	// 	// Verify the child folder exists via API before proceeding
 	// 	const childFolderExists = await page.request.get(
-	// 		'http://localhost:8080/api/folders/expandable-parent/child-folder'
+	// 		'http://localhost:8081/api/folders/expandable-parent/child-folder'
 	// 	);
 	// 	expect(childFolderExists.ok()).toBe(true);
 
@@ -179,7 +174,7 @@ test.describe.serial('Folder Tree Creation', () => {
 
 	// 	// Clean up
 	// 	await page.request
-	// 		.delete(`http://localhost:8080/api/folders/expandable-parent`)
+	// 		.delete(`http://localhost:8081/api/folders/expandable-parent`)
 	// 		.catch(() => {});
 	// });
 

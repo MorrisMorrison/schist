@@ -4,24 +4,16 @@ test.describe.serial('Folder Rename and Delete', () => {
 	const testFolderName = 'rename-delete-test';
 	const renamedFolderName = 'renamed-folder';
 
-	test.beforeEach(async ({ page }) => {
+	test.beforeEach(async ({ apiHelper }) => {
 		// Clean up any existing test folders
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {});
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${renamedFolderName}`)
-			.catch(() => {});
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
+		await apiHelper.deleteFolder(`/${renamedFolderName}`).catch(() => {});
 	});
 
-	test.afterEach(async ({ page }) => {
+	test.afterEach(async ({ apiHelper }) => {
 		// Clean up test folders after each test
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${testFolderName}`)
-			.catch(() => {});
-		await page.request
-			.delete(`http://localhost:8080/api/folders/${renamedFolderName}`)
-			.catch(() => {});
+		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
+		await apiHelper.deleteFolder(`/${renamedFolderName}`).catch(() => {});
 	});
 
 	test('should rename folder via context menu', async ({ folderPage, page }) => {
@@ -197,11 +189,10 @@ test.describe.serial('Folder Rename and Delete', () => {
 
 		// Verify folder was moved to trash (not permanently deleted)
 		// The content should be accessible in /trash folder structure
-		const trashResponse = await page.request.get('http://localhost:8080/api/folders/trash');
-		if (trashResponse.ok()) {
-			const trashData = await trashResponse.json();
+		const trashResponse = await apiHelper.getFolder('/trash');
+		if (trashResponse.status === 200) {
 			// Trash folder should exist and might contain our deleted content
-			expect(trashData).toBeDefined();
+			expect(trashResponse.data).toBeDefined();
 		}
 	});
 

@@ -218,6 +218,24 @@ func (h *APIHandler) deletePageByPath(c *gin.Context) {
 		path = "/" + path
 	}
 
+	// If the page is already in trash, permanently delete it
+	if strings.HasPrefix(path, "/trash") {
+		err := h.PageService.DeletePage(path)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Page permanently deleted",
+			"path":    path,
+		})
+		return
+	}
+
+	// Otherwise, move to trash
 	trashPath := "/trash" + path
 	err := h.PageService.MovePage(path, trashPath)
 	if err != nil {

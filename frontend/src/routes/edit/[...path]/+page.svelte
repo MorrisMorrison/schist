@@ -11,9 +11,15 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let title = $state(data.page.metaData.title);
-	let content = $state(data.page.content);
-	let tags = $state<string[]>(data.page.metaData.tags || []);
+	// Handle null page during SSR
+	const page = data.page || {
+		metaData: { title: '', tags: [], slug: '', path: '', created: '', updated: '' },
+		content: ''
+	};
+
+	let title = $state(page.metaData.title);
+	let content = $state(page.content);
+	let tags = $state<string[]>(page.metaData.tags || []);
 	let isSaving = $state(false);
 	let saveError = $state('');
 	let isDeleting = $state(false);
@@ -23,9 +29,9 @@
 	let autoSaveTimer: number | null = null;
 
 	// Track original values to detect changes
-	const originalTitle = data.page.metaData.title;
-	const originalContent = data.page.content;
-	const originalTags = JSON.stringify(data.page.metaData.tags || []);
+	const originalTitle = page.metaData.title;
+	const originalContent = page.content;
+	const originalTags = JSON.stringify(page.metaData.tags || []);
 
 	let editorRef: Editor;
 	function replaceLastPathSegment(path: string, newSegment: string): string {
@@ -53,9 +59,9 @@
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			await pageActions.updatePageByPath(data.path, {
-				...data.page,
+				...page,
 				metaData: {
-					...data.page.metaData,
+					...page.metaData,
 					slug: slug,
 					path: newPath,
 					title: title.trim(),
@@ -155,9 +161,9 @@
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			await pageActions.updatePageByPath(data.path, {
-				...data.page,
+				...page,
 				metaData: {
-					...data.page.metaData,
+					...page.metaData,
 					slug: slug,
 					path: newPath,
 					title: title.trim(),
@@ -190,8 +196,8 @@
 </script>
 
 <svelte:head>
-	<title>Edit {data.page.metaData.title} - Schist Wiki</title>
-	<meta name="description" content="Edit wiki page: {data.page.metaData.title}" />
+	<title>Edit {page.metaData.title} - Schist Wiki</title>
+	<meta name="description" content="Edit wiki page: {page.metaData.title}" />
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -275,10 +281,10 @@
 		<MetadataEditor
 			{title}
 			{tags}
-			slug={data.page.metaData.slug}
-			path={data.page.metaData.path}
-			created={data.page.metaData.created}
-			updated={data.page.metaData.updated}
+			slug={page.metaData.slug}
+			path={page.metaData.path}
+			created={page.metaData.created}
+			updated={page.metaData.updated}
 			onTitleChange={(newTitle) => {
 				title = newTitle;
 				scheduleAutoSave();

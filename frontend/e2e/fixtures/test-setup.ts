@@ -2,7 +2,7 @@
  * Test setup fixtures for e2e tests
  */
 
-import { test as base, expect } from '@playwright/test';
+import { test as base } from '@playwright/test';
 import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
 import { PageViewPage } from '../pages/PageViewPage';
@@ -59,8 +59,6 @@ export const test = base.extend<{
 		await directoryManager.initializeDirectory();
 
 		// Log initial state
-		await directoryManager.logDirectoryState('Directory initialized');
-
 		await use(directoryManager);
 
 		// Post-test cleanup and validation
@@ -97,7 +95,7 @@ export const test = base.extend<{
 	},
 
 	// API helper fixture
-	apiHelper: async ({ request, directoryManager }, use, testInfo) => {
+	apiHelper: async ({ request }, use, testInfo) => {
 		const apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 
 		// Directory manager already handles API readiness check

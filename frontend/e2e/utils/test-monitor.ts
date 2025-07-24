@@ -3,27 +3,34 @@
  * Provides validation, assertion helpers, and test state monitoring
  */
 
-import { expect } from '@playwright/test';
 import { DirectoryManager, DirectoryState } from './directory-manager';
 
 export interface TestValidationResult {
 	passed: boolean;
 	message: string;
-	details?: any;
+	details?: DirectoryState | {
+		beforeState: DirectoryState;
+		afterState: DirectoryState;
+		actualPageDelta?: number;
+		actualFolderDelta?: number;
+		attempts?: number;
+	};
 }
 
 export interface StateChangeEvent {
 	type: 'file_created' | 'file_deleted' | 'folder_created' | 'folder_deleted';
 	timestamp: number;
 	workerIndex: number;
-	details: any;
+	details: {
+		path: string;
+		name: string;
+	};
 }
 
 export class TestMonitor {
 	private directoryManager: DirectoryManager;
 	private workerIndex: number;
 	private stateHistory: DirectoryState[] = [];
-	private stateChangeEvents: StateChangeEvent[] = [];
 
 	constructor(directoryManager: DirectoryManager, workerIndex: number) {
 		this.directoryManager = directoryManager;

@@ -24,7 +24,18 @@
 	let error = $state('');
 	let isLoading = $state(false);
 
-	const folderPath = $derived(parentPath ? `${parentPath}/${folderName}` : `/${folderName}`);
+	// Reset form when modal opens
+	$effect(() => {
+		if (open) {
+			folderName = '';
+			error = '';
+			isLoading = false;
+		}
+	});
+
+	const folderPath = $derived(
+		parentPath && parentPath !== '/' ? `${parentPath}/${folderName}` : `/${folderName}`
+	);
 	const isValidName = $derived(validateFolderName(folderName));
 
 	function validateFolderName(name: string): boolean {

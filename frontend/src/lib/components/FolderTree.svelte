@@ -632,10 +632,7 @@
 			ondragleave={(e) => handleDragLeave(e, folder.path)}
 			ondrop={(e) => handleDrop(e, folder.path)}
 			oncontextmenu={(e) => {
-				// Only handle context menu for non-root folders
-				if (folder.path !== '/' && folder.path !== '') {
-					handleContextMenu(e, folder);
-				}
+				handleContextMenu(e, folder);
 			}}
 			role="treeitem"
 			aria-expanded={hasExpandableContent ? isExpanded : undefined}
@@ -690,7 +687,7 @@
 			</div>
 
 			<!-- Context Menu Trigger - Positioned absolutely to the right -->
-			{#if enableContextMenu && folder.path !== '/' && folder.path !== ''}
+			{#if enableContextMenu}
 				<span
 					class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
 					onclick={(e) => {
@@ -923,8 +920,9 @@
 				type="button"
 				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
 				onclick={() => {
-					const folder = findFolderByPath($folders, contextMenuOpen || '');
-					if (folder) handleCreateFolder(folder.path);
+					if (contextMenuOpen) {
+						handleCreateFolder(contextMenuOpen);
+					}
 				}}
 			>
 				<Plus class="h-4 w-4" />

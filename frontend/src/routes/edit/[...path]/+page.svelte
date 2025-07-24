@@ -26,7 +26,7 @@
 	let showDeleteModal = $state(false);
 
 	// Single auto-save timer
-	let autoSaveTimer: number | null = null;
+	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// Track original values to detect changes
 	const originalTitle = page.metaData.title;

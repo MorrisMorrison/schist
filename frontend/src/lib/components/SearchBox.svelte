@@ -21,7 +21,7 @@
 	let results: Page[] = $state([]);
 	let isSearching = $state(false);
 	let showDropdown = $state(false);
-	let searchTimeout: number;
+	let searchTimeout: ReturnType<typeof setTimeout>;
 
 	$effect(() => {
 		if (query.trim().length > 0) {

@@ -46,7 +46,7 @@
 	};
 
 	// Auto-save timer
-	let autoSaveTimer: number | null = null;
+	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// Image upload state
 	let isUploading = $state(false);

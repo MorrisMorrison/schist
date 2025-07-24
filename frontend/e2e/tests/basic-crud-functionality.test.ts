@@ -39,7 +39,10 @@ test.describe('Basic CRUD Functionality', () => {
 		await pageViewPage.verifyPageNotFound();
 	});
 
-	test('should create folders via FolderView (existing functionality)', async ({ folderPage, apiHelper }) => {
+	test('should create folders via FolderView (existing functionality)', async ({
+		folderPage,
+		apiHelper
+	}) => {
 		const testFolderName = 'basic-crud-folder';
 
 		// Navigate to root and create folder

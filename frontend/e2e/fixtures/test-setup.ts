@@ -57,7 +57,7 @@ export const test = base.extend<{
 
 		// Initialize directory with clean state
 		await directoryManager.initializeDirectory();
-		
+
 		// Log initial state
 		await directoryManager.logDirectoryState('Directory initialized');
 
@@ -66,24 +66,24 @@ export const test = base.extend<{
 		// Post-test cleanup and validation
 		await directoryManager.logDirectoryState('Before cleanup');
 		await directoryManager.performAggressiveCleanup();
-		
+
 		// Verify cleanup was successful
 		const isClean = await directoryManager.validateCleanState();
 		if (!isClean) {
 			console.warn(`Worker ${testInfo.parallelIndex} cleanup verification failed`);
 			await directoryManager.emergencyCleanup();
 		}
-		
+
 		await directoryManager.logDirectoryState('After cleanup');
 	},
 
 	// Test monitor fixture - provides monitoring and validation
 	testMonitor: async ({ directoryManager }, use, testInfo) => {
 		const testMonitor = createTestMonitor(directoryManager, testInfo.parallelIndex || 0);
-		
+
 		// Record initial state
 		await testMonitor.recordState('Test started');
-		
+
 		// Validate isolation at start of test
 		await testMonitor.assertIsolation();
 
@@ -96,7 +96,7 @@ export const test = base.extend<{
 		testMonitor.logPerformanceSummary();
 	},
 
-	// API helper fixture  
+	// API helper fixture
 	apiHelper: async ({ request, directoryManager }, use, testInfo) => {
 		const apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 

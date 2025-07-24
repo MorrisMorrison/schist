@@ -119,7 +119,8 @@ export default defineConfig({
 		},
 		// Frontend servers - each connecting to its worker-specific backend
 		{
-			command: 'npm run build && PUBLIC_API_URL=http://localhost:8081/api npm run preview -- --port 4173',
+			command:
+				'npm run build && PUBLIC_API_URL=http://localhost:8081/api npm run preview -- --port 4173',
 			port: 4173,
 			reuseExistingServer: false,
 			timeout: 120 * 1000

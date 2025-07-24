@@ -40,10 +40,10 @@ export class DirectoryManager {
 	 */
 	async initializeDirectory(): Promise<DirectoryState> {
 		console.log(`[Worker ${this.workerIndex}] Initializing directory: ${this.dataDirectory}`);
-		
+
 		// Perform aggressive cleanup to ensure clean state
 		await this.performAggressiveCleanup();
-		
+
 		// Wait for backend to be ready
 		const isReady = await this.apiHelper.waitForApiReady(30000);
 		if (!isReady) {
@@ -67,20 +67,20 @@ export class DirectoryManager {
 	async getDirectoryState(): Promise<DirectoryState> {
 		const maxRetries = 3;
 		const retryDelay = 100;
-		
+
 		for (let attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
 				if (attempt > 0) {
-					await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+					await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
 				}
-				
+
 				const [pagesResponse, foldersResponse] = await Promise.all([
 					this.apiHelper.listPages(),
 					this.apiHelper.getFolder('')
 				]);
 
-				const pageCount = Array.isArray((pagesResponse.data as any)?.pages) 
-					? (pagesResponse.data as any).pages.length 
+				const pageCount = Array.isArray((pagesResponse.data as any)?.pages)
+					? (pagesResponse.data as any).pages.length
 					: 0;
 
 				const folderCount = Array.isArray((foldersResponse.data as any)?.folders)
@@ -100,7 +100,10 @@ export class DirectoryManager {
 				};
 			} catch (error) {
 				if (attempt === maxRetries) {
-					console.warn(`[Worker ${this.workerIndex}] Failed to get directory state after ${maxRetries + 1} attempts:`, error);
+					console.warn(
+						`[Worker ${this.workerIndex}] Failed to get directory state after ${maxRetries + 1} attempts:`,
+						error
+					);
 					return {
 						workerIndex: this.workerIndex,
 						dataDirectory: this.dataDirectory,
@@ -110,10 +113,13 @@ export class DirectoryManager {
 						timestamp: Date.now()
 					};
 				}
-				console.warn(`[Worker ${this.workerIndex}] Directory state check attempt ${attempt + 1} failed, retrying:`, error);
+				console.warn(
+					`[Worker ${this.workerIndex}] Directory state check attempt ${attempt + 1} failed, retrying:`,
+					error
+				);
 			}
 		}
-		
+
 		// This should never be reached due to the return in the catch block above
 		return {
 			workerIndex: this.workerIndex,
@@ -138,10 +144,10 @@ export class DirectoryManager {
 		try {
 			// Use ApiHelper's built-in cleanup for test data
 			await this.apiHelper.cleanupTestData();
-			
+
 			// Additional cleanup for any remaining data
 			const state = await this.getDirectoryState();
-			
+
 			// Delete remaining pages
 			const pagesResponse = await this.apiHelper.listPages();
 			if (pagesResponse.data && Array.isArray((pagesResponse.data as any).pages)) {
@@ -173,7 +179,6 @@ export class DirectoryManager {
 					}
 				}
 			}
-
 		} catch (error) {
 			errors.push(`Cleanup failed: ${error}`);
 		}
@@ -208,7 +213,7 @@ export class DirectoryManager {
 	async validateCleanState(): Promise<boolean> {
 		const state = await this.getDirectoryState();
 		const isClean = state.pageCount === 0 && state.folderCount === 0;
-		
+
 		if (!isClean) {
 			console.warn(`[Worker ${this.workerIndex}] Directory not clean:`, {
 				pages: state.pageCount,
@@ -247,26 +252,29 @@ export class DirectoryManager {
 		try {
 			// Get current state
 			const state = await this.getDirectoryState();
-			
+
 			// Check that we're only seeing data from our own worker
 			// This is a basic check - in a real scenario, we might look for
 			// specific markers or IDs that indicate cross-worker contamination
-			
+
 			const pagesResponse = await this.apiHelper.listPages();
 			if (pagesResponse.data && Array.isArray((pagesResponse.data as any).pages)) {
 				const pages = (pagesResponse.data as any).pages;
-				
+
 				// Look for pages that might belong to other workers
 				// Check for actual cross-worker contamination by looking for worker-specific patterns
 				// TestIds are generated as test-${timestamp}-${random}, not test-${workerIndex}
 				// So we need a different approach - check if ANY pages exist that shouldn't be there
 				// Since we cleaned up before starting, any existing pages indicate contamination
-				
+
 				// For now, let's be less strict about isolation and focus on cleanup
 				// The real isolation is achieved by separate data directories and servers
 				const pageCount = pages.length;
-				if (pageCount > 50) {  // Only flag if there are a suspiciously large number of pages
-					console.warn(`[Worker ${this.workerIndex}] Potentially too many pages in directory: ${pageCount}`);
+				if (pageCount > 50) {
+					// Only flag if there are a suspiciously large number of pages
+					console.warn(
+						`[Worker ${this.workerIndex}] Potentially too many pages in directory: ${pageCount}`
+					);
 					// Don't fail - just warn, as this might be normal test data
 				}
 			}
@@ -283,24 +291,26 @@ export class DirectoryManager {
 	 */
 	async emergencyCleanup(): Promise<void> {
 		console.log(`[Worker ${this.workerIndex}] Performing emergency cleanup...`);
-		
+
 		// Multiple cleanup attempts
 		for (let attempt = 1; attempt <= 3; attempt++) {
 			console.log(`[Worker ${this.workerIndex}] Emergency cleanup attempt ${attempt}/3`);
-			
+
 			await this.performAggressiveCleanup();
-			
+
 			// Wait a bit between attempts
-			await new Promise(resolve => setTimeout(resolve, 1000));
-			
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+
 			// Check if clean
 			const isClean = await this.validateCleanState();
 			if (isClean) {
-				console.log(`[Worker ${this.workerIndex}] Emergency cleanup successful after ${attempt} attempts`);
+				console.log(
+					`[Worker ${this.workerIndex}] Emergency cleanup successful after ${attempt} attempts`
+				);
 				return;
 			}
 		}
-		
+
 		console.error(`[Worker ${this.workerIndex}] Emergency cleanup failed after 3 attempts`);
 	}
 }
@@ -308,6 +318,9 @@ export class DirectoryManager {
 /**
  * Create a DirectoryManager for the current test worker
  */
-export function createDirectoryManager(apiContext: APIRequestContext, workerIndex: number): DirectoryManager {
+export function createDirectoryManager(
+	apiContext: APIRequestContext,
+	workerIndex: number
+): DirectoryManager {
 	return new DirectoryManager(apiContext, workerIndex);
 }

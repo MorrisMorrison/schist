@@ -23,6 +23,22 @@ export interface CleanupMetrics {
 	errors: string[];
 }
 
+interface PageListData {
+	pages: Array<{
+		metaData?: {
+			title?: string;
+			path?: string;
+		};
+	}>;
+}
+
+interface FolderListData {
+	folders: Array<{
+		name?: string;
+		path?: string;
+	}>;
+}
+
 export class DirectoryManager {
 	private apiHelper: ApiHelper;
 	private workerIndex: number;
@@ -39,8 +55,6 @@ export class DirectoryManager {
 	 * Initialize directory for testing - ensures clean state
 	 */
 	async initializeDirectory(): Promise<DirectoryState> {
-		console.log(`[Worker ${this.workerIndex}] Initializing directory: ${this.dataDirectory}`);
-
 		// Perform aggressive cleanup to ensure clean state
 		await this.performAggressiveCleanup();
 
@@ -51,14 +65,7 @@ export class DirectoryManager {
 		}
 
 		// Get initial state
-		const state = await this.getDirectoryState();
-		console.log(`[Worker ${state.workerIndex}] Directory initialized:`, {
-			pages: state.pageCount,
-			folders: state.folderCount,
-			trash: state.trashCount
-		});
-
-		return state;
+		return await this.getDirectoryState();
 	}
 
 	/**
@@ -79,12 +86,12 @@ export class DirectoryManager {
 					this.apiHelper.getFolder('')
 				]);
 
-				const pageCount = Array.isArray((pagesResponse.data as any)?.pages)
-					? (pagesResponse.data as any).pages.length
+				const pageCount = Array.isArray((pagesResponse.data as PageListData)?.pages)
+					? (pagesResponse.data as PageListData).pages.length
 					: 0;
 
-				const folderCount = Array.isArray((foldersResponse.data as any)?.folders)
-					? (foldersResponse.data as any).folders.length
+				const folderCount = Array.isArray((foldersResponse.data as FolderListData)?.folders)
+					? (foldersResponse.data as FolderListData).folders.length
 					: 0;
 
 				// Note: trash count would require additional API endpoint
@@ -139,19 +146,14 @@ export class DirectoryManager {
 		const errors: string[] = [];
 		let itemsDeleted = 0;
 
-		console.log(`[Worker ${this.workerIndex}] Starting aggressive cleanup...`);
-
 		try {
 			// Use ApiHelper's built-in cleanup for test data
 			await this.apiHelper.cleanupTestData();
 
-			// Additional cleanup for any remaining data
-			const state = await this.getDirectoryState();
-
 			// Delete remaining pages
 			const pagesResponse = await this.apiHelper.listPages();
-			if (pagesResponse.data && Array.isArray((pagesResponse.data as any).pages)) {
-				const pages = (pagesResponse.data as any).pages;
+			if (pagesResponse.data && Array.isArray((pagesResponse.data as PageListData).pages)) {
+				const pages = (pagesResponse.data as PageListData).pages;
 				for (const page of pages) {
 					try {
 						if (page.metaData?.path) {
@@ -166,8 +168,8 @@ export class DirectoryManager {
 
 			// Delete remaining folders
 			const foldersResponse = await this.apiHelper.getFolder('');
-			if (foldersResponse.data && Array.isArray((foldersResponse.data as any).folders)) {
-				const folders = (foldersResponse.data as any).folders;
+			if (foldersResponse.data && Array.isArray((foldersResponse.data as FolderListData).folders)) {
+				const folders = (foldersResponse.data as FolderListData).folders;
 				for (const folder of folders) {
 					try {
 						if (folder.path) {
@@ -250,32 +252,15 @@ export class DirectoryManager {
 	 */
 	async verifyIsolation(): Promise<boolean> {
 		try {
-			// Get current state
-			const state = await this.getDirectoryState();
-
-			// Check that we're only seeing data from our own worker
-			// This is a basic check - in a real scenario, we might look for
-			// specific markers or IDs that indicate cross-worker contamination
-
 			const pagesResponse = await this.apiHelper.listPages();
-			if (pagesResponse.data && Array.isArray((pagesResponse.data as any).pages)) {
-				const pages = (pagesResponse.data as any).pages;
+			if (pagesResponse.data && Array.isArray((pagesResponse.data as PageListData).pages)) {
+				const pages = (pagesResponse.data as PageListData).pages;
 
-				// Look for pages that might belong to other workers
-				// Check for actual cross-worker contamination by looking for worker-specific patterns
-				// TestIds are generated as test-${timestamp}-${random}, not test-${workerIndex}
-				// So we need a different approach - check if ANY pages exist that shouldn't be there
-				// Since we cleaned up before starting, any existing pages indicate contamination
-
-				// For now, let's be less strict about isolation and focus on cleanup
-				// The real isolation is achieved by separate data directories and servers
 				const pageCount = pages.length;
 				if (pageCount > 50) {
-					// Only flag if there are a suspiciously large number of pages
 					console.warn(
 						`[Worker ${this.workerIndex}] Potentially too many pages in directory: ${pageCount}`
 					);
-					// Don't fail - just warn, as this might be normal test data
 				}
 			}
 
@@ -286,22 +271,16 @@ export class DirectoryManager {
 		}
 	}
 
-	/**
-	 * Emergency cleanup - more aggressive than normal cleanup
-	 */
 	async emergencyCleanup(): Promise<void> {
 		console.log(`[Worker ${this.workerIndex}] Performing emergency cleanup...`);
 
-		// Multiple cleanup attempts
 		for (let attempt = 1; attempt <= 3; attempt++) {
 			console.log(`[Worker ${this.workerIndex}] Emergency cleanup attempt ${attempt}/3`);
 
 			await this.performAggressiveCleanup();
 
-			// Wait a bit between attempts
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 
-			// Check if clean
 			const isClean = await this.validateCleanState();
 			if (isClean) {
 				console.log(

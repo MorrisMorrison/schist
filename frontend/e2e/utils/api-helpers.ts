@@ -34,24 +34,18 @@ interface PageData {
 	content?: string;
 }
 
-/**
- * API helper class for direct backend interactions
- */
 export class ApiHelper {
 	private apiContext: APIRequestContext;
 	private baseURL: string;
+	private workerIndex: number;
 
 	constructor(apiContext: APIRequestContext, workerIndex?: number, baseURL?: string) {
 		this.apiContext = apiContext;
+		this.workerIndex = workerIndex ?? 0;
 		this.baseURL = baseURL || this.getWorkerSpecificBaseURL(workerIndex);
 	}
 
-	/**
-	 * Get the appropriate backend URL for the current test worker
-	 */
 	private getWorkerSpecificBaseURL(workerIndex?: number): string {
-		// For now, default to port 8081 for single worker testing
-		// TODO: When enabling parallel workers, use parallelIndex to determine port
 		const index = workerIndex ?? 0;
 		const port = 8081 + index;
 		return `http://localhost:${port}/api`;
@@ -181,7 +175,7 @@ export class ApiHelper {
 	/**
 	 * List all pages
 	 */
-	async listPages(): Promise<ApiResponse> {
+	async listPages(): Promise<ApiResponse<PageListData>> {
 		try {
 			const response = await this.apiContext.get(`${this.baseURL}/pages`);
 			const data = await response.json();
@@ -219,7 +213,7 @@ export class ApiHelper {
 	/**
 	 * Get folder contents
 	 */
-	async getFolder(path: string): Promise<ApiResponse> {
+	async getFolder(path: string): Promise<ApiResponse<FolderListData>> {
 		try {
 			const response = await this.apiContext.get(`${this.baseURL}/folders${path}`);
 			const data = await response.json();
@@ -338,64 +332,38 @@ export class ApiHelper {
 		return false;
 	}
 
-	/**
-	 * Cleanup test data by prefix
-	 */
-	async cleanupTestData(prefix: string = 'test-'): Promise<void> {
-		// The backend delete APIs have issues, so let's use a simple filesystem-based cleanup
-		// This is more reliable than trying to use the buggy API endpoints
-		console.log(`[ApiHelper] Starting direct filesystem cleanup for worker ${this.workerIndex}`);
-
+	async cleanupTestData(): Promise<void> {
 		try {
-			// Since the API context runs in browser, we can't directly access filesystem
-			// Instead, let's make all pages show up as deleted by making a comprehensive API call
-			// to list and attempt deletion of everything
-
 			const pagesResponse = await this.listPages();
 			const pageData = pagesResponse.data as PageListData;
 
 			if (pageData && pageData.pages) {
-				console.log(`[ApiHelper] Found ${pageData.pages.length} pages to clean up`);
-
-				// Delete every single page found
 				for (const page of pageData.pages) {
 					const path = page.metaData?.path || '';
 					if (path) {
-						const result = await this.deletePage(path);
-						console.log(`[ApiHelper] Delete ${path}: status ${result.status}`);
+						await this.deletePage(path);
 					}
 				}
 			}
 
-			// Also try to clean up folders
 			const foldersResponse = await this.getFolder('');
 			const folderData = foldersResponse.data as FolderListData;
 
 			if (folderData && folderData.folders) {
-				console.log(`[ApiHelper] Found ${folderData.folders.length} folders to clean up`);
-
-				// Delete every folder found
 				for (const folder of folderData.folders) {
 					const path = folder.path || '';
 					if (path) {
-						const result = await this.deleteFolder(path);
-						console.log(`[ApiHelper] Delete folder ${path}: status ${result.status}`);
+						await this.deleteFolder(path);
 					}
 				}
 			}
-
-			console.log(`[ApiHelper] Cleanup completed`);
 		} catch (error) {
 			console.warn('[ApiHelper] Cleanup failed:', error);
 		}
 	}
 
-	/**
-	 * Wait for a page to be available after creation
-	 * This helps prevent race conditions in tests
-	 */
 	private async waitForPageAvailable(path: string, maxAttempts: number = 15): Promise<void> {
-		const delay = 150; // Increased base delay for parallel execution
+		const delay = 150;
 
 		for (let attempt = 0; attempt < maxAttempts; attempt++) {
 			try {
@@ -410,6 +378,7 @@ export class ApiHelper {
 				}
 			} catch (error) {
 				// Continue trying
+				console.error(error);
 			}
 
 			if (attempt < maxAttempts - 1) {
@@ -424,9 +393,6 @@ export class ApiHelper {
 	}
 }
 
-/**
- * Create test pages in bulk
- */
 export async function createTestPages(apiHelper: ApiHelper, pages: TestPageData[]): Promise<void> {
 	for (const pageData of pages) {
 		const result = await apiHelper.createPage(pageData);
@@ -434,9 +400,6 @@ export async function createTestPages(apiHelper: ApiHelper, pages: TestPageData[
 	}
 }
 
-/**
- * Create test folder structure
- */
 export async function createTestFolders(
 	apiHelper: ApiHelper,
 	folders: TestFolderData[]

@@ -6,17 +6,14 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
 	testDir: './e2e',
 
-	/* Run tests in files in parallel */
 	fullyParallel: true,
 
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: !!process.env.CI,
 
-	/* Retry on CI only */
 	retries: process.env.CI ? 2 : 0,
 
-	/* Disable parallelism completely to fix race conditions */
-	workers: 1,
+	workers: process.env.CI ? 1 : 1,
 
 	/* Global timeout for each test */
 	timeout: 30 * 1000,
@@ -36,19 +33,12 @@ export default defineConfig({
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL will be set dynamically per worker via fixture */
-		baseURL: 'http://localhost:4173', // Default fallback
-
-		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+		baseURL: 'http://localhost:4173',
 		trace: 'on-first-retry',
-
-		/* Take screenshot on failure */
 		screenshot: 'only-on-failure',
-
-		/* Record video on failure */
 		video: 'retain-on-failure'
 	},
 
-	/* Configure projects for major browsers */
 	projects: [
 		{
 			name: 'chromium',
@@ -86,62 +76,32 @@ export default defineConfig({
 		// },
 	],
 
-	/* Run your local dev server before starting the tests */
 	webServer: [
-		// Backend servers - one per worker for isolation
 		{
 			command:
 				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8081 SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data-worker-1 go run main.go',
 			port: 8081,
-			reuseExistingServer: false, // Don't reuse - each worker needs its own
+			reuseExistingServer: true,
 			timeout: 60 * 1000
 		},
+		// {
+		// 	command:
+		// 		'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-worker-2 go run main.go',
+		// 	port: 8082,
+		// 	reuseExistingServer: true,
+		// 	timeout: 60 * 1000
+		// },
 		{
-			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-worker-2 go run main.go',
-			port: 8082,
-			reuseExistingServer: false,
-			timeout: 60 * 1000
-		},
-		{
-			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8083 SCHIST_FRONTEND_URL=http://localhost:4175 SCHIST_DATA_DIR=test-data-worker-3 go run main.go',
-			port: 8083,
-			reuseExistingServer: false,
-			timeout: 60 * 1000
-		},
-		{
-			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8084 SCHIST_FRONTEND_URL=http://localhost:4176 SCHIST_DATA_DIR=test-data-worker-4 go run main.go',
-			port: 8084,
-			reuseExistingServer: false,
-			timeout: 60 * 1000
-		},
-		// Frontend servers - each connecting to its worker-specific backend
-		{
-			command:
-				'npm run build && PUBLIC_API_URL=http://localhost:8081/api npm run preview -- --port 4173',
+			command: 'PUBLIC_API_URL=http://localhost:8081/api npm run preview -- --port 4173',
 			port: 4173,
 			reuseExistingServer: false,
-			timeout: 120 * 1000
-		},
-		{
-			command: 'PUBLIC_API_URL=http://localhost:8082/api npm run preview -- --port 4174',
-			port: 4174,
-			reuseExistingServer: false,
-			timeout: 120 * 1000
-		},
-		{
-			command: 'PUBLIC_API_URL=http://localhost:8083/api npm run preview -- --port 4175',
-			port: 4175,
-			reuseExistingServer: false,
-			timeout: 120 * 1000
-		},
-		{
-			command: 'PUBLIC_API_URL=http://localhost:8084/api npm run preview -- --port 4176',
-			port: 4176,
-			reuseExistingServer: false,
-			timeout: 120 * 1000
+			timeout: 60 * 1000
 		}
+		// {
+		// 	command: 'PUBLIC_API_URL=http://localhost:8082/api npm run preview -- --port 4174',
+		// 	port: 4174,
+		// 	reuseExistingServer: false,
+		// 	timeout: 60 * 1000
+		// }
 	]
 });

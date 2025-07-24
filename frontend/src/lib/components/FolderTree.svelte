@@ -884,7 +884,7 @@
 		<!-- Folder Tree -->
 		<div class="space-y-1" role="tree" aria-label="Folder tree" data-testid="folder-tree">
 			<!-- Root folder containing root pages and root-level folders -->
-			{#if showPages && (getFilteredRootPages().length > 0 || filteredFolders.length > 0)}
+			{#if showPages}
 				{@render folderNode(
 					{
 						name: '/',

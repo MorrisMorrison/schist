@@ -19,10 +19,13 @@ import type {
 import { normalizePath } from './types.js';
 
 class SchістApiClient {
-	private baseUrl: string;
+	private baseUrl: string = 'http://localhost:8080/api';
 
-	constructor() {
-		this.baseUrl = env.PUBLIC_API_URL || 'http://localhost:8080/api';
+	private getApiUrl(): string {
+		if (env.PUBLIC_API_URL) {
+			this.baseUrl = env.PUBLIC_API_URL;
+		}
+		return this.baseUrl;
 	}
 
 	private encodePath(path: string): string {
@@ -38,7 +41,7 @@ class SchістApiClient {
 	}
 
 	private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-		const url = `${this.baseUrl}${endpoint}`;
+		const url = `${this.getApiUrl()}${endpoint}`;
 
 		const defaultHeaders = {
 			'Content-Type': 'application/json',
@@ -223,7 +226,7 @@ class SchістApiClient {
 		formData.append('file', file);
 
 		// For file uploads, we need to handle this differently than JSON requests
-		const url = `${this.baseUrl}/assets/upload`;
+		const url = `${this.getApiUrl()}/assets/upload`;
 
 		return new Promise((resolve, reject) => {
 			const xhr = new XMLHttpRequest();
@@ -277,7 +280,7 @@ class SchістApiClient {
 		// Convert /assets/ path to /uploads/ for user-uploaded content
 		const uploadsPath = path.replace('/assets/', '/uploads/');
 		// Remove /api from base URL to get server root
-		const serverRoot = this.baseUrl.replace('/api', '');
+		const serverRoot = this.getApiUrl().replace('/api', '');
 		return `${serverRoot}${uploadsPath}`;
 	}
 }

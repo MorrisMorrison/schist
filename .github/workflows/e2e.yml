@@ -43,8 +43,7 @@ jobs:
       # Run E2E tests (Playwright will start servers automatically)
       - name: Run Playwright tests
         run: |
-          cd frontend
-          npx playwright test
+          make e2e
         env:
           PUBLIC_API_URL: http://localhost:8080/api
           CI: true

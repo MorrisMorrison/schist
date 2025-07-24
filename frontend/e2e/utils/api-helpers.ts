@@ -94,7 +94,7 @@ export class ApiHelper {
 
 			// Simple wait after page creation to avoid race conditions
 			if (response.status() === 201) {
-				await new Promise(resolve => setTimeout(resolve, 300));
+				await new Promise((resolve) => setTimeout(resolve, 300));
 			}
 
 			return result;
@@ -345,18 +345,18 @@ export class ApiHelper {
 		// The backend delete APIs have issues, so let's use a simple filesystem-based cleanup
 		// This is more reliable than trying to use the buggy API endpoints
 		console.log(`[ApiHelper] Starting direct filesystem cleanup for worker ${this.workerIndex}`);
-		
+
 		try {
 			// Since the API context runs in browser, we can't directly access filesystem
 			// Instead, let's make all pages show up as deleted by making a comprehensive API call
 			// to list and attempt deletion of everything
-			
+
 			const pagesResponse = await this.listPages();
 			const pageData = pagesResponse.data as PageListData;
-			
+
 			if (pageData && pageData.pages) {
 				console.log(`[ApiHelper] Found ${pageData.pages.length} pages to clean up`);
-				
+
 				// Delete every single page found
 				for (const page of pageData.pages) {
 					const path = page.metaData?.path || '';
@@ -366,14 +366,14 @@ export class ApiHelper {
 					}
 				}
 			}
-			
+
 			// Also try to clean up folders
 			const foldersResponse = await this.getFolder('');
 			const folderData = foldersResponse.data as FolderListData;
-			
+
 			if (folderData && folderData.folders) {
 				console.log(`[ApiHelper] Found ${folderData.folders.length} folders to clean up`);
-				
+
 				// Delete every folder found
 				for (const folder of folderData.folders) {
 					const path = folder.path || '';
@@ -383,7 +383,7 @@ export class ApiHelper {
 					}
 				}
 			}
-			
+
 			console.log(`[ApiHelper] Cleanup completed`);
 		} catch (error) {
 			console.warn('[ApiHelper] Cleanup failed:', error);
@@ -396,27 +396,31 @@ export class ApiHelper {
 	 */
 	private async waitForPageAvailable(path: string, maxAttempts: number = 15): Promise<void> {
 		const delay = 150; // Increased base delay for parallel execution
-		
+
 		for (let attempt = 0; attempt < maxAttempts; attempt++) {
 			try {
 				const result = await this.getPage(path);
 				if (result.status === 200) {
 					if (attempt > 0) {
-						console.log(`[ApiHelper] Page ${path} became available after ${attempt + 1} attempts (worker ${this.workerIndex})`);
+						console.log(
+							`[ApiHelper] Page ${path} became available after ${attempt + 1} attempts (worker ${this.workerIndex})`
+						);
 					}
 					return;
 				}
 			} catch (error) {
 				// Continue trying
 			}
-			
+
 			if (attempt < maxAttempts - 1) {
 				// Progressive backoff: 150ms, 300ms, 450ms, etc.
-				await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+				await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
 			}
 		}
-		
-		console.warn(`[ApiHelper] Page ${path} may not be fully available after ${maxAttempts} attempts (worker ${this.workerIndex})`);
+
+		console.warn(
+			`[ApiHelper] Page ${path} may not be fully available after ${maxAttempts} attempts (worker ${this.workerIndex})`
+		);
 	}
 }
 

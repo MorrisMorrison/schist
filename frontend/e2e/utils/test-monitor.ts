@@ -8,13 +8,15 @@ import { DirectoryManager, DirectoryState } from './directory-manager';
 export interface TestValidationResult {
 	passed: boolean;
 	message: string;
-	details?: DirectoryState | {
-		beforeState: DirectoryState;
-		afterState: DirectoryState;
-		actualPageDelta?: number;
-		actualFolderDelta?: number;
-		attempts?: number;
-	};
+	details?:
+		| DirectoryState
+		| {
+				beforeState: DirectoryState;
+				afterState: DirectoryState;
+				actualPageDelta?: number;
+				actualFolderDelta?: number;
+				attempts?: number;
+		  };
 }
 
 export interface StateChangeEvent {

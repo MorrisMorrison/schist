@@ -64,6 +64,7 @@ export type FormattingType =
 	| 'bulletList'
 	| 'numberedList'
 	| 'link'
+	| 'wikiLink'
 	| 'code'
 	| 'quote';
 

@@ -220,6 +220,15 @@ class SchістApiClient {
 		return this.request<TagsResponse>('/tags');
 	}
 
+	// Wiki link operations
+	async getPageBacklinks(path: string): Promise<Page[]> {
+		const encodedPath = this.encodePath(path);
+		const response = await this.request<{ backlinks: Page[]; total: number }>(
+			`/links/backlinks${encodedPath}`
+		);
+		return response.backlinks;
+	}
+
 	// Asset operations
 	async uploadImage(file: File, onProgress?: (progress: number) => void): Promise<Asset> {
 		const formData = new FormData();

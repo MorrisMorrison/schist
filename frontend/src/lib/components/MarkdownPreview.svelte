@@ -2,7 +2,7 @@
 	import type { PreviewProps } from '$lib/types/editor';
 	import {
 		parseMarkdownWithCopyButtons,
-		initializeCodeBlockCopyButtons
+		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
 	import ImageLightbox from './ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
@@ -18,9 +18,9 @@
 		const updateContent = async () => {
 			try {
 				htmlContent = await parseMarkdownWithCopyButtons(content);
-				// Initialize copy buttons after content is rendered
+				// Initialize markdown interactions after content is rendered
 				if (containerRef) {
-					initializeCodeBlockCopyButtons(containerRef);
+					initializeMarkdownInteractions(containerRef);
 				}
 			} catch (error) {
 				console.error('Markdown parsing error:', error);

@@ -10,6 +10,7 @@
 	import type { EditorProps, FormattingType } from '$lib/types/editor';
 	import { theme } from '$lib/stores/theme.js';
 	import { imagePasteExtension } from '$lib/utils/image-paste.js';
+	import { wikiLinksExtension } from '$lib/utils/wiki-links.js';
 	import type { Asset } from '$lib/api/types.js';
 
 	let {
@@ -139,6 +140,10 @@
 				cursorOffset = selectedText ? 0 : -url.length - 1;
 				break;
 			}
+			case 'wikiLink':
+				replacement = `[[${selectedText || 'Page Name'}]]`;
+				cursorOffset = selectedText ? 0 : -2;
+				break;
 			case 'code':
 				replacement = `\`${selectedText || 'code'}\``;
 				cursorOffset = selectedText ? 0 : -1;
@@ -182,6 +187,7 @@
 				basicSetup,
 				markdown(),
 				currentTheme === 'dark' ? oneDark : [],
+				wikiLinksExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						const newContent = update.state.doc.toString();
@@ -276,7 +282,13 @@
 				break;
 			case 'k':
 				event.preventDefault();
-				formatText('link');
+				if (event.shiftKey) {
+					// Shift+Ctrl+K for wiki links
+					formatText('wikiLink');
+				} else {
+					// Ctrl+K for regular links
+					formatText('link');
+				}
 				break;
 			case '`':
 				event.preventDefault();
@@ -340,6 +352,7 @@
 				basicSetup,
 				markdown(),
 				currentTheme === 'dark' ? oneDark : [],
+				wikiLinksExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						const newContent = update.state.doc.toString();

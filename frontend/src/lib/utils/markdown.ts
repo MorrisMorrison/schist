@@ -2,6 +2,7 @@ import { marked } from 'marked';
 import type { Tokens } from 'marked';
 import { apiClient } from '$lib/api/client';
 import hljs from 'highlight.js/lib/core';
+import { goto } from '$app/navigation';
 
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
@@ -44,6 +45,143 @@ hljs.registerLanguage('yaml', yaml);
 hljs.registerLanguage('yml', yaml);
 hljs.registerLanguage('dockerfile', dockerfile);
 hljs.registerLanguage('nginx', nginx);
+
+// Wiki link processing
+interface WikiLink {
+	target: string;
+	displayText: string;
+	path: string;
+}
+
+function generateSlug(title: string): string {
+	return title
+		.toLowerCase()
+		.replace(/\s+/g, '-')
+		.replace(/[^\w-]/g, '')
+		.replace(/-+/g, '-')
+		.replace(/^-|-$/g, '');
+}
+
+async function resolveWikiLink(target: string): Promise<WikiLink> {
+	// First try to find exact title match by searching all pages
+	try {
+		const pages = await apiClient.getPages();
+
+		// Case-insensitive title matching
+		const matchingPage = pages.find(
+			(page: { metaData: { title: string; path: string } }) =>
+				page.metaData.title.toLowerCase() === target.toLowerCase()
+		);
+
+		if (matchingPage) {
+			return {
+				target,
+				displayText: target,
+				path: matchingPage.metaData.path
+			};
+		}
+	} catch (error) {
+		console.warn('Failed to fetch pages for wiki link resolution:', error);
+	}
+
+	// If no exact match, generate slug-based path
+	const slug = generateSlug(target);
+	return {
+		target,
+		displayText: target,
+		path: `/${slug}`
+	};
+}
+
+function preprocessWikiLinks(content: string): string {
+	// Store wiki links temporarily with placeholders
+	const wikiLinks: Array<{ placeholder: string; target: string; displayText: string }> = [];
+	let linkIndex = 0;
+
+	// Replace [[Page Name]] and [[Page Name|Display Text]] with placeholders
+	// Use HTML comment style placeholder to avoid markdown interference
+	const processed = content.replace(
+		/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+		(match, target, display) => {
+			const placeholder = `<!--WIKI_LINK_${linkIndex}-->`;
+			wikiLinks.push({
+				placeholder,
+				target: target.trim(),
+				displayText: display ? display.trim() : target.trim()
+			});
+			linkIndex++;
+			return placeholder;
+		}
+	);
+
+	// Store links for later processing with a unique identifier
+	const sessionId = `wikiLinks_${Date.now()}_${Math.random()}`;
+	(globalThis as Record<string, unknown>)[sessionId] = wikiLinks;
+
+	// Store the session ID in the processed content for later retrieval
+	const processedWithSession = `${processed}\n<!-- WIKI_SESSION:${sessionId} -->`;
+
+	return processedWithSession;
+}
+
+async function postprocessWikiLinks(html: string): Promise<string> {
+	// Extract session ID from HTML
+	const sessionMatch = html.match(/<!-- WIKI_SESSION:([^-]+) -->/);
+	if (!sessionMatch) {
+		return html;
+	}
+
+	const sessionId = sessionMatch[1];
+	const wikiLinks =
+		((globalThis as Record<string, unknown>)[sessionId] as Array<{
+			placeholder: string;
+			target: string;
+			displayText: string;
+		}>) || [];
+
+	if (wikiLinks.length === 0) {
+		// Remove session comment and return
+		return html.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
+	}
+
+	let processedHtml = html;
+
+	// Process each wiki link
+	for (const link of wikiLinks) {
+		try {
+			const resolvedLink = await resolveWikiLink(link.target);
+
+			// Check if the target page exists
+			let linkClass = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
+			let title = `Go to ${resolvedLink.target}`;
+
+			try {
+				await apiClient.getPageByPath(resolvedLink.path);
+			} catch {
+				// Page doesn't exist - style as broken link
+				linkClass =
+					'wiki-link broken-link text-red-500 hover:text-red-700 hover:underline cursor-pointer';
+				title = `Page "${resolvedLink.target}" does not exist (click to create)`;
+			}
+
+			const linkHtml = `<span class="${linkClass}" data-wiki-target="${resolvedLink.path}" title="${title}">${link.displayText}</span>`;
+
+			// Replace all occurrences of the placeholder (in case it appears multiple times)
+			processedHtml = processedHtml.split(link.placeholder).join(linkHtml);
+		} catch (error) {
+			console.error('Failed to process wiki link:', error);
+			// Fallback to broken link
+			const linkHtml = `<span class="wiki-link broken-link text-red-500 hover:text-red-700 hover:underline cursor-pointer" data-wiki-target="/${generateSlug(link.target)}" title="Failed to resolve link">${link.displayText}</span>`;
+			processedHtml = processedHtml.split(link.placeholder).join(linkHtml);
+		}
+	}
+
+	// Clean up session-specific data and remove session comment
+	delete (globalThis as Record<string, unknown>)[sessionId];
+	processedHtml = processedHtml.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
+
+	return processedHtml;
+}
 
 // Custom renderer for code blocks and images
 const renderer = new marked.Renderer();
@@ -168,21 +306,56 @@ marked.setOptions({
 
 export async function parseMarkdownWithCopyButtons(content: string): Promise<string> {
 	try {
-		const result = await marked.parse(content);
-		return typeof result === 'string' ? result : String(result);
+		// First preprocess wiki links
+		const preprocessedContent = preprocessWikiLinks(content);
+
+		// Parse markdown normally
+		const result = await marked.parse(preprocessedContent);
+		const htmlString = typeof result === 'string' ? result : String(result);
+
+		// Post-process wiki links in the HTML
+		const finalHtml = await postprocessWikiLinks(htmlString);
+
+		return finalHtml;
 	} catch (error) {
 		console.error('Markdown parsing error:', error);
 		return '<p class="text-red-500">Error parsing markdown content</p>';
 	}
 }
 
-export function initializeCodeBlockCopyButtons(container: HTMLElement): void {
+export function initializeMarkdownInteractions(container: HTMLElement): void {
 	const copyButtons = container.querySelectorAll('.copy-button');
+	const wikiLinks = container.querySelectorAll('.wiki-link');
 
 	copyButtons.forEach((button) => {
 		button.removeEventListener('click', handleCopyClick);
 		button.addEventListener('click', handleCopyClick);
 	});
+
+	wikiLinks.forEach((link) => {
+		link.removeEventListener('click', handleWikiLinkClick);
+		link.addEventListener('click', handleWikiLinkClick);
+	});
+}
+
+function handleWikiLinkClick(event: Event): void {
+	event.preventDefault();
+
+	const linkElement = event.currentTarget as HTMLElement;
+	const targetPath = linkElement.getAttribute('data-wiki-target');
+
+	if (!targetPath) return;
+
+	// Check if it's a broken link
+	const isBrokenLink = linkElement.classList.contains('broken-link');
+
+	if (isBrokenLink) {
+		// Navigate to edit page to create the new page
+		goto(`/edit${targetPath}`);
+	} else {
+		// Navigate to the existing page
+		goto(`/pages${targetPath}`);
+	}
 }
 
 async function handleCopyClick(event: Event): Promise<void> {

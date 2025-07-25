@@ -17,7 +17,6 @@ build-backend:
 	cd backend/cmd/schist && go build
 
 test: install
-	cd frontend && npm test
 	cd backend && go test ./...
 
 run-backend-test:

@@ -1,16 +1,18 @@
 <script lang="ts">
-	import { Edit, Trash2, Move, Calendar, Tag } from 'lucide-svelte';
+	import { Edit, Trash2, Move, Calendar, Tag, Link2 } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
 	import {
 		parseMarkdownWithCopyButtons,
-		initializeCodeBlockCopyButtons
+		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
 	import type { Page } from '$lib/api/types';
 	import ImageLightbox from './ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { apiClient } from '$lib/api/client';
+	import { goto } from '$app/navigation';
 
 	interface Props {
 		page: Page;
@@ -47,11 +49,30 @@
 	// Enhanced markdown rendering with copy buttons
 	let renderedMarkdown = $state('');
 
+	// Backlinks functionality
+	let backlinks = $state<Page[]>([]);
+	let backlinkLoading = $state(false);
+
 	$effect(() => {
-		if (page.content) {
-			parseMarkdownWithCopyButtons(page.content).then((html) => {
-				renderedMarkdown = html;
-			});
+		// Ensure the effect tracks page.content changes
+		const content = page.content;
+
+		if (content) {
+			parseMarkdownWithCopyButtons(content)
+				.then((html) => {
+					renderedMarkdown = html;
+				})
+				.catch((error) => {
+					console.error('Failed to parse markdown:', error);
+					renderedMarkdown = `<div class="text-red-500 p-4 border border-red-200 rounded">
+						<p><strong>Error parsing content:</strong></p>
+						<p>${error.message}</p>
+						<details class="mt-2">
+							<summary class="cursor-pointer">Raw content</summary>
+							<pre class="mt-2 p-2 bg-gray-100 rounded overflow-x-auto">${content}</pre>
+						</details>
+					</div>`;
+				});
 		} else {
 			renderedMarkdown = '';
 		}
@@ -61,10 +82,29 @@
 		if (contentContainer && renderedMarkdown) {
 			setTimeout(() => {
 				if (contentContainer) {
-					initializeCodeBlockCopyButtons(contentContainer);
+					initializeMarkdownInteractions(contentContainer);
 				}
 			}, 0);
 		}
+	});
+
+	// Load backlinks when page changes
+	$effect(() => {
+		async function loadBacklinks() {
+			if (!pagePath) return;
+
+			backlinkLoading = true;
+			try {
+				backlinks = await apiClient.getPageBacklinks(pagePath);
+			} catch (error) {
+				console.error('Failed to load backlinks:', error);
+				backlinks = [];
+			} finally {
+				backlinkLoading = false;
+			}
+		}
+
+		loadBacklinks();
 	});
 
 	function handleDeleteClick() {
@@ -194,6 +234,63 @@
 			</div>
 		{/if}
 	</main>
+
+	<!-- Backlinks Section -->
+	{#if backlinks.length > 0 || backlinkLoading}
+		<section class="bg-secondary ring-border-primary rounded-lg p-6 shadow-sm ring-1">
+			<div class="mb-4 flex items-center gap-2">
+				<Link2 class="text-muted-foreground h-5 w-5" />
+				<h2 class="text-lg font-semibold">Backlinks</h2>
+				<Badge variant="secondary" class="text-xs">
+					{backlinkLoading ? '...' : backlinks.length}
+				</Badge>
+			</div>
+
+			{#if backlinkLoading}
+				<div class="flex items-center justify-center py-8">
+					<div class="text-muted-foreground text-sm">Loading backlinks...</div>
+				</div>
+			{:else if backlinks.length > 0}
+				<div class="space-y-3">
+					{#each backlinks as backlinkPage (backlinkPage.metaData.path)}
+						<div
+							class="bg-background border-border group hover:bg-muted/50 cursor-pointer rounded-lg border p-4 transition-colors"
+						>
+							<button
+								class="w-full text-left"
+								onclick={() => goto(`/pages${backlinkPage.metaData.path}`)}
+							>
+								<div class="mb-2 flex items-start justify-between">
+									<h3 class="group-hover:text-primary font-medium transition-colors">
+										{backlinkPage.metaData.title}
+									</h3>
+									<span class="text-muted-foreground text-xs">
+										{formatDate(backlinkPage.metaData.updated)}
+									</span>
+								</div>
+
+								{#if backlinkPage.metaData.path}
+									<p class="text-muted-foreground mb-2 text-sm">
+										{backlinkPage.metaData.path}
+									</p>
+								{/if}
+
+								{#if backlinkPage.content}
+									<p class="text-muted-foreground line-clamp-2 text-sm">
+										{backlinkPage.content.slice(0, 150)}...
+									</p>
+								{/if}
+							</button>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="flex flex-col items-center justify-center py-8 text-center">
+					<p class="text-muted-foreground text-sm">No pages link to this page yet.</p>
+				</div>
+			{/if}
+		</section>
+	{/if}
 </div>
 
 <!-- Delete Confirmation Modal -->

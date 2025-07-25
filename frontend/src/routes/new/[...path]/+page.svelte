@@ -91,7 +91,14 @@
 
 	function generatePath(title: string): string {
 		const slug = generateSlug(title);
-		return `/${data.path}/${slug}`;
+		// Handle root path case - if data.path is empty or just "/", don't add extra slash
+		if (!data.path || data.path === '/') {
+			return `/${slug}`;
+		}
+		// Ensure data.path starts with "/" and doesn't end with "/"
+		const cleanPath = data.path.startsWith('/') ? data.path : `/${data.path}`;
+		const trimmedPath = cleanPath.endsWith('/') ? cleanPath.slice(0, -1) : cleanPath;
+		return `${trimmedPath}/${slug}`;
 	}
 </script>
 
@@ -207,7 +214,7 @@
 			</div>
 			{#if title.trim()}
 				<p class="text-muted mt-1 text-sm">
-					URL will be: <span class="text-blue-primary font-mono">/{generatePath(title)}</span>
+					URL will be: <span class="text-blue-primary font-mono">{generatePath(title)}</span>
 				</p>
 			{/if}
 		</div>

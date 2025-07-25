@@ -15,13 +15,16 @@ import (
 type APIHandler struct {
 	PageService  *services.PageService
 	AssetService *services.AssetService
+	LinkService  *services.LinkService
 }
 
 func NewAPIHandler() *APIHandler {
 	dataDir := config.Load().DataDir
+	pageService := services.NewPageService(dataDir)
 	return &APIHandler{
-		PageService:  services.NewPageService(dataDir),
+		PageService:  pageService,
 		AssetService: services.NewAssetService(dataDir),
+		LinkService:  services.NewLinkService(pageService),
 	}
 }
 
@@ -36,6 +39,16 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		pages.GET("/*path", h.getPageByPath)
 		pages.PUT("/*path", h.updatePageByPath)
 		pages.DELETE("/*path", h.deletePageByPath)
+	}
+
+	// Link-related routes - these need to be defined separately to avoid wildcard conflicts
+	routerGroup.GET("/links/broken", h.getBrokenLinks)
+
+	// Define link routes using specific handlers that extract path from the full route
+	linkRoutes := routerGroup.Group("/links")
+	{
+		linkRoutes.GET("/outgoing/*path", h.getPageLinksHandler)
+		linkRoutes.GET("/backlinks/*path", h.getPageBacklinksHandler)
 	}
 
 	folders := routerGroup.Group("/folders")
@@ -97,6 +110,12 @@ func (h *APIHandler) createPage(c *gin.Context) {
 			"error": err.Error(),
 		})
 		return
+	}
+
+	// Update backlinks for the newly created page
+	if err := h.LinkService.UpdateBacklinks(page.MetaData.Path); err != nil {
+		// Log error but don't fail the request
+		fmt.Printf("Warning: failed to update backlinks for new page %s: %v\n", page.MetaData.Path, err)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -204,6 +223,12 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 			"error": err.Error(),
 		})
 		return
+	}
+
+	// Update backlinks for the updated page
+	if err := h.LinkService.UpdateBacklinks(updatedPage.MetaData.Path); err != nil {
+		// Log error but don't fail the request
+		fmt.Printf("Warning: failed to update backlinks for updated page %s: %v\n", updatedPage.MetaData.Path, err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -512,5 +537,74 @@ func (h *APIHandler) deleteAsset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Asset deleted successfully",
 		"path":    path,
+	})
+}
+
+// getPageLinksHandler returns all outgoing links for a specific page (new route structure)
+func (h *APIHandler) getPageLinksHandler(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	links, err := h.LinkService.GetOutgoingLinks(path)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"path":  path,
+		"links": links,
+		"total": len(links),
+	})
+}
+
+// getPageBacklinksHandler returns all pages that link to the specified page (new route structure)
+func (h *APIHandler) getPageBacklinksHandler(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	backlinks, err := h.LinkService.GetBacklinks(path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Get page metadata for each backlink
+	var backlinkPages []*models.Page
+	for _, backlinkPath := range backlinks {
+		page, err := h.PageService.GetPageByPath(backlinkPath)
+		if err == nil {
+			backlinkPages = append(backlinkPages, page)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"path":      path,
+		"backlinks": backlinkPages,
+		"total":     len(backlinkPages),
+	})
+}
+
+// getBrokenLinks returns all broken links across all pages
+func (h *APIHandler) getBrokenLinks(c *gin.Context) {
+	brokenLinks, err := h.LinkService.GetBrokenLinks()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"broken_links": brokenLinks,
+		"total_pages":  len(brokenLinks),
 	})
 }

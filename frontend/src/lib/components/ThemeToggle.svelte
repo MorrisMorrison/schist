@@ -16,7 +16,7 @@
 
 <button
 	onclick={handleToggle}
-	class="border-secondary bg-primary text-primary hover:bg-gray-hover rounded-md border transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none {sizeClasses[
+	class="border-secondary bg-primary text-primary hover:bg-gray-hover cursor-pointer rounded-md border transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none {sizeClasses[
 		size
 	]}"
 	title="Toggle theme (current: {$theme})"

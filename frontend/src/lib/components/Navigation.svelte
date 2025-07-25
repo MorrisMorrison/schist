@@ -109,7 +109,7 @@
 					<button
 						type="button"
 						onclick={toggleMenu}
-						class="text-muted hover:bg-gray-hover hover:text-secondary focus:bg-gray-hover focus:text-secondary inline-flex items-center justify-center rounded-md p-2 focus:outline-none md:hidden"
+						class="text-muted hover:bg-gray-hover hover:text-secondary focus:bg-gray-hover focus:text-secondary inline-flex cursor-pointer items-center justify-center rounded-md p-2 focus:outline-none md:hidden"
 						aria-expanded={isMenuOpen}
 					>
 						<span class="sr-only">Open main menu</span>

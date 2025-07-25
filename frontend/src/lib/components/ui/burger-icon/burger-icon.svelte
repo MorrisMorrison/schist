@@ -30,6 +30,7 @@
 		'transition-all duration-200 ease-in-out',
 		'rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800',
 		'focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none',
+		'cursor-pointer',
 		sizeClasses[size],
 		className
 	)}

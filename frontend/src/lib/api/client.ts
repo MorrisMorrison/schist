@@ -206,7 +206,7 @@ class SchістApiClient {
 			oldPath: normalizePath(moveRequest.oldPath),
 			newPath: normalizePath(moveRequest.newPath)
 		};
-		return this.request<MovePageResponse>('/folders//move', {
+		return this.request<MovePageResponse>('/folders/move', {
 			method: 'POST',
 			body: JSON.stringify(normalizedRequest)
 		});

@@ -33,11 +33,11 @@ test.describe('Version History Functionality', () => {
 			await expect(modal).toBeVisible();
 
 			// Verify modal has title "Version History"
-			const modalTitle = modal.locator('h2:has-text("Version History")');
+			const modalTitle = modal.locator('[data-slot="dialog-title"]:has-text("Version History")');
 			await expect(modalTitle).toBeVisible();
 
 			// Close the modal
-			const closeButton = modal.locator('button:has-text("Close")');
+			const closeButton = modal.locator('button:has-text("Close")').first();
 			await closeButton.click();
 			await expect(modal).not.toBeVisible();
 		}

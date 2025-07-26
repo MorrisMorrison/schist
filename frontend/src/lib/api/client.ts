@@ -135,7 +135,11 @@ class SchістApiClient {
 		return this.request<Page>(`/pages${encodedPath}`);
 	}
 
-	async updatePageByPath(path: string, pageData: UpdatePageRequest, saveType: 'manual' | 'auto' = 'manual'): Promise<Page> {
+	async updatePageByPath(
+		path: string,
+		pageData: UpdatePageRequest,
+		saveType: 'manual' | 'auto' = 'manual'
+	): Promise<Page> {
 		const encodedPath = this.encodePath(path);
 
 		const normalizedPageData = {

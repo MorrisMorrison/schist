@@ -59,17 +59,21 @@
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			// Use 'manual' saveType for manual saves to create git versions
-			await pageActions.updatePageByPath(data.path, {
-				...page,
-				metaData: {
-					...page.metaData,
-					slug: slug,
-					path: newPath,
-					title: title.trim(),
-					tags: tags
+			await pageActions.updatePageByPath(
+				data.path,
+				{
+					...page,
+					metaData: {
+						...page.metaData,
+						slug: slug,
+						path: newPath,
+						title: title.trim(),
+						tags: tags
+					},
+					content: content.trim()
 				},
-				content: content.trim()
-			}, 'manual');
+				'manual'
+			);
 
 			// Navigate back to the page view
 			await goto(`/pages/${newPath}`);
@@ -162,17 +166,21 @@
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			// Use 'auto' saveType for auto-saves to prevent version creation
-			await pageActions.updatePageByPath(data.path, {
-				...page,
-				metaData: {
-					...page.metaData,
-					slug: slug,
-					path: newPath,
-					title: title.trim(),
-					tags: tags
+			await pageActions.updatePageByPath(
+				data.path,
+				{
+					...page,
+					metaData: {
+						...page.metaData,
+						slug: slug,
+						path: newPath,
+						title: title.trim(),
+						tags: tags
+					},
+					content: content.trim()
 				},
-				content: content.trim()
-			}, 'auto');
+				'auto'
+			);
 
 			// Don't navigate on autosave - just stay on the edit page
 		} catch (error) {

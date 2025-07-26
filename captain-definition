@@ -3,7 +3,7 @@
   "dockerfilePath": "./Dockerfile",
   "volumes": [
     {
-      "hostPath": "/captain/data/schist-data",
+      "volumeName": "schist-data",
       "containerPath": "/app/data"
     }
   ]

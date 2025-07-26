@@ -730,7 +730,7 @@ func TestGitService_CompareVersions(t *testing.T) {
 
 		_, err := gitService.CompareVersions(docPath, hash1, invalidHash)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get content for hash2")
+		assert.Contains(t, err.Error(), "commit does not exist in repository")
 	})
 
 	t.Run("handles non-existent document", func(t *testing.T) {

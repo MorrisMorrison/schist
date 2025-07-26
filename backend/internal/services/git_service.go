@@ -207,6 +207,18 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 
 	var versions []*DocumentVersion
 	err = commitIter.ForEach(func(commit *object.Commit) error {
+		// Verify the file actually exists in this commit
+		tree, err := commit.Tree()
+		if err != nil {
+			return err
+		}
+		
+		_, err = tree.File(filePath)
+		if err != nil {
+			// File doesn't exist in this commit, skip it
+			return nil
+		}
+
 		version := &DocumentVersion{
 			Hash:      commit.Hash.String(),
 			Message:   commit.Message,
@@ -281,6 +293,14 @@ func (gs *GitService) CompareVersions(documentPath, hash1, hash2 string) (*DiffR
 		return nil, fmt.Errorf("git repository not initialized")
 	}
 
+	// Validate that both commit hashes exist before attempting comparison
+	if err := gs.validateCommitHash(hash1); err != nil {
+		return nil, fmt.Errorf("invalid hash1 %s: %w", hash1, err)
+	}
+	if err := gs.validateCommitHash(hash2); err != nil {
+		return nil, fmt.Errorf("invalid hash2 %s: %w", hash2, err)
+	}
+
 	content1, err := gs.getDocumentContent(documentPath, hash1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get content for hash1 %s: %w", hash1, err)
@@ -319,6 +339,16 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	}
 
 	return content, nil
+}
+
+// validateCommitHash checks if a commit hash exists in the repository
+func (gs *GitService) validateCommitHash(commitHash string) error {
+	hash := plumbing.NewHash(commitHash)
+	_, err := gs.repository.CommitObject(hash)
+	if err != nil {
+		return fmt.Errorf("commit does not exist in repository")
+	}
+	return nil
 }
 
 // computeDiff computes the line-by-line diff between two document contents

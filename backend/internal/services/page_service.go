@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,13 +16,26 @@ import (
 const MARKDOWN_FILE_ENDING = ".md"
 
 type PageService struct {
-	dataDir string
+	dataDir    string
+	gitService *GitService
 }
 
 func NewPageService(dataDir string) *PageService {
-	return &PageService{
+	ps := &PageService{
 		dataDir: dataDir,
 	}
+
+	// Initialize GitService - log errors but don't fail
+	gitService, err := NewGitService(dataDir)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize GitService: %v", err)
+		// Continue without git integration
+	} else {
+		ps.gitService = gitService
+		log.Printf("GitService initialized successfully for directory: %s", dataDir)
+	}
+
+	return ps
 }
 
 func (p *PageService) Search(query string) ([]*models.Page, error) {
@@ -153,7 +167,14 @@ func (p *PageService) CreatePage(page *models.Page) error {
 	page.MetaData.Created = now
 	page.MetaData.Updated = now
 
-	return p.savePage(page)
+	if err := p.savePage(page); err != nil {
+		return err
+	}
+
+	// Commit to git after successful page creation
+	p.commitPageChange(page.MetaData.Path, fmt.Sprintf("Create document: %s", page.MetaData.Path))
+
+	return nil
 }
 
 func (p *PageService) ReadPage(slug string) (*models.Page, error) {
@@ -173,15 +194,28 @@ func (p *PageService) ReadPage(slug string) (*models.Page, error) {
 
 func (p *PageService) UpdatePage(page *models.Page) error {
 	page.MetaData.Updated = time.Now()
-	return p.savePage(page)
+
+	if err := p.savePage(page); err != nil {
+		return err
+	}
+
+	// Commit to git after successful page update
+	p.commitPageChange(page.MetaData.Path, fmt.Sprintf("Update document: %s", page.MetaData.Path))
+
+	return nil
 }
 
 func (p *PageService) DeletePage(slug string) error {
-
 	filePath := p.buildFilePath(slug)
+
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to delete page file: %w", err)
 	}
+
+	// Convert slug to logical path for git commit
+	documentPath := "/" + strings.TrimSuffix(slug, MARKDOWN_FILE_ENDING)
+	p.commitPageChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
+
 	return nil
 }
 
@@ -325,6 +359,9 @@ func (p *PageService) MovePage(oldPath, newPath string) error {
 		return fmt.Errorf("could not remove old file: %w", err)
 	}
 
+	// Commit to git after successful page move
+	p.commitPageChange(newPath, fmt.Sprintf("Move document: %s -> %s", oldPath, newPath))
+
 	return nil
 }
 
@@ -390,7 +427,7 @@ func (p *PageService) populateFolderContents(folder *models.Folder, folderPath s
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			if entry.Name() == "trash" {
+			if entry.Name() == "trash" || strings.HasPrefix(entry.Name(), ".") {
 				continue
 			}
 			subfolder := p.createSubfolder(folder.Path, entry)
@@ -462,8 +499,8 @@ func (p *PageService) getRootFolder() (*models.Folder, error) {
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			// Skip trash folder
-			if entry.Name() == "trash" {
+			// Skip trash folder and hidden folders
+			if entry.Name() == "trash" || strings.HasPrefix(entry.Name(), ".") {
 				continue
 			}
 
@@ -518,6 +555,14 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 		}
 
 		if strings.Contains(path, "/trash") {
+			return nil
+		}
+
+		// Skip hidden directories (starting with .)
+		if strings.HasPrefix(dirEntry.Name(), ".") {
+			if dirEntry.IsDir() {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
@@ -812,6 +857,65 @@ func (p *PageService) DeleteFolder(path string) error {
 	if err := os.RemoveAll(folderPath); err != nil {
 		return fmt.Errorf("failed to delete folder at path %s: %w", path, err)
 	}
+
+	return nil
+}
+
+// GetDocumentVersions returns version history for a document
+func (p *PageService) GetDocumentVersions(documentPath string) ([]*DocumentVersion, error) {
+	if p.gitService == nil {
+		return nil, fmt.Errorf("git service not available")
+	}
+
+	return p.gitService.GetDocumentVersions(documentPath)
+}
+
+// GetDocumentAtVersion returns a document at a specific version
+func (p *PageService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Page, error) {
+	if p.gitService == nil {
+		return nil, fmt.Errorf("git service not available")
+	}
+
+	return p.gitService.GetDocumentAtVersion(documentPath, commitHash)
+}
+
+// commitPageChange commits a document change to git if GitService is available
+func (p *PageService) commitPageChange(documentPath string, message string) {
+	if p.gitService == nil {
+		// Git not available, skip silently
+		return
+	}
+
+	if err := p.gitService.CommitDocument(documentPath, message); err != nil {
+		// Log error but don't fail the operation
+		log.Printf("Warning: Failed to commit document change for %s: %v", documentPath, err)
+	}
+}
+
+// CompareDocumentVersions compares two versions of a document and returns a structured diff
+func (p *PageService) CompareDocumentVersions(documentPath, hash1, hash2 string) (*DiffResult, error) {
+	if p.gitService == nil {
+		return nil, fmt.Errorf("git service not available")
+	}
+
+	return p.gitService.CompareVersions(documentPath, hash1, hash2)
+}
+
+// RestorePageToVersion restores a page to a previous version
+func (p *PageService) RestorePageToVersion(path, commitHash string) error {
+	if p.gitService == nil {
+		return fmt.Errorf("git service not available")
+	}
+
+	// Use GitService to restore the document
+	if err := p.gitService.RestoreDocument(path, commitHash); err != nil {
+		return fmt.Errorf("failed to restore document: %w", err)
+	}
+
+	// The document is now restored in the file system
+	// Update any cached information or trigger backlink updates if needed
+	// For now, we don't need additional actions since the page service
+	// reads from disk dynamically
 
 	return nil
 }

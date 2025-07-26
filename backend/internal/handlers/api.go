@@ -63,6 +63,10 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/search", h.search)
 	routerGroup.GET("/tags", h.getAllTags)
+	routerGroup.GET("/versions", h.getDocumentVersions)
+	routerGroup.GET("/versions/document", h.getDocumentAtVersion)
+	routerGroup.GET("/versions/diff", h.compareDocumentVersions)
+	routerGroup.POST("/versions/restore", h.restoreDocumentVersion)
 
 	assets := routerGroup.Group("/assets")
 	{
@@ -606,5 +610,151 @@ func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"broken_links": brokenLinks,
 		"total_pages":  len(brokenLinks),
+	})
+}
+
+// getDocumentVersions returns version history for a document
+func (h *APIHandler) getDocumentVersions(c *gin.Context) {
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "path parameter is required",
+		})
+		return
+	}
+
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	versions, err := h.PageService.GetDocumentVersions(path)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"path":     path,
+		"versions": versions,
+		"total":    len(versions),
+	})
+}
+
+// getDocumentAtVersion returns a document at a specific version
+func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "path parameter is required",
+		})
+		return
+	}
+
+	commitHash := c.Query("hash")
+	if commitHash == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "hash parameter is required",
+		})
+		return
+	}
+
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	page, err := h.PageService.GetDocumentAtVersion(path, commitHash)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"path": path,
+		"hash": commitHash,
+		"page": page,
+	})
+}
+
+// compareDocumentVersions compares two versions of a document and returns the diff
+func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "path parameter is required",
+		})
+		return
+	}
+
+	hash1 := c.Query("hash1")
+	if hash1 == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "hash1 parameter is required",
+		})
+		return
+	}
+
+	hash2 := c.Query("hash2")
+	if hash2 == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "hash2 parameter is required",
+		})
+		return
+	}
+
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	diff, err := h.PageService.CompareDocumentVersions(path, hash1, hash2)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"diff": diff,
+	})
+}
+
+// restoreDocumentVersion restores a document to a previous version
+func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "path parameter is required",
+		})
+		return
+	}
+
+	commitHash := c.Query("hash")
+	if commitHash == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "hash parameter is required",
+		})
+		return
+	}
+
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	err := h.PageService.RestorePageToVersion(path, commitHash)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Document restored successfully",
+		"path":    path,
+		"hash":    commitHash,
 	})
 }

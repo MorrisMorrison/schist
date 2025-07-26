@@ -162,6 +162,48 @@ export function isValidPath(path: string): boolean {
 	return true;
 }
 
+export interface DocumentVersion {
+	hash: string;
+	message: string;
+	author: string;
+	timestamp: string;
+	file_path: string;
+}
+
+export interface VersionsResponse {
+	path: string;
+	versions: DocumentVersion[];
+	total: number;
+}
+
+// Version comparison interfaces
+export interface DiffLine {
+	type: 'add' | 'delete' | 'modify' | 'context';
+	content: string;
+	oldLineNumber?: number;
+	newLineNumber?: number;
+}
+
+export interface DiffSummary {
+	additions: number;
+	deletions: number;
+	modifications: number;
+}
+
+export interface DiffResult {
+	path: string;
+	hash1: string;
+	hash2: string;
+	lines: DiffLine[];
+	summary: DiffSummary;
+}
+
+export interface RestoreResponse {
+	message: string;
+	path: string;
+	hash: string;
+}
+
 export function normalizePath(path: string): string {
 	if (!path) {
 		return '/';

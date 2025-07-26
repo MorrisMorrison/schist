@@ -88,6 +88,7 @@
 		// Refresh the current view
 		loadContent();
 	}
+
 </script>
 
 <svelte:head>

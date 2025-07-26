@@ -71,7 +71,7 @@
 			});
 
 			// Navigate back to the page view
-			goto(`/pages/${newPath}`);
+			await goto(`/pages/${newPath}`);
 		} catch (error) {
 			console.error('Failed to save page:', error);
 			saveError = error instanceof Error ? error.message : 'Failed to save page';

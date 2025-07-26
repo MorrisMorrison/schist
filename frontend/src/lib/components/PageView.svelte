@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { Edit, Trash2, Move, Calendar, Tag, Link2 } from 'lucide-svelte';
+	import { Edit, Trash2, Move, Calendar, Tag, Link2, GitBranch, History } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
+	import VersionHistoryModal from './VersionHistoryModal.svelte';
 	import {
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
-	import type { Page } from '$lib/api/types';
+	import type { Page, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from './ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
@@ -21,7 +22,12 @@
 		onMove?: (page: Page) => void;
 	}
 
-	let { page, onEdit = () => {}, onDelete = () => {}, onMove = () => {} }: Props = $props();
+	let {
+		page,
+		onEdit = () => {},
+		onDelete = () => {},
+		onMove = () => {},
+	}: Props = $props();
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
@@ -52,6 +58,15 @@
 	// Backlinks functionality
 	let backlinks = $state<Page[]>([]);
 	let backlinkLoading = $state(false);
+
+	// Version count functionality
+	let versionCount = $state<number | undefined>(undefined);
+	let versionLoading = $state(false);
+
+	// Version history functionality
+	let showVersionHistory = $state(false);
+	let versions = $state<DocumentVersion[]>([]);
+
 
 	$effect(() => {
 		// Ensure the effect tracks page.content changes
@@ -107,6 +122,31 @@
 		loadBacklinks();
 	});
 
+	// Function to refresh version count
+	async function refreshVersionCount() {
+		if (!pagePath) return;
+
+		versionLoading = true;
+		try {
+			const versionsResponse = await apiClient.getPageVersions(pagePath);
+			versionCount = versionsResponse.total || 0;
+		} catch (error) {
+			console.error('Failed to load version count:', error);
+			versionCount = undefined;
+		} finally {
+			versionLoading = false;
+		}
+	}
+
+	// Load version count when page changes
+	$effect(() => {
+		// Track pagePath and page updated timestamp
+		void pagePath;
+		void pageUpdated;
+
+		refreshVersionCount();
+	});
+
 	function handleDeleteClick() {
 		showDeleteModal = true;
 	}
@@ -131,6 +171,40 @@
 	function handleCancelDelete() {
 		showDeleteModal = false;
 		isDeleting = false;
+	}
+
+	async function handleVersionHistoryClick() {
+		if (!pagePath) return;
+
+		showVersionHistory = true;
+
+		// Load versions if not already loaded
+		if (versions.length === 0) {
+			try {
+				const versionsResponse = await apiClient.getPageVersions(pagePath);
+				versions = versionsResponse.versions || [];
+			} catch (error) {
+				console.error('Failed to load versions:', error);
+				versions = [];
+			}
+		}
+	}
+
+	function handleCloseVersionHistory() {
+		showVersionHistory = false;
+	}
+
+	async function handleRestoreVersion(version: DocumentVersion) {
+		if (!pagePath) return;
+
+		try {
+			await apiClient.restoreDocumentToVersion(pagePath, version.hash);
+			// Refresh the page to show the restored content
+			window.location.reload();
+		} catch (error) {
+			console.error('Failed to restore version:', error);
+			throw error; // Re-throw to let the modal handle the error display
+		}
 	}
 </script>
 
@@ -164,6 +238,23 @@
 						<span>Updated {formatDate(pageUpdated)}</span>
 					</div>
 				{/if}
+
+				{#if versionLoading}
+					<div class="text-muted-foreground flex items-center gap-2 text-sm">
+						<GitBranch class="h-4 w-4" />
+						<span>Loading versions...</span>
+					</div>
+				{:else if versionCount !== undefined && versionCount >= 0}
+					<button
+						class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
+						onclick={handleVersionHistoryClick}
+						title="View version history"
+					>
+						<History class="h-4 w-4" />
+						<span>Versions: {versionCount}</span>
+					</button>
+				{/if}
+
 				{#if pageTags.length > 0}
 					<div class="flex items-center gap-2" data-testid="page-tags">
 						<Tag class="text-muted-foreground h-4 w-4" />
@@ -236,13 +327,13 @@
 	</main>
 
 	<!-- Backlinks Section -->
-	{#if backlinks.length > 0 || backlinkLoading}
+	{#if backlinks && backlinks.length > 0}
 		<section class="bg-secondary ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 			<div class="mb-4 flex items-center gap-2">
 				<Link2 class="text-muted-foreground h-5 w-5" />
 				<h2 class="text-lg font-semibold">Backlinks</h2>
 				<Badge variant="secondary" class="text-xs">
-					{backlinkLoading ? '...' : backlinks.length}
+					{backlinkLoading ? '...' : backlinks?.length || 0}
 				</Badge>
 			</div>
 
@@ -307,4 +398,13 @@
 	alt={$imageLightbox.alt}
 	open={$imageLightbox.open}
 	onClose={imageLightboxActions.close}
+/>
+
+<!-- Version History Modal -->
+<VersionHistoryModal
+	open={showVersionHistory}
+	path={pagePath}
+	{versions}
+	onClose={handleCloseVersionHistory}
+	onRestore={handleRestoreVersion}
 />

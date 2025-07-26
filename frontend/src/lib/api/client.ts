@@ -14,7 +14,10 @@ import type {
 	Asset,
 	AssetUploadResponse,
 	SearchResult,
-	TagsResponse
+	TagsResponse,
+	VersionsResponse,
+	DiffResult,
+	RestoreResponse
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -227,6 +230,34 @@ class SchістApiClient {
 			`/links/backlinks${encodedPath}`
 		);
 		return response.backlinks;
+	}
+
+	// Version operations
+	async getPageVersions(path: string, options?: RequestInit): Promise<VersionsResponse> {
+		const normalizedPath = normalizePath(path);
+		const params = new URLSearchParams({ path: normalizedPath });
+		return this.request<VersionsResponse>(`/versions?${params}`, options);
+	}
+
+	async compareDocumentVersions(path: string, hash1: string, hash2: string): Promise<DiffResult> {
+		const normalizedPath = normalizePath(path);
+		const params = new URLSearchParams({
+			path: normalizedPath,
+			hash1,
+			hash2
+		});
+		return this.request<DiffResult>(`/versions/diff?${params}`);
+	}
+
+	async restoreDocumentToVersion(path: string, hash: string): Promise<RestoreResponse> {
+		const normalizedPath = normalizePath(path);
+		const params = new URLSearchParams({
+			path: normalizedPath,
+			hash
+		});
+		return this.request<RestoreResponse>(`/versions/restore?${params}`, {
+			method: 'POST'
+		});
 	}
 
 	// Asset operations

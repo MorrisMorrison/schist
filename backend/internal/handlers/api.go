@@ -235,10 +235,7 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		fmt.Printf("Warning: failed to update backlinks for updated page %s: %v\n", updatedPage.MetaData.Path, err)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Page updated successfully",
-		"path":    path,
-	})
+	c.JSON(http.StatusOK, updatedPage)
 }
 
 func (h *APIHandler) deletePageByPath(c *gin.Context) {

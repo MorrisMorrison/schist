@@ -212,7 +212,7 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 		if err != nil {
 			return err
 		}
-		
+
 		_, err = tree.File(filePath)
 		if err != nil {
 			// File doesn't exist in this commit, skip it

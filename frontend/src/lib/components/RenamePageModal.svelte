@@ -11,12 +11,13 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Edit, AlertCircle } from 'lucide-svelte';
 	import type { Page } from '$lib/api/types';
+	import { generateSlug } from '$lib/utils/path';
 
 	interface Props {
 		page?: Page;
 		open?: boolean;
 		onClose: () => void;
-		onRenamed: () => void;
+		onRenamed: (oldPath: string, newPath: string) => void;
 	}
 
 	let { page, open = false, onClose, onRenamed }: Props = $props();
@@ -59,14 +60,22 @@
 		error = '';
 
 		try {
-			await pageActions.updatePageByPath(currentPath, {
+			// Generate new slug and path from the new title
+			const slug = generateSlug(pageTitle.trim());
+			const pathParts = currentPath.split('/');
+			pathParts[pathParts.length - 1] = slug;
+			const newPath = pathParts.join('/');
+			
+			const updatedPage = await pageActions.updatePageByPath(currentPath, {
 				metaData: {
 					...page.metaData,
-					title: pageTitle.trim()
+					title: pageTitle.trim(),
+					slug: slug,
+					path: newPath
 				},
 				content: page.content
 			});
-			onRenamed();
+			onRenamed(currentPath, updatedPage.metaData?.path || newPath);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to rename page';
 		} finally {

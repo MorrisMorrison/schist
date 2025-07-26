@@ -243,7 +243,11 @@ export const pageActions = {
 		}
 	},
 
-	async updatePageByPath(path: string, pageData: UpdatePageRequest, saveType: 'manual' | 'auto' = 'manual') {
+	async updatePageByPath(
+		path: string,
+		pageData: UpdatePageRequest,
+		saveType: 'manual' | 'auto' = 'manual'
+	) {
 		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {

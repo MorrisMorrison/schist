@@ -95,10 +95,10 @@
 	async function handlePageRenamed(oldPath: string, newPath: string) {
 		showRenamePageModal = false;
 		pageToRename = null;
-		
+
 		// Refresh the pages list
 		await pageActions.loadPages();
-		
+
 		// Check if we're currently viewing the page that was renamed
 		if (currentPath === `/pages${oldPath}`) {
 			// Navigate to the new path

@@ -248,12 +248,23 @@ export const pageActions = {
 
 		try {
 			const updatedPage = await apiClient.updatePageByPath(path, pageData);
-			pagesStore.update((state) => ({
-				...state,
-				pages: state.pages.map((p) => (p.metaData.path === path ? updatedPage : p)),
-				currentPage: state.currentPage?.metaData.path === path ? updatedPage : state.currentPage,
-				loading: false
-			}));
+
+			// Check if the page path has changed
+			const pathChanged = updatedPage.metaData.path !== path;
+
+			if (pathChanged) {
+				// If path changed, refresh both pages and folder tree to ensure consistency
+				await Promise.all([pageActions.loadPages(), folderActions.loadFolderTree()]);
+			} else {
+				// If path didn't change, just update the local state
+				pagesStore.update((state) => ({
+					...state,
+					pages: state.pages.map((p) => (p.metaData.path === path ? updatedPage : p)),
+					currentPage: state.currentPage?.metaData.path === path ? updatedPage : state.currentPage,
+					loading: false
+				}));
+			}
+
 			return updatedPage;
 		} catch (error) {
 			pagesStore.update((state) => ({

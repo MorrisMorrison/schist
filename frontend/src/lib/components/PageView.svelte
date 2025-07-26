@@ -22,12 +22,7 @@
 		onMove?: (page: Page) => void;
 	}
 
-	let {
-		page,
-		onEdit = () => {},
-		onDelete = () => {},
-		onMove = () => {},
-	}: Props = $props();
+	let { page, onEdit = () => {}, onDelete = () => {}, onMove = () => {} }: Props = $props();
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
@@ -66,7 +61,6 @@
 	// Version history functionality
 	let showVersionHistory = $state(false);
 	let versions = $state<DocumentVersion[]>([]);
-
 
 	$effect(() => {
 		// Ensure the effect tracks page.content changes

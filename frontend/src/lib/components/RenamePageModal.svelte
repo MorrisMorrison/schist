@@ -65,7 +65,7 @@
 			const pathParts = currentPath.split('/');
 			pathParts[pathParts.length - 1] = slug;
 			const newPath = pathParts.join('/');
-			
+
 			const updatedPage = await pageActions.updatePageByPath(currentPath, {
 				metaData: {
 					...page.metaData,

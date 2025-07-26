@@ -196,16 +196,14 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		path = "/" + path
 	}
 
-	// existingPage, err := h.PageService.GetPageByPath(path)
-	// if err != nil {
-	// 	c.JSON(http.StatusNotFound, gin.H{
-	// 		"error": err.Error(),
-	// 	})
-	// 	return
-	// }
+	// Parse request body to extract both page data and saveType
+	type UpdatePageRequest struct {
+		*models.Page
+		SaveType string `json:"saveType,omitempty"` // "manual" or "auto", defaults to "manual"
+	}
 
-	updatedPage := &models.Page{}
-	err := c.BindJSON(updatedPage)
+	var req UpdatePageRequest
+	err := c.BindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -213,7 +211,15 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		return
 	}
 
+	// Default to manual save if not specified
+	saveType := req.SaveType
+	if saveType == "" {
+		saveType = "manual"
+	}
+
+	updatedPage := req.Page
 	updatedPage.MetaData.Updated = time.Now()
+
 	if err := h.PageService.MovePage(path, updatedPage.MetaData.Path); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("failed to move page: %v", err),
@@ -221,7 +227,7 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		return
 	}
 
-	err = h.PageService.UpdatePage(updatedPage)
+	err = h.PageService.UpdatePageWithSaveType(updatedPage, saveType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

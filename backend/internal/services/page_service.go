@@ -193,14 +193,20 @@ func (p *PageService) ReadPage(slug string) (*models.Page, error) {
 }
 
 func (p *PageService) UpdatePage(page *models.Page) error {
+	return p.UpdatePageWithSaveType(page, "manual")
+}
+
+func (p *PageService) UpdatePageWithSaveType(page *models.Page, saveType string) error {
 	page.MetaData.Updated = time.Now()
 
 	if err := p.savePage(page); err != nil {
 		return err
 	}
 
-	// Commit to git after successful page update
-	p.commitPageChange(page.MetaData.Path, fmt.Sprintf("Update document: %s", page.MetaData.Path))
+	// Only commit to git for manual saves, skip auto-saves to prevent version pollution
+	if saveType == "manual" {
+		p.commitPageChange(page.MetaData.Path, fmt.Sprintf("Update document: %s", page.MetaData.Path))
+	}
 
 	return nil
 }

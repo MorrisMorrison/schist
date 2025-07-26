@@ -341,26 +341,36 @@ func (p *PageService) MovePage(oldPath, newPath string) error {
 		return fmt.Errorf("invalid new path: %w", err)
 	}
 
+	// Normalize paths for comparison
+	normalizedOldPath := utils.NormalizePath(oldPath)
+	normalizedNewPath := utils.NormalizePath(newPath)
+
+	// If paths are the same, nothing to do
+	if normalizedOldPath == normalizedNewPath {
+		return nil
+	}
+
 	page, err := p.GetPageByPath(oldPath)
 	if err != nil {
 		return fmt.Errorf("could not read page from old path: %w", err)
 	}
 
-	page.MetaData.Path = utils.NormalizePath(newPath)
-	page.MetaData.Slug = utils.ExtractSlugFromPath(newPath)
+	page.MetaData.Path = normalizedNewPath
+	page.MetaData.Slug = utils.ExtractSlugFromPath(normalizedNewPath)
 	page.MetaData.Updated = time.Now()
 
 	if err := p.savePage(page); err != nil {
 		return fmt.Errorf("could not save page to new path: %w", err)
 	}
 
-	oldFilePath := p.buildFilePathFromPath(oldPath)
+	// Remove old file (paths are guaranteed to be different at this point)
+	oldFilePath := p.buildFilePathFromPath(normalizedOldPath)
 	if err := os.Remove(oldFilePath); err != nil {
 		return fmt.Errorf("could not remove old file: %w", err)
 	}
 
 	// Commit to git after successful page move
-	p.commitPageChange(newPath, fmt.Sprintf("Move document: %s -> %s", oldPath, newPath))
+	p.commitPageChange(normalizedNewPath, fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath))
 
 	return nil
 }

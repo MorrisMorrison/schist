@@ -323,6 +323,12 @@
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
 		if (!enableContextMenu) return;
 
+		// Don't show context menu for root folder when showPages is enabled
+		// The root folder is synthetic and shouldn't have folder operations
+		if (showPages && folder.path === '/') {
+			return;
+		}
+
 		event.preventDefault();
 		event.stopPropagation();
 
@@ -687,7 +693,7 @@
 			</div>
 
 			<!-- Context Menu Trigger - Positioned absolutely to the right -->
-			{#if enableContextMenu}
+			{#if enableContextMenu && !(showPages && folder.path === '/')}
 				<span
 					class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
 					onclick={(e) => {
@@ -879,7 +885,27 @@
 		</div>
 	{:else}
 		<!-- Folder Tree -->
-		<div class="space-y-1" role="tree" aria-label="Folder tree" data-testid="folder-tree">
+		<div
+			class="space-y-1"
+			role="tree"
+			aria-label="Folder tree"
+			data-testid="folder-tree"
+			tabindex="0"
+			oncontextmenu={(e) => {
+				// Prevent context menu from appearing when right-clicking on empty tree space
+				// Only allow context menus on specific folder/page items
+				const target = e.target as HTMLElement;
+				const isTreeItem =
+					target.closest('[role="treeitem"]') ||
+					target.closest('[data-testid="folder-context-menu-trigger"]');
+				if (!isTreeItem) {
+					e.preventDefault();
+					e.stopPropagation();
+					// Ensure any existing context menu is closed
+					closeContextMenu();
+				}
+			}}
+		>
 			<!-- Root folder containing root pages and root-level folders -->
 			{#if showPages}
 				{@render folderNode(

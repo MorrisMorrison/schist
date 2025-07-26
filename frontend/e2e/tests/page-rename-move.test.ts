@@ -50,9 +50,7 @@ test.describe.serial('Page Rename and Move', () => {
 			await renameOption.click();
 
 			// Should open rename modal or inline editor
-			const renameInput = page
-				.getByLabel(/page.*name|title/i)
-				.or(page.getByRole('textbox').filter({ hasText: testPage.title }));
+			const renameInput = page.getByTestId('page-name');
 			await expect(renameInput).toBeVisible();
 
 			// Enter new name
@@ -60,7 +58,7 @@ test.describe.serial('Page Rename and Move', () => {
 			await renameInput.fill(newTitle);
 
 			// Confirm rename
-			const confirmButton = page.getByRole('button', { name: /confirm|save|rename/i });
+			const confirmButton = page.getByTestId('rename-page-btn');
 			if (await confirmButton.isVisible()) {
 				await confirmButton.click();
 			} else {

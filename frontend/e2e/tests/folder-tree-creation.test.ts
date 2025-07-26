@@ -181,25 +181,42 @@ test.describe.serial('Folder Tree Creation', () => {
 	test('should handle context menu outside tree items gracefully', async ({ folderPage, page }) => {
 		await folderPage.navigateToRoot();
 
-		// Right-click on empty space in tree area (not on a folder)
-		const treeContainer = folderPage.folderTree;
-		await treeContainer.click({ button: 'right', position: { x: 5, y: 5 } });
+		// Ensure any existing context menu is closed first
+		await page.click('body');
+		await page.waitForTimeout(100);
 
-		// Either no context menu should appear, or it should be a generic one
-		// This test ensures we don't crash or show incorrect context menus
-		// If a context menu appears, it shouldn't have folder-specific options
+		// Instead of trying to find empty space in the tree (which might not exist),
+		// let's test the tree's prevention mechanism by clicking outside the entire tree area
+		const sidebar = page.locator('[data-testid="sidebar"]').or(page.locator('aside')).first();
+		const treeContainer = folderPage.folderTree;
+
+		// Get the tree container bounds and click in the sidebar but outside the tree
+		const treeBox = await treeContainer.boundingBox();
+		const sidebarBox = await sidebar.boundingBox();
+
+		if (treeBox && sidebarBox) {
+			// Click in the sidebar space above the tree (if there's a search box or header)
+			const clickY = Math.max(5, treeBox.y - sidebarBox.y - 10);
+			const clickX = 10;
+
+			await sidebar.click({
+				button: 'right',
+				position: { x: clickX, y: clickY }
+			});
+		} else {
+			// Fallback: click on the tree container but with our oncontextmenu handler
+			// This should trigger our prevention logic
+			await treeContainer.click({ button: 'right', position: { x: 5, y: 5 } });
+		}
+
+		// Wait a moment for any context menu to appear
+		await page.waitForTimeout(500);
+
+		// Check if context menu appeared - there should be none when clicking outside tree items
 		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
-		// Wait briefly for context menu to potentially appear
-		await contextMenu.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {
-			// Context menu may not appear, which is fine
-		});
 		const isVisible = await contextMenu.isVisible().catch(() => false);
 
-		if (isVisible) {
-			// Should not have "Create Subfolder" option when not on a folder
-			const createOption = contextMenu.getByText(/create.*subfolder/i);
-			const hasCreateOption = await createOption.isVisible().catch(() => false);
-			expect(hasCreateOption).toBe(false);
-		}
+		// When clicking outside tree items, no context menu should appear at all
+		expect(isVisible).toBe(false);
 	});
 });

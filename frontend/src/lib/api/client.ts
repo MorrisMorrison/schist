@@ -135,7 +135,7 @@ class SchістApiClient {
 		return this.request<Page>(`/pages${encodedPath}`);
 	}
 
-	async updatePageByPath(path: string, pageData: UpdatePageRequest): Promise<Page> {
+	async updatePageByPath(path: string, pageData: UpdatePageRequest, saveType: 'manual' | 'auto' = 'manual'): Promise<Page> {
 		const encodedPath = this.encodePath(path);
 
 		const normalizedPageData = {
@@ -143,7 +143,8 @@ class SchістApiClient {
 			metaData: {
 				...pageData.metaData,
 				...(pageData.metaData.path && { path: normalizePath(pageData.metaData.path) })
-			}
+			},
+			saveType
 		};
 
 		return this.request<Page>(`/pages${encodedPath}`, {

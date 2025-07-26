@@ -58,6 +58,7 @@
 		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
+			// Use 'manual' saveType for manual saves to create git versions
 			await pageActions.updatePageByPath(data.path, {
 				...page,
 				metaData: {
@@ -68,7 +69,7 @@
 					tags: tags
 				},
 				content: content.trim()
-			});
+			}, 'manual');
 
 			// Navigate back to the page view
 			await goto(`/pages/${newPath}`);
@@ -160,6 +161,7 @@
 			.replace(/^-|-$/g, '');
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
+			// Use 'auto' saveType for auto-saves to prevent version creation
 			await pageActions.updatePageByPath(data.path, {
 				...page,
 				metaData: {
@@ -170,7 +172,7 @@
 					tags: tags
 				},
 				content: content.trim()
-			});
+			}, 'auto');
 
 			// Don't navigate on autosave - just stay on the edit page
 		} catch (error) {

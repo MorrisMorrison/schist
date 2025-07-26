@@ -243,11 +243,11 @@ export const pageActions = {
 		}
 	},
 
-	async updatePageByPath(path: string, pageData: UpdatePageRequest) {
+	async updatePageByPath(path: string, pageData: UpdatePageRequest, saveType: 'manual' | 'auto' = 'manual') {
 		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const updatedPage = await apiClient.updatePageByPath(path, pageData);
+			const updatedPage = await apiClient.updatePageByPath(path, pageData, saveType);
 
 			// Check if the page path has changed
 			const pathChanged = updatedPage.metaData.path !== path;

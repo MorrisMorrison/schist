@@ -8,30 +8,30 @@ import { autocompletion, CompletionContext } from '@codemirror/autocomplete';
 import type { CompletionResult } from '@codemirror/autocomplete';
 import { apiClient } from '$lib/api/client';
 import { goto } from '$app/navigation';
-import type { Page } from '$lib/api/types';
+import type { Document } from '$lib/api/types';
 
-// Cache for pages to avoid frequent API calls
-let pagesCache: Page[] = [];
+// Cache for documents to avoid frequent API calls
+let documentsCache: Document[] = [];
 let cacheTime = 0;
 const CACHE_DURATION = 60000; // 1 minute (increased for better performance)
 
-// Cache for page existence checks
+// Cache for document existence checks
 const existsCache = new Map<string, { exists: boolean; time: number }>();
 const EXISTS_CACHE_DURATION = 30000; // 30 seconds
 
-async function getPages(): Promise<Page[]> {
+async function getDocuments(): Promise<Document[]> {
 	const now = Date.now();
-	if (now - cacheTime > CACHE_DURATION || pagesCache.length === 0) {
+	if (now - cacheTime > CACHE_DURATION || documentsCache.length === 0) {
 		try {
-			pagesCache = await apiClient.getPages();
+			documentsCache = await apiClient.getDocuments();
 			cacheTime = now;
 		} catch (error) {
-			console.warn('Failed to fetch pages for wiki links:', error);
+			console.warn('Failed to fetch documents for wiki links:', error);
 			// Return empty array if fetch fails, don't crash
 			return [];
 		}
 	}
-	return pagesCache;
+	return documentsCache;
 }
 
 // Generate slug like the backend does
@@ -44,10 +44,10 @@ function generateSlug(title: string): string {
 		.replace(/^-|-$/g, '');
 }
 
-// Check if a page exists with caching
-async function pageExists(pageName: string): Promise<boolean> {
+// Check if a document exists with caching
+async function documentExists(documentName: string): Promise<boolean> {
 	const now = Date.now();
-	const cacheKey = pageName.toLowerCase();
+	const cacheKey = documentName.toLowerCase();
 
 	// Check cache first
 	const cached = existsCache.get(cacheKey);
@@ -56,32 +56,32 @@ async function pageExists(pageName: string): Promise<boolean> {
 	}
 
 	try {
-		const pages = await getPages();
-		const exists = pages.some((page) => page.metaData.title.toLowerCase() === cacheKey);
+		const documents = await getDocuments();
+		const exists = documents.some((document) => document.metaData.title.toLowerCase() === cacheKey);
 
 		// Cache the result
 		existsCache.set(cacheKey, { exists, time: now });
 
 		return exists;
 	} catch (error) {
-		console.warn('Failed to check page existence:', error);
+		console.warn('Failed to check document existence:', error);
 		return false;
 	}
 }
 
-// Resolve page name to path
-async function resolvePagePath(pageName: string): Promise<string> {
-	const pages = await getPages();
-	const matchingPage = pages.find(
-		(page) => page.metaData.title.toLowerCase() === pageName.toLowerCase()
+// Resolve document name to path
+async function resolveDocumentPath(documentName: string): Promise<string> {
+	const documents = await getDocuments();
+	const matchingDocument = documents.find(
+		(document) => document.metaData.title.toLowerCase() === documentName.toLowerCase()
 	);
 
-	if (matchingPage) {
-		return matchingPage.metaData.path;
+	if (matchingDocument) {
+		return matchingDocument.metaData.path;
 	}
 
 	// If no exact match, generate slug-based path
-	const slug = generateSlug(pageName);
+	const slug = generateSlug(documentName);
 	return `/${slug}`;
 }
 
@@ -91,7 +91,7 @@ const wikiLinkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 // Widget for clickable wiki links
 class WikiLinkWidget extends WidgetType {
 	constructor(
-		private pageName: string,
+		private documentName: string,
 		private displayText: string,
 		private exists: boolean
 	) {
@@ -105,8 +105,8 @@ class WikiLinkWidget extends WidgetType {
 			: 'wiki-link cm-wiki-link cm-wiki-link-broken';
 		span.textContent = `[[${this.displayText}]]`;
 		span.title = this.exists
-			? `Go to ${this.pageName}`
-			: `Page "${this.pageName}" does not exist (click to create)`;
+			? `Go to ${this.documentName}`
+			: `Document "${this.documentName}" does not exist (click to create)`;
 
 		span.style.cursor = 'pointer';
 		span.style.textDecoration = 'underline';
@@ -114,7 +114,7 @@ class WikiLinkWidget extends WidgetType {
 
 		span.addEventListener('click', async (e) => {
 			e.preventDefault();
-			const path = await resolvePagePath(this.pageName);
+			const path = await resolveDocumentPath(this.documentName);
 
 			if (this.exists) {
 				goto(`/pages${path}`);
@@ -128,7 +128,7 @@ class WikiLinkWidget extends WidgetType {
 
 	eq(other: WikiLinkWidget) {
 		return (
-			this.pageName === other.pageName &&
+			this.documentName === other.documentName &&
 			this.displayText === other.displayText &&
 			this.exists === other.exists
 		);
@@ -164,16 +164,16 @@ async function findWikiLinks(state: EditorState): Promise<Range<Decoration>[]> {
 	wikiLinkRegex.lastIndex = 0; // Reset regex
 
 	while ((match = wikiLinkRegex.exec(text)) !== null) {
-		const [fullMatch, pageName, displayText] = match;
+		const [fullMatch, documentName, displayText] = match;
 		const from = match.index;
 		const to = match.index + fullMatch.length;
 
-		if (!pageName?.trim()) continue;
+		if (!documentName?.trim()) continue;
 
-		const exists = await pageExists(pageName.trim());
+		const exists = await documentExists(documentName.trim());
 		const widget = new WikiLinkWidget(
-			pageName.trim(),
-			displayText?.trim() || pageName.trim(),
+			documentName.trim(),
+			displayText?.trim() || documentName.trim(),
 			exists
 		);
 
@@ -260,15 +260,15 @@ async function wikiLinkCompletion(context: CompletionContext): Promise<Completio
 	// Extract the current search term
 	const searchTerm = beforeCursor.slice(openBrackets + 2).split('|')[0];
 
-	const pages = await getPages();
-	const options = pages
-		.filter((page) => page.metaData.title.toLowerCase().includes(searchTerm.toLowerCase()))
+	const documents = await getDocuments();
+	const options = documents
+		.filter((document) => document.metaData.title.toLowerCase().includes(searchTerm.toLowerCase()))
 		.slice(0, 10) // Limit to 10 suggestions
-		.map((page) => ({
-			label: page.metaData.title,
+		.map((document) => ({
+			label: document.metaData.title,
 			type: 'variable',
-			detail: page.metaData.path,
-			info: page.content ? page.content.slice(0, 100) + '...' : undefined
+			detail: document.metaData.path,
+			info: document.content ? document.content.slice(0, 100) + '...' : undefined
 		}));
 
 	if (options.length === 0) {

@@ -8,7 +8,7 @@ export { test, expect } from './test-data-fixtures';
 // Export page objects for direct use
 export { HomePage } from '../pages/HomePage';
 export { EditorPage } from '../pages/EditorPage';
-export { PageViewPage } from '../pages/PageViewPage';
+export { DocumentViewPage, PageViewPage } from '../pages/DocumentViewPage';
 export { FolderPage } from '../pages/FolderPage';
 export { BasePage } from '../pages/BasePage';
 

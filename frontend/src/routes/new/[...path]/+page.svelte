@@ -3,14 +3,14 @@
 	import { page } from '$app/state';
 	import Editor from '$lib/components/Editor.svelte';
 	import TagInput from '$lib/components/TagInput.svelte';
-	import { pageActions } from '$lib/stores/pages';
+	import { documentActions } from '$lib/stores/documents';
 	import { generateSlug } from '$lib/utils/path';
-	import type { PageData } from './$types';
+	import type { DocumentData } from './$types';
 
 	// Get initial title from URL params if provided (e.g., from 404 page)
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 
-	let { data }: { data: PageData } = $props();
+	let { data }: { data: DocumentData } = $props();
 	let title = $state('');
 	let content = $state('');
 	let tags = $state<string[]>([]);
@@ -53,7 +53,7 @@
 		try {
 			const fullPath = generatePath(title);
 
-			const response = await pageActions.createPage({
+			const response = await documentActions.createDocument({
 				metaData: {
 					path: fullPath,
 					title: title.trim(),

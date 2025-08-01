@@ -9,30 +9,30 @@
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
-	import type { Page, DocumentVersion } from '$lib/api/types';
+	import type { Document, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from './ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 
 	interface Props {
-		page: Page;
+		document: Document;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void | Promise<void>;
-		onMove?: (page: Page) => void;
+		onMove?: (document: Document) => void;
 	}
 
-	let { page, onEdit = () => {}, onDelete = () => {}, onMove = () => {} }: Props = $props();
+	let { document, onEdit = () => {}, onDelete = () => {}, onMove = () => {} }: Props = $props();
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
 
-	const pagePath = $derived(page.metaData?.path || `/${page.metaData?.slug}`);
-	const pageTitle = $derived(page.metaData?.title || 'Untitled');
-	const pageSlug = $derived(page.metaData?.slug || '');
-	const pageCreated = $derived(page.metaData?.created);
-	const pageUpdated = $derived(page.metaData?.updated);
-	const pageTags = $derived(page.metaData?.tags || []);
+	const documentPath = $derived(document.metaData?.path || `/${document.metaData?.slug}`);
+	const documentTitle = $derived(document.metaData?.title || 'Untitled');
+	const documentSlug = $derived(document.metaData?.slug || '');
+	const documentCreated = $derived(document.metaData?.created);
+	const documentUpdated = $derived(document.metaData?.updated);
+	const documentTags = $derived(document.metaData?.tags || []);
 
 	// DOM reference for the content container
 	let contentContainer = $state<HTMLDivElement>();
@@ -51,7 +51,7 @@
 	let renderedMarkdown = $state('');
 
 	// Backlinks functionality
-	let backlinks = $state<Page[]>([]);
+	let backlinks = $state<Document[]>([]);
 	let backlinkLoading = $state(false);
 
 	// Version count functionality
@@ -64,7 +64,7 @@
 
 	$effect(() => {
 		// Ensure the effect tracks page.content changes
-		const content = page.content;
+		const content = document.content;
 
 		if (content) {
 			parseMarkdownWithCopyButtons(content)
@@ -97,14 +97,14 @@
 		}
 	});
 
-	// Load backlinks when page changes
+	// Load backlinks when document changes
 	$effect(() => {
 		async function loadBacklinks() {
-			if (!pagePath) return;
+			if (!documentPath) return;
 
 			backlinkLoading = true;
 			try {
-				backlinks = await apiClient.getPageBacklinks(pagePath);
+				backlinks = await apiClient.getPageBacklinks(documentPath);
 			} catch (error) {
 				console.error('Failed to load backlinks:', error);
 				backlinks = [];
@@ -118,11 +118,11 @@
 
 	// Function to refresh version count
 	async function refreshVersionCount() {
-		if (!pagePath) return;
+		if (!documentPath) return;
 
 		versionLoading = true;
 		try {
-			const versionsResponse = await apiClient.getPageVersions(pagePath);
+			const versionsResponse = await apiClient.getPageVersions(documentPath);
 			versionCount = versionsResponse.total || 0;
 		} catch (error) {
 			console.error('Failed to load version count:', error);
@@ -132,11 +132,11 @@
 		}
 	}
 
-	// Load version count when page changes
+	// Load version count when document changes
 	$effect(() => {
-		// Track pagePath and page updated timestamp
-		void pagePath;
-		void pageUpdated;
+		// Track documentPath and document updated timestamp
+		void documentPath;
+		void documentUpdated;
 
 		refreshVersionCount();
 	});
@@ -149,14 +149,14 @@
 		isDeleting = true;
 
 		try {
-			const result = onDelete(pagePath);
+			const result = onDelete(documentPath);
 			// If onDelete returns a promise, wait for it
 			if (result && typeof result.then === 'function') {
 				await result;
 			}
 			showDeleteModal = false;
 		} catch (error) {
-			console.error('Failed to delete page:', error);
+			console.error('Failed to delete document:', error);
 		} finally {
 			isDeleting = false;
 		}
@@ -168,14 +168,14 @@
 	}
 
 	async function handleVersionHistoryClick() {
-		if (!pagePath) return;
+		if (!documentPath) return;
 
 		showVersionHistory = true;
 
 		// Load versions if not already loaded
 		if (versions.length === 0) {
 			try {
-				const versionsResponse = await apiClient.getPageVersions(pagePath);
+				const versionsResponse = await apiClient.getPageVersions(documentPath);
 				versions = versionsResponse.versions || [];
 			} catch (error) {
 				console.error('Failed to load versions:', error);
@@ -189,11 +189,11 @@
 	}
 
 	async function handleRestoreVersion(version: DocumentVersion) {
-		if (!pagePath) return;
+		if (!documentPath) return;
 
 		try {
-			await apiClient.restoreDocumentToVersion(pagePath, version.hash);
-			// Refresh the page to show the restored content
+			await apiClient.restoreDocumentToVersion(documentPath, version.hash);
+			// Refresh the document to show the restored content
 			window.location.reload();
 		} catch (error) {
 			console.error('Failed to restore version:', error);
@@ -203,33 +203,33 @@
 </script>
 
 <svelte:head>
-	<title>{pageTitle}</title>
-	<meta name="description" content={page.content?.slice(0, 160) || ''} />
+	<title>{documentTitle}</title>
+	<meta name="description" content={document.content?.slice(0, 160) || ''} />
 </svelte:head>
 
 <div class="mx-auto max-w-7xl space-y-8 p-6">
-	<Breadcrumbs path={pagePath} currentPageTitle={pageTitle} />
+	<Breadcrumbs path={documentPath} currentPageTitle={documentTitle} />
 
 	<!-- Page Header -->
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
 	>
 		<div class="flex-1">
-			<h1 class="text-primary mb-4 text-4xl leading-tight font-bold">{pageTitle}</h1>
+			<h1 class="text-primary mb-4 text-4xl leading-tight font-bold">{documentTitle}</h1>
 
-			<!-- Page Metadata -->
+			<!-- Document Metadata -->
 			<div class="flex flex-wrap items-center gap-4">
-				{#if pageCreated}
+				{#if documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Created {formatDate(pageCreated)}</span>
+						<span>Created {formatDate(documentCreated)}</span>
 					</div>
 				{/if}
 
-				{#if pageUpdated && pageUpdated !== pageCreated}
+				{#if documentUpdated && documentUpdated !== documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Updated {formatDate(pageUpdated)}</span>
+						<span>Updated {formatDate(documentUpdated)}</span>
 					</div>
 				{/if}
 
@@ -249,12 +249,12 @@
 					</button>
 				{/if}
 
-				{#if pageTags.length > 0}
-					<div class="flex items-center gap-2" data-testid="page-tags">
+				{#if documentTags.length > 0}
+					<div class="flex items-center gap-2" data-testid="document-tags">
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
-							{#each pageTags as tag (tag)}
-								<Badge variant="default" class="text-xs text-white " data-testid="page-tag"
+							{#each documentTags as tag (tag)}
+								<Badge variant="default" class="text-xs text-white " data-testid="document-tag"
 									>{tag}</Badge
 								>
 							{/each}
@@ -269,9 +269,9 @@
 			<Button
 				variant="outline"
 				size="sm"
-				onclick={() => onEdit(pageSlug)}
-				title="Edit page"
-				data-testid="edit-page-button"
+				onclick={() => onEdit(documentSlug)}
+				title="Edit document"
+				data-testid="edit-document-button"
 			>
 				<Edit class="h-4 w-4" />
 				Edit
@@ -280,9 +280,9 @@
 			<Button
 				variant="outline"
 				size="sm"
-				onclick={() => onMove(page)}
-				title="Move page"
-				data-testid="move-page-button"
+				onclick={() => onMove(document)}
+				title="Move document"
+				data-testid="move-document-button"
 			>
 				<Move class="h-4 w-4" />
 				Move
@@ -293,8 +293,8 @@
 				size="sm"
 				onclick={handleDeleteClick}
 				disabled={isDeleting}
-				title="Delete page"
-				data-testid="delete-page-button"
+				title="Delete document"
+				data-testid="delete-document-button"
 			>
 				<Trash2 class="h-4 w-4" />
 				Delete
@@ -302,17 +302,17 @@
 		</div>
 	</header>
 
-	<!-- Page Content -->
+	<!-- Document Content -->
 	<main class="bg-secondary ring-border-primary rounded-lg p-8 shadow-sm ring-1">
-		{#if page.content}
+		{#if document.content}
 			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html renderedMarkdown}
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
-				<p class="text-muted-foreground mb-6 text-lg">This page has no content yet.</p>
-				<Button onclick={() => onEdit(pageSlug)}>
+				<p class="text-muted-foreground mb-6 text-lg">This document has no content yet.</p>
+				<Button onclick={() => onEdit(documentSlug)}>
 					<Edit class="h-4 w-4" />
 					Add Content
 				</Button>
@@ -337,32 +337,32 @@
 				</div>
 			{:else if backlinks.length > 0}
 				<div class="space-y-3">
-					{#each backlinks as backlinkPage (backlinkPage.metaData.path)}
+					{#each backlinks as backlinkDocument (backlinkDocument.metaData.path)}
 						<div
 							class="bg-background border-border group hover:bg-muted/50 cursor-pointer rounded-lg border p-4 transition-colors"
 						>
 							<button
 								class="w-full text-left"
-								onclick={() => goto(`/pages${backlinkPage.metaData.path}`)}
+								onclick={() => goto(`/pages${backlinkDocument.metaData.path}`)}
 							>
 								<div class="mb-2 flex items-start justify-between">
 									<h3 class="group-hover:text-primary font-medium transition-colors">
-										{backlinkPage.metaData.title}
+										{backlinkDocument.metaData.title}
 									</h3>
 									<span class="text-muted-foreground text-xs">
-										{formatDate(backlinkPage.metaData.updated)}
+										{formatDate(backlinkDocument.metaData.updated)}
 									</span>
 								</div>
 
-								{#if backlinkPage.metaData.path}
+								{#if backlinkDocument.metaData.path}
 									<p class="text-muted-foreground mb-2 text-sm">
-										{backlinkPage.metaData.path}
+										{backlinkDocument.metaData.path}
 									</p>
 								{/if}
 
-								{#if backlinkPage.content}
+								{#if backlinkDocument.content}
 									<p class="text-muted-foreground line-clamp-2 text-sm">
-										{backlinkPage.content.slice(0, 150)}...
+										{backlinkDocument.content.slice(0, 150)}...
 									</p>
 								{/if}
 							</button>
@@ -371,7 +371,7 @@
 				</div>
 			{:else}
 				<div class="flex flex-col items-center justify-center py-8 text-center">
-					<p class="text-muted-foreground text-sm">No pages link to this page yet.</p>
+					<p class="text-muted-foreground text-sm">No documents link to this document yet.</p>
 				</div>
 			{/if}
 		</section>
@@ -397,7 +397,7 @@
 <!-- Version History Modal -->
 <VersionHistoryModal
 	open={showVersionHistory}
-	path={pagePath}
+	path={documentPath}
 	{versions}
 	onClose={handleCloseVersionHistory}
 	onRestore={handleRestoreVersion}

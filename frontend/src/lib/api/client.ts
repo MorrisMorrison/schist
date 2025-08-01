@@ -1,16 +1,16 @@
 import { env } from '$env/dynamic/public';
 import type {
-	Page,
-	CreatePageRequest,
-	UpdatePageRequest,
+	Document,
+	CreateDocumentRequest,
+	UpdateDocumentRequest,
 	HealthResponse,
-	PageListResponse,
+	DocumentListResponse,
 	Folder,
 	FolderTreeResponse,
-	MovePageRequest,
-	MovePageResponse,
+	MoveDocumentRequest,
+	MoveDocumentResponse,
 	FolderOperationResponse,
-	CreatePageResponse,
+	CreateDocumentResponse,
 	Asset,
 	AssetUploadResponse,
 	SearchResult,
@@ -85,81 +85,81 @@ class SchістApiClient {
 		return this.request<HealthResponse>('/health');
 	}
 
-	async getPages(): Promise<Page[]> {
-		const response = await this.request<PageListResponse>('/pages');
-		return response.pages;
+	async getDocuments(): Promise<Document[]> {
+		const response = await this.request<DocumentListResponse>('/documents');
+		return response.documents;
 	}
 
-	async getPage(slug: string): Promise<Page> {
-		return this.request<Page>(`/pages/${encodeURIComponent(slug)}`);
+	async getDocument(slug: string): Promise<Document> {
+		return this.request<Document>(`/documents/${encodeURIComponent(slug)}`);
 	}
 
-	async createPage(pageData: CreatePageRequest): Promise<CreatePageResponse> {
-		const normalizedPageData = {
-			...pageData,
+	async createDocument(documentData: CreateDocumentRequest): Promise<CreateDocumentResponse> {
+		const normalizedDocumentData = {
+			...documentData,
 			metaData: {
-				...pageData.metaData,
-				...(pageData.metaData.path && { path: normalizePath(pageData.metaData.path) })
+				...documentData.metaData,
+				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
 			}
 		};
 
-		return this.request<CreatePageResponse>('/pages', {
+		return this.request<CreateDocumentResponse>('/documents', {
 			method: 'POST',
-			body: JSON.stringify(normalizedPageData)
+			body: JSON.stringify(normalizedDocumentData)
 		});
 	}
 
-	async updatePage(slug: string, pageData: UpdatePageRequest): Promise<Page> {
-		const normalizedPageData = {
-			...pageData,
+	async updateDocument(slug: string, documentData: UpdateDocumentRequest): Promise<Document> {
+		const normalizedDocumentData = {
+			...documentData,
 			metaData: {
-				...pageData.metaData,
-				...(pageData.metaData.path && { path: normalizePath(pageData.metaData.path) })
+				...documentData.metaData,
+				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
 			}
 		};
 
-		return this.request<Page>(`/pages/${encodeURIComponent(slug)}`, {
+		return this.request<Document>(`/documents/${encodeURIComponent(slug)}`, {
 			method: 'PUT',
-			body: JSON.stringify(normalizedPageData)
+			body: JSON.stringify(normalizedDocumentData)
 		});
 	}
 
-	async deletePage(path: string): Promise<void> {
-		await this.request<void>(`/pages/${this.encodePath(path)}`, {
+	async deleteDocument(path: string): Promise<void> {
+		await this.request<void>(`/documents/${this.encodePath(path)}`, {
 			method: 'DELETE'
 		});
 	}
 
-	async getPageByPath(path: string): Promise<Page> {
+	async getDocumentByPath(path: string): Promise<Document> {
 		const encodedPath = this.encodePath(path);
-		return this.request<Page>(`/pages${encodedPath}`);
+		return this.request<Document>(`/documents${encodedPath}`);
 	}
 
-	async updatePageByPath(
+	async updateDocumentByPath(
 		path: string,
-		pageData: UpdatePageRequest,
+		documentData: UpdateDocumentRequest,
 		saveType: 'manual' | 'auto' = 'manual'
-	): Promise<Page> {
+	): Promise<Document> {
 		const encodedPath = this.encodePath(path);
 
-		const normalizedPageData = {
-			...pageData,
+		const normalizedDocumentData = {
+			...documentData,
 			metaData: {
-				...pageData.metaData,
-				...(pageData.metaData.path && { path: normalizePath(pageData.metaData.path) })
+				...documentData.metaData,
+				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
 			},
 			saveType
 		};
 
-		return this.request<Page>(`/pages${encodedPath}`, {
+		return this.request<Document>(`/documents${encodedPath}`, {
 			method: 'PUT',
-			body: JSON.stringify(normalizedPageData)
+			body: JSON.stringify(normalizedDocumentData)
 		});
 	}
 
-	async deletePageByPath(path: string): Promise<void> {
+	async deleteDocumentByPath(path: string): Promise<void> {
 		const encodedPath = this.encodePath(path);
-		await this.request<void>(`/pages${encodedPath}`, {
+		await this.request<void>(`/documents${encodedPath}`, {
 			method: 'DELETE'
 		});
 	}
@@ -195,30 +195,30 @@ class SchістApiClient {
 	}
 
 	// Move operations
-	async movePage(moveRequest: MovePageRequest): Promise<MovePageResponse> {
+	async moveDocument(moveRequest: MoveDocumentRequest): Promise<MoveDocumentResponse> {
 		const normalizedRequest = {
 			oldPath: normalizePath(moveRequest.oldPath),
 			newPath: normalizePath(moveRequest.newPath)
 		};
-		return this.request<MovePageResponse>('/pages/move', {
+		return this.request<MoveDocumentResponse>('/documents/move', {
 			method: 'POST',
 			body: JSON.stringify(normalizedRequest)
 		});
 	}
 
-	async moveFolder(moveRequest: MovePageRequest): Promise<MovePageResponse> {
+	async moveFolder(moveRequest: MoveDocumentRequest): Promise<MoveDocumentResponse> {
 		const normalizedRequest = {
 			oldPath: normalizePath(moveRequest.oldPath),
 			newPath: normalizePath(moveRequest.newPath)
 		};
-		return this.request<MovePageResponse>('/folders/move', {
+		return this.request<MoveDocumentResponse>('/folders/move', {
 			method: 'POST',
 			body: JSON.stringify(normalizedRequest)
 		});
 	}
 
 	// Search
-	async searchPages(query: string): Promise<SearchResult> {
+	async searchDocuments(query: string): Promise<SearchResult> {
 		const params = new URLSearchParams({ q: query });
 		return this.request<SearchResult>(`/search?${params}`);
 	}
@@ -229,16 +229,16 @@ class SchістApiClient {
 	}
 
 	// Wiki link operations
-	async getPageBacklinks(path: string): Promise<Page[]> {
+	async getDocumentBacklinks(path: string): Promise<Document[]> {
 		const encodedPath = this.encodePath(path);
-		const response = await this.request<{ backlinks: Page[]; total: number }>(
+		const response = await this.request<{ backlinks: Document[]; total: number }>(
 			`/links/backlinks${encodedPath}`
 		);
 		return response.backlinks;
 	}
 
 	// Version operations
-	async getPageVersions(path: string, options?: RequestInit): Promise<VersionsResponse> {
+	async getDocumentVersions(path: string, options?: RequestInit): Promise<VersionsResponse> {
 		const normalizedPath = normalizePath(path);
 		const params = new URLSearchParams({ path: normalizedPath });
 		return this.request<VersionsResponse>(`/versions?${params}`, options);

@@ -1,10 +1,10 @@
 import { test, expect } from '../fixtures/test-setup';
-import { createTestPage } from '../utils/test-data';
+import { createTestPage as createTestDocument } from '../utils/test-data';
 
 // serial enforces not running in parallel
 test.describe.serial('Page Lifecycle', () => {
 	test('should create a new page successfully', async ({ editorPage, pageViewPage, testId }) => {
-		const testPage = createTestPage({
+		const testPage = createTestDocument({
 			title: `Test Page ${testId}`,
 			content: `# Test Page ${testId}\n\nThis is a test page for page creation.`,
 			tags: ['test', 'lifecycle']
@@ -31,7 +31,7 @@ test.describe.serial('Page Lifecycle', () => {
 
 	test('should edit an existing page', async ({ editorPage, pageViewPage, apiHelper, testId }) => {
 		// Create a page via API first
-		const originalPage = createTestPage({
+		const originalPage = createTestDocument({
 			title: `Original Page ${testId}`,
 			content: '# Original Content\n\nThis content will be edited.',
 			path: `/test-edit-${testId}`
@@ -66,7 +66,7 @@ test.describe.serial('Page Lifecycle', () => {
 
 	test('should delete a page', async ({ pageViewPage, apiHelper, testId }) => {
 		// Create a page to delete
-		const pageToDelete = createTestPage({
+		const pageToDelete = createTestDocument({
 			title: `Delete Me ${testId}`,
 			content: '# Page to Delete\n\nThis page will be deleted.',
 			path: `/delete-test-${testId}`
@@ -105,7 +105,7 @@ test.describe.serial('Page Lifecycle', () => {
 		testId
 	}) => {
 		// Create a page via API
-		const testPage = createTestPage({
+		const testPage = createTestDocument({
 			title: `Navigation Test ${testId}`,
 			content: '# Navigation Test\n\nContent to preserve.',
 			path: `/navigation-test-${testId}`
@@ -131,7 +131,7 @@ test.describe.serial('Page Lifecycle', () => {
 	});
 
 	test('should display page metadata correctly', async ({ pageViewPage, apiHelper, testId }) => {
-		const testPage = createTestPage({
+		const testPage = createTestDocument({
 			title: `Metadata Test ${testId}`,
 			content: '# Metadata Test\n\nTesting metadata display.',
 			path: `/metadata-test-${testId}`,
@@ -149,7 +149,11 @@ test.describe.serial('Page Lifecycle', () => {
 		await pageViewPage.verifyTags(testPage.tags!);
 	});
 
-	test('should render markdown content correctly', async ({ pageViewPage, apiHelper, testId }) => {
+	test('should render markdown content correctly', async ({
+		documentViewPage,
+		apiHelper,
+		testId
+	}) => {
 		const markdownContent = `# Main Heading
 
 ## Subheading
@@ -166,28 +170,28 @@ console.log('Hello, World!');
 
 [Link to home](/)`;
 
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Markdown Test ${testId}`,
 			content: markdownContent,
 			path: `/markdown-test-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Navigate to page
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(testPage.title);
+		// Navigate to document
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		// Verify markdown has been rendered to HTML
-		await pageViewPage.verifyMarkdownRendering();
-		await pageViewPage.verifyHeading('Main Heading', 1);
-		await pageViewPage.verifyHeading('Subheading', 2);
+		await documentViewPage.verifyMarkdownRendering();
+		await documentViewPage.verifyHeading('Main Heading', 1);
+		await documentViewPage.verifyHeading('Subheading', 2);
 
 		// Verify we have expected number of elements
-		const headingCount = await pageViewPage.getHeadingCount();
+		const headingCount = await documentViewPage.getHeadingCount();
 		expect(headingCount).toBeGreaterThanOrEqual(2);
 
-		const linkCount = await pageViewPage.getLinkCount();
+		const linkCount = await documentViewPage.getLinkCount();
 		expect(linkCount).toBeGreaterThanOrEqual(1);
 	});
 });

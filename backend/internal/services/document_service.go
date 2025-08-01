@@ -15,13 +15,13 @@ import (
 
 const MARKDOWN_FILE_ENDING = ".md"
 
-type PageService struct {
+type DocumentService struct {
 	dataDir    string
 	gitService *GitService
 }
 
-func NewPageService(dataDir string) *PageService {
-	ps := &PageService{
+func NewDocumentService(dataDir string) *DocumentService {
+	ds := &DocumentService{
 		dataDir: dataDir,
 	}
 
@@ -31,39 +31,39 @@ func NewPageService(dataDir string) *PageService {
 		log.Printf("Warning: Failed to initialize GitService: %v", err)
 		// Continue without git integration
 	} else {
-		ps.gitService = gitService
+		ds.gitService = gitService
 		log.Printf("GitService initialized successfully for directory: %s", dataDir)
 	}
 
-	return ps
+	return ds
 }
 
-func (p *PageService) Search(query string) ([]*models.Page, error) {
-	pages, err := p.ListPages()
+func (d *DocumentService) Search(query string) ([]*models.Document, error) {
+	documents, err := d.ListDocuments()
 	if err != nil {
 		return nil, err
 	}
 
 	// Parse query for text search and tag filters
-	textQuery, tagFilters := p.parseSearchQuery(query)
+	textQuery, tagFilters := d.parseSearchQuery(query)
 
-	var filtered []*models.Page
+	var filtered []*models.Document
 	lowerTextQuery := strings.ToLower(textQuery)
 
-	for _, page := range pages {
-		if strings.Contains(page.MetaData.Path, "/trash") {
+	for _, document := range documents {
+		if strings.Contains(document.MetaData.Path, "/trash") {
 			continue
 		}
 
 		// Check text match (if textQuery is not empty)
-		textMatch := textQuery == "" || strings.Contains(strings.ToLower(page.MetaData.Title), lowerTextQuery)
+		textMatch := textQuery == "" || strings.Contains(strings.ToLower(document.MetaData.Title), lowerTextQuery)
 
 		// Check tag match (if tagFilters are specified)
-		tagMatch := p.matchesTags(page, tagFilters)
+		tagMatch := d.matchesTags(document, tagFilters)
 
-		// Include page if both text and tag conditions are met
+		// Include document if both text and tag conditions are met
 		if textMatch && tagMatch {
-			filtered = append(filtered, page)
+			filtered = append(filtered, document)
 		}
 	}
 
@@ -72,7 +72,7 @@ func (p *PageService) Search(query string) ([]*models.Page, error) {
 
 // parseSearchQuery extracts text query and tag filters from search string
 // Supports syntax like: "authentication tag:security tag:golang"
-func (p *PageService) parseSearchQuery(query string) (string, []string) {
+func (d *DocumentService) parseSearchQuery(query string) (string, []string) {
 	var textParts []string
 	var tagFilters []string
 
@@ -96,14 +96,14 @@ func (p *PageService) parseSearchQuery(query string) (string, []string) {
 	return textQuery, tagFilters
 }
 
-// matchesTags checks if a page has all required tags (case-insensitive, supports partial matching)
-func (p *PageService) matchesTags(page *models.Page, requiredTags []string) bool {
+// matchesTags checks if a document has all required tags (case-insensitive, supports partial matching)
+func (d *DocumentService) matchesTags(document *models.Document, requiredTags []string) bool {
 	if len(requiredTags) == 0 {
 		return true // No tag filter specified
 	}
 
-	if page.MetaData.Tags == nil {
-		return false // Page has no tags but tags are required
+	if document.MetaData.Tags == nil {
+		return false // Document has no tags but tags are required
 	}
 
 	// Check if all required tags match (partial matching supported)
@@ -111,40 +111,40 @@ func (p *PageService) matchesTags(page *models.Page, requiredTags []string) bool
 		requiredLower := strings.ToLower(requiredTag)
 		found := false
 
-		// Check if any page tag contains the required tag as substring
-		for _, pageTag := range page.MetaData.Tags {
-			if strings.Contains(strings.ToLower(pageTag), requiredLower) {
+		// Check if any document tag contains the required tag as substring
+		for _, documentTag := range document.MetaData.Tags {
+			if strings.Contains(strings.ToLower(documentTag), requiredLower) {
 				found = true
 				break
 			}
 		}
 
 		if !found {
-			return false // Required tag not found in any page tag
+			return false // Required tag not found in any document tag
 		}
 	}
 
 	return true
 }
 
-// GetAllTags returns all unique tags across all pages with their usage counts
-func (p *PageService) GetAllTags() (map[string]int, error) {
-	pages, err := p.ListPages()
+// GetAllTags returns all unique tags across all documents with their usage counts
+func (d *DocumentService) GetAllTags() (map[string]int, error) {
+	documents, err := d.ListDocuments()
 	if err != nil {
 		return nil, err
 	}
 
 	tagCounts := make(map[string]int)
 
-	for _, page := range pages {
-		// Skip trash pages
-		if strings.Contains(page.MetaData.Path, "/trash") {
+	for _, document := range documents {
+		// Skip trash documents
+		if strings.Contains(document.MetaData.Path, "/trash") {
 			continue
 		}
 
 		// Count each tag
-		if page.MetaData.Tags != nil {
-			for _, tag := range page.MetaData.Tags {
+		if document.MetaData.Tags != nil {
+			for _, tag := range document.MetaData.Tags {
 				// Store tags in original case but allow case-insensitive searching
 				tagCounts[tag]++
 			}
@@ -154,81 +154,81 @@ func (p *PageService) GetAllTags() (map[string]int, error) {
 	return tagCounts, nil
 }
 
-func (p *PageService) CreatePage(page *models.Page) error {
-	if page.MetaData.Slug == "" {
-		page.MetaData.Slug = utils.GenerateSlug(page.MetaData.Title)
+func (d *DocumentService) CreateDocument(document *models.Document) error {
+	if document.MetaData.Slug == "" {
+		document.MetaData.Slug = utils.GenerateSlug(document.MetaData.Title)
 	}
 
-	if page.MetaData.Path == "" {
-		page.MetaData.Path = "/" + page.MetaData.Slug
+	if document.MetaData.Path == "" {
+		document.MetaData.Path = "/" + document.MetaData.Slug
 	}
 
 	now := time.Now()
-	page.MetaData.Created = now
-	page.MetaData.Updated = now
+	document.MetaData.Created = now
+	document.MetaData.Updated = now
 
-	if err := p.savePage(page); err != nil {
+	if err := d.saveDocument(document); err != nil {
 		return err
 	}
 
-	// Commit to git after successful page creation
-	p.commitPageChange(page.MetaData.Path, fmt.Sprintf("Create document: %s", page.MetaData.Path))
+	// Commit to git after successful document creation
+	d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Create document: %s", document.MetaData.Path))
 
 	return nil
 }
 
-func (p *PageService) ReadPage(slug string) (*models.Page, error) {
-	filePath := p.buildFilePath(slug)
+func (d *DocumentService) ReadDocument(slug string) (*models.Document, error) {
+	filePath := d.buildFilePath(slug)
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read file %s", slug)
 	}
 
-	page, err := serializer.DeserializePage(fileContent)
+	document, err := serializer.DeserializeDocument(fileContent)
 	if err != nil {
-		return nil, fmt.Errorf("could not deserialize page")
+		return nil, fmt.Errorf("could not deserialize document")
 	}
 
-	return page, nil
+	return document, nil
 }
 
-func (p *PageService) UpdatePage(page *models.Page) error {
-	return p.UpdatePageWithSaveType(page, "manual")
+func (d *DocumentService) UpdateDocument(document *models.Document) error {
+	return d.UpdateDocumentWithSaveType(document, "manual")
 }
 
-func (p *PageService) UpdatePageWithSaveType(page *models.Page, saveType string) error {
-	page.MetaData.Updated = time.Now()
+func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, saveType string) error {
+	document.MetaData.Updated = time.Now()
 
-	if err := p.savePage(page); err != nil {
+	if err := d.saveDocument(document); err != nil {
 		return err
 	}
 
 	// Only commit to git for manual saves, skip auto-saves to prevent version pollution
 	if saveType == "manual" {
-		p.commitPageChange(page.MetaData.Path, fmt.Sprintf("Update document: %s", page.MetaData.Path))
+		d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Update document: %s", document.MetaData.Path))
 	}
 
 	return nil
 }
 
-func (p *PageService) DeletePage(slug string) error {
-	filePath := p.buildFilePath(slug)
+func (d *DocumentService) DeleteDocument(slug string) error {
+	filePath := d.buildFilePath(slug)
 
 	if err := os.Remove(filePath); err != nil {
-		return fmt.Errorf("failed to delete page file: %w", err)
+		return fmt.Errorf("failed to delete document file: %w", err)
 	}
 
 	// Convert slug to logical path for git commit
 	documentPath := "/" + strings.TrimSuffix(slug, MARKDOWN_FILE_ENDING)
-	p.commitPageChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
+	d.commitDocumentChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
 
 	return nil
 }
 
-func (p *PageService) ListPages() ([]*models.Page, error) {
-	var pages []*models.Page
+func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
+	var documents []*models.Document
 
-	err := filepath.WalkDir(p.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
+	err := filepath.WalkDir(d.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -241,7 +241,7 @@ func (p *PageService) ListPages() ([]*models.Page, error) {
 			return nil
 		}
 
-		relPath, err := filepath.Rel(p.dataDir, path)
+		relPath, err := filepath.Rel(d.dataDir, path)
 		if err != nil {
 			return fmt.Errorf("failed to get relative path: %w", err)
 		}
@@ -250,12 +250,12 @@ func (p *PageService) ListPages() ([]*models.Page, error) {
 
 		logicalPath = strings.TrimSuffix(logicalPath, MARKDOWN_FILE_ENDING)
 
-		page, err := p.GetPageByPath(logicalPath)
+		document, err := d.GetDocumentByPath(logicalPath)
 		if err != nil {
 			return err
 		}
 
-		pages = append(pages, page)
+		documents = append(documents, document)
 		return nil
 	})
 
@@ -263,29 +263,29 @@ func (p *PageService) ListPages() ([]*models.Page, error) {
 		return nil, fmt.Errorf("failed to walk directory tree: %w", err)
 	}
 
-	return pages, nil
+	return documents, nil
 }
 
-func (p *PageService) buildFilePath(slug string) string {
-	return p.dataDir + "/" + slug + MARKDOWN_FILE_ENDING
+func (d *DocumentService) buildFilePath(slug string) string {
+	return d.dataDir + "/" + slug + MARKDOWN_FILE_ENDING
 }
 
-func (p *PageService) buildFilePathFromPath(path string) string {
+func (d *DocumentService) buildFilePathFromPath(path string) string {
 	slug := utils.ExtractSlugFromPath(path)
 
-	fullPath := utils.BuildFilePath(p.dataDir, path)
+	fullPath := utils.BuildFilePath(d.dataDir, path)
 
 	dir := filepath.Dir(fullPath)
 	return filepath.Join(dir, slug+MARKDOWN_FILE_ENDING)
 }
 
-func (p *PageService) savePage(page *models.Page) error {
-	content, err := serializer.SerializePage(page)
+func (d *DocumentService) saveDocument(document *models.Document) error {
+	content, err := serializer.SerializeDocument(document)
 	if err != nil {
-		return fmt.Errorf("failed to serialize page: %w", err)
+		return fmt.Errorf("failed to serialize document: %w", err)
 	}
 
-	fileName := p.buildFilePathFromPath(page.MetaData.Path)
+	fileName := d.buildFilePathFromPath(document.MetaData.Path)
 
 	dir := filepath.Dir(fileName)
 	fileMode := os.FileMode(0755)
@@ -296,50 +296,50 @@ func (p *PageService) savePage(page *models.Page) error {
 	// 0644 = -rw-r--r-- = read/write permission for owner, read for others
 	fileMode = os.FileMode(0644)
 	if err := os.WriteFile(fileName, content, fileMode); err != nil {
-		return fmt.Errorf("failed to write page file: %w", err)
+		return fmt.Errorf("failed to write document file: %w", err)
 	}
 	return nil
 }
 
-func (p *PageService) GetPageByPath(path string) (*models.Page, error) {
+func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, error) {
 	if err := utils.ValidatePath(path); err != nil {
 		return nil, fmt.Errorf("invalid path: %w", err)
 	}
 
-	filePath := p.buildFilePathFromPath(path)
+	filePath := d.buildFilePathFromPath(path)
 
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("could not read page at path %s: %w", path, err)
+		return nil, fmt.Errorf("could not read document at path %s: %w", path, err)
 	}
 
-	page, err := serializer.DeserializePage(fileContent)
+	document, err := serializer.DeserializeDocument(fileContent)
 	if err != nil {
-		return nil, fmt.Errorf("could not deserialize page at path %s: %w", path, err)
+		return nil, fmt.Errorf("could not deserialize document at path %s: %w", path, err)
 	}
 
-	return page, nil
+	return document, nil
 }
 
-func (p *PageService) CreatePageInFolder(folderPath string, page *models.Page) error {
+func (d *DocumentService) CreateDocumentInFolder(folderPath string, document *models.Document) error {
 	if err := utils.ValidatePath(folderPath); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
 
-	if page.MetaData.Slug != "" {
-		page.MetaData.Slug = utils.GenerateSlug(page.MetaData.Title)
+	if document.MetaData.Slug == "" {
+		document.MetaData.Slug = utils.GenerateSlug(document.MetaData.Title)
 	}
 
-	page.MetaData.Path = utils.NormalizePath(folderPath + "/" + page.MetaData.Slug)
+	document.MetaData.Path = utils.NormalizePath(folderPath + "/" + document.MetaData.Slug)
 
 	now := time.Now()
-	page.MetaData.Created = now
-	page.MetaData.Updated = now
+	document.MetaData.Created = now
+	document.MetaData.Updated = now
 
-	return p.savePage(page)
+	return d.saveDocument(document)
 }
 
-func (p *PageService) MovePage(oldPath, newPath string) error {
+func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 	if err := utils.ValidatePath(oldPath); err != nil {
 		return fmt.Errorf("invalid old path: %w", err)
 	}
@@ -356,55 +356,55 @@ func (p *PageService) MovePage(oldPath, newPath string) error {
 		return nil
 	}
 
-	page, err := p.GetPageByPath(oldPath)
+	document, err := d.GetDocumentByPath(oldPath)
 	if err != nil {
-		return fmt.Errorf("could not read page from old path: %w", err)
+		return fmt.Errorf("could not read document from old path: %w", err)
 	}
 
-	page.MetaData.Path = normalizedNewPath
-	page.MetaData.Slug = utils.ExtractSlugFromPath(normalizedNewPath)
-	page.MetaData.Updated = time.Now()
+	document.MetaData.Path = normalizedNewPath
+	document.MetaData.Slug = utils.ExtractSlugFromPath(normalizedNewPath)
+	document.MetaData.Updated = time.Now()
 
-	if err := p.savePage(page); err != nil {
-		return fmt.Errorf("could not save page to new path: %w", err)
+	if err := d.saveDocument(document); err != nil {
+		return fmt.Errorf("could not save document to new path: %w", err)
 	}
 
 	// Remove old file (paths are guaranteed to be different at this point)
-	oldFilePath := p.buildFilePathFromPath(normalizedOldPath)
+	oldFilePath := d.buildFilePathFromPath(normalizedOldPath)
 	if err := os.Remove(oldFilePath); err != nil {
 		return fmt.Errorf("could not remove old file: %w", err)
 	}
 
-	// Commit to git after successful page move
-	p.commitPageChange(normalizedNewPath, fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath))
+	// Commit to git after successful document move
+	d.commitDocumentChange(normalizedNewPath, fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath))
 
 	return nil
 }
 
-func (p *PageService) GetFolder(path string) (*models.Folder, error) {
+func (d *DocumentService) GetFolder(path string) (*models.Folder, error) {
 	if err := utils.ValidatePath(path); err != nil {
 		return nil, fmt.Errorf("invalid folder path: %w", err)
 	}
 
 	if path == "/" {
-		return p.getRootFolder()
+		return d.getRootFolder()
 	}
 
-	return p.buildFolderFromPath(path)
+	return d.buildFolderFromPath(path)
 }
 
-func (p *PageService) buildFolderFromPath(path string) (*models.Folder, error) {
-	folderPath := utils.BuildFilePath(p.dataDir, path)
-	info, err := p.validateFolderPath(folderPath, path)
+func (d *DocumentService) buildFolderFromPath(path string) (*models.Folder, error) {
+	folderPath := utils.BuildFilePath(d.dataDir, path)
+	info, err := d.validateFolderPath(folderPath, path)
 	if err != nil {
 		return nil, err
 	}
 
-	folder := p.createFolderStruct(path, info)
-	return p.populateFolderContents(folder, folderPath)
+	folder := d.createFolderStruct(path, info)
+	return d.populateFolderContents(folder, folderPath)
 }
 
-func (p *PageService) validateFolderPath(folderPath, path string) (os.FileInfo, error) {
+func (d *DocumentService) validateFolderPath(folderPath, path string) (os.FileInfo, error) {
 	info, err := os.Stat(folderPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -420,22 +420,22 @@ func (p *PageService) validateFolderPath(folderPath, path string) (os.FileInfo, 
 	return info, nil
 }
 
-func (p *PageService) createFolderStruct(path string, info os.FileInfo) *models.Folder {
+func (d *DocumentService) createFolderStruct(path string, info os.FileInfo) *models.Folder {
 	folderName := filepath.Base(path)
 	if folderName == "." || folderName == "/" {
 		folderName = "Root"
 	}
 
 	return &models.Folder{
-		Name:       folderName,
-		Path:       path,
-		Created:    info.ModTime(),
-		PageCount:  0,
-		SubFolders: []*models.Folder{},
+		Name:          folderName,
+		Path:          path,
+		Created:       info.ModTime(),
+		DocumentCount: 0,
+		SubFolders:    []*models.Folder{},
 	}
 }
 
-func (p *PageService) populateFolderContents(folder *models.Folder, folderPath string) (*models.Folder, error) {
+func (d *DocumentService) populateFolderContents(folder *models.Folder, folderPath string) (*models.Folder, error) {
 	entries, err := os.ReadDir(folderPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read folder contents at path %s: %w", folder.Path, err)
@@ -446,17 +446,17 @@ func (p *PageService) populateFolderContents(folder *models.Folder, folderPath s
 			if entry.Name() == "trash" || strings.HasPrefix(entry.Name(), ".") {
 				continue
 			}
-			subfolder := p.createSubfolder(folder.Path, entry)
+			subfolder := d.createSubfolder(folder.Path, entry)
 			folder.SubFolders = append(folder.SubFolders, subfolder)
 		} else if strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
-			folder.PageCount++
+			folder.DocumentCount++
 		}
 	}
 
 	return folder, nil
 }
 
-func (p *PageService) createSubfolder(parentPath string, entry os.DirEntry) *models.Folder {
+func (d *DocumentService) createSubfolder(parentPath string, entry os.DirEntry) *models.Folder {
 	entryInfo, err := entry.Info()
 	if err != nil {
 		return &models.Folder{
@@ -468,18 +468,18 @@ func (p *PageService) createSubfolder(parentPath string, entry os.DirEntry) *mod
 
 	subfolderPath := utils.NormalizePath(parentPath + "/" + entry.Name())
 	subfolder := &models.Folder{
-		Name:       entry.Name(),
-		Path:       subfolderPath,
-		Created:    entryInfo.ModTime(),
-		PageCount:  p.countPagesInFolder(subfolderPath),
-		SubFolders: []*models.Folder{},
+		Name:          entry.Name(),
+		Path:          subfolderPath,
+		Created:       entryInfo.ModTime(),
+		DocumentCount: d.countDocumentsInFolder(subfolderPath),
+		SubFolders:    []*models.Folder{},
 	}
 
 	return subfolder
 }
 
-func (p *PageService) countPagesInFolder(folderPath string) int {
-	subfolderFilePath := utils.BuildFilePath(p.dataDir, folderPath)
+func (d *DocumentService) countDocumentsInFolder(folderPath string) int {
+	subfolderFilePath := utils.BuildFilePath(d.dataDir, folderPath)
 	subEntries, err := os.ReadDir(subfolderFilePath)
 	if err != nil {
 		return 0
@@ -494,21 +494,21 @@ func (p *PageService) countPagesInFolder(folderPath string) int {
 	return count
 }
 
-func (p *PageService) getRootFolder() (*models.Folder, error) {
-	info, err := os.Stat(p.dataDir)
+func (d *DocumentService) getRootFolder() (*models.Folder, error) {
+	info, err := os.Stat(d.dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to access root folder: %w", err)
 	}
 
 	folder := &models.Folder{
-		Name:       "Root",
-		Path:       "/",
-		Created:    info.ModTime(),
-		PageCount:  0,
-		SubFolders: []*models.Folder{},
+		Name:          "Root",
+		Path:          "/",
+		Created:       info.ModTime(),
+		DocumentCount: 0,
+		SubFolders:    []*models.Folder{},
 	}
 
-	entries, err := os.ReadDir(p.dataDir)
+	entries, err := os.ReadDir(d.dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read root folder contents: %w", err)
 	}
@@ -527,42 +527,42 @@ func (p *PageService) getRootFolder() (*models.Folder, error) {
 
 			subfolderPath := "/" + entry.Name()
 			subfolder := &models.Folder{
-				Name:       entry.Name(),
-				Path:       subfolderPath,
-				Created:    entryInfo.ModTime(),
-				PageCount:  0,
-				SubFolders: []*models.Folder{},
+				Name:          entry.Name(),
+				Path:          subfolderPath,
+				Created:       entryInfo.ModTime(),
+				DocumentCount: 0,
+				SubFolders:    []*models.Folder{},
 			}
 
-			subfolderFilePath := filepath.Join(p.dataDir, entry.Name())
+			subfolderFilePath := filepath.Join(d.dataDir, entry.Name())
 			if subEntries, err := os.ReadDir(subfolderFilePath); err == nil {
 				for _, subEntry := range subEntries {
 					if !subEntry.IsDir() && strings.HasSuffix(subEntry.Name(), MARKDOWN_FILE_ENDING) {
-						subfolder.PageCount++
+						subfolder.DocumentCount++
 					}
 				}
 			}
 
 			folder.SubFolders = append(folder.SubFolders, subfolder)
 		} else if strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
-			folder.PageCount++
+			folder.DocumentCount++
 		}
 	}
 
 	return folder, nil
 }
 
-func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
+func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 	folderMap := make(map[string]*models.Folder)
 	var rootFolders []*models.Folder
 
-	err := filepath.WalkDir(p.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
+	err := filepath.WalkDir(d.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
 		// Skip the root data directory itself
-		if path == p.dataDir {
+		if path == d.dataDir {
 			return nil
 		}
 
@@ -582,7 +582,7 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 			return nil
 		}
 
-		relPath, err := filepath.Rel(p.dataDir, path)
+		relPath, err := filepath.Rel(d.dataDir, path)
 		if err != nil {
 			return fmt.Errorf("failed to get relative path: %w", err)
 		}
@@ -596,11 +596,11 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 			}
 
 			folder := &models.Folder{
-				Name:       dirEntry.Name(),
-				Path:       logicalPath,
-				Created:    info.ModTime(),
-				PageCount:  0,
-				SubFolders: []*models.Folder{},
+				Name:          dirEntry.Name(),
+				Path:          logicalPath,
+				Created:       info.ModTime(),
+				DocumentCount: 0,
+				SubFolders:    []*models.Folder{},
 			}
 
 			folderMap[logicalPath] = folder
@@ -621,7 +621,7 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 			}
 
 			if folder, exists := folderMap[folderPath]; exists {
-				folder.PageCount++
+				folder.DocumentCount++
 			}
 		}
 
@@ -635,12 +635,12 @@ func (p *PageService) GetFolderTree() ([]*models.Folder, error) {
 	return rootFolders, nil
 }
 
-func (p *PageService) CreateFolder(path string) error {
+func (d *DocumentService) CreateFolder(path string) error {
 	if err := utils.ValidatePath(path); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
 
-	folderPath := utils.BuildFilePath(p.dataDir, path)
+	folderPath := utils.BuildFilePath(d.dataDir, path)
 
 	fileMode := os.FileMode(0755)
 	if err := os.MkdirAll(folderPath, fileMode); err != nil {
@@ -650,7 +650,7 @@ func (p *PageService) CreateFolder(path string) error {
 	return nil
 }
 
-func (p *PageService) RenameFolder(oldPath, newName string) error {
+func (d *DocumentService) RenameFolder(oldPath, newName string) error {
 	if err := utils.ValidatePath(oldPath); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
@@ -668,12 +668,12 @@ func (p *PageService) RenameFolder(oldPath, newName string) error {
 	parentPath := filepath.Dir(oldPath)
 	newPath := utils.NormalizePath(parentPath + "/" + newName)
 
-	oldFolderPath := utils.BuildFilePath(p.dataDir, oldPath)
+	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
 	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
 		return fmt.Errorf("folder does not exist at path %s", oldPath)
 	}
 
-	newFolderPath := utils.BuildFilePath(p.dataDir, newPath)
+	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
 	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
 		return fmt.Errorf("folder already exists at path %s", newPath)
 	}
@@ -682,24 +682,24 @@ func (p *PageService) RenameFolder(oldPath, newName string) error {
 		return fmt.Errorf("failed to rename folder from %s to %s: %w", oldFolderPath, newFolderPath, err)
 	}
 
-	pages, err := p.ListPages()
+	documents, err := d.ListDocuments()
 	if err != nil {
 		if err := os.Rename(newFolderPath, oldFolderPath); err != nil {
 			return fmt.Errorf("failed to rename folder from %s to %s: %w", newFolderPath, oldFolderPath, err)
 		}
-		return fmt.Errorf("failed to list pages: %w", err)
+		return fmt.Errorf("failed to list documents: %w", err)
 	}
 
-	var affectedPages []*models.Page
-	for _, page := range pages {
-		pagePath := page.MetaData.Path
-		if pagePath == oldPath || strings.HasPrefix(pagePath, oldPath+"/") {
-			affectedPages = append(affectedPages, page)
+	var affectedDocuments []*models.Document
+	for _, document := range documents {
+		documentPath := document.MetaData.Path
+		if documentPath == oldPath || strings.HasPrefix(documentPath, oldPath+"/") {
+			affectedDocuments = append(affectedDocuments, document)
 		}
 	}
 
-	for _, page := range affectedPages {
-		shouldReturn, err1 := p.updatePagePath(page, oldPath, newPath, oldFolderPath, newFolderPath)
+	for _, document := range affectedDocuments {
+		shouldReturn, err1 := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath)
 		if shouldReturn {
 			return err1
 		}
@@ -708,45 +708,45 @@ func (p *PageService) RenameFolder(oldPath, newName string) error {
 	return nil
 }
 
-func (p *PageService) updatePagePath(
-	page *models.Page,
+func (d *DocumentService) updateDocumentPath(
+	document *models.Document,
 	oldPath string,
 	newPath string,
 	oldFolderPath string,
 	newFolderPath string) (bool, error) {
 
-	oldPagePath := page.MetaData.Path
-	newPagePath := strings.Replace(oldPagePath, oldPath, newPath, 1)
+	oldDocumentPath := document.MetaData.Path
+	newDocumentPath := strings.Replace(oldDocumentPath, oldPath, newPath, 1)
 
-	oldFileInNewFolder := p.buildFilePathFromPath(oldPagePath)
+	oldFileInNewFolder := d.buildFilePathFromPath(oldDocumentPath)
 	newFileInNewFolder := strings.Replace(oldFileInNewFolder, oldFolderPath, newFolderPath, 1)
 
 	fileContent, err := os.ReadFile(newFileInNewFolder)
 	if err != nil {
-		return true, fmt.Errorf("failed to read page file at %s: %w", newFileInNewFolder, err)
+		return true, fmt.Errorf("failed to read document file at %s: %w", newFileInNewFolder, err)
 	}
 
-	freshPage, err := serializer.DeserializePage(fileContent)
+	freshDocument, err := serializer.DeserializeDocument(fileContent)
 	if err != nil {
-		return true, fmt.Errorf("failed to deserialize page: %w", err)
+		return true, fmt.Errorf("failed to deserialize document: %w", err)
 	}
 
-	freshPage.MetaData.Path = utils.NormalizePath(newPagePath)
-	freshPage.MetaData.Slug = utils.ExtractSlugFromPath(newPagePath)
-	freshPage.MetaData.Updated = time.Now()
+	freshDocument.MetaData.Path = utils.NormalizePath(newDocumentPath)
+	freshDocument.MetaData.Slug = utils.ExtractSlugFromPath(newDocumentPath)
+	freshDocument.MetaData.Updated = time.Now()
 
-	content, err := serializer.SerializePage(freshPage)
+	content, err := serializer.SerializeDocument(freshDocument)
 	if err != nil {
-		return true, fmt.Errorf("failed to serialize page: %w", err)
+		return true, fmt.Errorf("failed to serialize document: %w", err)
 	}
 
 	if err := os.WriteFile(newFileInNewFolder, content, 0644); err != nil {
-		return true, fmt.Errorf("failed to write updated page file: %w", err)
+		return true, fmt.Errorf("failed to write updated document file: %w", err)
 	}
 	return false, nil
 }
 
-func (p *PageService) MoveFolder(oldPath, newPath string) error {
+func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 	if err := utils.ValidatePath(oldPath); err != nil {
 		return fmt.Errorf("invalid old folder path: %w", err)
 	}
@@ -766,12 +766,12 @@ func (p *PageService) MoveFolder(oldPath, newPath string) error {
 		return fmt.Errorf("cannot move folder into itself or its subdirectory")
 	}
 
-	oldFolderPath := utils.BuildFilePath(p.dataDir, oldPath)
+	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
 	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
 		return fmt.Errorf("folder does not exist at path %s", oldPath)
 	}
 
-	newFolderPath := utils.BuildFilePath(p.dataDir, newPath)
+	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
 	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
 		return fmt.Errorf("destination folder already exists at path %s", newPath)
 	}
@@ -785,28 +785,28 @@ func (p *PageService) MoveFolder(oldPath, newPath string) error {
 		return fmt.Errorf("failed to move folder from %s to %s: %w", oldFolderPath, newFolderPath, err)
 	}
 
-	pages, err := p.ListPages()
+	documents, err := d.ListDocuments()
 	if err != nil {
 		if rollbackErr := os.Rename(newFolderPath, oldFolderPath); rollbackErr != nil {
-			return fmt.Errorf("failed to list pages after move AND failed to rollback: %w (rollback error: %v)",
+			return fmt.Errorf("failed to list documents after move AND failed to rollback: %w (rollback error: %v)",
 				err,
 				rollbackErr)
 		}
-		return fmt.Errorf("failed to list pages after folder move: %w", err)
+		return fmt.Errorf("failed to list documents after folder move: %w", err)
 	}
 
-	var affectedPages []*models.Page
-	for _, page := range pages {
-		pagePath := page.MetaData.Path
-		if pagePath == oldPath || strings.HasPrefix(pagePath, oldPath+"/") {
-			affectedPages = append(affectedPages, page)
+	var affectedDocuments []*models.Document
+	for _, document := range documents {
+		documentPath := document.MetaData.Path
+		if documentPath == oldPath || strings.HasPrefix(documentPath, oldPath+"/") {
+			affectedDocuments = append(affectedDocuments, document)
 		}
 	}
 
-	for _, page := range affectedPages {
-		if err := p.updatePagePathForMove(page, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
+	for _, document := range affectedDocuments {
+		if err := d.updateDocumentPathForMove(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
 			if rollbackErr := os.Rename(newFolderPath, oldFolderPath); rollbackErr != nil {
-				return fmt.Errorf("failed to update page metadata AND failed to rollback: %w (rollback error: %v)",
+				return fmt.Errorf("failed to update document metadata AND failed to rollback: %w (rollback error: %v)",
 					err,
 					rollbackErr)
 			}
@@ -817,45 +817,45 @@ func (p *PageService) MoveFolder(oldPath, newPath string) error {
 	return nil
 }
 
-func (p *PageService) updatePagePathForMove(
-	page *models.Page,
+func (d *DocumentService) updateDocumentPathForMove(
+	document *models.Document,
 	oldPath string,
 	newPath string,
 	oldFolderPath string,
 	newFolderPath string) error {
 
-	oldPagePath := page.MetaData.Path
-	newPagePath := strings.Replace(oldPagePath, oldPath, newPath, 1)
+	oldDocumentPath := document.MetaData.Path
+	newDocumentPath := strings.Replace(oldDocumentPath, oldPath, newPath, 1)
 
-	newFileInNewFolder := strings.Replace(p.buildFilePathFromPath(oldPagePath), oldFolderPath, newFolderPath, 1)
+	newFileInNewFolder := strings.Replace(d.buildFilePathFromPath(oldDocumentPath), oldFolderPath, newFolderPath, 1)
 
 	fileContent, err := os.ReadFile(newFileInNewFolder)
 	if err != nil {
-		return fmt.Errorf("failed to read page file at %s: %w", newFileInNewFolder, err)
+		return fmt.Errorf("failed to read document file at %s: %w", newFileInNewFolder, err)
 	}
 
-	freshPage, err := serializer.DeserializePage(fileContent)
+	freshDocument, err := serializer.DeserializeDocument(fileContent)
 	if err != nil {
-		return fmt.Errorf("failed to deserialize page: %w", err)
+		return fmt.Errorf("failed to deserialize document: %w", err)
 	}
 
-	freshPage.MetaData.Path = utils.NormalizePath(newPagePath)
-	freshPage.MetaData.Slug = utils.ExtractSlugFromPath(newPagePath)
-	freshPage.MetaData.Updated = time.Now()
+	freshDocument.MetaData.Path = utils.NormalizePath(newDocumentPath)
+	freshDocument.MetaData.Slug = utils.ExtractSlugFromPath(newDocumentPath)
+	freshDocument.MetaData.Updated = time.Now()
 
-	content, err := serializer.SerializePage(freshPage)
+	content, err := serializer.SerializeDocument(freshDocument)
 	if err != nil {
-		return fmt.Errorf("failed to serialize page: %w", err)
+		return fmt.Errorf("failed to serialize document: %w", err)
 	}
 
 	if err := os.WriteFile(newFileInNewFolder, content, 0644); err != nil {
-		return fmt.Errorf("failed to write updated page file: %w", err)
+		return fmt.Errorf("failed to write updated document file: %w", err)
 	}
 
 	return nil
 }
 
-func (p *PageService) DeleteFolder(path string) error {
+func (d *DocumentService) DeleteFolder(path string) error {
 	if err := utils.ValidatePath(path); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
@@ -864,7 +864,7 @@ func (p *PageService) DeleteFolder(path string) error {
 		return fmt.Errorf("cannot delete root folder")
 	}
 
-	folderPath := utils.BuildFilePath(p.dataDir, path)
+	folderPath := utils.BuildFilePath(d.dataDir, path)
 
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		return fmt.Errorf("folder does not exist at path %s", path)
@@ -878,53 +878,53 @@ func (p *PageService) DeleteFolder(path string) error {
 }
 
 // GetDocumentVersions returns version history for a document
-func (p *PageService) GetDocumentVersions(documentPath string) ([]*DocumentVersion, error) {
-	if p.gitService == nil {
+func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentVersion, error) {
+	if d.gitService == nil {
 		return nil, fmt.Errorf("git service not available")
 	}
 
-	return p.gitService.GetDocumentVersions(documentPath)
+	return d.gitService.GetDocumentVersions(documentPath)
 }
 
 // GetDocumentAtVersion returns a document at a specific version
-func (p *PageService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Page, error) {
-	if p.gitService == nil {
+func (d *DocumentService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Document, error) {
+	if d.gitService == nil {
 		return nil, fmt.Errorf("git service not available")
 	}
 
-	return p.gitService.GetDocumentAtVersion(documentPath, commitHash)
+	return d.gitService.GetDocumentAtVersion(documentPath, commitHash)
 }
 
-// commitPageChange commits a document change to git if GitService is available
-func (p *PageService) commitPageChange(documentPath string, message string) {
-	if p.gitService == nil {
+// commitDocumentChange commits a document change to git if GitService is available
+func (d *DocumentService) commitDocumentChange(documentPath string, message string) {
+	if d.gitService == nil {
 		// Git not available, skip silently
 		return
 	}
 
-	if err := p.gitService.CommitDocument(documentPath, message); err != nil {
+	if err := d.gitService.CommitDocument(documentPath, message); err != nil {
 		// Log error but don't fail the operation
 		log.Printf("Warning: Failed to commit document change for %s: %v", documentPath, err)
 	}
 }
 
 // CompareDocumentVersions compares two versions of a document and returns a structured diff
-func (p *PageService) CompareDocumentVersions(documentPath, hash1, hash2 string) (*DiffResult, error) {
-	if p.gitService == nil {
+func (d *DocumentService) CompareDocumentVersions(documentPath, hash1, hash2 string) (*DiffResult, error) {
+	if d.gitService == nil {
 		return nil, fmt.Errorf("git service not available")
 	}
 
-	return p.gitService.CompareVersions(documentPath, hash1, hash2)
+	return d.gitService.CompareVersions(documentPath, hash1, hash2)
 }
 
-// RestorePageToVersion restores a page to a previous version
-func (p *PageService) RestorePageToVersion(path, commitHash string) error {
-	if p.gitService == nil {
+// RestoreDocumentToVersion restores a document to a previous version
+func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) error {
+	if d.gitService == nil {
 		return fmt.Errorf("git service not available")
 	}
 
 	// Use GitService to restore the document
-	if err := p.gitService.RestoreDocument(path, commitHash); err != nil {
+	if err := d.gitService.RestoreDocument(path, commitHash); err != nil {
 		return fmt.Errorf("failed to restore document: %w", err)
 	}
 

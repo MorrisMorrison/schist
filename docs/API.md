@@ -64,7 +64,7 @@ X-RateLimit-Reset: 1642694400
 
 ## Data Models
 
-### Page Object
+### Document Object
 ```json
 {
   "metaData": {
@@ -85,7 +85,7 @@ X-RateLimit-Reset: 1642694400
   "name": "docs",
   "path": "/docs",
   "created": "2024-01-15T10:30:00Z",
-  "page_count": 5,
+  "document_count": 5,
   "sub_folders": [...]
 }
 ```
@@ -119,19 +119,19 @@ Check if the server is running.
 }
 ```
 
-### Page Management
+### Document Management
 
-Pages in Schist are organized hierarchically using path-based routing. Paths like `/docs/api` create nested folder structures automatically.
+Documents in Schist are organized hierarchically using path-based routing. Paths like `/docs/api` create nested folder structures automatically.
 
-#### List All Pages
-**GET** `/api/pages`
+#### List All Documents
+**GET** `/api/documents`
 
-Retrieve all wiki pages with metadata. Automatically excludes pages in the `/trash` folder.
+Retrieve all wiki documents with metadata. Automatically excludes documents in the `/trash` folder.
 
 **Response:**
 ```json
 {
-  "pages": [
+  "documents": [
     {
       "metaData": {
         "slug": "welcome-to-schist",
@@ -148,25 +148,25 @@ Retrieve all wiki pages with metadata. Automatically excludes pages in the `/tra
 }
 ```
 
-#### Get Page by Path
-**GET** `/api/pages/*path`
+#### Get Document by Path
+**GET** `/api/documents/*path`
 
-Retrieve a specific page by its hierarchical path.
+Retrieve a specific document by its hierarchical path.
 
 **Path Examples:**
-- `/api/pages/welcome` - Root level page
-- `/api/pages/docs/api` - Nested page in docs folder
-- `/api/pages/projects/2024/website` - Deeply nested page
+- `/api/documents/welcome` - Root level document
+- `/api/documents/docs/api` - Nested document in docs folder
+- `/api/documents/projects/2024/website` - Deeply nested document
 
-**Response:** Single page object (same structure as in list response)
+**Response:** Single document object (same structure as in list response)
 
 **Error Responses:**
-- `404` - Page not found
+- `404` - Document not found
 
-#### Create New Page
-**POST** `/api/pages`
+#### Create New Document
+**POST** `/api/documents`
 
-Create a new wiki page. The system automatically generates slugs and paths if not provided.
+Create a new wiki document. The system automatically generates slugs and paths if not provided.
 
 **Request Body:**
 ```json
@@ -188,45 +188,45 @@ Create a new wiki page. The system automatically generates slugs and paths if no
 **Response:**
 ```json
 {
-  "message": "Page created successfully",
+  "message": "Document created successfully",
   "path": "/generated-or-custom-path"
 }
 ```
 
-#### Update Page
-**PUT** `/api/pages/*path`
+#### Update Document
+**PUT** `/api/documents/*path`
 
-Update an existing page. Can move pages by changing the path in metadata.
+Update an existing document. Can move documents by changing the path in metadata.
 
-**Request Body:** Same as create page
+**Request Body:** Same as create document
 
-**Special Behavior:** If the path in metadata differs from the URL path, the page will be moved to the new location.
+**Special Behavior:** If the path in metadata differs from the URL path, the document will be moved to the new location.
 
 **Response:**
 ```json
 {
-  "message": "Page updated successfully",
+  "message": "Document updated successfully",
   "path": "/current-path"
 }
 ```
 
-#### Delete Page (Move to Trash)
-**DELETE** `/api/pages/*path`
+#### Delete Document (Move to Trash)
+**DELETE** `/api/documents/*path`
 
-Soft delete a page by moving it to the `/trash` directory.
+Soft delete a document by moving it to the `/trash` directory.
 
 **Response:**
 ```json
 {
-  "message": "Page moved to trash successfully",
+  "message": "Document moved to trash successfully",
   "path": "/original-path"
 }
 ```
 
-#### Move Page
-**POST** `/api/pages/move`
+#### Move Document
+**POST** `/api/documents/move`
 
-Move a page to a different location in the hierarchy.
+Move a document to a different location in the hierarchy.
 
 **Request Body:**
 ```json
@@ -239,7 +239,7 @@ Move a page to a different location in the hierarchy.
 **Response:**
 ```json
 {
-  "message": "Page moved successfully",
+  "message": "Document moved successfully",
   "oldPath": "/current/path",
   "newPath": "/new/path"
 }
@@ -247,12 +247,12 @@ Move a page to a different location in the hierarchy.
 
 ### Folder Management
 
-Folders organize pages hierarchically and are created automatically when pages are placed in them.
+Folders organize documents hierarchically and are created automatically when documents are placed in them.
 
 #### Get Folder Tree
 **GET** `/api/folders`
 
-Retrieve the complete folder hierarchy with page counts.
+Retrieve the complete folder hierarchy with document counts.
 
 **Response:**
 ```json
@@ -268,7 +268,7 @@ Retrieve the complete folder hierarchy with page counts.
           "name": "api",
           "path": "/docs/api",
           "created": "2024-01-15T10:30:00Z",
-          "page_count": 2,
+          "document_count": 2,
           "sub_folders": []
         }
       ]
@@ -320,10 +320,10 @@ Remove a folder and all its contents permanently.
 
 ### Search
 
-#### Search Pages
+#### Search Documents
 **GET** `/api/search?q={query}`
 
-Full-text search across page titles (case-insensitive). Excludes pages in `/trash`.
+Full-text search across document titles (case-insensitive). Excludes documents in `/trash`.
 
 **Query Parameters:**
 - `q` (string, required) - Search term
@@ -336,7 +336,7 @@ Full-text search across page titles (case-insensitive). Excludes pages in `/tras
 ```json
 {
   "query": "search term",
-  "pages": [
+  "documents": [
     {
       "metaData": {
         "title": "Getting Started Guide",
@@ -352,7 +352,7 @@ Full-text search across page titles (case-insensitive). Excludes pages in `/tras
 
 ### Asset Management
 
-Upload and manage images and media files for use in wiki pages.
+Upload and manage images and media files for use in wiki documents.
 
 #### Upload Asset
 **POST** `/api/assets/upload`
@@ -446,12 +446,12 @@ Direct static access to uploaded assets (maps to `{dataDir}/assets/`).
 - **Auto-Normalization:** Leading slashes added automatically
 
 ### File Storage Format
-Pages are stored as markdown files with YAML front matter:
+Documents are stored as markdown files with YAML front matter:
 
 ```markdown
 ---
-title: Page Title
-path: /page-path
+title: Document Title
+path: /document-path
 created: 2024-01-15T10:30:00Z
 updated: 2024-01-15T10:30:00Z
 tags:
@@ -461,7 +461,7 @@ tags:
 
 # Markdown Content
 
-Your page content here...
+Your document content here...
 ```
 
 ## Development Notes
@@ -477,7 +477,7 @@ HTTP test files are available in the `/http` directory for API testing with VS C
 ### Creating a Nested Document Structure
 ```bash
 # Create a project documentation hierarchy
-POST /api/pages
+POST /api/documents
 {
   "metaData": {
     "title": "Project Overview",
@@ -489,9 +489,9 @@ POST /api/pages
 # This automatically creates the folders: /projects/website/
 ```
 
-### Wiki Linking Between Pages
+### Wiki Linking Between Documents
 ```markdown
-# In any page content
+# In any document content
 Check out our [[API Documentation]] or [[/docs/getting-started]].
 
 # Both create clickable links in the frontend

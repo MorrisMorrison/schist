@@ -50,12 +50,20 @@ npx playwright show-report
 ```typescript
 import { test, expect } from '../fixtures';
 
-test('my test', async ({ homePage, testPage }) => {
+test('my test', async ({ homePage, testDocument }) => {
 	await homePage.navigate();
 	await homePage.verifyLoaded();
 	// Test logic here
 });
+
+// Both documentViewPage and pageViewPage (legacy) are available
+test('document test', async ({ documentViewPage, testDocument }) => {
+	await documentViewPage.navigateToDocument(testDocument.path!);
+	await documentViewPage.verifyDocumentLoaded(testDocument.title);
+});
 ```
+
+````
 
 ## Page Objects
 
@@ -67,14 +75,14 @@ test('my test', async ({ homePage, testPage }) => {
 
 ### EditorPage
 
-- Page creation and editing
+- Document creation and editing
 - Auto-save functionality
 - Form validation
 - Content management
 
-### PageViewPage
+### DocumentViewPage
 
-- Page content display
+- Document content display
 - Navigation and breadcrumbs
 - Action buttons (edit, delete, move)
 - Markdown rendering verification
@@ -90,19 +98,25 @@ test('my test', async ({ homePage, testPage }) => {
 
 ### Fixtures
 
-- `testPage` - Generated test page data
-- `withTestPage` - Creates actual page in backend
-- `withMultiplePages` - Creates multiple test pages
-- `withNestedStructure` - Creates folder structure with pages
+- `testDocument` - Generated test document data
+- `testPage` - Generated test page data (legacy alias)
+- `withTestDocument` - Creates actual document in backend
+- `withTestPage` - Creates actual page in backend (legacy alias)
+- `withMultipleDocuments` - Creates multiple test documents
+- `withMultiplePages` - Creates multiple test pages (legacy alias)
+- `withNestedStructure` - Creates folder structure with documents
 
 ### Test Data Utilities
 
 ```typescript
-import { createTestPage, createComplexTestPage } from '../utils/test-data';
+import { createTestDocument, createComplexTestDocument } from '../utils/test-data';
 
-const page = createTestPage({ title: 'My Test Page' });
-const complex = createComplexTestPage({ tags: ['demo', 'test'] });
-```
+const document = createTestDocument({ title: 'My Test Document' });
+const complex = createComplexTestDocument({ tags: ['demo', 'test'] });
+
+// Legacy aliases still available
+const page = createTestPage({ title: 'My Test Document' });
+````
 
 ## API Helpers
 
@@ -111,14 +125,18 @@ Direct backend interaction for test setup and verification:
 ```typescript
 import { ApiHelper } from '../utils/api-helpers';
 
-// Create page via API
-await apiHelper.createPage(pageData);
+// Create document via API
+await apiHelper.createDocument(documentData);
 
-// Verify page exists
-await apiHelper.getPage('/my-page');
+// Verify document exists
+await apiHelper.getDocument('/my-document');
 
 // Cleanup test data
-await apiHelper.cleanupTestData('test-');
+await apiHelper.cleanupTestData();
+
+// Legacy methods still available
+await apiHelper.createPage(pageData);
+await apiHelper.getPage('/my-document');
 ```
 
 ## Custom Assertions
@@ -233,7 +251,7 @@ npx playwright test --trace on
 
 This infrastructure supports the implementation of comprehensive e2e tests for:
 
-1. **Page Lifecycle** - Create, edit, view, delete operations
+1. **Document Lifecycle** - Create, edit, view, delete operations
 2. **Navigation** - Routing, breadcrumbs, error handling
 3. **Search** - Real-time search, result interaction
 4. **Folders** - Hierarchical organization, tree navigation

@@ -13,32 +13,32 @@ import (
 )
 
 type APIHandler struct {
-	PageService  *services.PageService
-	AssetService *services.AssetService
-	LinkService  *services.LinkService
+	DocumentService *services.DocumentService
+	AssetService    *services.AssetService
+	LinkService     *services.LinkService
 }
 
 func NewAPIHandler() *APIHandler {
 	dataDir := config.Load().DataDir
-	pageService := services.NewPageService(dataDir)
+	documentService := services.NewDocumentService(dataDir)
 	return &APIHandler{
-		PageService:  pageService,
-		AssetService: services.NewAssetService(dataDir),
-		LinkService:  services.NewLinkService(pageService),
+		DocumentService: documentService,
+		AssetService:    services.NewAssetService(dataDir),
+		LinkService:     services.NewLinkService(documentService),
 	}
 }
 
 func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/health", h.healthCheck)
 
-	pages := routerGroup.Group("/pages")
+	documents := routerGroup.Group("/documents")
 	{
-		pages.GET("", h.listPages)
-		pages.POST("", h.createPage)
-		pages.POST("/move", h.movePage)
-		pages.GET("/*path", h.getPageByPath)
-		pages.PUT("/*path", h.updatePageByPath)
-		pages.DELETE("/*path", h.deletePageByPath)
+		documents.GET("", h.listDocuments)
+		documents.POST("", h.createDocument)
+		documents.POST("/move", h.moveDocument)
+		documents.GET("/*path", h.getDocumentByPath)
+		documents.PUT("/*path", h.updateDocumentByPath)
+		documents.DELETE("/*path", h.deleteDocumentByPath)
 	}
 
 	// Link-related routes - these need to be defined separately to avoid wildcard conflicts
@@ -47,8 +47,8 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	// Define link routes using specific handlers that extract path from the full route
 	linkRoutes := routerGroup.Group("/links")
 	{
-		linkRoutes.GET("/outgoing/*path", h.getPageLinksHandler)
-		linkRoutes.GET("/backlinks/*path", h.getPageBacklinksHandler)
+		linkRoutes.GET("/outgoing/*path", h.getDocumentLinksHandler)
+		linkRoutes.GET("/backlinks/*path", h.getDocumentBacklinksHandler)
 	}
 
 	folders := routerGroup.Group("/folders")
@@ -83,8 +83,8 @@ func (h *APIHandler) healthCheck(c *gin.Context) {
 	})
 }
 
-func (h *APIHandler) listPages(c *gin.Context) {
-	pages, err := h.PageService.ListPages()
+func (h *APIHandler) listDocuments(c *gin.Context) {
+	documents, err := h.DocumentService.ListDocuments()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -93,14 +93,14 @@ func (h *APIHandler) listPages(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"pages": pages,
-		"total": len(pages),
+		"documents": documents,
+		"total":     len(documents),
 	})
 }
 
-func (h *APIHandler) createPage(c *gin.Context) {
-	page := &models.Page{}
-	err := c.BindJSON(page)
+func (h *APIHandler) createDocument(c *gin.Context) {
+	document := &models.Document{}
+	err := c.BindJSON(document)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -108,7 +108,7 @@ func (h *APIHandler) createPage(c *gin.Context) {
 		return
 	}
 
-	err = h.PageService.CreatePage(page)
+	err = h.DocumentService.CreateDocument(document)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -116,21 +116,21 @@ func (h *APIHandler) createPage(c *gin.Context) {
 		return
 	}
 
-	// Update backlinks for the newly created page
-	if err := h.LinkService.UpdateBacklinks(page.MetaData.Path); err != nil {
+	// Update backlinks for the newly created document
+	if err := h.LinkService.UpdateBacklinks(document.MetaData.Path); err != nil {
 		// Log error but don't fail the request
-		fmt.Printf("Warning: failed to update backlinks for new page %s: %v\n", page.MetaData.Path, err)
+		fmt.Printf("Warning: failed to update backlinks for new document %s: %v\n", document.MetaData.Path, err)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Page created successfully",
-		"path":    page.MetaData.Path,
+		"message": "Document created successfully",
+		"path":    document.MetaData.Path,
 	})
 }
 
 func (h *APIHandler) search(c *gin.Context) {
 	query := c.Query("q")
-	pages, err := h.PageService.Search(query)
+	documents, err := h.DocumentService.Search(query)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -138,14 +138,14 @@ func (h *APIHandler) search(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"query": query,
-		"pages": pages,
-		"total": len(pages),
+		"query":     query,
+		"documents": documents,
+		"total":     len(documents),
 	})
 }
 
 func (h *APIHandler) getAllTags(c *gin.Context) {
-	tagCounts, err := h.PageService.GetAllTags()
+	tagCounts, err := h.DocumentService.GetAllTags()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -173,13 +173,13 @@ func (h *APIHandler) getAllTags(c *gin.Context) {
 	})
 }
 
-func (h *APIHandler) getPageByPath(c *gin.Context) {
+func (h *APIHandler) getDocumentByPath(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
-	page, err := h.PageService.GetPageByPath(path)
+	document, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
@@ -187,22 +187,22 @@ func (h *APIHandler) getPageByPath(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, page)
+	c.JSON(http.StatusOK, document)
 }
 
-func (h *APIHandler) updatePageByPath(c *gin.Context) {
+func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
-	// Parse request body to extract both page data and saveType
-	type UpdatePageRequest struct {
-		*models.Page
+	// Parse request body to extract both document data and saveType
+	type UpdateDocumentRequest struct {
+		*models.Document
 		SaveType string `json:"saveType,omitempty"` // "manual" or "auto", defaults to "manual"
 	}
 
-	var req UpdatePageRequest
+	var req UpdateDocumentRequest
 	err := c.BindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -217,17 +217,17 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		saveType = "manual"
 	}
 
-	updatedPage := req.Page
-	updatedPage.MetaData.Updated = time.Now()
+	updatedDocument := req.Document
+	updatedDocument.MetaData.Updated = time.Now()
 
-	if err := h.PageService.MovePage(path, updatedPage.MetaData.Path); err != nil {
+	if err := h.DocumentService.MoveDocument(path, updatedDocument.MetaData.Path); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("failed to move page: %v", err),
+			"error": fmt.Sprintf("failed to move document: %v", err),
 		})
 		return
 	}
 
-	err = h.PageService.UpdatePageWithSaveType(updatedPage, saveType)
+	err = h.DocumentService.UpdateDocumentWithSaveType(updatedDocument, saveType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -235,24 +235,24 @@ func (h *APIHandler) updatePageByPath(c *gin.Context) {
 		return
 	}
 
-	// Update backlinks for the updated page
-	if err := h.LinkService.UpdateBacklinks(updatedPage.MetaData.Path); err != nil {
+	// Update backlinks for the updated document
+	if err := h.LinkService.UpdateBacklinks(updatedDocument.MetaData.Path); err != nil {
 		// Log error but don't fail the request
-		fmt.Printf("Warning: failed to update backlinks for updated page %s: %v\n", updatedPage.MetaData.Path, err)
+		fmt.Printf("Warning: failed to update backlinks for updated document %s: %v\n", updatedDocument.MetaData.Path, err)
 	}
 
-	c.JSON(http.StatusOK, updatedPage)
+	c.JSON(http.StatusOK, updatedDocument)
 }
 
-func (h *APIHandler) deletePageByPath(c *gin.Context) {
+func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
-	// If the page is already in trash, permanently delete it
+	// If the document is already in trash, permanently delete it
 	if strings.HasPrefix(path, "/trash") {
-		err := h.PageService.DeletePage(path)
+		err := h.DocumentService.DeleteDocument(path)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
@@ -261,7 +261,7 @@ func (h *APIHandler) deletePageByPath(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"message": "Page permanently deleted",
+			"message": "Document permanently deleted",
 			"path":    path,
 		})
 		return
@@ -269,7 +269,7 @@ func (h *APIHandler) deletePageByPath(c *gin.Context) {
 
 	// Otherwise, move to trash
 	trashPath := "/trash" + path
-	err := h.PageService.MovePage(path, trashPath)
+	err := h.DocumentService.MoveDocument(path, trashPath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -278,7 +278,7 @@ func (h *APIHandler) deletePageByPath(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Page moved to trash successfully",
+		"message": "Document moved to trash successfully",
 		"path":    path,
 	})
 }
@@ -289,7 +289,7 @@ func (h *APIHandler) getFolder(c *gin.Context) {
 		path = "/" + path
 	}
 
-	folder, err := h.PageService.GetFolder(path)
+	folder, err := h.DocumentService.GetFolder(path)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -301,7 +301,7 @@ func (h *APIHandler) getFolder(c *gin.Context) {
 }
 
 func (h *APIHandler) getFolderTree(c *gin.Context) {
-	folders, err := h.PageService.GetFolderTree()
+	folders, err := h.DocumentService.GetFolderTree()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -333,7 +333,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 		path = "/" + path
 	}
 
-	err := h.PageService.CreateFolder(path)
+	err := h.DocumentService.CreateFolder(path)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -366,7 +366,7 @@ func (h *APIHandler) renameFolder(c *gin.Context) {
 		return
 	}
 
-	err = h.PageService.RenameFolder(path, req.NewName)
+	err = h.DocumentService.RenameFolder(path, req.NewName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -387,7 +387,7 @@ func (h *APIHandler) deleteFolder(c *gin.Context) {
 		path = "/" + path
 	}
 
-	err := h.PageService.DeleteFolder(path)
+	err := h.DocumentService.DeleteFolder(path)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -423,7 +423,7 @@ func (h *APIHandler) moveFolder(c *gin.Context) {
 		req.NewPath = "/" + req.NewPath
 	}
 
-	err = h.PageService.MoveFolder(req.OldPath, req.NewPath)
+	err = h.DocumentService.MoveFolder(req.OldPath, req.NewPath)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -438,7 +438,7 @@ func (h *APIHandler) moveFolder(c *gin.Context) {
 	})
 }
 
-func (h *APIHandler) movePage(c *gin.Context) {
+func (h *APIHandler) moveDocument(c *gin.Context) {
 	type MoveRequest struct {
 		OldPath string `json:"oldPath" binding:"required"`
 		NewPath string `json:"newPath" binding:"required"`
@@ -460,7 +460,7 @@ func (h *APIHandler) movePage(c *gin.Context) {
 		req.NewPath = "/" + req.NewPath
 	}
 
-	err = h.PageService.MovePage(req.OldPath, req.NewPath)
+	err = h.DocumentService.MoveDocument(req.OldPath, req.NewPath)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -469,7 +469,7 @@ func (h *APIHandler) movePage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Page moved successfully",
+		"message": "Document moved successfully",
 		"oldPath": req.OldPath,
 		"newPath": req.NewPath,
 	})
@@ -547,8 +547,8 @@ func (h *APIHandler) deleteAsset(c *gin.Context) {
 	})
 }
 
-// getPageLinksHandler returns all outgoing links for a specific page (new route structure)
-func (h *APIHandler) getPageLinksHandler(c *gin.Context) {
+// getDocumentLinksHandler returns all outgoing links for a specific document (new route structure)
+func (h *APIHandler) getDocumentLinksHandler(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
@@ -569,8 +569,8 @@ func (h *APIHandler) getPageLinksHandler(c *gin.Context) {
 	})
 }
 
-// getPageBacklinksHandler returns all pages that link to the specified page (new route structure)
-func (h *APIHandler) getPageBacklinksHandler(c *gin.Context) {
+// getDocumentBacklinksHandler returns all documents that link to the specified document (new route structure)
+func (h *APIHandler) getDocumentBacklinksHandler(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
@@ -584,23 +584,23 @@ func (h *APIHandler) getPageBacklinksHandler(c *gin.Context) {
 		return
 	}
 
-	// Get page metadata for each backlink
-	var backlinkPages []*models.Page
+	// Get document metadata for each backlink
+	var backlinkDocuments []*models.Document
 	for _, backlinkPath := range backlinks {
-		page, err := h.PageService.GetPageByPath(backlinkPath)
+		document, err := h.DocumentService.GetDocumentByPath(backlinkPath)
 		if err == nil {
-			backlinkPages = append(backlinkPages, page)
+			backlinkDocuments = append(backlinkDocuments, document)
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"path":      path,
-		"backlinks": backlinkPages,
-		"total":     len(backlinkPages),
+		"backlinks": backlinkDocuments,
+		"total":     len(backlinkDocuments),
 	})
 }
 
-// getBrokenLinks returns all broken links across all pages
+// getBrokenLinks returns all broken links across all documents
 func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 	brokenLinks, err := h.LinkService.GetBrokenLinks()
 	if err != nil {
@@ -611,8 +611,8 @@ func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"broken_links": brokenLinks,
-		"total_pages":  len(brokenLinks),
+		"broken_links":    brokenLinks,
+		"total_documents": len(brokenLinks),
 	})
 }
 
@@ -630,7 +630,7 @@ func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 		path = "/" + path
 	}
 
-	versions, err := h.PageService.GetDocumentVersions(path)
+	versions, err := h.DocumentService.GetDocumentVersions(path)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -667,7 +667,7 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 		path = "/" + path
 	}
 
-	page, err := h.PageService.GetDocumentAtVersion(path, commitHash)
+	document, err := h.DocumentService.GetDocumentAtVersion(path, commitHash)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -676,9 +676,9 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"path": path,
-		"hash": commitHash,
-		"page": page,
+		"path":     path,
+		"hash":     commitHash,
+		"document": document,
 	})
 }
 
@@ -712,7 +712,7 @@ func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 		path = "/" + path
 	}
 
-	diff, err := h.PageService.CompareDocumentVersions(path, hash1, hash2)
+	diff, err := h.DocumentService.CompareDocumentVersions(path, hash1, hash2)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -747,7 +747,7 @@ func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
 		path = "/" + path
 	}
 
-	err := h.PageService.RestorePageToVersion(path, commitHash)
+	err := h.DocumentService.RestoreDocumentToVersion(path, commitHash)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

@@ -9,12 +9,12 @@ export class FolderPage extends BasePage {
 	readonly folderTitle: Locator;
 	readonly folderPath: Locator;
 	readonly subFolders: Locator;
-	readonly pages: Locator;
+	readonly documents: Locator;
 	readonly emptyFolderMessage: Locator;
 
 	// Folder actions
 	readonly createFolderButton: Locator;
-	readonly createPageButton: Locator;
+	readonly createDocumentButton: Locator;
 	readonly folderActionsMenu: Locator;
 
 	// Create folder modal
@@ -31,7 +31,7 @@ export class FolderPage extends BasePage {
 	// List view
 	readonly itemsList: Locator;
 	readonly folderItems: Locator;
-	readonly pageItems: Locator;
+	readonly documentItems: Locator;
 	readonly itemNames: Locator;
 	readonly itemDates: Locator;
 
@@ -52,14 +52,16 @@ export class FolderPage extends BasePage {
 		this.folderTitle = page.locator('h1').first();
 		this.folderPath = page.getByTestId('folder-path');
 		this.subFolders = page.getByTestId('folders-section');
-		this.pages = page.getByTestId('pages-section');
+		this.documents = page.getByTestId('pages-section'); // still using pages-section testid until UI updates
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
 		// Folder actions (be more specific to avoid sidebar button conflicts)
 		this.createFolderButton = page
 			.getByRole('button', { name: /new folder|create folder/i })
 			.first();
-		this.createPageButton = page.getByRole('button', { name: /new page|create page/i }).first();
+		this.createDocumentButton = page
+			.getByRole('button', { name: /new page|create page|new document|create document/i })
+			.first();
 		this.folderActionsMenu = page.getByTestId('folder-actions');
 
 		// Create folder modal
@@ -76,7 +78,7 @@ export class FolderPage extends BasePage {
 		// List view
 		this.itemsList = page.getByTestId('items-list');
 		this.folderItems = this.itemsList.getByTestId('folder-item');
-		this.pageItems = this.itemsList.getByTestId('page-item');
+		this.documentItems = this.itemsList.getByTestId('page-item'); // still using page-item testid until UI updates
 		this.itemNames = this.itemsList.getByTestId('item-name');
 		this.itemDates = this.itemsList.getByTestId('item-date');
 
@@ -373,9 +375,27 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Check if page creation is allowed
+	 * Check if document creation is allowed
+	 */
+	async canCreateDocument(): Promise<boolean> {
+		return await this.createDocumentButton.isVisible();
+	}
+
+	/**
+	 * Legacy aliases for backwards compatibility
 	 */
 	async canCreatePage(): Promise<boolean> {
-		return await this.createPageButton.isVisible();
+		return await this.canCreateDocument();
+	}
+
+	// Legacy property aliases
+	get pages() {
+		return this.documents;
+	}
+	get pageItems() {
+		return this.documentItems;
+	}
+	get createPageButton() {
+		return this.createDocumentButton;
 	}
 }

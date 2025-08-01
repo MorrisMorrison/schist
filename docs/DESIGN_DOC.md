@@ -45,7 +45,7 @@ Schist creates a simple, fast, and reliable web-based wiki that uses plain markd
 ### Storage Structure
 ```
 schist-wiki/
-├── pages/
+├── documents/
 │   ├── index.md
 │   ├── getting-started.md
 │   └── project-ideas.md
@@ -83,15 +83,15 @@ schist-wiki/
 - Broken link detection
 
 #### 4. Basic Search
-- Full-text search across all pages
+- Full-text search across all documents
 - Search results with context snippets
 - Real-time search suggestions
 
 #### 5. Navigation
 - File tree sidebar
 - Breadcrumb navigation
-- Recently viewed pages
-- Quick page switcher (Ctrl+P style)
+- Recently viewed documents
+- Quick document switcher (Ctrl+P style)
 
 #### 6. Basic UI
 - Clean, responsive design
@@ -102,7 +102,7 @@ schist-wiki/
 
 #### 1. Enhanced Linking
 - Link suggestions while typing
-- Graph view of page connections
+- Graph view of document connections
 - Tag support with `#tag` syntax
 - Automatic link previews on hover
 
@@ -115,13 +115,13 @@ schist-wiki/
 #### 3. Content Organization
 - Favorites/bookmarks system
 - Recent changes view
-- Page templates
+- Document templates
 - Bulk operations (rename, move, delete)
 
 #### 4. Collaboration Features
 - Basic version history (git integration)
 - Export functionality (PDF, HTML)
-- Page sharing with direct links
+- Document sharing with direct links
 - Read-only mode
 
 ### Phase 3 Features
@@ -144,13 +144,13 @@ schist-wiki/
 ### API Endpoints
 
 ```
-GET    /api/pages              - List all pages with metadata
-GET    /api/pages/:slug        - Get specific page content
-POST   /api/pages              - Create new page
-PUT    /api/pages/:slug        - Update page content
-DELETE /api/pages/:slug        - Delete page
-GET    /api/search?q=query     - Search pages with Bleve
-GET    /api/links/:slug        - Get page links and backlinks
+GET    /api/documents          - List all documents with metadata
+GET    /api/documents/:slug    - Get specific document content
+POST   /api/documents          - Create new document
+PUT    /api/documents/:slug    - Update document content
+DELETE /api/documents/:slug    - Delete document
+GET    /api/search?q=query     - Search documents with Bleve
+GET    /api/links/:slug        - Get document links and backlinks
 POST   /api/assets             - Upload images/files
 GET    /api/graph              - Get wiki link graph data
 GET    /api/config             - Get wiki configuration
@@ -159,17 +159,17 @@ PUT    /api/config             - Update wiki settings
 
 ### File Format
 
-#### Page Metadata (Front Matter)
+#### Document Metadata (Front Matter)
 ```yaml
 ---
-title: "Page Title"
+title: "Document Title"
 created: 2025-01-15T10:30:00Z
 modified: 2025-01-15T15:45:00Z
 tags: [tag1, tag2]
 aliases: [alternative-name]
 ---
 
-# Page Content
+# Document Content
 
 Your markdown content here with [[wiki links]].
 ```
@@ -228,7 +228,7 @@ Your markdown content here with [[wiki links]].
 
 2. **Sidebar** (collapsible)
    - File tree with folder structure
-   - Recently viewed pages
+   - Recently viewed documents
    - Tag cloud
    - Favorites list
 
@@ -242,7 +242,7 @@ Your markdown content here with [[wiki links]].
    - Rendered markdown
    - Table of contents
    - Backlinks section
-   - Related pages
+   - Related documents
 
 ## Development Roadmap
 
@@ -275,7 +275,7 @@ Your markdown content here with [[wiki links]].
 
 ## Success Metrics
 
-- **Performance**: Page load time < 200ms
+- **Performance**: Document load time < 200ms
 - **Usability**: Setup time < 5 minutes
 - **Reliability**: 99%+ uptime for file operations
 - **Portability**: Works on any system with Node.js

@@ -3,7 +3,7 @@
  */
 
 import { APIRequestContext, expect } from '@playwright/test';
-import { TestPageData, TestFolderData } from './test-data';
+import { TestDocumentData, TestPageData, TestFolderData } from './test-data';
 
 export interface ApiResponse<T = unknown> {
 	status: number;
@@ -11,8 +11,8 @@ export interface ApiResponse<T = unknown> {
 	error?: string;
 }
 
-interface PageListData {
-	pages: Array<{
+interface DocumentListData {
+	documents: Array<{
 		metaData?: {
 			title?: string;
 			path?: string;
@@ -27,7 +27,7 @@ interface FolderListData {
 	}>;
 }
 
-interface PageData {
+interface DocumentData {
 	metaData?: {
 		title?: string;
 	};
@@ -65,18 +65,18 @@ export class ApiHelper {
 	}
 
 	/**
-	 * Create a page via API
+	 * Create a document via API
 	 */
-	async createPage(pageData: TestPageData): Promise<ApiResponse> {
+	async createDocument(documentData: TestDocumentData): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.post(`${this.baseURL}/pages`, {
+			const response = await this.apiContext.post(`${this.baseURL}/documents`, {
 				data: {
 					metaData: {
-						title: pageData.title,
-						path: pageData.path,
-						tags: pageData.tags || []
+						title: documentData.title,
+						path: documentData.path,
+						tags: documentData.tags || []
 					},
-					content: pageData.content
+					content: documentData.content
 				}
 			});
 
@@ -86,7 +86,7 @@ export class ApiHelper {
 				data: data
 			};
 
-			// Simple wait after page creation to avoid race conditions
+			// Simple wait after document creation to avoid race conditions
 			if (response.status() === 201) {
 				await new Promise((resolve) => setTimeout(resolve, 300));
 			}
@@ -101,14 +101,14 @@ export class ApiHelper {
 	}
 
 	/**
-	 * Get a page by path
+	 * Get a document by path
 	 */
-	async getPage(path: string): Promise<ApiResponse> {
+	async getDocument(path: string): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.get(`${this.baseURL}/pages${path}`);
+			const response = await this.apiContext.get(`${this.baseURL}/documents${path}`);
 
 			if (!response.ok()) {
-				return { status: response.status(), error: 'Page not found' };
+				return { status: response.status(), error: 'Document not found' };
 			}
 
 			const data = await response.json();
@@ -125,18 +125,21 @@ export class ApiHelper {
 	}
 
 	/**
-	 * Update a page via API
+	 * Update a document via API
 	 */
-	async updatePage(path: string, pageData: Partial<TestPageData>): Promise<ApiResponse> {
+	async updateDocument(
+		path: string,
+		documentData: Partial<TestDocumentData>
+	): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.put(`${this.baseURL}/pages${path}`, {
+			const response = await this.apiContext.put(`${this.baseURL}/documents${path}`, {
 				data: {
 					metaData: {
-						title: pageData.title,
-						path: pageData.path || path,
-						tags: pageData.tags || []
+						title: documentData.title,
+						path: documentData.path || path,
+						tags: documentData.tags || []
 					},
-					content: pageData.content
+					content: documentData.content
 				}
 			});
 
@@ -154,11 +157,11 @@ export class ApiHelper {
 	}
 
 	/**
-	 * Delete a page via API
+	 * Delete a document via API
 	 */
-	async deletePage(path: string): Promise<ApiResponse> {
+	async deleteDocument(path: string): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.delete(`${this.baseURL}/pages${path}`);
+			const response = await this.apiContext.delete(`${this.baseURL}/documents${path}`);
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -173,11 +176,11 @@ export class ApiHelper {
 	}
 
 	/**
-	 * List all pages
+	 * List all documents
 	 */
-	async listPages(): Promise<ApiResponse<PageListData>> {
+	async listDocuments(): Promise<ApiResponse<DocumentListData>> {
 		try {
-			const response = await this.apiContext.get(`${this.baseURL}/pages`);
+			const response = await this.apiContext.get(`${this.baseURL}/documents`);
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -249,9 +252,9 @@ export class ApiHelper {
 	}
 
 	/**
-	 * Search for pages
+	 * Search for documents
 	 */
-	async searchPages(query: string): Promise<ApiResponse> {
+	async searchDocuments(query: string): Promise<ApiResponse> {
 		try {
 			const response = await this.apiContext.get(
 				`${this.baseURL}/search?q=${encodeURIComponent(query)}`
@@ -334,14 +337,14 @@ export class ApiHelper {
 
 	async cleanupTestData(): Promise<void> {
 		try {
-			const pagesResponse = await this.listPages();
-			const pageData = pagesResponse.data as PageListData;
+			const documentsResponse = await this.listDocuments();
+			const documentData = documentsResponse.data as DocumentListData;
 
-			if (pageData && pageData.pages) {
-				for (const page of pageData.pages) {
-					const path = page.metaData?.path || '';
+			if (documentData && documentData.documents) {
+				for (const document of documentData.documents) {
+					const path = document.metaData?.path || '';
 					if (path) {
-						await this.deletePage(path);
+						await this.deleteDocument(path);
 					}
 				}
 			}
@@ -362,16 +365,16 @@ export class ApiHelper {
 		}
 	}
 
-	private async waitForPageAvailable(path: string, maxAttempts: number = 15): Promise<void> {
+	private async waitForDocumentAvailable(path: string, maxAttempts: number = 15): Promise<void> {
 		const delay = 150;
 
 		for (let attempt = 0; attempt < maxAttempts; attempt++) {
 			try {
-				const result = await this.getPage(path);
+				const result = await this.getDocument(path);
 				if (result.status === 200) {
 					if (attempt > 0) {
 						console.log(
-							`[ApiHelper] Page ${path} became available after ${attempt + 1} attempts (worker ${this.workerIndex})`
+							`[ApiHelper] Document ${path} became available after ${attempt + 1} attempts (worker ${this.workerIndex})`
 						);
 					}
 					return;
@@ -388,14 +391,44 @@ export class ApiHelper {
 		}
 
 		console.warn(
-			`[ApiHelper] Page ${path} may not be fully available after ${maxAttempts} attempts (worker ${this.workerIndex})`
+			`[ApiHelper] Document ${path} may not be fully available after ${maxAttempts} attempts (worker ${this.workerIndex})`
 		);
+	}
+
+	/**
+	 * Legacy aliases for backwards compatibility
+	 */
+	async createPage(pageData: TestPageData): Promise<ApiResponse> {
+		return this.createDocument(pageData);
+	}
+
+	async getPage(path: string): Promise<ApiResponse> {
+		return this.getDocument(path);
+	}
+
+	async updatePage(path: string, pageData: Partial<TestPageData>): Promise<ApiResponse> {
+		return this.updateDocument(path, pageData);
+	}
+
+	async deletePage(path: string): Promise<ApiResponse> {
+		return this.deleteDocument(path);
+	}
+
+	async listPages(): Promise<ApiResponse<DocumentListData>> {
+		return this.listDocuments();
+	}
+
+	async searchPages(query: string): Promise<ApiResponse> {
+		return this.searchDocuments(query);
 	}
 }
 
-export async function createTestPages(apiHelper: ApiHelper, pages: TestPageData[]): Promise<void> {
-	for (const pageData of pages) {
-		const result = await apiHelper.createPage(pageData);
+export async function createTestDocuments(
+	apiHelper: ApiHelper,
+	documents: TestDocumentData[]
+): Promise<void> {
+	for (const documentData of documents) {
+		const result = await apiHelper.createDocument(documentData);
 		expect(result.status).toBe(201);
 	}
 }
@@ -411,19 +444,19 @@ export async function createTestFolders(
 }
 
 /**
- * Verify page exists via API
+ * Verify document exists via API
  */
-export async function verifyPageExists(
+export async function verifyDocumentExists(
 	apiHelper: ApiHelper,
 	path: string,
 	expectedTitle?: string
 ): Promise<void> {
-	const result = await apiHelper.getPage(path);
+	const result = await apiHelper.getDocument(path);
 	expect(result.status).toBe(200);
 
 	if (expectedTitle) {
-		const pageData = result.data as PageData;
-		expect(pageData?.metaData?.title).toBe(expectedTitle);
+		const documentData = result.data as DocumentData;
+		expect(documentData?.metaData?.title).toBe(expectedTitle);
 	}
 }
 
@@ -436,9 +469,9 @@ export async function verifyFolderExists(apiHelper: ApiHelper, path: string): Pr
 }
 
 /**
- * Wait for page to be created/updated
+ * Wait for document to be created/updated
  */
-export async function waitForPageUpdate(
+export async function waitForDocumentUpdate(
 	apiHelper: ApiHelper,
 	path: string,
 	expectedContent?: string,
@@ -447,10 +480,10 @@ export async function waitForPageUpdate(
 	const startTime = Date.now();
 
 	while (Date.now() - startTime < timeoutMs) {
-		const result = await apiHelper.getPage(path);
+		const result = await apiHelper.getDocument(path);
 		if (result.status === 200) {
-			const pageData = result.data as PageData;
-			if (!expectedContent || pageData?.content?.includes(expectedContent)) {
+			const documentData = result.data as DocumentData;
+			if (!expectedContent || documentData?.content?.includes(expectedContent)) {
 				return true;
 			}
 		}
@@ -478,6 +511,11 @@ export function getWorkerBaseURL(workerIndex?: number): string {
 	return `http://localhost:${port}`;
 }
 
+// Legacy export functions for backwards compatibility
+export const createTestPages = createTestDocuments;
+export const verifyPageExists = verifyDocumentExists;
+export const waitForPageUpdate = waitForDocumentUpdate;
+
 /**
  * Mock API responses for testing error scenarios
  */
@@ -492,17 +530,26 @@ export class MockApiHelper extends ApiHelper {
 		this.failureMessage = message;
 	}
 
-	async createPage(): Promise<ApiResponse> {
+	async createDocument(): Promise<ApiResponse> {
 		if (this.shouldFail) {
 			return { status: this.failureStatus, error: this.failureMessage };
 		}
-		return super.createPage({} as TestPageData);
+		return super.createDocument({} as TestDocumentData);
 	}
 
-	async getPage(): Promise<ApiResponse> {
+	async getDocument(): Promise<ApiResponse> {
 		if (this.shouldFail) {
 			return { status: this.failureStatus, error: this.failureMessage };
 		}
 		return { status: 200, data: {} };
+	}
+
+	// Legacy aliases for backwards compatibility
+	async createPage(pageData?: TestPageData): Promise<ApiResponse> {
+		return this.createDocument(pageData);
+	}
+
+	async getPage(path?: string): Promise<ApiResponse> {
+		return this.getDocument(path);
 	}
 }

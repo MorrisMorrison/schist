@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { foldersStore, folderActions, pageActions } from '$lib/stores/pages';
+	import { foldersStore, folderActions, documentActions } from '$lib/stores/documents';
 	import { getParentPath } from '$lib/api/types';
 	import { Move, Folder, File, ChevronRight } from 'lucide-svelte';
-	import type { Page, Folder as FolderType } from '$lib/api/types';
+	import type { Document, Folder as FolderType } from '$lib/api/types';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,
@@ -15,33 +15,33 @@
 	import { Input } from '$lib/components/ui/input';
 
 	interface Props {
-		page: Page;
+		document: Document;
 		open?: boolean;
 		onClose: () => void;
 		onMoved: () => void;
 	}
 
-	let { page, open = true, onClose, onMoved }: Props = $props();
+	let { document, open = true, onClose, onMoved }: Props = $props();
 
 	let selectedPath = $state('');
-	let newPageName = $state('');
+	let newDocumentName = $state('');
 	let isLoading = $state(false);
 	let error = $state('');
 	let expandedFolders = $state(new Set<string>());
 
 	const availableFolders = $derived($foldersStore.folders);
-	const currentPath = $derived(page.metaData.path || `/${page.metaData.slug}`);
+	const currentPath = $derived(document.metaData.path || `/${document.metaData.slug}`);
 	const currentFolder = $derived(getParentPath(currentPath));
-	const pageName = $derived(page.metaData.title || page.metaData.slug || 'Untitled');
+	const documentName = $derived(document.metaData.title || document.metaData.slug || 'Untitled');
 	const finalPath = $derived(
 		selectedPath
-			? `${selectedPath}/${newPageName || page.metaData.slug}`
-			: `/${newPageName || page.metaData.slug}`
+			? `${selectedPath}/${newDocumentName || document.metaData.slug}`
+			: `/${newDocumentName || document.metaData.slug}`
 	);
 
 	onMount(() => {
 		folderActions.loadFolderTree();
-		newPageName = page.metaData.slug || '';
+		newDocumentName = document.metaData.slug || '';
 		selectedPath = currentFolder === '/' ? '' : currentFolder;
 	});
 
@@ -90,16 +90,16 @@
 
 	const folderTree = $derived(renderFolderTree(availableFolders));
 
-	async function movePage() {
+	async function moveDocument() {
 		if (isLoading) return;
 
-		if (!newPageName.trim()) {
-			error = 'Page name is required';
+		if (!newDocumentName.trim()) {
+			error = 'Document name is required';
 			return;
 		}
 
 		if (finalPath === currentPath) {
-			error = 'Please select a different location or change the page name';
+			error = 'Please select a different location or change the document name';
 			return;
 		}
 
@@ -107,10 +107,10 @@
 		error = '';
 
 		try {
-			await pageActions.movePagePath(currentPath, finalPath);
+			await documentActions.moveDocumentPath(currentPath, finalPath);
 			onMoved();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to move page';
+			error = err instanceof Error ? err.message : 'Failed to move document';
 		} finally {
 			isLoading = false;
 		}
@@ -122,14 +122,14 @@
 		<DialogHeader>
 			<DialogTitle class="flex items-center gap-3">
 				<Move class="h-5 w-5" />
-				Move Page
+				Move Document
 			</DialogTitle>
 		</DialogHeader>
 
 		<form
 			onsubmit={(e) => {
 				e.preventDefault();
-				movePage();
+				moveDocument();
 			}}
 			class="space-y-6"
 		>
@@ -141,22 +141,22 @@
 				<div class="flex items-center gap-3">
 					<File class="text-muted-foreground h-4 w-4" />
 					<div>
-						<div class="text-foreground font-medium">{pageName}</div>
+						<div class="text-foreground font-medium">{documentName}</div>
 						<div class="text-muted-foreground font-mono text-sm">{currentPath}</div>
 					</div>
 				</div>
 			</div>
 
-			<!-- New Page Name -->
+			<!-- New Document Name -->
 			<div class="space-y-2">
-				<label for="page-name" class="text-foreground text-sm font-medium">
-					Page Name (slug)
+				<label for="document-name" class="text-foreground text-sm font-medium">
+					Document Name (slug)
 				</label>
 				<Input
-					id="page-name"
+					id="document-name"
 					type="text"
-					bind:value={newPageName}
-					placeholder="Enter page name"
+					bind:value={newDocumentName}
+					placeholder="Enter document name"
 					required
 				/>
 			</div>
@@ -301,11 +301,11 @@
 
 		<DialogFooter class="gap-3">
 			<Button variant="outline" onclick={onClose} disabled={isLoading}>Cancel</Button>
-			<Button type="submit" disabled={isLoading || !newPageName.trim()} onclick={movePage}>
+			<Button type="submit" disabled={isLoading || !newDocumentName.trim()} onclick={moveDocument}>
 				{#if isLoading}
 					Moving...
 				{:else}
-					Move Page
+					Move Document
 				{/if}
 			</Button>
 		</DialogFooter>

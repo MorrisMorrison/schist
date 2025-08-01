@@ -1,29 +1,29 @@
 import type { PageLoad } from './$types.js';
-import type { Page, Folder } from '$lib/api/types.js';
+import type { Document, Folder } from '$lib/api/types.js';
 import { apiClient } from '$lib';
 
 export const load: PageLoad = async () => {
 	try {
-		const [pagesResponse, foldersResponse] = await Promise.all([
-			apiClient.getPages(),
+		const [documentsResponse, foldersResponse] = await Promise.all([
+			apiClient.getDocuments(),
 			apiClient.getFolderTree()
 		]);
 
-		const pages: Page[] = pagesResponse || [];
+		const documents: Document[] = documentsResponse || [];
 		const folders: Folder[] = foldersResponse || [];
 
 		return {
-			pages,
+			documents,
 			folders,
-			totalPages: pages.length,
+			totalDocuments: documents.length,
 			totalFolders: folders.length
 		};
 	} catch (error) {
 		console.error('Failed to load folder structure:', error);
 		return {
-			pages: [],
+			documents: [],
 			folders: [],
-			totalPages: 0,
+			totalDocuments: 0,
 			totalFolders: 0,
 			error: 'Failed to load folder structure'
 		};

@@ -26,9 +26,9 @@ func setupGitTestDir(t *testing.T) (string, func()) {
 	return testDir, cleanup
 }
 
-func createTestDocument(path, title, content string) *models.Page {
-	return &models.Page{
-		MetaData: &models.PageMetaData{
+func createTestDocument(path, title, content string) *models.Document {
+	return &models.Document{
+		MetaData: &models.DocumentMetaData{
 			Title: title,
 			Path:  path,
 			Slug:  strings.ToLower(strings.ReplaceAll(title, " ", "-")),
@@ -38,7 +38,7 @@ func createTestDocument(path, title, content string) *models.Page {
 	}
 }
 
-func writeTestDocumentToFile(t *testing.T, testDir, docPath string, page *models.Page) {
+func writeTestDocumentToFile(t *testing.T, testDir, docPath string, document *models.Document) {
 	// Create directory structure if needed
 	filePath := filepath.Join(testDir, docPath+".md")
 	dir := filepath.Dir(filePath)
@@ -48,7 +48,7 @@ func writeTestDocumentToFile(t *testing.T, testDir, docPath string, page *models
 	}
 
 	// Serialize and write the page
-	content, err := serializer.SerializePage(page)
+	content, err := serializer.SerializeDocument(document)
 	require.NoError(t, err)
 
 	err = os.WriteFile(filePath, content, 0644)
@@ -436,8 +436,8 @@ func TestGitService_GetDocumentAtVersion(t *testing.T) {
 
 	t.Run("properly deserializes complex page metadata", func(t *testing.T) {
 		complexDocPath := "/complex-metadata-test"
-		complexPage := &models.Page{
-			MetaData: &models.PageMetaData{
+		complexDocument := &models.Document{
+			MetaData: &models.DocumentMetaData{
 				Title:   "Complex Metadata Test",
 				Path:    complexDocPath,
 				Slug:    "complex-metadata-test",
@@ -448,7 +448,7 @@ func TestGitService_GetDocumentAtVersion(t *testing.T) {
 			Content: "# Complex Metadata Test\n\nThis document has complex metadata for testing serialization.",
 		}
 
-		writeTestDocumentToFile(t, testDir, "complex-metadata-test", complexPage)
+		writeTestDocumentToFile(t, testDir, "complex-metadata-test", complexDocument)
 		err := gitService.CommitDocument(complexDocPath, "Add complex metadata test")
 		require.NoError(t, err)
 
@@ -461,10 +461,10 @@ func TestGitService_GetDocumentAtVersion(t *testing.T) {
 		retrievedPage, err := gitService.GetDocumentAtVersion(complexDocPath, history[0].Hash)
 
 		assert.NoError(t, err)
-		assert.Equal(t, complexPage.MetaData.Title, retrievedPage.MetaData.Title)
-		assert.Equal(t, complexPage.MetaData.Path, retrievedPage.MetaData.Path)
-		assert.Equal(t, complexPage.MetaData.Slug, retrievedPage.MetaData.Slug)
-		assert.Equal(t, complexPage.MetaData.Tags, retrievedPage.MetaData.Tags)
+		assert.Equal(t, complexDocument.MetaData.Title, retrievedPage.MetaData.Title)
+		assert.Equal(t, complexDocument.MetaData.Path, retrievedPage.MetaData.Path)
+		assert.Equal(t, complexDocument.MetaData.Slug, retrievedPage.MetaData.Slug)
+		assert.Equal(t, complexDocument.MetaData.Tags, retrievedPage.MetaData.Tags)
 		assert.Contains(t, retrievedPage.Content, "complex metadata for testing")
 	})
 }
@@ -799,9 +799,9 @@ func TestGitService_RestoreDocument(t *testing.T) {
 		content, err := os.ReadFile(filePath)
 		require.NoError(t, err)
 
-		restoredPage, err := serializer.DeserializePage(content)
+		restoredDocument, err := serializer.DeserializeDocument(content)
 		require.NoError(t, err)
-		assert.Contains(t, restoredPage.Content, "Original content")
+		assert.Contains(t, restoredDocument.Content, "Original content")
 
 		// Verify a new commit was created
 		history, err := gitService.GetDocumentVersions(docPath)

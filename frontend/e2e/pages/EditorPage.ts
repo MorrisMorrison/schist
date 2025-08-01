@@ -2,7 +2,7 @@ import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 /**
- * Page object for the page editor (/new and /edit routes)
+ * Page object for the document editor (/new and /edit routes)
  */
 export class EditorPage extends BasePage {
 	// Form elements
@@ -26,14 +26,14 @@ export class EditorPage extends BasePage {
 	readonly errorMessage: Locator;
 	readonly loadingSpinner: Locator;
 
-	// Page info
-	readonly pagePathInfo: Locator;
+	// Document info
+	readonly documentPathInfo: Locator;
 	readonly breadcrumbs: Locator;
 
 	constructor(page: Page) {
 		super(page);
 
-		// Form elements
+		// Form elements (using legacy testids until UI is updated)
 		this.titleInput = page.getByTestId('page-title-input');
 		this.contentEditor = page
 			.locator('.cm-editor .cm-content, textarea[placeholder*="content"]')
@@ -56,13 +56,13 @@ export class EditorPage extends BasePage {
 		this.errorMessage = page.locator('[data-testid="error-message"], .error');
 		this.loadingSpinner = page.locator('[data-testid="loading"], .loading');
 
-		// Page info
-		this.pagePathInfo = page.getByTestId('page-path');
+		// Document info (using legacy testid until UI is updated)
+		this.documentPathInfo = page.getByTestId('page-path');
 		this.breadcrumbs = page.getByTestId('breadcrumbs');
 	}
 
 	/**
-	 * Navigate to new page editor
+	 * Navigate to new document editor
 	 */
 	async navigateToNew() {
 		await this.goto('/new');
@@ -70,10 +70,10 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Navigate to edit existing page
+	 * Navigate to edit existing document
 	 */
-	async navigateToEdit(pagePath: string) {
-		await this.goto(`/edit${pagePath}`);
+	async navigateToEdit(documentPath: string) {
+		await this.goto(`/edit${documentPath}`);
 		await this.waitForLoad();
 	}
 
@@ -87,9 +87,9 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Fill in page details
+	 * Fill in document details
 	 */
-	async fillPageDetails(title: string, content: string, tags: string[] = []) {
+	async fillDocumentDetails(title: string, content: string, tags: string[] = []) {
 		// Fill title
 		await this.fillInput(this.titleInput, title);
 
@@ -290,12 +290,24 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Get current page path from UI
+	 * Get current document path from UI
 	 */
 	async getCurrentPath(): Promise<string> {
-		if (await this.pagePathInfo.isVisible()) {
-			return (await this.pagePathInfo.textContent()) || '';
+		if (await this.documentPathInfo.isVisible()) {
+			return (await this.documentPathInfo.textContent()) || '';
 		}
 		return '';
+	}
+
+	/**
+	 * Legacy aliases for backwards compatibility
+	 */
+	async fillPageDetails(title: string, content: string, tags: string[] = []) {
+		return this.fillDocumentDetails(title, content, tags);
+	}
+
+	// Legacy property aliases
+	get pagePathInfo() {
+		return this.documentPathInfo;
 	}
 }

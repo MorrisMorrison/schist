@@ -6,8 +6,8 @@
 </script>
 
 <svelte:head>
-	<title>Recent Pages - Schist Wiki</title>
-	<meta name="description" content="Recently updated pages in your wiki" />
+	<title>Recent Documents - Schist Wiki</title>
+	<meta name="description" content="Recently updated documents in your wiki" />
 </svelte:head>
 
 {#if data.error}
@@ -26,7 +26,7 @@
 					</svg>
 				</div>
 				<div class="ml-3">
-					<h3 class="text-sm font-medium text-red-800">Error loading recent pages</h3>
+					<h3 class="text-sm font-medium text-red-800">Error loading recent documents</h3>
 					<div class="mt-2 text-sm text-red-700">
 						<p>{data.error}. Please check that the backend server is running.</p>
 					</div>
@@ -35,12 +35,12 @@
 		</div>
 	</div>
 {:else}
-	<!-- Recent Pages using FolderView in recent mode -->
+	<!-- Recent Documents using FolderView in recent mode -->
 	<FolderView
 		mode="recent"
 		recentLimit={10}
 		showCreateButtons={true}
-		initialPages={data.recentPages}
+		initialDocuments={data.recentDocuments}
 		initialFolders={[]}
 	/>
 {/if}

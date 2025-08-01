@@ -77,15 +77,15 @@ Your wiki will be available at **http://localhost:8080**
 
 Once Schist is running, here's what to do:
 
-### 1. Create Your First Page
+### 1. Create Your First Document
 - Open the frontend URL in your browser
-- Click "New Page" or use the `+` button
+- Click "New Document" or use the `+` button
 - Add a title like "Welcome to My Wiki"
 - Write some content in markdown
-- Save the page
+- Save the document
 
 ### 2. Try Wiki Linking
-In any page, create links to other pages:
+In any document, create links to other documents:
 ```markdown
 # Welcome to My Wiki
 
@@ -97,15 +97,15 @@ You can also link to specific paths: [[/docs/api-reference]]
 ### 3. Upload Images
 - Click the image upload button in the editor
 - Select an image file (PNG, JPEG, GIF, WebP, SVG)
-- The image will be automatically inserted into your page
+- The image will be automatically inserted into your document
 
 ### 4. Organize with Folders
-Create nested page structures:
+Create nested document structures:
 - `/docs/getting-started`
 - `/projects/website/timeline`
 - `/meeting-notes/2024/january`
 
-Folders are created automatically when you save pages with paths.
+Folders are created automatically when you save documents with paths.
 
 ## Configuration
 ### Environment Variables
@@ -136,7 +136,7 @@ cd backend && go build -o generate-hash ./cmd/generate-hash
 Your wiki data is stored in the `data` directory:
 ```
 data/
-├── pages/              # Your markdown files
+├── documents/          # Your markdown files
 │   ├── welcome.md
 │   └── docs/
 │       └── api.md

@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { pageActions } from '$lib/stores/pages';
+	import { documentActions } from '$lib/stores/documents';
 	import { goto } from '$app/navigation';
 	import FolderView from '$lib/components/FolderView.svelte';
-	import PageView from '$lib/components/PageView.svelte';
-	import MovePageModal from '$lib/components/MovePageModal.svelte';
-	import type { Page } from '$lib/api/types';
+	import DocumentView from '$lib/components/DocumentView.svelte';
+	import MoveDocumentModal from '$lib/components/MoveDocumentModal.svelte';
+	import type { Document } from '$lib/api/types';
 
-	let currentPage = $state<Page | null>(null);
+	let currentPage = $state<Document | null>(null);
 	let isFolder = $state(false);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 	let isNotFound = $state(false);
 	let showMoveModal = $state(false);
-	let pageToMove = $state<Page | null>(null);
+	let documentToMove = $state<Document | null>(null);
 
 	const path = $derived(page.params.path || '');
 	const decodedPath = $derived(decodeURIComponent(path));
@@ -41,12 +41,12 @@
 		try {
 			// First try to load as a page
 			try {
-				currentPage = await pageActions.loadPageByPath(fullPath);
+				currentPage = await documentActions.loadDocumentByPath(fullPath);
 				isFolder = false;
 				isNotFound = false;
-			} catch (pageError) {
+			} catch (documentError) {
 				// Check if it's a 404 error
-				if (pageError instanceof Error && pageError.message.includes('404')) {
+				if (documentError instanceof Error && documentError.message.includes('404')) {
 					isNotFound = true;
 					isFolder = false;
 				} else {
@@ -68,7 +68,7 @@
 
 	async function handleDeletePage(path: string) {
 		try {
-			await pageActions.deletePage(path);
+			await documentActions.deleteDocument(path);
 			// Navigate to home page after deletion
 			goto('/');
 		} catch (err) {
@@ -77,14 +77,14 @@
 		}
 	}
 
-	function handleMovePage(page: Page) {
-		pageToMove = page;
+	function handleMoveDocument(document: Document) {
+		documentToMove = document;
 		showMoveModal = true;
 	}
 
-	function handlePageMoved() {
+	function handleDocumentMoved() {
 		showMoveModal = false;
-		pageToMove = null;
+		documentToMove = null;
 		// Refresh the current view
 		loadContent();
 	}
@@ -119,11 +119,11 @@
 	{:else if isFolder}
 		<FolderView path={fullPath} />
 	{:else if currentPage}
-		<PageView
-			page={currentPage}
+		<DocumentView
+			document={currentPage}
 			onEdit={handleEditPage}
 			onDelete={handleDeletePage}
-			onMove={handleMovePage}
+			onMove={handleMoveDocument}
 		/>
 	{:else if isNotFound}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
@@ -183,14 +183,14 @@
 	{/if}
 </div>
 
-<!-- Move Page Modal -->
-{#if showMoveModal && pageToMove}
-	<MovePageModal
-		page={pageToMove}
+<!-- Move Document Modal -->
+{#if showMoveModal && documentToMove}
+	<MoveDocumentModal
+		document={documentToMove}
 		onClose={() => {
 			showMoveModal = false;
-			pageToMove = null;
+			documentToMove = null;
 		}}
-		onMoved={handlePageMoved}
+		onMoved={handleDocumentMoved}
 	/>
 {/if}

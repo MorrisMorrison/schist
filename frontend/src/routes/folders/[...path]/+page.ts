@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
 import { apiClient } from '$lib/api/client';
 import { error } from '@sveltejs/kit';
-import type { Folder, Page } from '$lib';
+import type { Folder, Document } from '$lib/api/types';
 
 export const load: PageLoad = async ({ params }) => {
 	const pathSegments = params.path.split('/').filter(Boolean);
@@ -9,8 +9,8 @@ export const load: PageLoad = async ({ params }) => {
 
 	try {
 		// First, try to load as a folder
-		const [allPages, allFolders] = await Promise.all([
-			apiClient.getPages(),
+		const [allDocuments, allFolders] = await Promise.all([
+			apiClient.getDocuments(),
 			apiClient.getFolderTree()
 		]);
 
@@ -31,39 +31,39 @@ export const load: PageLoad = async ({ params }) => {
 		const folder = findFolderByPath(allFolders, fullPath);
 
 		if (folder) {
-			// This is a folder - filter pages and subfolders for this path
-			const folderPages = allPages?.filter(
-				(page: Page) =>
-					page.metaData?.path === fullPath ||
-					(fullPath === '/' && !page.metaData?.path?.includes('/'))
+			// This is a folder - filter documents and subfolders for this path
+			const folderDocuments = allDocuments?.filter(
+				(document: Document) =>
+					document.metaData?.path === fullPath ||
+					(fullPath === '/' && !document.metaData?.path?.includes('/'))
 			);
 
 			return {
 				isFolder: true,
 				path: fullPath,
 				folderName: folder.name,
-				pages: folderPages,
+				documents: folderDocuments,
 				folders: allFolders,
 				currentFolder: folder
 			};
 		}
 
-		// If not a folder, try to load as a page
+		// If not a folder, try to load as a document
 		try {
-			const page = await apiClient.getPageByPath(fullPath);
+			const document = await apiClient.getDocumentByPath(fullPath);
 			return {
 				isFolder: false,
 				path: fullPath,
-				page: page
+				document: document
 			};
 		} catch {
-			// Neither folder nor page found
+			// Neither folder nor document found
 			throw error(404, {
-				message: 'Folder or page not found'
+				message: 'Folder or document not found'
 			});
 		}
 	} catch (err) {
-		console.error('Error loading folder/page:', err);
+		console.error('Error loading folder/document:', err);
 		throw error(500, {
 			message: 'Failed to load content'
 		});

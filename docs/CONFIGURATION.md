@@ -9,7 +9,7 @@ Schist is designed with minimal configuration using environment variables and se
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SCHIST_PORT` | `8080` | Server port number |
-| `SCHIST_DATA_DIR` | `../../data` | Directory for storing wiki pages and assets |
+| `SCHIST_DATA_DIR` | `../../data` | Directory for storing wiki documents and assets |
 | `SCHIST_STATIC_DIR` | `./web` | Directory for serving static frontend files (production) |
 | `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Frontend URL for CORS configuration (development) |
 | `ENV` | `development` | Environment mode (development/production) |
@@ -75,20 +75,20 @@ Schist stores all data as plain files in the data directory with hierarchical or
 
 ```
 data/
-├── pages/                    # Markdown files organized hierarchically
-│   ├── welcome.md           # Root-level page (/welcome)
+├── documents/                # Markdown files organized hierarchically
+│   ├── welcome.md           # Root-level document (/welcome)
 │   ├── docs/                # Folder-based organization
-│   │   ├── api.md          # Nested page (/docs/api)
-│   │   ├── configuration.md # Nested page (/docs/configuration)
+│   │   ├── api.md          # Nested document (/docs/api)
+│   │   ├── configuration.md # Nested document (/docs/configuration)
 │   │   └── getting-started/ # Deeper nesting
-│   │       └── index.md    # Page at /docs/getting-started/index
+│   │       └── index.md    # Document at /docs/getting-started/index
 │   ├── projects/           # Project documentation
 │   │   ├── website/
 │   │   │   ├── overview.md
 │   │   │   └── timeline.md
 │   │   └── mobile-app.md
-│   └── trash/              # Soft-deleted pages
-│       └── deleted-page.md
+│   └── trash/              # Soft-deleted documents
+│       └── deleted-document.md
 ├── assets/                 # Uploaded files
 │   ├── images/            # Image uploads (PNG, JPEG, GIF, WebP, SVG)
 │   │   ├── a1b2c3-photo.jpg
@@ -97,13 +97,13 @@ data/
 └── .gitkeep              # Ensures directory exists in git
 ```
 
-### Page File Format
+### Document File Format
 
-Pages are stored as markdown files with YAML front matter:
+Documents are stored as markdown files with YAML front matter:
 
 ```markdown
 ---
-title: Page Title
+title: Document Title
 path: /hierarchical/path
 created: 2024-01-15T10:30:00Z
 updated: 2024-01-15T10:30:00Z
@@ -112,11 +112,11 @@ tags:
   - api
 ---
 
-# Page Content
+# Document Content
 
 Your markdown content here with support for:
 
-- [[Wiki Links]] to other pages
+- [[Wiki Links]] to other documents
 - ![Images](/assets/images/filename.jpg)
 - Standard markdown formatting
 ```
@@ -314,7 +314,7 @@ To verify your configuration is working:
 
 1. **Health check**: `curl http://localhost:8080/api/health`
 2. **Frontend access**: Open browser to configured port
-3. **File creation**: Try creating a page through the UI
+3. **File creation**: Try creating a document through the UI
 4. **Asset upload**: Test image upload functionality
 
 ## Advanced Configuration

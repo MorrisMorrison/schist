@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FolderView from '$lib/components/FolderView.svelte';
-	import PageView from '$lib/components/PageView.svelte';
+	import DocumentView from '$lib/components/DocumentView.svelte';
 	import type { PageData } from './$types';
 
 	interface Props {
@@ -12,7 +12,9 @@
 
 <svelte:head>
 	<title
-		>{data.isFolder ? `${data.folderName} - Folder` : `${data.page?.metaData?.title || 'Page'}`} - Documentation</title
+		>{data.isFolder
+			? `${data.folderName} - Folder`
+			: `${data.document?.metaData?.title || 'Document'}`} - Documentation</title
 	>
 </svelte:head>
 
@@ -20,15 +22,15 @@
 	<FolderView
 		path={data.path}
 		showCreateButtons={true}
-		initialPages={data.pages || []}
+		initialDocuments={data.documents || []}
 		initialFolders={data.folders || []}
 	/>
-{:else if data.page}
-	<PageView page={data.page} />
+{:else if data.document}
+	<DocumentView document={data.document} />
 {:else}
 	<div class="error-state">
 		<h1>Not Found</h1>
-		<p>The requested folder or page could not be found.</p>
+		<p>The requested folder or document could not be found.</p>
 		<a href="/folders">← Back to All Folders</a>
 	</div>
 {/if}

@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-type Page struct {
-	MetaData *PageMetaData `json:"metaData"`
-	Content  string        `json:"content"`
+type Document struct {
+	MetaData *DocumentMetaData `json:"metaData"`
+	Content  string            `json:"content"`
 }
 
-type PageMetaData struct {
+type DocumentMetaData struct {
 	Slug    string    `yaml:"slug,omitempty" json:"slug,omitempty"`
 	Title   string    `yaml:"title" json:"title"`
 	Path    string    `yaml:"path" json:"path"`
@@ -20,20 +20,20 @@ type PageMetaData struct {
 	Tags    []string  `yaml:"tags,omitempty" json:"tags,omitempty"`
 }
 
-func (p *PageMetaData) ParentPath() string {
-	return filepath.Dir(p.Path)
+func (d *DocumentMetaData) ParentPath() string {
+	return filepath.Dir(d.Path)
 }
 
-func (p *PageMetaData) Depth() int {
-	return strings.Count(p.Path, "/")
+func (d *DocumentMetaData) Depth() int {
+	return strings.Count(d.Path, "/")
 }
 
 type Folder struct {
-	Name       string    `json:"name"`
-	Path       string    `json:"path"`
-	Created    time.Time `json:"created"`
-	PageCount  int       `json:"page_count"`
-	SubFolders []*Folder `json:"sub_folders"`
+	Name          string    `json:"name"`
+	Path          string    `json:"path"`
+	Created       time.Time `json:"created"`
+	DocumentCount int       `json:"document_count"`
+	SubFolders    []*Folder `json:"sub_folders"`
 }
 
 func (f *Folder) ParentPath() string {

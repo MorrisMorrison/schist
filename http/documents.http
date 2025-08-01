@@ -1,0 +1,32 @@
+### List all documents
+GET {{apiUrl}}/documents
+
+### Get specific document
+GET {{apiUrl}}/documents/getting-started
+
+### Create new document
+POST {{apiUrl}}/documents
+Content-Type: application/json
+
+{
+  "metaData": {
+    "title": "Getting Started",
+    "tags": ["guide", "introduction"]
+  },
+  "content": "# Getting Started\n\nWelcome to Schist! This is your first wiki document.\n\n## What is Schist?\n\nSchist is a lightweight, self-hosted markdown wiki.\n\n## Next Steps\n\n1. Create more documents\n2. Link documents together with [[Document Links]]\n3. Organize your knowledge\n\nHappy writing! 📝"
+}
+
+### Update existing document
+PUT {{apiUrl}}/documents/getting-started
+Content-Type: application/json
+
+{
+  "metaData": {
+    "title": "Getting Started - Updated",
+    "tags": ["guide", "introduction", "updated"]
+  },
+  "content": "# Getting Started - Updated\n\nWelcome to Schist! This document has been updated.\n\n## Features\n\n- Markdown editing\n- Wiki-style linking\n- Full-text search\n- File-based storage\n\n## Links\n\nCheck out [[Project Ideas]] for inspiration."
+}
+
+### Delete document
+DELETE {{apiUrl}}/documents/getting-started

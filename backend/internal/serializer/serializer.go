@@ -8,10 +8,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// raw file content -> Page
-func DeserializePage(fileContent []byte) (*models.Page, error) {
+// raw file content -> Document
+func DeserializeDocument(fileContent []byte) (*models.Document, error) {
 	if !bytes.HasPrefix(fileContent, []byte("---\n")) {
-		return &models.Page{Content: string(fileContent)}, nil
+		return &models.Document{Content: string(fileContent)}, nil
 	}
 
 	// split into into metadata and content parts
@@ -27,16 +27,16 @@ func DeserializePage(fileContent []byte) (*models.Page, error) {
 
 	content := deserializeContent(parts[1])
 
-	page := &models.Page{
+	document := &models.Document{
 		MetaData: metaData,
 		Content:  content,
 	}
 
-	return page, nil
+	return document, nil
 }
 
-func deserializeYAMLMetaData(metaDataPart []byte) (*models.PageMetaData, error) {
-	metaData := &models.PageMetaData{}
+func deserializeYAMLMetaData(metaDataPart []byte) (*models.DocumentMetaData, error) {
+	metaData := &models.DocumentMetaData{}
 	if err := yaml.Unmarshal(metaDataPart, metaData); err != nil {
 		return nil, fmt.Errorf("failed to parse front matter: %w", err)
 	}
@@ -48,21 +48,21 @@ func deserializeContent(contentPart []byte) string {
 	return string(contentPart)
 }
 
-// Page -> raw file content
-func SerializePage(page *models.Page) ([]byte, error) {
-	metaData, err := serializeMetaData(page.MetaData)
+// Document -> raw file content
+func SerializeDocument(document *models.Document) ([]byte, error) {
+	metaData, err := serializeMetaData(document.MetaData)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse metadata")
 	}
 
 	var buf bytes.Buffer
 	buf.WriteString(string(metaData))
-	buf.WriteString(page.Content)
+	buf.WriteString(document.Content)
 
 	return buf.Bytes(), nil
 }
 
-func serializeMetaData(metaData *models.PageMetaData) ([]byte, error) {
+func serializeMetaData(metaData *models.DocumentMetaData) ([]byte, error) {
 	var buf bytes.Buffer
 
 	buf.WriteString("---\n")

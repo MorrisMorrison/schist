@@ -1,17 +1,17 @@
 import { writable, derived, get } from 'svelte/store';
 import { apiClient } from '../api/client.js';
 import type {
-	Page,
-	CreatePageRequest,
-	UpdatePageRequest,
+	Document,
+	CreateDocumentRequest,
+	UpdateDocumentRequest,
 	Folder,
-	MovePageRequest
+	MoveDocumentRequest
 } from '../api/types.js';
 import { getParentPath } from '../api/types.js';
 
-interface PagesState {
-	pages: Page[];
-	currentPage: Page | null;
+interface DocumentsState {
+	documents: Document[];
+	currentDocument: Document | null;
 	loading: boolean;
 	error: string | null;
 }
@@ -19,7 +19,7 @@ interface PagesState {
 interface SearchState {
 	query: string;
 	selectedTags: string[];
-	results: Page[];
+	results: Document[];
 	loading: boolean;
 	error: string | null;
 }
@@ -30,9 +30,9 @@ interface FoldersState {
 	error: string | null;
 }
 
-export const pagesStore = writable<PagesState>({
-	pages: [],
-	currentPage: null,
+export const documentsStore = writable<DocumentsState>({
+	documents: [],
+	currentDocument: null,
 	loading: false,
 	error: null
 });
@@ -51,10 +51,10 @@ export const foldersStore = writable<FoldersState>({
 	error: null
 });
 
-export const pages = derived(pagesStore, ($store) => $store.pages);
-export const currentPage = derived(pagesStore, ($store) => $store.currentPage);
-export const isLoading = derived(pagesStore, ($store) => $store.loading);
-export const error = derived(pagesStore, ($store) => $store.error);
+export const documents = derived(documentsStore, ($store) => $store.documents);
+export const currentDocument = derived(documentsStore, ($store) => $store.currentDocument);
+export const isLoading = derived(documentsStore, ($store) => $store.loading);
+export const error = derived(documentsStore, ($store) => $store.error);
 
 export const searchQuery = derived(searchStore, ($store) => $store.query);
 export const selectedTags = derived(searchStore, ($store) => $store.selectedTags);
@@ -67,271 +67,277 @@ export const foldersError = derived(foldersStore, ($store) => $store.error);
 
 export const currentFolder = writable<string>('/');
 
-export const currentFolderPages = derived(
-	[pagesStore, currentFolder],
-	([$pagesStore, $currentFolder]) => {
+export const currentFolderDocuments = derived(
+	[documentsStore, currentFolder],
+	([$documentsStore, $currentFolder]) => {
 		if (!$currentFolder || $currentFolder === '/') {
-			return $pagesStore.pages.filter(
-				(page) =>
-					!page.metaData.path || page.metaData.path === '/' || !page.metaData.path.includes('/', 1) // No additional slashes after the first
+			return $documentsStore.documents.filter(
+				(document) =>
+					!document.metaData.path ||
+					document.metaData.path === '/' ||
+					!document.metaData.path.includes('/', 1) // No additional slashes after the first
 			);
 		}
 
-		return $pagesStore.pages.filter(
-			(page) =>
-				page.metaData.path &&
-				page.metaData.path.startsWith($currentFolder) &&
-				page.metaData.path !== $currentFolder
+		return $documentsStore.documents.filter(
+			(document) =>
+				document.metaData.path &&
+				document.metaData.path.startsWith($currentFolder) &&
+				document.metaData.path !== $currentFolder
 		);
 	}
 );
 
-export const pageActions = {
-	async loadPages() {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+export const documentActions = {
+	async loadDocuments() {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const pages = (await apiClient.getPages()) ?? [];
-			pagesStore.update((state) => ({
+			const documents = (await apiClient.getDocuments()) ?? [];
+			documentsStore.update((state) => ({
 				...state,
-				pages,
+				documents,
 				loading: false
 			}));
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to load pages'
+				error: error instanceof Error ? error.message : 'Failed to load documents'
 			}));
 		}
 	},
 
-	async loadPage(identifier: string) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+	async loadDocument(identifier: string) {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			let page: Page;
+			let document: Document;
 
 			if (identifier.startsWith('/')) {
-				page = await apiClient.getPageByPath(identifier);
-				currentFolder.set(getParentPath(page.metaData.path));
+				document = await apiClient.getDocumentByPath(identifier);
+				currentFolder.set(getParentPath(document.metaData.path));
 			} else {
-				page = await apiClient.getPage(identifier);
-				if (page.metaData.path) {
-					currentFolder.set(getParentPath(page.metaData.path));
+				document = await apiClient.getDocument(identifier);
+				if (document.metaData.path) {
+					currentFolder.set(getParentPath(document.metaData.path));
 				}
 			}
 
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
-				currentPage: page,
+				currentDocument: document,
 				loading: false
 			}));
-			return page;
+			return document;
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to load page',
-				currentPage: null
+				error: error instanceof Error ? error.message : 'Failed to load document',
+				currentDocument: null
 			}));
 			throw error;
 		}
 	},
 
-	async createPage(pageData: CreatePageRequest) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+	async createDocument(documentData: CreateDocumentRequest) {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const response = await apiClient.createPage(pageData);
-			const newPage = await apiClient.getPageByPath(response.path);
+			const response = await apiClient.createDocument(documentData);
+			const newDocument = await apiClient.getDocumentByPath(response.path);
 
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
-				pages: [...state.pages, newPage],
-				currentPage: newPage,
+				documents: [...state.documents, newDocument],
+				currentDocument: newDocument,
 				loading: false
 			}));
 
-			if (!newPage.metaData?.path) {
-				currentFolder.set(getParentPath(newPage.metaData.path));
+			if (newDocument.metaData?.path) {
+				currentFolder.set(getParentPath(newDocument.metaData.path));
 			}
 
-			if (pageData.metaData.path) {
+			if (documentData.metaData.path) {
 				folderActions.loadFolderTree().catch(console.error);
 			}
 
-			return newPage;
+			return newDocument;
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to create page'
+				error: error instanceof Error ? error.message : 'Failed to create document'
 			}));
 			throw error;
 		}
 	},
 
-	async updatePage(slug: string, pageData: UpdatePageRequest) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+	async updateDocument(slug: string, documentData: UpdateDocumentRequest) {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const updatedPage = await apiClient.updatePage(slug, pageData);
-			pagesStore.update((state) => ({
+			const updatedDocument = await apiClient.updateDocument(slug, documentData);
+			documentsStore.update((state) => ({
 				...state,
-				pages: state.pages.map((p) => (p.metaData.slug === slug ? updatedPage : p)),
-				currentPage: state.currentPage?.metaData.slug === slug ? updatedPage : state.currentPage,
+				documents: state.documents.map((d) => (d.metaData.slug === slug ? updatedDocument : d)),
+				currentDocument:
+					state.currentDocument?.metaData.slug === slug ? updatedDocument : state.currentDocument,
 				loading: false
 			}));
-			return updatedPage;
+			return updatedDocument;
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to update page'
+				error: error instanceof Error ? error.message : 'Failed to update document'
 			}));
 			throw error;
 		}
 	},
 
-	async deletePage(path: string) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+	async deleteDocument(path: string) {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			await apiClient.deletePageByPath(path);
-			pagesStore.update((state) => ({
+			await apiClient.deleteDocumentByPath(path);
+			documentsStore.update((state) => ({
 				...state,
-				pages: state.pages.filter((p) => p.metaData.path !== path),
-				currentPage: state.currentPage?.metaData.path === path ? null : state.currentPage,
+				documents: state.documents.filter((d) => d.metaData.path !== path),
+				currentDocument:
+					state.currentDocument?.metaData.path === path ? null : state.currentDocument,
 				loading: false
 			}));
 
 			folderActions.loadFolderTree().catch(console.error);
-			pageActions.loadPages().catch(console.error);
+			documentActions.loadDocuments().catch(console.error);
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to delete page'
+				error: error instanceof Error ? error.message : 'Failed to delete document'
 			}));
 			throw error;
 		}
 	},
 
-	async loadPageByPath(path: string) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+	async loadDocumentByPath(path: string) {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const page = await apiClient.getPageByPath(path);
-			pagesStore.update((state) => ({
+			const document = await apiClient.getDocumentByPath(path);
+			documentsStore.update((state) => ({
 				...state,
-				currentPage: page,
+				currentDocument: document,
 				loading: false
 			}));
 
-			currentFolder.set(getParentPath(page.metaData.path));
+			currentFolder.set(getParentPath(document.metaData.path));
 
-			return page;
+			return document;
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to load page',
-				currentPage: null
+				error: error instanceof Error ? error.message : 'Failed to load document',
+				currentDocument: null
 			}));
 			throw error;
 		}
 	},
 
-	async updatePageByPath(
+	async updateDocumentByPath(
 		path: string,
-		pageData: UpdatePageRequest,
+		documentData: UpdateDocumentRequest,
 		saveType: 'manual' | 'auto' = 'manual'
 	) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const updatedPage = await apiClient.updatePageByPath(path, pageData, saveType);
+			const updatedDocument = await apiClient.updateDocumentByPath(path, documentData, saveType);
 
-			// Check if the page path has changed
-			const pathChanged = updatedPage.metaData.path !== path;
+			// Check if the document path has changed
+			const pathChanged = updatedDocument.metaData.path !== path;
 
 			if (pathChanged) {
-				// If path changed, refresh both pages and folder tree to ensure consistency
-				await Promise.all([pageActions.loadPages(), folderActions.loadFolderTree()]);
+				// If path changed, refresh both documents and folder tree to ensure consistency
+				await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree()]);
 			} else {
 				// If path didn't change, just update the local state
-				pagesStore.update((state) => ({
+				documentsStore.update((state) => ({
 					...state,
-					pages: state.pages.map((p) => (p.metaData.path === path ? updatedPage : p)),
-					currentPage: state.currentPage?.metaData.path === path ? updatedPage : state.currentPage,
+					documents: state.documents.map((d) => (d.metaData.path === path ? updatedDocument : d)),
+					currentDocument:
+						state.currentDocument?.metaData.path === path ? updatedDocument : state.currentDocument,
 					loading: false
 				}));
 			}
 
-			return updatedPage;
+			return updatedDocument;
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to update page'
+				error: error instanceof Error ? error.message : 'Failed to update document'
 			}));
 			throw error;
 		}
 	},
 
-	async deletePageByPath(path: string) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+	async deleteDocumentByPath(path: string) {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			await apiClient.deletePageByPath(path);
-			pagesStore.update((state) => ({
+			await apiClient.deleteDocumentByPath(path);
+			documentsStore.update((state) => ({
 				...state,
-				pages: state.pages.filter((p) => p.metaData.path !== path),
-				currentPage: state.currentPage?.metaData.path === path ? null : state.currentPage,
+				documents: state.documents.filter((d) => d.metaData.path !== path),
+				currentDocument:
+					state.currentDocument?.metaData.path === path ? null : state.currentDocument,
 				loading: false
 			}));
 
 			folderActions.loadFolderTree().catch(console.error);
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to delete page'
+				error: error instanceof Error ? error.message : 'Failed to delete document'
 			}));
 			throw error;
 		}
 	},
 
-	async movePagePath(oldPath: string, newPath: string) {
-		pagesStore.update((state) => ({ ...state, loading: true, error: null }));
+	async moveDocumentPath(oldPath: string, newPath: string) {
+		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const moveRequest: MovePageRequest = { oldPath, newPath };
-			const result = await apiClient.movePage(moveRequest);
+			const moveRequest: MoveDocumentRequest = { oldPath, newPath };
+			const result = await apiClient.moveDocument(moveRequest);
 
-			await Promise.all([pageActions.loadPages(), folderActions.loadFolderTree()]);
+			await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree()]);
 
 			currentFolder.set(getParentPath(newPath));
 
-			pagesStore.update((state) => ({ ...state, loading: false }));
+			documentsStore.update((state) => ({ ...state, loading: false }));
 			return result;
 		} catch (error) {
-			pagesStore.update((state) => ({
+			documentsStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to move page'
+				error: error instanceof Error ? error.message : 'Failed to move document'
 			}));
 			throw error;
 		}
 	},
 
-	clearCurrentPage() {
-		pagesStore.update((state) => ({ ...state, currentPage: null }));
+	clearCurrentDocument() {
+		documentsStore.update((state) => ({ ...state, currentDocument: null }));
 	},
 
 	clearError() {
-		pagesStore.update((state) => ({ ...state, error: null }));
+		documentsStore.update((state) => ({ ...state, error: null }));
 	}
 };
 
@@ -370,11 +376,11 @@ export const searchActions = {
 		try {
 			// Combine text query and tag filters into a single search query
 			const combinedQuery = buildSearchQuery(finalQuery, finalTags);
-			const results = await apiClient.searchPages(combinedQuery);
+			const results = await apiClient.searchDocuments(combinedQuery);
 
 			searchStore.update((state) => ({
 				...state,
-				results: results.pages,
+				results: results.documents,
 				loading: false
 			}));
 			return results;
@@ -442,10 +448,10 @@ export const searchActions = {
 		}));
 
 		try {
-			const allResults = await apiClient.searchPages(query);
-			// Filter results to only include pages in the specified folder
-			const results = allResults.pages.filter(
-				(page) => page.metaData.path && page.metaData.path.startsWith(folderPath)
+			const allResults = await apiClient.searchDocuments(query);
+			// Filter results to only include documents in the specified folder
+			const results = allResults.documents.filter(
+				(document) => document.metaData.path && document.metaData.path.startsWith(folderPath)
 			);
 
 			searchStore.update((state) => ({
@@ -513,7 +519,7 @@ export const folderActions = {
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 		try {
 			const result = await apiClient.renameFolder(path, newName);
-			await Promise.all([folderActions.loadFolderTree(), pageActions.loadPages()]);
+			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;
 		} catch (error) {
@@ -532,7 +538,7 @@ export const folderActions = {
 		try {
 			const result = await apiClient.deleteFolder(path);
 
-			await Promise.all([folderActions.loadFolderTree(), pageActions.loadPages()]);
+			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
 
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;
@@ -550,10 +556,10 @@ export const folderActions = {
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const moveRequest: MovePageRequest = { oldPath, newPath };
+			const moveRequest: MoveDocumentRequest = { oldPath, newPath };
 			const result = await apiClient.moveFolder(moveRequest);
 
-			await Promise.all([folderActions.loadFolderTree(), pageActions.loadPages()]);
+			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
 
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;

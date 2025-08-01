@@ -5,9 +5,9 @@ Implementation of nested documentation using filesystem folders with 1:1 mapping
 
 ## **Phase 1: Backend Data Model & Storage**
 
-### 1.1 Update Page Model (`/backend/internal/models/page.go`)
+### 1.1 Update Document Model (`/backend/internal/models/document.go`)
 ```go
-type PageMetaData struct {
+type DocumentMetaData struct {
     Slug     string    `yaml:"slug,omitempty" json:"slug,omitempty"`
     Title    string    `yaml:"title" json:"title"`
     Path     string    `yaml:"path" json:"path"`           // NEW: full path from root
@@ -17,23 +17,23 @@ type PageMetaData struct {
 }
 
 // Helper methods to derive parent path and depth
-func (p *PageMetaData) ParentPath() string {
-    return filepath.Dir(p.Path)
+func (d *DocumentMetaData) ParentPath() string {
+    return filepath.Dir(d.Path)
 }
 
-func (p *PageMetaData) Depth() int {
-    return strings.Count(p.Path, "/")
+func (d *DocumentMetaData) Depth() int {
+    return strings.Count(d.Path, "/")
 }
 ```
 
 ### 1.2 Add Folder Model
 ```go
 type Folder struct {
-    Name       string    `json:"name"`
-    Path       string    `json:"path"`
-    Created    time.Time `json:"created"`
-    PageCount  int       `json:"page_count"`
-    SubFolders []Folder  `json:"sub_folders"`
+    Name         string    `json:"name"`
+    Path         string    `json:"path"`
+    Created      time.Time `json:"created"`
+    DocumentCount int      `json:"document_count"`
+    SubFolders   []Folder  `json:"sub_folders"`
 }
 
 // Helper methods to derive parent path and depth
@@ -46,12 +46,12 @@ func (f *Folder) Depth() int {
 }
 ```
 
-### 1.3 Update Page Service (`/backend/internal/services/page_service.go`)
+### 1.3 Update Document Service (`/backend/internal/services/document_service.go`)
 
 **New Methods:**
-- `GetPageByPath(path string) (*Page, error)`
-- `CreatePageInFolder(folderPath, slug string, page *Page) error`
-- `MovePage(oldPath, newPath string) error`
+- `GetDocumentByPath(path string) (*Document, error)`
+- `CreateDocumentInFolder(folderPath, slug string, document *Document) error`
+- `MoveDocument(oldPath, newPath string) error`
 - `GetFolderTree() ([]Folder, error)`
 - `CreateFolder(path string) error`
 - `DeleteFolder(path string) error`
@@ -66,14 +66,14 @@ func (f *Folder) Depth() int {
 ### 2.1 Extended Route Structure (`/backend/internal/handlers/api.go`)
 ```
 # Existing endpoints (enhanced to support both slugs and paths)
-GET    /api/pages                   # List all pages (existing)
-GET    /api/pages/:slug             # Get by slug (existing, backward compatible)
-GET    /api/pages/*path             # Get by path (new, for nested docs)
-POST   /api/pages                   # Create page (existing, enhanced)
-PUT    /api/pages/:slug             # Update by slug (existing)
-PUT    /api/pages/*path             # Update by path (new)
-DELETE /api/pages/:slug             # Delete by slug (existing)
-DELETE /api/pages/*path             # Delete by path (new)
+GET    /api/documents               # List all documents (existing)
+GET    /api/documents/:slug         # Get by slug (existing, backward compatible)
+GET    /api/documents/*path         # Get by path (new, for nested docs)
+POST   /api/documents               # Create document (existing, enhanced)
+PUT    /api/documents/:slug         # Update by slug (existing)
+PUT    /api/documents/*path         # Update by path (new)
+DELETE /api/documents/:slug         # Delete by slug (existing)
+DELETE /api/documents/*path         # Delete by path (new)
 
 # New folder-specific endpoints
 GET    /api/folders                 # Get folder tree
@@ -81,7 +81,7 @@ POST   /api/folders/*path           # Create folder
 DELETE /api/folders/*path           # Delete folder
 
 # New operations
-POST   /api/pages/move              # Move page/folder
+POST   /api/documents/move          # Move document/folder
 ```
 
 ### 2.2 Handler Implementation Strategy
@@ -94,7 +94,7 @@ POST   /api/pages/move              # Move page/folder
 
 ### 3.1 Update Types (`/frontend/src/lib/api/types.ts`)
 ```typescript
-export interface PageMetadata {
+export interface DocumentMetadata {
   slug?: string;
   title: string;
   path: string;           // NEW: full path from root
@@ -124,9 +124,9 @@ export function getDepth(path: string): number {
 ### 3.2 Update API Client (`/frontend/src/lib/api/client.ts`)
 ```typescript
 // New path-based methods
-getPageByPath(path: string): Promise<Page>
-createPageInFolder(folderPath: string, page: CreatePageRequest): Promise<Page>
-movePage(oldPath: string, newPath: string): Promise<void>
+getDocumentByPath(path: string): Promise<Document>
+createDocumentInFolder(folderPath: string, document: CreateDocumentRequest): Promise<Document>
+moveDocument(oldPath: string, newPath: string): Promise<void>
 getFolderTree(): Promise<Folder[]>
 createFolder(path: string): Promise<void>
 deleteFolder(path: string): Promise<void>
@@ -141,12 +141,12 @@ deleteFolder(path: string): Promise<void>
 ├── Breadcrumbs.svelte         # Path navigation
 ├── FolderView.svelte          # Folder contents display
 ├── CreateFolderModal.svelte   # Folder creation dialog
-└── MovePageModal.svelte       # Page/folder moving interface
+└── MoveDocumentModal.svelte   # Document/folder moving interface
 ```
 
 ### 4.2 Update Existing Components
-- **PageList.svelte**: Add folder support, tree view toggle
-- **PageCard.svelte**: Show path info, move to folder actions
+- **DocumentList.svelte**: Add folder support, tree view toggle
+- **DocumentCard.svelte**: Show path info, move to folder actions
 - **Navigation**: Add folder tree sidebar
 
 ### 4.3 New Routes
@@ -178,13 +178,13 @@ deleteFolder(path: string): Promise<void>
 ## **Phase 6: Advanced Features**
 
 ### 6.1 File Operations
-- Drag & drop page/folder moving
-- Bulk operations (move multiple pages)
+- Drag & drop document/folder moving
+- Bulk operations (move multiple documents)
 - Folder templates and scaffolding
 
 ### 6.2 Navigation Enhancements  
 - Collapsible folder tree
-- Recent folders/pages
+- Recent folders/documents
 - Folder bookmarking
 - Search within folders
 
@@ -216,9 +216,9 @@ deleteFolder(path: string): Promise<void>
 ### Before (Current):
 ```
 /backend/data/
-├── page1.md
-├── page2.md
-└── page3.md
+├── document1.md
+├── document2.md
+└── document3.md
 ```
 
 ### After (Nested):
@@ -244,8 +244,8 @@ deleteFolder(path: string): Promise<void>
 
 - `/docs` → Root folder view
 - `/docs/getting-started` → Getting started folder
-- `/docs/getting-started/installation` → Installation page
-- `/docs/guides/beginner/first-steps` → First steps page
+- `/docs/getting-started/installation` → Installation document
+- `/docs/guides/beginner/first-steps` → First steps document
 
 ## **Metadata Example**
 

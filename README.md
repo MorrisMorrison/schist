@@ -11,8 +11,8 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 ## Features
 
 - 📝 **Markdown-first** - Write in plain markdown with live preview
-- 🔗 **Wiki linking** - Connect pages with `[[Page Name]]` syntax
-- 🔍 **Full-text search** - Find content across all your pages
+- 🔗 **Wiki linking** - Connect documents with `[[Document Name]]` syntax
+- 🔍 **Full-text search** - Find content across all your documents
 - 📁 **File-based storage** - No database required, just markdown files
 - 🌐 **Web-based** - Access your wiki from any browser
 - 🎨 **Clean interface** - Responsive design with dark/light themes

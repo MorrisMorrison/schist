@@ -9,32 +9,32 @@ import (
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
-// WikiLink represents a link found in page content
+// WikiLink represents a link found in document content
 type WikiLink struct {
-	Target      string `json:"target"`       // The target page title/name
+	Target      string `json:"target"`       // The target document title/name
 	DisplayText string `json:"display_text"` // Text to display (if different from target)
-	Path        string `json:"path"`         // Resolved path to target page
-	IsValid     bool   `json:"is_valid"`     // Whether the target page exists
+	Path        string `json:"path"`         // Resolved path to target document
+	IsValid     bool   `json:"is_valid"`     // Whether the target document exists
 }
 
 // LinkService handles wiki link parsing and backlink tracking
 type LinkService struct {
-	pageService *PageService
-	backlinks   map[string][]string // map[targetPath][]sourcePaths
+	documentService *DocumentService
+	backlinks       map[string][]string // map[targetPath][]sourcePaths
 }
 
 // NewLinkService creates a new link service
-func NewLinkService(pageService *PageService) *LinkService {
+func NewLinkService(documentService *DocumentService) *LinkService {
 	return &LinkService{
-		pageService: pageService,
-		backlinks:   make(map[string][]string),
+		documentService: documentService,
+		backlinks:       make(map[string][]string),
 	}
 }
 
-// wikiLinkRegex matches [[Page Name]] and [[Page Name|Display Text]] patterns
+// wikiLinkRegex matches [[Document Name]] and [[Document Name|Display Text]] patterns
 var wikiLinkRegex = regexp.MustCompile(`\[\[([^\]|]+)(?:\|([^\]]+))?\]\]`)
 
-// ParseWikiLinks extracts all wiki links from page content
+// ParseWikiLinks extracts all wiki links from document content
 func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
 	matches := wikiLinkRegex.FindAllStringSubmatch(content, -1)
 	var links []*WikiLink
@@ -57,8 +57,8 @@ func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
 		// Resolve target to path
 		path := l.resolveTargetToPath(target)
 
-		// Check if target page exists
-		isValid := l.pageExists(path)
+		// Check if target document exists
+		isValid := l.documentExists(path)
 
 		links = append(links, &WikiLink{
 			Target:      target,
@@ -71,10 +71,10 @@ func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
 	return links
 }
 
-// resolveTargetToPath converts a page title to a path
+// resolveTargetToPath converts a document title to a path
 func (l *LinkService) resolveTargetToPath(target string) string {
 	// First try to find exact title match
-	if path := l.findPageByTitle(target); path != "" {
+	if path := l.findDocumentByTitle(target); path != "" {
 		return path
 	}
 
@@ -83,33 +83,33 @@ func (l *LinkService) resolveTargetToPath(target string) string {
 	return "/" + slug
 }
 
-// findPageByTitle searches for a page with the exact title
-func (l *LinkService) findPageByTitle(title string) string {
-	pages, err := l.pageService.ListPages()
+// findDocumentByTitle searches for a document with the exact title
+func (l *LinkService) findDocumentByTitle(title string) string {
+	documents, err := l.documentService.ListDocuments()
 	if err != nil {
 		return ""
 	}
 
 	// Case-insensitive title matching
 	lowerTitle := strings.ToLower(title)
-	for _, page := range pages {
-		if strings.ToLower(page.MetaData.Title) == lowerTitle {
-			return page.MetaData.Path
+	for _, document := range documents {
+		if strings.ToLower(document.MetaData.Title) == lowerTitle {
+			return document.MetaData.Path
 		}
 	}
 
 	return ""
 }
 
-// pageExists checks if a page exists at the given path
-func (l *LinkService) pageExists(path string) bool {
-	_, err := l.pageService.GetPageByPath(path)
+// documentExists checks if a document exists at the given path
+func (l *LinkService) documentExists(path string) bool {
+	_, err := l.documentService.GetDocumentByPath(path)
 	return err == nil
 }
 
 // GetOutgoingLinks returns all outgoing links for a page
 func (l *LinkService) GetOutgoingLinks(pagePath string) ([]*WikiLink, error) {
-	page, err := l.pageService.GetPageByPath(pagePath)
+	page, err := l.documentService.GetDocumentByPath(pagePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get page: %w", err)
 	}
@@ -201,22 +201,22 @@ func (l *LinkService) rebuildBacklinksIndex() error {
 	// Clear existing index
 	l.backlinks = make(map[string][]string)
 
-	pages, err := l.pageService.ListPages()
+	documents, err := l.documentService.ListDocuments()
 	if err != nil {
-		return fmt.Errorf("failed to list pages: %w", err)
+		return fmt.Errorf("failed to list documents: %w", err)
 	}
 
-	// Process each page
-	for _, page := range pages {
-		// Skip trash pages
-		if strings.Contains(page.MetaData.Path, "/trash") {
+	// Process each document
+	for _, document := range documents {
+		// Skip trash documents
+		if strings.Contains(document.MetaData.Path, "/trash") {
 			continue
 		}
 
-		links := l.ParseWikiLinks(page.Content)
+		links := l.ParseWikiLinks(document.Content)
 		for _, link := range links {
 			if link.IsValid {
-				l.addBacklink(link.Path, page.MetaData.Path)
+				l.addBacklink(link.Path, document.MetaData.Path)
 			}
 		}
 	}
@@ -226,7 +226,7 @@ func (l *LinkService) rebuildBacklinksIndex() error {
 
 // GetBrokenLinks returns all broken links across all pages
 func (l *LinkService) GetBrokenLinks() (map[string][]*WikiLink, error) {
-	pages, err := l.pageService.ListPages()
+	pages, err := l.documentService.ListDocuments()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pages: %w", err)
 	}

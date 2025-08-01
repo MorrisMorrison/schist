@@ -1,42 +1,42 @@
 import { test, expect } from '../fixtures/test-setup';
-import { createTestPage } from '../utils/test-data';
+import { createTestDocument } from '../utils/test-data';
 
 test.describe('Basic CRUD Functionality', () => {
-	test('should create and delete pages (existing functionality)', async ({
-		pageViewPage,
+	test('should create and delete documents (existing functionality)', async ({
+		documentViewPage,
 		editorPage,
 		apiHelper,
 		testId
 	}) => {
-		// Create a test page
-		const testPage = createTestPage({
-			title: `CRUD Test Page ${testId}`,
+		// Create a test document
+		const testDocument = createTestDocument({
+			title: `CRUD Test Document ${testId}`,
 			content: '# CRUD Test\n\nTesting basic CRUD functionality.',
 			path: `/crud-test-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Verify page creation
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(testPage.title);
+		// Verify document creation
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
-		// Verify page editing
-		await pageViewPage.editPage();
+		// Verify document editing
+		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();
 		await editorPage.typeContent('\n\nEdited content added.');
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify edit was saved
-		await pageViewPage.verifyContentContains('Edited content added');
+		await documentViewPage.verifyContentContains('Edited content added');
 
-		// Verify page deletion
-		await pageViewPage.deletePage();
-		await pageViewPage.expectUrl('/');
+		// Verify document deletion
+		await documentViewPage.deleteDocument();
+		await documentViewPage.expectUrl('/');
 
-		// Try to navigate to deleted page - should show 404
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageNotFound();
+		// Try to navigate to deleted document - should show 404
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentNotFound();
 	});
 
 	test('should create folders via FolderView (existing functionality)', async ({
@@ -67,14 +67,14 @@ test.describe('Basic CRUD Functionality', () => {
 		page
 	}) => {
 		// Create test content
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Searchable Content ${testId}`,
 			content: '# Searchable Content\n\nThis content should be findable.',
 			path: `/searchable-${testId}`,
 			tags: ['searchable', 'test']
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 		await folderPage.navigateToRoot();
 
 		// Check if unified search exists and works
@@ -101,60 +101,60 @@ test.describe('Basic CRUD Functionality', () => {
 	});
 
 	test('should handle basic navigation (existing functionality)', async ({
-		pageViewPage,
+		documentViewPage,
 		homePage,
 		apiHelper,
 		testId
 	}) => {
-		// Create test page for navigation
-		const testPage = createTestPage({
+		// Create test document for navigation
+		const testDocument = createTestDocument({
 			title: `Navigation Test ${testId}`,
 			content: '# Navigation Test\n\nTesting basic navigation.',
 			path: `/nav-test-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Test home -> page navigation
+		// Test home -> document navigation
 		await homePage.navigate();
 		await homePage.verifyLoaded();
 
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		// Test browser back navigation
-		await pageViewPage.page.goBack();
+		await documentViewPage.page.goBack();
 		await homePage.verifyLoaded();
 
 		// Test browser forward navigation
-		await pageViewPage.page.goForward();
-		await pageViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.page.goForward();
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 	});
 
-	test('should preserve content during page refresh (existing functionality)', async ({
-		pageViewPage,
+	test('should preserve content during document refresh (existing functionality)', async ({
+		documentViewPage,
 		apiHelper,
 		testId,
 		page
 	}) => {
-		// Create test page
-		const testPage = createTestPage({
+		// Create test document
+		const testDocument = createTestDocument({
 			title: `Refresh Test ${testId}`,
 			content: '# Refresh Test\n\nContent that should persist.',
 			path: `/refresh-test-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Navigate to page
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(testPage.title);
+		// Navigate to document
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
-		// Refresh page
+		// Refresh document
 		await page.reload();
 
 		// Verify content persists
-		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyContentContains('Content that should persist');
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.verifyContentContains('Content that should persist');
 	});
 });

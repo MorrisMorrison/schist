@@ -1,0 +1,4 @@
+- [ ] Long document titles push the buttons (edit and delete) out of bounds in DocumentCard
+- [ ] Root folder is missing the context menu again. The context menu already exist in the code. currently we only support a create Folder action. we also want to enable users to create documents directly on root level.
+- [ ] When I create a document in a folder under root, the folder does not expand right away, I always have to click it. if I just added a document to it, and its not empty anymore, it should expand by default
+- [ ] Nothing happens when I click on move document button

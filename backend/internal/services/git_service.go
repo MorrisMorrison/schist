@@ -237,7 +237,7 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 	return versions, nil
 }
 
-func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Page, error) {
+func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Document, error) {
 	if gs.repository == nil {
 		return nil, fmt.Errorf("git repository not initialized")
 	}
@@ -269,13 +269,13 @@ func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash strin
 		return nil, fmt.Errorf("failed to read file content: %w", err)
 	}
 
-	// Deserialize page from content using the existing serializer
-	page, err := serializer.DeserializePage([]byte(content))
+	// Deserialize document from content using the existing serializer
+	document, err := serializer.DeserializeDocument([]byte(content))
 	if err != nil {
-		return nil, fmt.Errorf("failed to deserialize page: %w", err)
+		return nil, fmt.Errorf("failed to deserialize document: %w", err)
 	}
 
-	return page, nil
+	return document, nil
 }
 
 func (gs *GitService) getRelativeFilePath(documentPath string) string {

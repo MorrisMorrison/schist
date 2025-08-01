@@ -4,10 +4,10 @@
 	import FolderTree from './FolderTree.svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
 	import RenameFolderModal from './RenameFolderModal.svelte';
-	import RenamePageModal from './RenamePageModal.svelte';
+	import RenameDocumentModal from './RenameDocumentModal.svelte';
 	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
-	import type { Folder as FolderType, Page } from '$lib/api/types';
-	import { folderActions, pageActions } from '$lib/stores/pages';
+	import type { Folder as FolderType, Document } from '$lib/api/types';
+	import { folderActions, documentActions } from '$lib/stores/documents';
 
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
@@ -15,10 +15,10 @@
 	let showDeleteFolderModal = $state(false);
 	let folderToRename = $state<FolderType | undefined>(undefined);
 	let folderToDelete = $state<FolderType | undefined>(undefined);
-	let showRenamePageModal = $state(false);
+	let showRenameDocumentModal = $state(false);
 	let showDeletePageModal = $state(false);
-	let pageToRename = $state<Page | null>(null);
-	let pageToDelete = $state<Page | null>(null);
+	let pageToRename = $state<Document | null>(null);
+	let pageToDelete = $state<Document | null>(null);
 
 	const currentPath = $derived(page.url.pathname);
 
@@ -26,7 +26,7 @@
 		goto(`/folders${event.path}`);
 	}
 
-	function handlePageSelect(event: { page: Page }) {
+	function handlePageSelect(event: { document: Document }) {
 		const pagePath = event.page.metaData?.path || `/${event.page.metaData?.slug}`;
 		goto(`/pages${pagePath}`);
 	}
@@ -58,24 +58,24 @@
 		folderActions.loadFolderTree();
 	}
 
-	function handlePageDelete(event: { page: Page }) {
+	function handlePageDelete(event: { document: Document }) {
 		pageToDelete = event.page;
 		showDeletePageModal = true;
 	}
 
-	function handlePageRename(event: { page: Page }) {
+	function handlePageRename(event: { document: Document }) {
 		pageToRename = event.page;
-		showRenamePageModal = true;
+		showRenameDocumentModal = true;
 	}
 
 	async function confirmDeletePage() {
 		if (pageToDelete?.metaData?.path) {
 			try {
-				await pageActions.deletePageByPath(pageToDelete.metaData.path);
+				await documentActions.deleteDocumentByPath(pageToDelete.metaData.path);
 				showDeletePageModal = false;
 				pageToDelete = null;
 			} catch (error) {
-				console.error('Failed to delete page:', error);
+				console.error('Failed to delete document:', error);
 			}
 		}
 	}
@@ -93,11 +93,11 @@
 	}
 
 	async function handlePageRenamed(oldPath: string, newPath: string) {
-		showRenamePageModal = false;
+		showRenameDocumentModal = false;
 		pageToRename = null;
 
 		// Refresh the pages list
-		await pageActions.loadPages();
+		await documentActions.loadDocuments();
 
 		// Check if we're currently viewing the page that was renamed
 		if (currentPath === `/pages${oldPath}`) {
@@ -150,11 +150,11 @@
 
 <!-- Rename Page Modal -->
 {#if pageToRename}
-	<RenamePageModal
-		open={showRenamePageModal}
-		page={pageToRename}
+	<RenameDocumentModal
+		open={showRenameDocumentModal}
+		document={pageToRename}
 		onClose={() => {
-			showRenamePageModal = false;
+			showRenameDocumentModal = false;
 			pageToRename = null;
 		}}
 		onRenamed={handlePageRenamed}

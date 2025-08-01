@@ -49,7 +49,8 @@ COPY --from=backend-builder /app/schist ./
 COPY --from=frontend-builder /app/frontend/build ./web/
 
 # Create directories for wiki data
-RUN mkdir -p /app/data/pages /app/data/assets
+RUN mkdir -p /app/data/documents /app/data/assets
+
 
 # Expose port
 EXPOSE 8080

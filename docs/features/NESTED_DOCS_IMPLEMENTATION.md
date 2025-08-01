@@ -107,7 +107,7 @@ export interface Folder {
   name: string;
   path: string;
   created: string;
-  page_count: number;
+  document_count: number;
   sub_folders: Folder[];
 }
 
@@ -152,8 +152,8 @@ deleteFolder(path: string): Promise<void>
 ### 4.3 New Routes
 ```
 /docs                          # Root folder view
-/docs/*path                    # Nested folder/page view
-/docs/*path/edit               # Edit page at path
+/docs/*path                    # Nested folder/document view
+/docs/*path/edit               # Edit document at path
 ```
 
 ## **Phase 5: Migration Strategy**

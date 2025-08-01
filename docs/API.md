@@ -172,7 +172,7 @@ Create a new wiki document. The system automatically generates slugs and paths i
 ```json
 {
   "metaData": {
-    "title": "Page Title",
+    "title": "Document Title",
     "path": "/optional-custom-path",
     "tags": ["tag1", "tag2"]
   },
@@ -262,7 +262,7 @@ Retrieve the complete folder hierarchy with document counts.
       "name": "docs",
       "path": "/docs",
       "created": "2024-01-15T10:30:00Z",
-      "page_count": 5,
+      "document_count": 5,
       "sub_folders": [
         {
           "name": "api",
@@ -432,9 +432,9 @@ Direct static access to uploaded assets (maps to `{dataDir}/assets/`).
 
 ### HTTP Status Codes
 - **200** - Success
-- **201** - Created (new pages/folders/assets)
+- **201** - Created (new documents/folders/assets)
 - **400** - Bad Request (validation errors, invalid JSON)
-- **404** - Not Found (missing pages/folders/assets)
+- **404** - Not Found (missing documents/folders/assets)
 - **500** - Internal Server Error (filesystem/parsing errors)
 
 ## Path and Security Validation

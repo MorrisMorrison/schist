@@ -77,7 +77,7 @@ schist-wiki/
 - Keyboard shortcuts (Ctrl+S, Ctrl+B, etc.)
 
 #### 3. Wiki Linking
-- `[[Page Name]]` syntax for internal links
+- `[[Document Name]]` syntax for internal links
 - Automatic link resolution
 - Backlink detection and display
 - Broken link detection
@@ -210,7 +210,7 @@ Your markdown content here with [[wiki links]].
 |                  |                  |                  |
 |   Sidebar        |   Main Editor    |   Preview        |
 | - File Tree      | - Markdown Edit  | - Rendered HTML  |
-| - Recent Pages   | - Toolbar        | - Table of Cont. |
+| - Recent Documents   | - Toolbar        | - Table of Cont. |
 | - Tags           |                  | - Backlinks      |
 |                  |                  |                  |
 +------------------+------------------+------------------+

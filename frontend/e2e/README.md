@@ -10,7 +10,7 @@ e2e/
 │   ├── index.ts              # Main exports
 │   ├── test-setup.ts         # Basic test setup with page objects
 │   └── test-data-fixtures.ts # Data management fixtures
-├── pages/                    # Page Object Models
+├── documents/                    # Page Object Models
 │   ├── BasePage.ts           # Base page class with common functionality
 │   ├── HomePage.ts           # Home/landing page
 │   ├── EditorPage.ts         # Page editor (/new and /edit routes)

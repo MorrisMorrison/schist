@@ -11,5 +11,5 @@ jobs:
       - name: Trigger CapRover Deployment
         run: |
           curl -X POST \
-            "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+            "${{ secrets.Cedasd_WEBHOOK_URL }}" \
             -H "Content-Type: application/json"

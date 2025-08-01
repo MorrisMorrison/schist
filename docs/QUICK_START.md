@@ -171,7 +171,7 @@ ENV=development make run-backend
 ```bash
 # Make data directory writable
 chmod 755 ./data
-mkdir -p ./data/pages ./data/assets
+mkdir -p ./data/documents ./data/assets
 ```
 
 **Docker Issues:**

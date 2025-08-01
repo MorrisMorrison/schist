@@ -279,7 +279,7 @@ func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash strin
 }
 
 func (gs *GitService) getRelativeFilePath(documentPath string) string {
-	// Convert logical path like "/folder/page" to file path "folder/page.md"
+	// Convert logical path like "/folder/document" to file path "folder/document.md"
 	cleanPath := strings.TrimPrefix(documentPath, "/")
 	if cleanPath == "" {
 		cleanPath = "index"

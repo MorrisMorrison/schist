@@ -2,7 +2,7 @@
 
 ## Overview
 
-The editor toolbar has been successfully integrated into your Schist wiki application. Both the "Edit Page" and "New Page" routes now use the full-featured `Editor` component with toolbar functionality.
+The editor toolbar has been successfully integrated into your Schist wiki application. Both the "Edit Document" and "New Document" routes now use the full-featured `Editor` component with toolbar functionality.
 
 ## Features Available
 

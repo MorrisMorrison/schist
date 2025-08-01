@@ -47,7 +47,7 @@ func writeTestDocumentToFile(t *testing.T, testDir, docPath string, document *mo
 		require.NoError(t, err)
 	}
 
-	// Serialize and write the page
+	// Serialize and write the document
 	content, err := serializer.SerializeDocument(document)
 	require.NoError(t, err)
 

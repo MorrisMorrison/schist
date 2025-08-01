@@ -275,7 +275,7 @@ AllowCredentials: true
 ### Input Validation
 
 - **File uploads**: MIME type and extension validation
-- **Page paths**: Sanitized and normalized
+- **Document paths**: Sanitized and normalized
 - **YAML front matter**: Safe parsing with validation
 
 ## Logging Configuration

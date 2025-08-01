@@ -18,10 +18,10 @@
 		folders,
 		isFoldersLoading,
 		foldersError,
-		pagesStore,
-		pageActions
-	} from '$lib/stores/pages.js';
-	import { folderActions } from '$lib/stores/pages.js';
+		documentsStore,
+		documentActions
+	} from '$lib/stores/documents.js';
+	import { folderActions } from '$lib/stores/documents.js';
 	import { browser } from '$app/environment';
 	import { cn } from '$lib/utils.js';
 
@@ -37,12 +37,12 @@
 		storageKey?: string;
 		currentPath?: string;
 		onselect?: (event: { path: string; folder: FolderType }) => void;
-		onpageselect?: (event: { page: Page }) => void;
+		onpageselect?: (event: { page: Document }) => void;
 		oncreate?: (event: { parentPath: string }) => void;
 		ondelete?: (event: { path: string; folder: FolderType }) => void;
 		onrename?: (event: { path: string; folder: FolderType }) => void;
-		onpagedelete?: (event: { page: Page }) => void;
-		onpagerename?: (event: { page: Page }) => void;
+		onpagedelete?: (event: { page: Document }) => void;
+		onpagerename?: (event: { page: Document }) => void;
 		onexpandall?: () => void;
 		oncollapseall?: () => void;
 	}
@@ -86,7 +86,7 @@
 	let isDragging = $state(false);
 	let dragOverTarget = $state<string | null>(null);
 
-	const pages = $derived($pagesStore.pages || []);
+	const pages = $derived($documentsStore.pages || []);
 
 	const filteredFolders = $derived(
 		unifiedSearchQuery.trim()
@@ -97,7 +97,7 @@
 	$effect(() => {
 		folderActions.loadFolderTree().catch(console.error);
 		if (showPages) {
-			pageActions.loadPages().catch(console.error);
+			documentActions.loadDocuments().catch(console.error);
 		}
 	});
 
@@ -140,7 +140,7 @@
 		};
 	}
 
-	function pageMatchesFilters(page: Page, textQuery: string, tagFilters: string[]): boolean {
+	function pageMatchesFilters(page: Document, textQuery: string, tagFilters: string[]): boolean {
 		// Check text match in page title
 		const textMatch = !textQuery || page.metaData.title.toLowerCase().includes(textQuery);
 
@@ -159,7 +159,7 @@
 
 	function filterFoldersAndPages(
 		folders: FolderType[],
-		allPages: Page[],
+		allPages: Document[],
 		query: string
 	): FolderType[] {
 		const { textQuery, tagFilters } = parseUnifiedQuery(query);
@@ -430,7 +430,7 @@
 	}
 
 	// Page context menu handlers
-	function handlePageContextMenu(event: MouseEvent | KeyboardEvent, page: Page) {
+	function handlePageContextMenu(event: MouseEvent | KeyboardEvent, page: Document) {
 		if (!enableContextMenu) return;
 
 		event.preventDefault();
@@ -467,17 +467,17 @@
 		pageContextMenuOpen = page.metaData?.path || '';
 	}
 
-	function handleDeletePage(page: Page) {
+	function handleDeletePage(page: Document) {
 		onpagedelete?.({ page });
 		closeContextMenu();
 	}
 
-	function handleRenamePage(page: Page) {
+	function handleRenamePage(page: Document) {
 		onpagerename?.({ page });
 		closeContextMenu();
 	}
 
-	function findPageByPath(path: string): Page | null {
+	function findPageByPath(path: string): Document | null {
 		return pages.find((page) => page.metaData?.path === path) || null;
 	}
 
@@ -588,12 +588,12 @@
 			if (type === 'folder') {
 				await folderActions.moveFolder(sourcePath, newPath);
 			} else {
-				await pageActions.movePagePath(sourcePath, newPath);
+				await documentActions.moveDocumentPath(sourcePath, newPath);
 			}
 
 			await folderActions.loadFolderTree();
 			if (showPages) {
-				await pageActions.loadPages();
+				await documentActions.loadDocuments();
 			}
 		} catch (error) {
 			console.error('Failed to move item:', error);

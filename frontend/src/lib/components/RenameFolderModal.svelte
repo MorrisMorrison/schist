@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { folderActions } from '$lib/stores/pages';
+	import { folderActions } from '$lib/stores/documents';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,

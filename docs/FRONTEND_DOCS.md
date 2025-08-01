@@ -27,11 +27,11 @@ The frontend is built with **SvelteKit** using **Svelte 5** with the new runes s
 - `MarkdownPreview.svelte` - Live preview rendering
 - `EditorToolbar.svelte` - Formatting buttons and controls
 
-### 2. Page Management
+### 2. Document Management
 
-**Page Structure:**
+**Document Structure:**
 
-- Each page has metadata (title, slug, tags, created/updated dates)
+- Each document has metadata (title, slug, tags, created/updated dates)
 - Content is stored as raw markdown
 - Slugs are auto-generated from titles but can be customized
 
@@ -40,7 +40,7 @@ The frontend is built with **SvelteKit** using **Svelte 5** with the new runes s
 - **Create:** `/new` route with form for title and content
 - **Read:** `/[slug]` route displays rendered markdown
 - **Update:** `/edit/[slug]` route with full editor
-- **Delete:** Via PageList component with confirmation dialogs
+- **Delete:** Via DocumentList component with confirmation dialogs
 
 ### 3. Theme System
 
@@ -62,11 +62,11 @@ The frontend is built with **SvelteKit** using **Svelte 5** with the new runes s
 **Route Structure:**
 
 ```
-/                  - Home page with recent pages
-/new               - Create new page
-/edit/[slug]       - Edit existing page
-/[slug]            - View page (catch-all route)
-/pages             - List all pages with search/filter
+/                  - Home page with recent documents
+/new               - Create new document
+/edit/[slug]       - Edit existing document
+/[slug]            - View document (catch-all route)
+/documents         - List all documents with search/filter
 /editor-test       - Development testing route
 ```
 
@@ -86,11 +86,11 @@ The frontend is built with **SvelteKit** using **Svelte 5** with the new runes s
 
 **Key API Operations:**
 
-- `GET /api/pages` - List all pages
-- `GET /api/pages/:slug` - Get specific page
-- `POST /api/pages` - Create new page
-- `PUT /api/pages/:slug` - Update page
-- `DELETE /api/pages/:slug` - Delete page
+- `GET /api/documents` - List all documents
+- `GET /api/documents/:slug` - Get specific document
+- `POST /api/documents` - Create new document
+- `PUT /api/documents/:slug` - Update document
+- `DELETE /api/documents/:slug` - Delete document
 
 ### 6. State Management
 
@@ -115,8 +115,8 @@ The frontend is built with **SvelteKit** using **Svelte 5** with the new runes s
 
 **Key Components:**
 
-- `PageList.svelte` - Displays paginated page lists
-- `PageCard.svelte` - Individual page preview cards
+- `DocumentList.svelte` - Displays paginated document lists
+- `DocumentCard.svelte` - Individual document preview cards
 - `ErrorAlert.svelte` - Error message display
 - UI components in `src/lib/components/ui/`
 
@@ -124,7 +124,7 @@ The frontend is built with **SvelteKit** using **Svelte 5** with the new runes s
 
 **Implementation:**
 
-- Client-side search through page metadata and content
+- Client-side search through document metadata and content
 - Real-time filtering as you type
 - Multiple sort options (title, created, updated)
 - Alphabetical grouping for better organization
@@ -169,10 +169,10 @@ src/
 │   ├── stores/       # Global state management
 │   └── utils.ts      # Utility functions
 ├── routes/           # SvelteKit routes
-│   ├── [slug]/      # Dynamic page routes
-│   ├── edit/        # Edit page routes
-│   ├── new/         # New page route
-│   └── pages/       # Page listing route
+│   ├── [slug]/      # Dynamic document routes
+│   ├── edit/        # Edit document routes
+│   ├── new/         # New document route
+│   └── documents/   # Document listing route
 ├── app.css          # Global styles and theme variables
 ├── app.html         # HTML template
 └── app.js           # Application entry point

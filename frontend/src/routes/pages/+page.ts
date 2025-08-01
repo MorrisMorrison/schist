@@ -3,20 +3,23 @@ import { apiClient } from '$lib';
 
 export const load: PageLoad = async () => {
 	try {
-		const [pages, folders] = await Promise.all([apiClient.getPages(), apiClient.getFolderTree()]);
+		const [documents, folders] = await Promise.all([
+			apiClient.getDocuments(),
+			apiClient.getFolderTree()
+		]);
 
 		return {
-			pages: pages || [],
+			documents: documents || [],
 			folders: folders || [],
-			total: pages?.length || 0
+			total: documents?.length || 0
 		};
 	} catch (error) {
-		console.error('Failed to load pages and folders:', error);
+		console.error('Failed to load documents and folders:', error);
 		return {
-			pages: [],
+			documents: [],
 			folders: [],
 			total: 0,
-			error: 'Failed to load pages and folders'
+			error: 'Failed to load documents and folders'
 		};
 	}
 };

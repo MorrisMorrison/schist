@@ -4,22 +4,22 @@
 	import MetadataEditor from '$lib/components/MetadataEditor.svelte';
 	import DeleteConfirmModal from '$lib/components/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { pageActions } from '$lib/stores/pages.js';
-	import type { PageData } from './$types';
+	import { documentActions } from '$lib/stores/documents.js';
+	import type { DocumentData } from './$types';
 	import { generateSlug } from '$lib/utils/path';
 	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
 
-	let { data }: { data: PageData } = $props();
+	let { data }: { data: DocumentData } = $props();
 
 	// Handle null page during SSR
-	const page = data.page || {
+	const document = data.document || {
 		metaData: { title: '', tags: [], slug: '', path: '', created: '', updated: '' },
 		content: ''
 	};
 
-	let title = $state(page.metaData.title);
-	let content = $state(page.content);
-	let tags = $state<string[]>(page.metaData.tags || []);
+	let title = $state(document.metaData.title);
+	let content = $state(document.content);
+	let tags = $state<string[]>(document.metaData.tags || []);
 	let isSaving = $state(false);
 	let saveError = $state('');
 	let isDeleting = $state(false);
@@ -29,9 +29,9 @@
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	// Track original values to detect changes
-	const originalTitle = page.metaData.title;
-	const originalContent = page.content;
-	const originalTags = JSON.stringify(page.metaData.tags || []);
+	const originalTitle = document.metaData.title;
+	const originalContent = document.content;
+	const originalTags = JSON.stringify(document.metaData.tags || []);
 
 	let editorRef: Editor;
 	function replaceLastPathSegment(path: string, newSegment: string): string {
@@ -59,12 +59,12 @@
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			// Use 'manual' saveType for manual saves to create git versions
-			await pageActions.updatePageByPath(
+			await documentActions.updateDocumentByPath(
 				data.path,
 				{
-					...page,
+					...document,
 					metaData: {
-						...page.metaData,
+						...document.metaData,
 						slug: slug,
 						path: newPath,
 						title: title.trim(),
@@ -93,7 +93,7 @@
 		isDeleting = true;
 
 		try {
-			await pageActions.deletePageByPath(data.path);
+			await documentActions.deleteDocumentByPath(data.path);
 			showDeleteModal = false;
 			goto('/');
 		} catch (error) {
@@ -166,12 +166,12 @@
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			// Use 'auto' saveType for auto-saves to prevent version creation
-			await pageActions.updatePageByPath(
+			await documentActions.updateDocumentByPath(
 				data.path,
 				{
-					...page,
+					...document,
 					metaData: {
-						...page.metaData,
+						...document.metaData,
 						slug: slug,
 						path: newPath,
 						title: title.trim(),
@@ -206,8 +206,8 @@
 </script>
 
 <svelte:head>
-	<title>Edit {page.metaData.title} - Schist Wiki</title>
-	<meta name="description" content="Edit wiki page: {page.metaData.title}" />
+	<title>Edit {document.metaData.title} - Schist Wiki</title>
+	<meta name="description" content="Edit wiki page: {document.metaData.title}" />
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -291,10 +291,10 @@
 		<MetadataEditor
 			{title}
 			{tags}
-			slug={page.metaData.slug}
-			path={page.metaData.path}
-			created={page.metaData.created}
-			updated={page.metaData.updated}
+			slug={document.metaData.slug}
+			path={document.metaData.path}
+			created={document.metaData.created}
+			updated={document.metaData.updated}
 			onTitleChange={(newTitle) => {
 				title = newTitle;
 				scheduleAutoSave();

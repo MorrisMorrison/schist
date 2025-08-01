@@ -63,25 +63,25 @@ function generateSlug(title: string): string {
 }
 
 async function resolveWikiLink(target: string): Promise<WikiLink> {
-	// First try to find exact title match by searching all pages
+	// First try to find exact title match by searching all documents
 	try {
-		const pages = await apiClient.getPages();
+		const documents = await apiClient.getDocuments();
 
 		// Case-insensitive title matching
-		const matchingPage = pages.find(
-			(page: { metaData: { title: string; path: string } }) =>
-				page.metaData.title.toLowerCase() === target.toLowerCase()
+		const matchingDocument = documents.find(
+			(document: { metaData: { title: string; path: string } }) =>
+				document.metaData.title.toLowerCase() === target.toLowerCase()
 		);
 
-		if (matchingPage) {
+		if (matchingDocument) {
 			return {
 				target,
 				displayText: target,
-				path: matchingPage.metaData.path
+				path: matchingDocument.metaData.path
 			};
 		}
 	} catch (error) {
-		console.warn('Failed to fetch pages for wiki link resolution:', error);
+		console.warn('Failed to fetch documents for wiki link resolution:', error);
 	}
 
 	// If no exact match, generate slug-based path
@@ -151,17 +151,17 @@ async function postprocessWikiLinks(html: string): Promise<string> {
 		try {
 			const resolvedLink = await resolveWikiLink(link.target);
 
-			// Check if the target page exists
+			// Check if the target document exists
 			let linkClass = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
 			let title = `Go to ${resolvedLink.target}`;
 
 			try {
-				await apiClient.getPageByPath(resolvedLink.path);
+				await apiClient.getDocumentByPath(resolvedLink.path);
 			} catch {
-				// Page doesn't exist - style as broken link
+				// Document doesn't exist - style as broken link
 				linkClass =
 					'wiki-link broken-link text-red-500 hover:text-red-700 hover:underline cursor-pointer';
-				title = `Page "${resolvedLink.target}" does not exist (click to create)`;
+				title = `Document "${resolvedLink.target}" does not exist (click to create)`;
 			}
 
 			const linkHtml = `<span class="${linkClass}" data-wiki-target="${resolvedLink.path}" title="${title}">${link.displayText}</span>`;
@@ -350,10 +350,10 @@ function handleWikiLinkClick(event: Event): void {
 	const isBrokenLink = linkElement.classList.contains('broken-link');
 
 	if (isBrokenLink) {
-		// Navigate to edit page to create the new page
+		// Navigate to edit page to create the new document
 		goto(`/edit${targetPath}`);
 	} else {
-		// Navigate to the existing page
+		// Navigate to the existing document
 		goto(`/pages${targetPath}`);
 	}
 }

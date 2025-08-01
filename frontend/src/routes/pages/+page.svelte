@@ -9,4 +9,4 @@
 	<title>Pages</title>
 </svelte:head>
 
-<FolderView path="" initialPages={data.pages} initialFolders={data.folders} />
+<FolderView path="" initialDocuments={data.documents} initialFolders={data.folders} />

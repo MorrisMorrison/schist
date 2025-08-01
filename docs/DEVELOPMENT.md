@@ -23,8 +23,8 @@ schist/
 │   │       ├── asset_service.go      # Asset upload/management
 │   │       ├── asset_service_test.go # Asset service tests
 │   │       ├── folder_service.go     # Folder operations
-│   │       ├── page_service.go       # Page CRUD operations
-│   │       └── page_service_test.go  # Page service tests
+│   │       ├── document_service.go   # Document CRUD operations
+│   │       └── document_service_test.go  # Document service tests
 │   ├── utils/                # Utility functions
 │   │   ├── utils.go
 │   │   └── utils_test.go     # Utility tests
@@ -48,7 +48,7 @@ schist/
 │   ├── tailwind.config.js   # Tailwind CSS v4 configuration
 │   └── tsconfig.json        # TypeScript configuration
 ├── data/                      # Default data directory
-│   ├── pages/               # Markdown pages storage
+│   ├── documents/           # Markdown documents storage
 │   └── assets/              # Uploaded assets storage
 ├── docs/                      # Documentation
 │   ├── API.md
@@ -106,7 +106,7 @@ cd cmd/schist && go run main.go
 - **File-based Storage** - No database required
 - **YAML Front Matter** - Markdown with metadata
 - **Asset Management** - Image upload and serving
-- **Hierarchical Pages** - Folder-based organization
+- **Hierarchical Documents** - Folder-based organization
 - **CORS Support** - Development-mode CORS for frontend
 - **Rate Limiting** - IP-based request limiting with configurable thresholds
 - **Basic Authentication** - Optional authentication for all endpoints
@@ -176,10 +176,10 @@ cd backend && go test -cover ./...
 for i in {1..10}; do curl http://localhost:8080/api/health; done
 
 # Test authentication (with auth enabled)
-curl -u admin:password http://localhost:8080/api/pages
+curl -u admin:password http://localhost:8080/api/documents
 
 # Test without credentials (should return 401)
-curl http://localhost:8080/api/pages
+curl http://localhost:8080/api/documents
 
 # Generate password hashes
 cd backend && go build -o generate-hash ./cmd/generate-hash
@@ -203,7 +203,7 @@ cd frontend && npm run test:coverage
 make e2e
 
 # Run specific test
-cd frontend && npx playwright test page-creation
+cd frontend && npx playwright test document-creation
 ```
 
 **API Testing:**
@@ -275,7 +275,7 @@ HTTP Request → Gin Router → Middleware → Handler → Service → File Syst
 - `BasicAuthMiddleware` - HTTP basic authentication
 
 **Service Layer:**
-- `PageService` - CRUD operations for pages
+- `DocumentService` - CRUD operations for documents
 - `FolderService` - Folder management and hierarchy
 - `AssetService` - File upload and serving
 
@@ -295,12 +295,12 @@ App → Layout → Page Components → UI Components
 
 ### Data Flow
 
-**Page Creation Flow:**
-1. User creates page in frontend editor
-2. Frontend sends POST to `/api/pages`
+**Document Creation Flow:**
+1. User creates document in frontend editor
+2. Frontend sends POST to `/api/documents`
 3. Backend validates and parses metadata
-4. Page saved as markdown file with YAML front matter
-5. Frontend updates UI with new page
+4. Document saved as markdown file with YAML front matter
+5. Frontend updates UI with new document
 
 **Asset Upload Flow:**
 1. User uploads image in editor

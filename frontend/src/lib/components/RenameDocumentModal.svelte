@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { pageActions } from '$lib/stores/pages';
+	import { documentActions } from '$lib/stores/documents';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,
@@ -10,35 +10,35 @@
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Edit, AlertCircle } from 'lucide-svelte';
-	import type { Page } from '$lib/api/types';
+	import type { Document } from '$lib/api/types';
 	import { generateSlug } from '$lib/utils/path';
 
 	interface Props {
-		page?: Page;
+		document?: Document;
 		open?: boolean;
 		onClose: () => void;
 		onRenamed: (oldPath: string, newPath: string) => void;
 	}
 
-	let { page, open = false, onClose, onRenamed }: Props = $props();
+	let { document, open = false, onClose, onRenamed }: Props = $props();
 
-	let pageTitle = $state('');
+	let documentTitle = $state('');
 	let error = $state('');
 	let isLoading = $state(false);
 
-	const currentTitle = $derived(page?.metaData?.title || '');
-	const currentPath = $derived(page?.metaData?.path || '');
-	const isValidTitle = $derived(validatePageTitle(pageTitle));
+	const currentTitle = $derived(document?.metaData?.title || '');
+	const currentPath = $derived(document?.metaData?.path || '');
+	const isValidTitle = $derived(validateDocumentTitle(documentTitle));
 
-	// Initialize page title when page changes
+	// Initialize document title when document changes
 	$effect(() => {
-		if (page && open) {
-			pageTitle = page.metaData?.title || '';
+		if (document && open) {
+			documentTitle = document.metaData?.title || '';
 			error = '';
 		}
 	});
 
-	function validatePageTitle(title: string): boolean {
+	function validateDocumentTitle(title: string): boolean {
 		if (!title.trim()) return false;
 
 		if (title.length > 100) {
@@ -46,38 +46,38 @@
 		}
 
 		// Don't allow same title as current
-		if (page && title.trim() === currentTitle) {
+		if (document && title.trim() === currentTitle) {
 			return false;
 		}
 
 		return true;
 	}
 
-	async function renamePage() {
-		if (!isValidTitle || isLoading || !page) return;
+	async function renameDocument() {
+		if (!isValidTitle || isLoading || !document) return;
 
 		isLoading = true;
 		error = '';
 
 		try {
 			// Generate new slug and path from the new title
-			const slug = generateSlug(pageTitle.trim());
+			const slug = generateSlug(documentTitle.trim());
 			const pathParts = currentPath.split('/');
 			pathParts[pathParts.length - 1] = slug;
 			const newPath = pathParts.join('/');
 
-			const updatedPage = await pageActions.updatePageByPath(currentPath, {
+			const updatedDocument = await documentActions.updateDocumentByPath(currentPath, {
 				metaData: {
-					...page.metaData,
-					title: pageTitle.trim(),
+					...document.metaData,
+					title: documentTitle.trim(),
 					slug: slug,
 					path: newPath
 				},
-				content: page.content
+				content: document.content
 			});
-			onRenamed(currentPath, updatedPage.metaData?.path || newPath);
+			onRenamed(currentPath, updatedDocument.metaData?.path || newPath);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to rename page';
+			error = err instanceof Error ? err.message : 'Failed to rename document';
 		} finally {
 			isLoading = false;
 		}
@@ -95,31 +95,33 @@
 		<DialogHeader>
 			<DialogTitle class="flex items-center gap-3">
 				<Edit class="h-5 w-5 text-blue-500" />
-				Rename Page
+				Rename Document
 			</DialogTitle>
 		</DialogHeader>
 
 		<form
 			onsubmit={(e) => {
 				e.preventDefault();
-				renamePage();
+				renameDocument();
 			}}
 			class="space-y-6"
 		>
 			<div class="space-y-4">
 				<div class="space-y-3">
-					<label for="page-title" class="text-primary text-sm font-medium">New Page Title</label>
+					<label for="document-title" class="text-primary text-sm font-medium"
+						>New Document Title</label
+					>
 					<Input
-						id="page-title"
+						id="document-title"
 						type="text"
-						data-testId="page-name"
-						bind:value={pageTitle}
-						placeholder="Enter new page title"
-						class={error && pageTitle ? 'border-red-500' : ''}
+						data-testId="document-name"
+						bind:value={documentTitle}
+						placeholder="Enter new document title"
+						class={error && documentTitle ? 'border-red-500' : ''}
 						required
 					/>
 
-					{#if error && pageTitle}
+					{#if error && documentTitle}
 						<div class="flex items-center gap-2 rounded-md bg-red-50 p-2 text-sm text-red-700">
 							<AlertCircle class="h-4 w-4 flex-shrink-0" />
 							{error}
@@ -154,11 +156,15 @@
 				<Button type="button" variant="outline" onclick={handleClose} disabled={isLoading}>
 					Cancel
 				</Button>
-				<Button type="submit" data-testId="rename-page-btn" disabled={!isValidTitle || isLoading}>
+				<Button
+					type="submit"
+					data-testId="rename-document-btn"
+					disabled={!isValidTitle || isLoading}
+				>
 					{#if isLoading}
 						Renaming...
 					{:else}
-						Rename Page
+						Rename Document
 					{/if}
 				</Button>
 			</DialogFooter>

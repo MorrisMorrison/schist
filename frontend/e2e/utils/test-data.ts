@@ -2,7 +2,7 @@
  * Test data utilities for generating consistent test content
  */
 
-export interface TestPageData {
+export interface TestDocumentData {
 	title: string;
 	content: string;
 	tags?: string[];
@@ -33,15 +33,15 @@ function generateSlug(title: string): string {
 	);
 }
 /**
- * Generate test page data
+ * Generate test document data
  */
-export function createTestPage(overrides: Partial<TestPageData> = {}): TestPageData {
+export function createTestDocument(overrides: Partial<TestDocumentData> = {}): TestDocumentData {
 	const testId = generateTestId();
 	const slug = generateSlug(overrides.title!);
 
 	return {
-		title: `Test Page ${testId}`,
-		content: `# Test Page ${testId}\n\nThis is a test page created for e2e testing.\n\n## Features\n\n- **Bold text**\n- *Italic text*\n- \`Inline code\`\n\n### Code Block\n\n\`\`\`javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n\`\`\`\n\n### Links\n\n[Test Link](https://example.com)\n\n### Image\n\n![Test Image](https://via.placeholder.com/300x200?text=Test+Image)\n\n---\n\nCreated at: ${new Date().toISOString()}`,
+		title: `Test Document ${testId}`,
+		content: `# Test Document ${testId}\n\nThis is a test document created for e2e testing.\n\n## Features\n\n- **Bold text**\n- *Italic text*\n- \`Inline code\`\n\n### Code Block\n\n\`\`\`javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n\`\`\`\n\n### Links\n\n[Test Link](https://example.com)\n\n### Image\n\n![Test Image](https://via.placeholder.com/300x200?text=Test+Image)\n\n---\n\nCreated at: ${new Date().toISOString()}`,
 		tags: ['test', 'e2e'],
 		slug: slug,
 		...overrides
@@ -49,26 +49,30 @@ export function createTestPage(overrides: Partial<TestPageData> = {}): TestPageD
 }
 
 /**
- * Generate simple test page
+ * Generate simple test document
  */
-export function createSimpleTestPage(overrides: Partial<TestPageData> = {}): TestPageData {
+export function createSimpleTestDocument(
+	overrides: Partial<TestDocumentData> = {}
+): TestDocumentData {
 	const testId = generateTestId();
 	return {
 		title: `Simple ${testId}`,
-		content: `# Simple Test Page\n\nThis is a simple test page with minimal content.`,
+		content: `# Simple Test Document\n\nThis is a simple test document with minimal content.`,
 		tags: ['simple'],
 		...overrides
 	};
 }
 
 /**
- * Generate complex test page with various markdown elements
+ * Generate complex test document with various markdown elements
  */
-export function createComplexTestPage(overrides: Partial<TestPageData> = {}): TestPageData {
+export function createComplexTestDocument(
+	overrides: Partial<TestDocumentData> = {}
+): TestDocumentData {
 	const testId = generateTestId();
 	return {
-		title: `Complex Page ${testId}`,
-		content: `# Complex Test Page ${testId}
+		title: `Complex Document ${testId}`,
+		content: `# Complex Test Document ${testId}
 
 ## Table of Contents
 
@@ -190,22 +194,25 @@ export function createNestedFolders(depth: number = 3): TestFolderData[] {
 }
 
 /**
- * Generate test pages for a folder
+ * Generate test documents for a folder
  */
-export function createPagesForFolder(folderPath: string, count: number = 3): TestPageData[] {
-	const pages: TestPageData[] = [];
+export function createDocumentsForFolder(
+	folderPath: string,
+	count: number = 3
+): TestDocumentData[] {
+	const documents: TestDocumentData[] = [];
 
 	for (let i = 1; i <= count; i++) {
 		const testId = generateTestId();
-		pages.push({
-			title: `Page ${i} - ${testId}`,
-			content: `# Page ${i} in ${folderPath}\n\nThis is page ${i} located in the ${folderPath} folder.\n\nTest content for page ${i}.`,
-			tags: ['folder-test', `page-${i}`],
-			path: `${folderPath}/page-${i}-${testId}`
+		documents.push({
+			title: `Document ${i} - ${testId}`,
+			content: `# Document ${i} in ${folderPath}\n\nThis is document ${i} located in the ${folderPath} folder.\n\nTest content for document ${i}.`,
+			tags: ['folder-test', `document-${i}`],
+			path: `${folderPath}/document-${i}-${testId}`
 		});
 	}
 
-	return pages;
+	return documents;
 }
 
 /**
@@ -222,7 +229,7 @@ export const testContent = {
 	titleOnly: '# Just a Title',
 
 	// Large content
-	large: `# Large Test Page
+	large: `# Large Test Document
 
 ${Array.from(
 	{ length: 50 },
@@ -330,10 +337,20 @@ export function generateRandomContent(paragraphs: number = 5): string {
 }
 
 /**
+ * Legacy aliases for backwards compatibility
+ */
+export type TestPageData = TestDocumentData;
+export const createTestPage = createTestDocument;
+export const createSimpleTestPage = createSimpleTestDocument;
+export const createComplexTestPage = createComplexTestDocument;
+export const createPagesForFolder = createDocumentsForFolder;
+export const validateTestPage = validateTestDocument;
+
+/**
  * Validate test data
  */
-export function validateTestPage(page: TestPageData): boolean {
-	return !!(page.title && page.content);
+export function validateTestDocument(document: TestDocumentData): boolean {
+	return !!(document.title && document.content);
 }
 
 export function validateTestFolder(folder: TestFolderData): boolean {

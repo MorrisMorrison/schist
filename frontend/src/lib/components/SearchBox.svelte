@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { apiClient } from '$lib/api/client';
-	import type { Page } from '$lib/api/types';
+	import type { Document } from '$lib/api/types';
 	import { onMount } from 'svelte';
 
 	let {
@@ -12,13 +12,13 @@
 	}: {
 		placeholder?: string;
 		showResults?: boolean;
-		onSelect?: (page: Page) => void;
+		onSelect?: (page: Document) => void;
 		id?: string;
 		testId?: string;
 	} = $props();
 
 	let query = $state('');
-	let results: Page[] = $state([]);
+	let results: Document[] = $state([]);
 	let isSearching = $state(false);
 	let showDropdown = $state(false);
 	let searchTimeout: ReturnType<typeof setTimeout>;
@@ -50,7 +50,7 @@
 		}
 	}
 
-	function handleSelectPage(page: Page) {
+	function handleSelectPage(page: Document) {
 		query = '';
 		showDropdown = false;
 		if (onSelect) {

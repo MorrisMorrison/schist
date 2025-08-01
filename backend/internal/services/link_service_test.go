@@ -93,8 +93,8 @@ func TestLinkService_ParseWikiLinks(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	pageService := NewPageService(tempDir)
-	linkService := NewLinkService(pageService)
+	documentService := NewDocumentService(tempDir)
+	linkService := NewLinkService(documentService)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -129,12 +129,12 @@ func TestLinkService_ResolveTargetToPath(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	pageService := NewPageService(tempDir)
-	linkService := NewLinkService(pageService)
+	documentService := NewDocumentService(tempDir)
+	linkService := NewLinkService(documentService)
 
 	// Create a test page
-	testPage := &models.Page{
-		MetaData: &models.PageMetaData{
+	testDocument := &models.Document{
+		MetaData: &models.DocumentMetaData{
 			Title:   "Test Page",
 			Path:    "/test-page",
 			Slug:    "test-page",
@@ -144,7 +144,7 @@ func TestLinkService_ResolveTargetToPath(t *testing.T) {
 		Content: "Test content",
 	}
 
-	err = pageService.CreatePage(testPage)
+	err = documentService.CreateDocument(testDocument)
 	if err != nil {
 		t.Fatalf("Failed to create test page: %v", err)
 	}
@@ -194,12 +194,12 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	pageService := NewPageService(tempDir)
-	linkService := NewLinkService(pageService)
+	documentService := NewDocumentService(tempDir)
+	linkService := NewLinkService(documentService)
 
 	// Create test pages
-	targetPage := &models.Page{
-		MetaData: &models.PageMetaData{
+	targetDocument := &models.Document{
+		MetaData: &models.DocumentMetaData{
 			Title:   "Target Page",
 			Path:    "/target",
 			Slug:    "target",
@@ -209,8 +209,8 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 		Content: "This is the target page.",
 	}
 
-	sourcePage1 := &models.Page{
-		MetaData: &models.PageMetaData{
+	sourceDocument1 := &models.Document{
+		MetaData: &models.DocumentMetaData{
 			Title:   "Source One",
 			Path:    "/source-one",
 			Slug:    "source-one",
@@ -220,8 +220,8 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 		Content: "This links to [[Target Page]] for reference.",
 	}
 
-	sourcePage2 := &models.Page{
-		MetaData: &models.PageMetaData{
+	sourceDocument2 := &models.Document{
+		MetaData: &models.DocumentMetaData{
 			Title:   "Source Two",
 			Path:    "/source-two",
 			Slug:    "source-two",
@@ -232,13 +232,13 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 	}
 
 	// Create pages
-	if err := pageService.CreatePage(targetPage); err != nil {
+	if err := documentService.CreateDocument(targetDocument); err != nil {
 		t.Fatalf("Failed to create target page: %v", err)
 	}
-	if err := pageService.CreatePage(sourcePage1); err != nil {
+	if err := documentService.CreateDocument(sourceDocument1); err != nil {
 		t.Fatalf("Failed to create source page 1: %v", err)
 	}
-	if err := pageService.CreatePage(sourcePage2); err != nil {
+	if err := documentService.CreateDocument(sourceDocument2); err != nil {
 		t.Fatalf("Failed to create source page 2: %v", err)
 	}
 
@@ -303,12 +303,12 @@ func TestLinkService_GetBrokenLinks(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	pageService := NewPageService(tempDir)
-	linkService := NewLinkService(pageService)
+	documentService := NewDocumentService(tempDir)
+	linkService := NewLinkService(documentService)
 
 	// Create a page with broken links
-	pageWithBrokenLinks := &models.Page{
-		MetaData: &models.PageMetaData{
+	documentWithBrokenLinks := &models.Document{
+		MetaData: &models.DocumentMetaData{
 			Title:   "Page With Broken Links",
 			Path:    "/broken-links",
 			Slug:    "broken-links",
@@ -318,7 +318,7 @@ func TestLinkService_GetBrokenLinks(t *testing.T) {
 		Content: "Links to [[Nonexistent Page]] and [[Another Missing Page|missing]].",
 	}
 
-	if err := pageService.CreatePage(pageWithBrokenLinks); err != nil {
+	if err := documentService.CreateDocument(documentWithBrokenLinks); err != nil {
 		t.Fatalf("Failed to create test page: %v", err)
 	}
 

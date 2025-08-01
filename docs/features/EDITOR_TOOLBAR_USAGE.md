@@ -34,17 +34,17 @@ The toolbar provides the following formatting options:
 
 ### In Edit Mode (`/edit/[...path]`)
 
-1. Navigate to any existing page
+1. Navigate to any existing document
 2. Click the "Edit" button or visit `/edit/[...path]`
 3. The editor will load with:
-   - Current page content
+   - Current document content
    - Auto-save enabled (saves every 10 seconds)
    - Full toolbar functionality
    - Live preview panel
 
-### In New Page Mode (`/new`)
+### In New Document Mode (`/new`)
 
-1. Click "New Page" or visit `/new`
+1. Click "New Document" or visit `/new`
 2. The editor will load with:
    - Empty content (or pre-filled from URL params)
    - Auto-save disabled (manual save via Ctrl+S)
@@ -100,8 +100,8 @@ interface EditorProps {
 The toolbar is now fully functional! You can:
 
 1. Start your dev server: `npm run dev`
-2. Navigate to any page and click "Edit" to see the toolbar in action
-3. Create a new page to test the toolbar functionality
+2. Navigate to any document and click "Edit" to see the toolbar in action
+3. Create a new document to test the toolbar functionality
 4. Use keyboard shortcuts for faster editing
 5. Toggle between themes to see the different styles
 

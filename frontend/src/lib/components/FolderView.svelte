@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { pagesStore, foldersStore, folderActions, pageActions } from '$lib/stores/pages';
-	import PageGrid from './PageGrid.svelte';
+	import {
+		documentsStore,
+		foldersStore,
+		folderActions,
+		documentActions
+	} from '$lib/stores/documents';
+	import DocumentGrid from './DocumentGrid.svelte';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
 	import { Plus, FolderPlus, File, Folder } from 'lucide-svelte';
@@ -13,14 +18,14 @@
 		CardTitle,
 		CardDescription
 	} from '$lib/components/ui/card';
-	import type { Page, Folder as FolderType } from '$lib/api/types';
+	import type { Document, Folder as FolderType } from '$lib/api/types';
 
 	interface Props {
 		path?: string;
 		mode?: 'folder' | 'recent' | 'all';
 		recentLimit?: number;
 		showCreateButtons?: boolean;
-		initialPages?: Page[];
+		initialDocuments?: Document[];
 		initialFolders?: FolderType[];
 	}
 
@@ -29,7 +34,7 @@
 		mode = 'folder',
 		recentLimit = 10,
 		showCreateButtons = true,
-		initialPages = [],
+		initialDocuments = [],
 		initialFolders = []
 	}: Props = $props();
 
@@ -41,16 +46,16 @@
 	const currentFolderData = $derived(() => {
 		const isRoot = path === '' || path === '/';
 		if (isRoot) {
-			const rootPageCount = $pagesStore.pages.filter((page) => {
-				const pagePath = page.metaData?.path || '';
-				return pagePath.split('/').length === 2; // ['', 'filename']
+			const rootDocumentCount = ($documentsStore.documents || []).filter((document) => {
+				const documentPath = document.metaData?.path || '';
+				return documentPath.split('/').length === 2; // ['', 'filename']
 			}).length;
 
 			return {
 				name: 'Root',
 				path: '/',
 				created: new Date().toISOString(),
-				page_count: rootPageCount,
+				document_count: rootDocumentCount,
 				sub_folders:
 					$foldersStore.folders?.filter((f) => {
 						const segments = f.path.split('/').filter(Boolean);
@@ -60,41 +65,43 @@
 		}
 		return $foldersStore.folders?.find((f) => f.path === path);
 	});
-	const currentFolderPages = $derived(() => {
-		let filteredPages;
+	const currentFolderDocuments = $derived(() => {
+		let filteredDocuments;
 
 		if (mode === 'recent') {
-			// Filter pages excluding trash
-			filteredPages = $pagesStore.pages
-				.filter((page) => !page.metaData.path.includes('/trash'))
+			// Filter documents excluding trash
+			filteredDocuments = ($documentsStore.documents || [])
+				.filter((document) => !document.metaData.path.includes('/trash'))
 				.slice(0, recentLimit);
 		} else if (mode === 'all') {
-			// Return all pages
-			filteredPages = $pagesStore.pages.filter((page) => !page.metaData.path.includes('/trash'));
+			// Return all documents
+			filteredDocuments = ($documentsStore.documents || []).filter(
+				(document) => !document.metaData.path.includes('/trash')
+			);
 		} else {
 			// Original folder filtering logic
-			filteredPages = $pagesStore.pages.filter((page) => {
-				const pagePath = page.metaData?.path || '';
+			filteredDocuments = ($documentsStore.documents || []).filter((document) => {
+				const documentPath = document.metaData?.path || '';
 				const isRoot = path === '' || path === '/';
 				if (isRoot) {
-					// Pages in root folder don't have '/' after the first character
-					return pagePath.split('/').length === 2; // ['', 'filename']
+					// Documents in root folder don't have '/' after the first character
+					return documentPath.split('/').length === 2; // ['', 'filename']
 				}
 
-				// check if page is directly in this folder
+				// check if document is directly in this folder
 				const folderSegments = path.split('/').filter(Boolean);
-				const pageSegments = pagePath.split('/').filter(Boolean);
+				const documentSegments = documentPath.split('/').filter(Boolean);
 
-				// Page must be exactly one level deeper than the folder
+				// Document must be exactly one level deeper than the folder
 				return (
-					pageSegments.length === folderSegments.length + 1 &&
-					pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
+					documentSegments.length === folderSegments.length + 1 &&
+					documentSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
 				);
 			});
 		}
 
-		// Apply sorting to all pages
-		return filteredPages.sort((a, b) => {
+		// Apply sorting to all documents
+		return filteredDocuments.sort((a, b) => {
 			let comparison = 0;
 
 			if (sortBy === 'name') {
@@ -126,15 +133,15 @@
 	// Load folder contents on mount and path changes
 	$effect(() => {
 		// Initialize stores with initial data if provided
-		if (initialPages?.length > 0) {
-			pagesStore.update((state) => ({ ...state, pages: initialPages }));
+		if (initialDocuments?.length > 0) {
+			documentsStore.update((state) => ({ ...state, documents: initialDocuments }));
 		}
 		if (initialFolders?.length > 0) {
 			foldersStore.update((state) => ({ ...state, folders: initialFolders }));
 		}
 
 		// Load fresh data if not provided or when path changes
-		if (initialPages?.length === 0 || initialFolders?.length === 0) {
+		if (initialDocuments?.length === 0 || initialFolders?.length === 0) {
 			loadFolderData();
 		}
 	});
@@ -142,7 +149,7 @@
 	async function loadFolderData() {
 		try {
 			isLoadingFolderData = true;
-			await Promise.all([folderActions.loadFolderTree(), pageActions.loadPages()]);
+			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
 		} catch (error) {
 			console.error('Failed to load folder data:', error);
 		} finally {
@@ -154,7 +161,7 @@
 		goto(`/folders${folderPath}`);
 	}
 
-	function navigateToNewPage(path: string) {
+	function navigateToNewDocument(path: string) {
 		goto(`/new${path}`);
 	}
 
@@ -176,9 +183,9 @@
 		<div class="space-y-2">
 			<h1 class="text-primary text-3xl font-bold">
 				{#if mode === 'recent'}
-					Recent Pages
+					Recent Documents
 				{:else if mode === 'all'}
-					All Pages
+					All Documents
 				{:else if path === ''}
 					root
 				{:else}
@@ -194,14 +201,14 @@
 			<div class="text-secondary flex items-center gap-2 text-sm">
 				{#if mode === 'recent'}
 					<span class="font-medium">
-						{currentFolderPages().length > 0
-							? `Showing ${currentFolderPages().length} of ${$pagesStore.pages.length} pages, sorted by most recent activity`
-							: 'No pages found'}
+						{currentFolderDocuments().length > 0
+							? `Showing ${currentFolderDocuments().length} of ${$documentsStore.documents.length} documents, sorted by most recent activity`
+							: 'No documents found'}
 					</span>
 				{:else if mode === 'all'}
 					<span class="font-medium">
-						{currentFolderPages().length}
-						{currentFolderPages().length === 1 ? 'page' : 'pages'} total
+						{currentFolderDocuments().length}
+						{currentFolderDocuments().length === 1 ? 'document' : 'documents'} total
 					</span>
 				{:else}
 					<span class="font-medium">
@@ -210,8 +217,8 @@
 					</span>
 					<span class="text-muted">•</span>
 					<span class="font-medium">
-						{currentFolderPages().length}
-						{currentFolderPages().length === 1 ? 'page' : 'pages'}
+						{currentFolderDocuments().length}
+						{currentFolderDocuments().length === 1 ? 'document' : 'documents'}
 					</span>
 				{/if}
 			</div>
@@ -259,9 +266,9 @@
 						<FolderPlus class="h-4 w-4" />
 						New Folder
 					</Button>
-					<Button variant="default" onclick={() => navigateToNewPage(path)}>
+					<Button variant="default" onclick={() => navigateToNewDocument(path)}>
 						<Plus class="h-4 w-4" />
-						New Page
+						New Document
 					</Button>
 				</div>
 			{/if}
@@ -294,8 +301,8 @@
 												>{folder.name}</CardTitle
 											>
 											<CardDescription class="text-muted-foreground text-sm">
-												{folder.page_count}
-												{folder.page_count === 1 ? 'page' : 'pages'}
+												{folder.document_count}
+												{folder.document_count === 1 ? 'document' : 'documents'}
 											</CardDescription>
 										</div>
 									</div>
@@ -306,24 +313,24 @@
 				</section>
 			{/if}
 
-			<!-- Pages -->
-			{#if currentFolderPages().length > 0}
-				<section class="space-y-6" data-testid="pages-section">
-					<h2 class="text-foreground text-xl font-semibold">Pages</h2>
-					<PageGrid
-						pages={currentFolderPages()}
+			<!-- Documents -->
+			{#if currentFolderDocuments().length > 0}
+				<section class="space-y-6" data-testid="documents-section">
+					<h2 class="text-foreground text-xl font-semibold">Documents</h2>
+					<DocumentGrid
+						documents={currentFolderDocuments()}
 						showPath={mode !== 'folder'}
 						emptyMessage={mode === 'recent'
-							? 'No recent activity yet. Create your first page to get started!'
+							? 'No recent activity yet. Create your first document to get started!'
 							: mode === 'all'
-								? 'No pages found. Create your first page to get started!'
-								: 'This folder is empty. Create your first page to get started.'}
+								? 'No documents found. Create your first document to get started!'
+								: 'This folder is empty. Create your first document to get started.'}
 					/>
 				</section>
 			{/if}
 
 			<!-- Empty State -->
-			{#if subFolders().length === 0 && currentFolderPages().length === 0}
+			{#if subFolders().length === 0 && currentFolderDocuments().length === 0}
 				<div
 					class="flex flex-col items-center justify-center py-12 text-center"
 					data-testid="empty-folder-message"
@@ -333,7 +340,7 @@
 						{#if mode === 'recent'}
 							No recent activity
 						{:else if mode === 'all'}
-							No pages yet
+							No documents yet
 						{:else if path === ''}
 							Welcome to your documentation
 						{:else}
@@ -342,20 +349,20 @@
 					</h3>
 					<p class="text-muted mb-6 max-w-md">
 						{#if mode === 'recent'}
-							Create or edit some pages to see recent activity here.
+							Create or edit some documents to see recent activity here.
 						{:else if mode === 'all'}
-							Start building your knowledge base by creating your first page.
+							Start building your knowledge base by creating your first document.
 						{:else if path === ''}
-							Start organizing your knowledge by creating your first page or folder.
+							Start organizing your knowledge by creating your first document or folder.
 						{:else}
 							Add some content to this folder to get started.
 						{/if}
 					</p>
 					{#if showCreateButtons}
 						<div class="flex w-full justify-start gap-2 md:w-auto">
-							<Button onclick={() => navigateToNewPage(path)}>
+							<Button onclick={() => navigateToNewDocument(path)}>
 								<Plus class="h-4 w-4" />
-								Create Page
+								Create Document
 							</Button>
 							<Button variant="outline" onclick={() => (showCreateFolderModal = true)}>
 								<FolderPlus class="h-4 w-4" />

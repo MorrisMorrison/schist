@@ -13,7 +13,7 @@
 <FolderView
 	path=""
 	showCreateButtons={true}
-	initialPages={data.pages}
+	initialDocuments={data.documents}
 	initialFolders={data.folders}
 />
 

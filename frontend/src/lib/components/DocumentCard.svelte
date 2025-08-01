@@ -9,22 +9,22 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Edit, Trash2, Move, FileText } from 'lucide-svelte';
-	import type { Page } from '$lib/api/types';
+	import type { Document } from '$lib/api/types';
 	import { getParentPath } from '$lib/api/types';
 
 	interface Props {
-		page: Page;
+		document: Document;
 		showTags?: boolean;
 		showDates?: boolean;
 		showPath?: boolean;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void;
 		onView?: (path: string) => void;
-		onMove?: (page: Page) => void;
+		onMove?: (document: Document) => void;
 	}
 
 	let {
-		page,
+		document,
 		showTags = true,
 		showDates = true,
 		showPath = true,
@@ -52,10 +52,10 @@
 		return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
 	}
 
-	const pagePathDerived = $derived(page.metaData?.path || `/${page.metaData.slug}`);
+	const documentPathDerived = $derived(document.metaData?.path || `/${document.metaData.slug}`);
 	const parentFolderDerived = $derived(
 		(() => {
-			const parent = getParentPath(pagePathDerived);
+			const parent = getParentPath(documentPathDerived);
 			return parent === '/' ? 'Root' : parent.split('/').pop() || 'Root';
 		})()
 	);
@@ -63,7 +63,7 @@
 
 <Card
 	class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg"
-	onclick={() => onView?.(pagePathDerived)}
+	onclick={() => onView?.(documentPathDerived)}
 >
 	<CardHeader class="pb-3">
 		<div class="flex items-start gap-4">
@@ -73,7 +73,7 @@
 			<div class="min-w-0 flex-1 space-y-1">
 				<div class="flex items-start justify-between gap-4">
 					<CardTitle class="truncate text-base leading-tight font-semibold">
-						{page.metaData.title}
+						{document.metaData.title}
 					</CardTitle>
 					<div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
 						{#if onEdit}
@@ -83,7 +83,7 @@
 								class="hover:bg-primary/10 transition-all duration-200 hover:scale-105"
 								onclick={(e) => {
 									e.stopPropagation();
-									onEdit(page.metaData.path!);
+									onEdit(document.metaData.path!);
 								}}
 							>
 								<Edit class="h-4 w-4" />
@@ -96,7 +96,7 @@
 								class="hover:bg-primary/10 transition-all duration-200 hover:scale-105"
 								onclick={(e) => {
 									e.stopPropagation();
-									onMove(page);
+									onMove(document);
 								}}
 							>
 								<Move class="h-4 w-4" />
@@ -109,7 +109,7 @@
 								class="hover:bg-destructive/10 transition-all duration-200 hover:scale-105"
 								onclick={(e) => {
 									e.stopPropagation();
-									onDelete(page.metaData.slug!);
+									onDelete(document.metaData.slug!);
 								}}
 							>
 								<Trash2 class="text-destructive h-4 w-4" />
@@ -122,18 +122,18 @@
 				<CardDescription class="text-muted-foreground text-sm">
 					{#if showPath && showDates}
 						{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'} •
-						{#if page.metaData.updated}
-							Updated {formatDate(page.metaData.updated)}
-						{:else if page.metaData.created}
-							Created {formatDate(page.metaData.created)}
+						{#if document.metaData.updated}
+							Updated {formatDate(document.metaData.updated)}
+						{:else if document.metaData.created}
+							Created {formatDate(document.metaData.created)}
 						{/if}
 					{:else if showPath}
 						{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'}
 					{:else if showDates}
-						{#if page.metaData.updated}
-							Updated {formatDate(page.metaData.updated)}
-						{:else if page.metaData.created}
-							Created {formatDate(page.metaData.created)}
+						{#if document.metaData.updated}
+							Updated {formatDate(document.metaData.updated)}
+						{:else if document.metaData.created}
+							Created {formatDate(document.metaData.created)}
 						{/if}
 					{/if}
 				</CardDescription>
@@ -141,17 +141,17 @@
 		</div>
 	</CardHeader>
 
-	{#if page.content || (showTags && page.metaData.tags && page.metaData.tags.length > 0)}
+	{#if document.content || (showTags && document.metaData.tags && document.metaData.tags.length > 0)}
 		<CardContent class="space-y-3 pt-0">
-			{#if page.content}
+			{#if document.content}
 				<p class="text-muted-foreground text-sm leading-relaxed">
-					{getExcerpt(page.content)}
+					{getExcerpt(document.content)}
 				</p>
 			{/if}
 
-			{#if showTags && page.metaData.tags && page.metaData.tags.length > 0}
+			{#if showTags && document.metaData.tags && document.metaData.tags.length > 0}
 				<div class="flex flex-wrap gap-1.5">
-					{#each page.metaData.tags as tag (tag)}
+					{#each document.metaData.tags as tag (tag)}
 						<Badge variant="default" class="px-2 py-0.5 text-xs">
 							{tag}
 						</Badge>

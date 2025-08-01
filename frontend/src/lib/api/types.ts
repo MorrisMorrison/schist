@@ -1,4 +1,4 @@
-export interface PageMetaData {
+export interface DocumentMetaData {
 	slug?: string;
 	title: string;
 	path: string;
@@ -7,33 +7,33 @@ export interface PageMetaData {
 	tags?: string[];
 }
 
-export interface Page {
-	metaData: PageMetaData;
+export interface Document {
+	metaData: DocumentMetaData;
 	content: string;
 }
 
-export interface PageListResponse {
-	pages: Page[];
+export interface DocumentListResponse {
+	documents: Document[];
 	total: number;
 }
 
-export interface CreatePageRequest {
-	metaData: Omit<PageMetaData, 'slug' | 'created' | 'updated' | 'path'> & { path?: string };
+export interface CreateDocumentRequest {
+	metaData: Omit<DocumentMetaData, 'slug' | 'created' | 'updated' | 'path'> & { path?: string };
 	content: string;
 }
 
-export interface CreatePageResponse {
+export interface CreateDocumentResponse {
 	message: string;
 	path: string;
 }
 
-export interface UpdatePageRequest {
-	metaData: Omit<PageMetaData, 'created' | 'updated'> & { path?: string };
+export interface UpdateDocumentRequest {
+	metaData: Omit<DocumentMetaData, 'created' | 'updated'> & { path?: string };
 	content: string;
 }
 
 export interface SearchResult {
-	pages: Page[];
+	documents: Document[];
 	query: string;
 	total: number;
 }
@@ -92,7 +92,7 @@ export interface Folder {
 	name: string;
 	path: string;
 	created: string;
-	page_count: number;
+	document_count: number;
 	sub_folders: Folder[];
 }
 
@@ -101,7 +101,7 @@ export interface FolderTreeResponse {
 	total: number;
 }
 
-export interface MovePageRequest {
+export interface MoveDocumentRequest {
 	oldPath: string;
 	newPath: string;
 }
@@ -111,7 +111,7 @@ export interface FolderOperationResponse {
 	path: string;
 }
 
-export interface MovePageResponse {
+export interface MoveDocumentResponse {
 	message: string;
 	oldPath: string;
 	newPath: string;

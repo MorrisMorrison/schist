@@ -2,14 +2,14 @@ import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 /**
- * Page object for viewing individual pages (/pages/[...path])
+ * Page object for viewing individual documents (/pages/[...path])
  */
-export class PageViewPage extends BasePage {
-	// Page content
-	readonly pageTitle: Locator;
-	readonly pageContent: Locator;
-	readonly pageTags: Locator;
-	readonly pageMetadata: Locator;
+export class DocumentViewPage extends BasePage {
+	// Document content
+	readonly documentTitle: Locator;
+	readonly documentContent: Locator;
+	readonly documentTags: Locator;
+	readonly documentMetadata: Locator;
 	readonly createdDate: Locator;
 	readonly updatedDate: Locator;
 
@@ -38,31 +38,31 @@ export class PageViewPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
-		// Page content
-		this.pageTitle = page.locator('h1').first();
-		this.pageContent = page.locator('.prose').first();
-		this.pageTags = page.getByTestId('page-tag');
-		this.pageMetadata = page.getByTestId('page-metadata');
+		// Document content
+		this.documentTitle = page.locator('h1').first();
+		this.documentContent = page.locator('.prose').first();
+		this.documentTags = page.getByTestId('document-tag');
+		this.documentMetadata = page.getByTestId('document-metadata');
 		this.createdDate = page.getByTestId('created-date');
 		this.updatedDate = page.getByTestId('updated-date');
 
 		// Action buttons
-		this.editButton = page.getByTestId('edit-page-button');
-		this.deleteButton = page.getByTestId('delete-page-button');
-		this.moveButton = page.getByTestId('move-page-button');
+		this.editButton = page.getByTestId('edit-document-button');
+		this.deleteButton = page.getByTestId('delete-document-button');
+		this.moveButton = page.getByTestId('move-document-button');
 
 		// Navigation
 		this.breadcrumbs = page.getByTestId('breadcrumbs');
 		this.breadcrumbButtons = this.breadcrumbs.locator('button');
 
 		// Content elements
-		this.headings = this.pageContent.locator('h1, h2, h3, h4, h5, h6');
-		this.links = this.pageContent.locator('a');
-		this.images = this.pageContent.locator('img');
-		this.codeBlocks = this.pageContent.locator('pre, code');
+		this.headings = this.documentContent.locator('h1, h2, h3, h4, h5, h6');
+		this.links = this.documentContent.locator('a');
+		this.images = this.documentContent.locator('img');
+		this.codeBlocks = this.documentContent.locator('pre, code');
 		this.copyButtons = page.getByTestId('copy-button');
 
-		// Error states
+		// Error states (using actual UI text until UI is updated)
 		this.notFoundMessage = page.getByText("404 - The page you're looking for doesn't exist.");
 		this.notFoundHeading = page.getByRole('heading', { name: 'Page Not Found' });
 		this.errorMessage = page.getByTestId('error-message');
@@ -70,17 +70,17 @@ export class PageViewPage extends BasePage {
 	}
 
 	/**
-	 * Navigate to a specific page
+	 * Navigate to a specific document
 	 */
-	async navigateToPage(pagePath: string) {
-		await this.goto(`/pages${pagePath}`);
+	async navigateToDocument(documentPath: string) {
+		await this.goto(`/pages${documentPath}`);
 		await this.waitForLoad();
 	}
 
 	/**
-	 * Verify page is loaded and displays content
+	 * Verify document is loaded and displays content
 	 */
-	async verifyPageLoaded(expectedTitle?: string) {
+	async verifyDocumentLoaded(expectedTitle?: string) {
 		// Wait for loading to complete first
 		await this.page.waitForLoadState('networkidle');
 
@@ -90,49 +90,49 @@ export class PageViewPage extends BasePage {
 			await loadingSpinner.waitFor({ state: 'hidden', timeout: 5000 });
 		}
 
-		// Now wait for page title to be visible
-		await this.waitForVisible(this.pageTitle);
+		// Now wait for document title to be visible
+		await this.waitForVisible(this.documentTitle);
 
 		if (expectedTitle) {
-			await expect(this.pageTitle).toContainText(expectedTitle);
+			await expect(this.documentTitle).toContainText(expectedTitle);
 		}
 
-		// Ensure page content is visible
-		await this.waitForVisible(this.pageContent);
+		// Ensure document content is visible
+		await this.waitForVisible(this.documentContent);
 	}
 
 	/**
-	 * Get the page title text
+	 * Get the document title text
 	 */
-	async getPageTitle(): Promise<string> {
-		return (await this.pageTitle.textContent()) || '';
+	async getDocumentTitle(): Promise<string> {
+		return (await this.documentTitle.textContent()) || '';
 	}
 
 	/**
-	 * Get the page content text
+	 * Get the document content text
 	 */
-	async getPageContent(): Promise<string> {
-		return (await this.pageContent.textContent()) || '';
+	async getDocumentContent(): Promise<string> {
+		return (await this.documentContent.textContent()) || '';
 	}
 
 	/**
-	 * Get list of page tags
+	 * Get list of document tags
 	 */
-	async getPageTags(): Promise<string[]> {
-		return await this.pageTags.allTextContents();
+	async getDocumentTags(): Promise<string[]> {
+		return await this.documentTags.allTextContents();
 	}
 
 	/**
 	 * Click edit button and navigate to editor
 	 */
-	async editPage() {
+	async editDocument() {
 		await Promise.all([this.page.waitForURL(/\/edit\//), this.editButton.click()]);
 	}
 
 	/**
 	 * Click delete button (with confirmation)
 	 */
-	async deletePage() {
+	async deleteDocument() {
 		await this.deleteButton.click();
 
 		// Wait for confirmation dialog and confirm
@@ -146,7 +146,7 @@ export class PageViewPage extends BasePage {
 	/**
 	 * Click move button and open move modal
 	 */
-	async movePage() {
+	async moveDocument() {
 		await this.moveButton.click();
 
 		// Wait for move modal to appear
@@ -174,7 +174,7 @@ export class PageViewPage extends BasePage {
 	 * Verify content contains specific text
 	 */
 	async verifyContentContains(text: string) {
-		await expect(this.pageContent).toContainText(text);
+		await expect(this.documentContent).toContainText(text);
 	}
 
 	/**
@@ -182,7 +182,7 @@ export class PageViewPage extends BasePage {
 	 */
 	async verifyHeading(headingText: string, level?: number) {
 		if (level) {
-			const heading = this.pageContent.locator(`h${level}`).getByText(headingText);
+			const heading = this.documentContent.locator(`h${level}`).getByText(headingText);
 			await expect(heading).toBeVisible();
 		} else {
 			const heading = this.headings.getByText(headingText);
@@ -222,7 +222,7 @@ export class PageViewPage extends BasePage {
 	}
 
 	/**
-	 * Verify page metadata is displayed
+	 * Verify document metadata is displayed
 	 */
 	async verifyMetadata() {
 		// Check if created date is shown
@@ -237,19 +237,19 @@ export class PageViewPage extends BasePage {
 	}
 
 	/**
-	 * Verify page has specific tags
+	 * Verify document has specific tags
 	 */
 	async verifyTags(expectedTags: string[]) {
 		for (const tag of expectedTags) {
-			const tagElement = this.pageTags.getByText(tag);
+			const tagElement = this.documentTags.getByText(tag);
 			await expect(tagElement).toBeVisible();
 		}
 	}
 
 	/**
-	 * Check if page displays 404 error
+	 * Check if document displays 404 error
 	 */
-	async verifyPageNotFound() {
+	async verifyDocumentNotFound() {
 		// Try to find either the heading or the message
 		try {
 			await this.waitForVisible(this.notFoundHeading);
@@ -263,12 +263,12 @@ export class PageViewPage extends BasePage {
 		const messageVisible = await this.notFoundMessage.isVisible();
 
 		if (!headingVisible && !messageVisible) {
-			throw new Error('404 page elements not found');
+			throw new Error('404 document elements not found');
 		}
 	}
 
 	/**
-	 * Verify page is loading
+	 * Verify document is loading
 	 */
 	async verifyLoading() {
 		await this.waitForVisible(this.loadingSpinner);
@@ -300,9 +300,9 @@ export class PageViewPage extends BasePage {
 	 */
 	async verifyMarkdownRendering() {
 		// Check that markdown has been converted to HTML
-		await expect(this.pageContent).not.toContainText('# ');
-		await expect(this.pageContent).not.toContainText('**');
-		await expect(this.pageContent).not.toContainText('```');
+		await expect(this.documentContent).not.toContainText('# ');
+		await expect(this.documentContent).not.toContainText('**');
+		await expect(this.documentContent).not.toContainText('```');
 
 		// Verify HTML elements are present
 		if ((await this.headings.count()) > 0) {
@@ -311,9 +311,69 @@ export class PageViewPage extends BasePage {
 	}
 
 	/**
-	 * Verify page URL matches expected path
+	 * Verify document URL matches expected path
 	 */
-	async verifyPageUrl(expectedPath: string) {
+	async verifyDocumentUrl(expectedPath: string) {
 		await this.expectUrl(`/pages${expectedPath}`);
 	}
+
+	/**
+	 * Legacy aliases for backwards compatibility
+	 */
+	async navigateToPage(pagePath: string) {
+		return this.navigateToDocument(pagePath);
+	}
+
+	async verifyPageLoaded(expectedTitle?: string) {
+		return this.verifyDocumentLoaded(expectedTitle);
+	}
+
+	async getPageTitle(): Promise<string> {
+		return this.getDocumentTitle();
+	}
+
+	async getPageContent(): Promise<string> {
+		return this.getDocumentContent();
+	}
+
+	async getPageTags(): Promise<string[]> {
+		return this.getDocumentTags();
+	}
+
+	async editPage() {
+		return this.editDocument();
+	}
+
+	async deletePage() {
+		return this.deleteDocument();
+	}
+
+	async movePage() {
+		return this.moveDocument();
+	}
+
+	async verifyPageNotFound() {
+		return this.verifyDocumentNotFound();
+	}
+
+	async verifyPageUrl(expectedPath: string) {
+		return this.verifyDocumentUrl(expectedPath);
+	}
+
+	// Legacy property aliases
+	get pageTitle() {
+		return this.documentTitle;
+	}
+	get pageContent() {
+		return this.documentContent;
+	}
+	get pageTags() {
+		return this.documentTags;
+	}
+	get pageMetadata() {
+		return this.documentMetadata;
+	}
 }
+
+// Legacy export for backwards compatibility
+export const PageViewPage = DocumentViewPage;

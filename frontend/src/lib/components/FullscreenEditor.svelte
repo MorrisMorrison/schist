@@ -3,7 +3,6 @@
 	import { EditorView, basicSetup } from 'codemirror';
 	import { EditorState, StateEffect } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
-	import { oneDark } from '@codemirror/theme-one-dark';
 
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
@@ -44,6 +43,82 @@
 
 	// Use the global theme store
 	const currentTheme = $derived($theme);
+
+	// Custom light theme that matches our app design
+	const lightTheme = EditorView.theme({
+		'&': {
+			backgroundColor: '#f8fafc', // --gray-50
+			color: '#0f172a' // --gray-900
+		},
+		'.cm-content': {
+			backgroundColor: '#f8fafc',
+			color: '#0f172a'
+		},
+		'.cm-focused': {
+			backgroundColor: '#f8fafc'
+		},
+		'.cm-editor': {
+			backgroundColor: '#f8fafc'
+		},
+		'.cm-scroller': {
+			backgroundColor: '#f8fafc'
+		},
+		'.cm-gutters': {
+			backgroundColor: '#f1f5f9', // --gray-100
+			color: '#64748b', // --gray-500
+			border: 'none'
+		},
+		'.cm-activeLine': {
+			backgroundColor: '#f1f5f9' // --gray-100
+		},
+		'.cm-selectionBackground': {
+			backgroundColor: '#e2e8f0' // --gray-200
+		},
+		'.cm-cursor': {
+			borderLeftColor: '#0f172a' // --gray-900 - visible cursor
+		},
+		'.cm-focused .cm-cursor': {
+			borderLeftColor: '#0e7fe9' // --ocean-blue - focused cursor
+		}
+	});
+
+	// Custom dark theme that matches our app design
+	const darkTheme = EditorView.theme({
+		'&': {
+			backgroundColor: '#0f172a', // --gray-900
+			color: '#f8fafc' // --gray-50
+		},
+		'.cm-content': {
+			backgroundColor: '#0f172a',
+			color: '#f8fafc'
+		},
+		'.cm-focused': {
+			backgroundColor: '#0f172a'
+		},
+		'.cm-editor': {
+			backgroundColor: '#0f172a'
+		},
+		'.cm-scroller': {
+			backgroundColor: '#0f172a'
+		},
+		'.cm-gutters': {
+			backgroundColor: '#1e293b', // --gray-800
+			color: '#94a3b8', // --gray-400
+			border: 'none'
+		},
+		'.cm-activeLine': {
+			backgroundColor: '#1e293b' // --gray-800
+		},
+		'.cm-selectionBackground': {
+			backgroundColor: '#334155' // --gray-700
+		},
+		'.cm-cursor': {
+			borderLeftColor: '#f8fafc' // --gray-50 - visible cursor
+		},
+		'.cm-focused .cm-cursor': {
+			borderLeftColor: '#0e7fe9' // --ocean-blue - focused cursor
+		}
+	});
 
 	// Auto-save configuration
 	const autoSaveConfig = {
@@ -185,7 +260,7 @@
 			extensions: [
 				basicSetup,
 				markdown(),
-				currentTheme === 'dark' ? oneDark : [],
+				currentTheme === 'dark' ? darkTheme : lightTheme,
 				wikiLinksExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
@@ -336,7 +411,7 @@
 			const extensions = [
 				basicSetup,
 				markdown(),
-				currentTheme === 'dark' ? oneDark : [],
+				currentTheme === 'dark' ? darkTheme : lightTheme,
 				wikiLinksExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {

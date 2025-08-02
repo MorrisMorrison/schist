@@ -1,5 +1,1 @@
-- [ ] FolderTree: Root folder is missing the context menu again. The context menu already exist in the code. Context menu of root should contain Create Folder, Create Document, and Export action.
-- [ ] Import Documents Modal: The select Markdown Files input is a little too small (heightwise). It  contains a Choose Files Buttotn that is not completely visible.
-- [ ] Import Document Modal: After chossing a file and a destination, I cannot press the Import Documents Button. its always disabled.
-- [ ] In our page grid we display cards for every document. Long document titles push the buttons (edit and delete) out of bounds in DocumentCard. We should abbreviate the document title in DocumentCard in case the title is too long. Long document names should also be abbreviated in folder tree
-- [ ] Editor: In Fullscreen mode, the actual edit section doesnt seem to render. I cannot edit the text. the preview on right side works properly.
+- []

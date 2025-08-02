@@ -24,6 +24,7 @@ import type {
 	GitHubStatus,
 	GitHubSyncResult,
 	GitHubSetupRequest,
+	GitHubSetupResponse,
 	GitHubConnectionTest
 } from './types.js';
 import { normalizePath } from './types.js';
@@ -384,19 +385,19 @@ class SchістApiClient {
 	}
 
 	// GitHub integration methods
-	async getGitHubSettings(): Promise<GitHubSettings> {
-		return this.request<GitHubSettings>('/settings/github');
+	async getGitHubStatus(): Promise<GitHubStatus> {
+		return this.request<GitHubStatus>('/github/status');
 	}
 
-	async updateGitHubSettings(settings: Partial<GitHubSettings>): Promise<GitHubSettings> {
-		return this.request<GitHubSettings>('/settings/github', {
+	async updateGitHubSettings(settings: Partial<GitHubSettings>): Promise<GitHubStatus> {
+		return this.request<GitHubStatus>('/github/config', {
 			method: 'PUT',
 			body: JSON.stringify(settings)
 		});
 	}
 
-	async setupGitHub(setupRequest: GitHubSetupRequest): Promise<GitHubSettings> {
-		return this.request<GitHubSettings>('/settings/github/setup', {
+	async setupGitHub(setupRequest: GitHubSetupRequest): Promise<GitHubSetupResponse> {
+		return this.request<GitHubSetupResponse>('/github/setup', {
 			method: 'POST',
 			body: JSON.stringify(setupRequest)
 		});
@@ -407,24 +408,17 @@ class SchістApiClient {
 		owner: string,
 		repository: string
 	): Promise<GitHubConnectionTest> {
-		return this.request<GitHubConnectionTest>('/github/test', {
+		// Test connection through setup endpoint with dry run
+		return this.request<GitHubConnectionTest>('/github/setup', {
 			method: 'POST',
-			body: JSON.stringify({ token, owner, repository })
-		});
-	}
-
-	async getGitHubStatus(): Promise<GitHubStatus> {
-		return this.request<GitHubStatus>('/github/status');
+			body: JSON.stringify({ token, owner, repo: repository, branch: 'main' })
+		})
+			.then(() => ({ success: true, message: 'Connection successful' }))
+			.catch((error) => ({ success: false, message: error.message }));
 	}
 
 	async syncToGitHub(): Promise<GitHubSyncResult> {
 		return this.request<GitHubSyncResult>('/github/sync', {
-			method: 'POST'
-		});
-	}
-
-	async disconnectGitHub(): Promise<void> {
-		await this.request<void>('/settings/github/disconnect', {
 			method: 'POST'
 		});
 	}

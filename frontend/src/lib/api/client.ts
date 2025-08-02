@@ -257,7 +257,8 @@ class SchістApiClient {
 			hash1,
 			hash2
 		});
-		return this.request<DiffResult>(`/versions/diff?${params}`);
+		const response = await this.request<{ diff: DiffResult }>(`/versions/diff?${params}`);
+		return response.diff;
 	}
 
 	async restoreDocumentToVersion(path: string, hash: string): Promise<RestoreResponse> {

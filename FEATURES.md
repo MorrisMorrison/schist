@@ -2,12 +2,71 @@ This document is a list of features we want to build.
 
 # Feature 1 - Import Functionality
 We want to allow importing markdown documents in multiple ways.
-We want to add 2 major ways:
 1. Import button at the bottom of our sidebar
 The import button should open a import modal
 Via the modal you should be able to select a file or complete folder containing md documents.
 You should also be able to select the target path where you want to import to.
 We want to support plain md files, and especially obsidian md files (not sure if they have specific meta data we need to adjust)
+
+
+● Updated Implementation Plan for Feature 1 - Import Functionality
+
+  Key Updates Based on Your Feedback
+
+  1. Obsidian Compatibility Clarification
+
+  - Goal: Handle Obsidian markdown files during import
+  - Approach: Ignore Obsidian metadata, generate fresh Schist metadata
+  - Implementation: Strip any existing YAML frontmatter and create new metadata using our system's structure
+
+  2. API Routing Solution
+
+  Based on the existing routing structure, I'll use:
+  POST /api/import/documents
+
+  This avoids the wildcard conflict with /api/documents/*path by placing it at the root level, following the
+  pattern used for other non-document routes like /api/search, /api/tags, etc.
+
+  Revised Implementation Plan
+
+  Phase 1: Backend Foundation
+
+  1. Import Types & Models - Define ImportOptions, ImportResult structures
+  2. DocumentService Extension - Add ImportDocuments method that:
+    - Processes markdown files regardless of source (Obsidian, plain markdown)
+    - Strips existing frontmatter
+    - Generates fresh Schist metadata (title, slug, path, created/updated timestamps)
+  3. API Handler - Create /api/import/documents endpoint with multipart form handling
+
+  Phase 2: Frontend Components
+
+  4. Import Modal - ImportDocumentsModal.svelte with:
+    - File/folder selection (support both single files and entire directories)
+    - Target path selection within existing folder structure
+    - Progress indication and error handling
+  5. API Integration - Extend frontend API client with import methods
+  6. Sidebar Integration - Add import button to FolderTree actions section
+
+  Phase 3: Advanced Features
+
+  7. Obsidian Processing - Specifically handle Obsidian files by:
+    - Recognizing common Obsidian patterns (wiki links, tags)
+    - Converting or ignoring Obsidian-specific syntax
+    - Ensuring clean import into Schist's markdown format
+  8. Testing - Backend validation and E2E tests
+
+  Technical Details
+
+  File Processing Strategy:
+  - Accept .md files from any source
+  - Parse content to separate frontmatter from markdown
+  - Discard existing metadata, generate new Schist metadata
+  - Handle file naming conflicts with collision resolution
+
+  API Endpoint Structure:
+  // In SetupAPIRoutes, add before document group:
+  routerGroup.POST("/import/documents", h.importDocuments)
+
 
 # Feature 2 - Export Functionality 
 We want to  allow exporting documents in multiple ways

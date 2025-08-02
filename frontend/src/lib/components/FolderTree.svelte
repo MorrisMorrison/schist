@@ -39,6 +39,7 @@
 		onselect?: (event: { path: string; folder: FolderType }) => void;
 		ondocumentselect?: (event: { document: Document }) => void;
 		oncreate?: (event: { parentPath: string }) => void;
+		ondocumentcreate?: (event: { parentPath: string }) => void;
 		ondelete?: (event: { path: string; folder: FolderType }) => void;
 		onrename?: (event: { path: string; folder: FolderType }) => void;
 		ondocumentdelete?: (event: { document: Document }) => void;
@@ -61,6 +62,7 @@
 		onselect,
 		ondocumentselect,
 		oncreate,
+		ondocumentcreate,
 		ondelete,
 		onrename,
 		ondocumentdelete,
@@ -326,12 +328,6 @@
 
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
 		if (!enableContextMenu) return;
-
-		// Don't show context menu for root folder when showPages is enabled
-		// The root folder is synthetic and shouldn't have folder operations
-		if (showPages && folder.path === '/') {
-			return;
-		}
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -957,6 +953,19 @@
 			>
 				<Plus class="h-4 w-4" />
 				Create Subfolder
+			</button>
+			<button
+				type="button"
+				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+				onclick={() => {
+					if (contextMenuOpen) {
+						ondocumentcreate?.({ parentPath: contextMenuOpen });
+						closeContextMenu();
+					}
+				}}
+			>
+				<File class="h-4 w-4" />
+				Create Document
 			</button>
 			{#if contextMenuOpen !== '/' && contextMenuOpen !== ''}
 				<button

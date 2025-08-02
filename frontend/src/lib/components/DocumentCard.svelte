@@ -71,8 +71,8 @@
 				<FileText class="h-5 w-5 flex-shrink-0 text-white" />
 			</div>
 			<div class="min-w-0 flex-1 space-y-1">
-				<div class="flex items-start justify-between gap-4">
-					<CardTitle class="truncate text-base leading-tight font-semibold">
+				<div class="flex items-start justify-between gap-2">
+					<CardTitle class="min-w-0 flex-1 truncate text-base leading-tight font-semibold">
 						{document.metaData.title}
 					</CardTitle>
 					<div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">

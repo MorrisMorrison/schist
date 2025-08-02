@@ -452,7 +452,7 @@
 
 	// Theme classes
 	const themeClasses = $derived(
-		currentTheme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
+		currentTheme === 'dark' ? 'bg-gray-900 text-gray-50' : 'bg-gray-50 text-gray-900'
 	);
 </script>
 

@@ -36,6 +36,11 @@
 		showCreateFolderModal = true;
 	}
 
+	function handleCreateDocument(event: { parentPath: string }) {
+		const path = event.parentPath === '/' ? '/new' : `${event.parentPath}/new`;
+		goto(path);
+	}
+
 	function handleFolderCreated() {
 		showCreateFolderModal = false;
 		parentPathForModal = '';
@@ -118,6 +123,7 @@
 			onselect={handleFolderSelect}
 			ondocumentselect={handleDocumentSelect}
 			oncreate={handleCreateFolder}
+			ondocumentcreate={handleCreateDocument}
 			ondelete={handleDeleteFolder}
 			onrename={handleRenameFolder}
 			ondocumentdelete={handlePageDelete}

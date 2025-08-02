@@ -26,9 +26,9 @@
 		goto(`/folders${event.path}`);
 	}
 
-	function handlePageSelect(event: { document: Document }) {
-		const pagePath = event.page.metaData?.path || `/${event.page.metaData?.slug}`;
-		goto(`/pages${pagePath}`);
+	function handleDocumentSelect(event: { document: Document }) {
+		const pagePath = event.document.metaData?.path || `/${event.document.metaData?.slug}`;
+		goto(`/documents${pagePath}`);
 	}
 
 	function handleCreateFolder(event: { parentPath: string }) {
@@ -100,9 +100,9 @@
 		await documentActions.loadDocuments();
 
 		// Check if we're currently viewing the page that was renamed
-		if (currentPath === `/pages${oldPath}`) {
+		if (currentPath === `/documents${oldPath}`) {
 			// Navigate to the new path
-			goto(`/pages${newPath}`);
+			goto(`/documents${newPath}`);
 		}
 	}
 </script>
@@ -116,12 +116,12 @@
 			showActions={true}
 			storageKey="sidebar-expanded-folders"
 			onselect={handleFolderSelect}
-			onpageselect={handlePageSelect}
+			ondocumentselect={handleDocumentSelect}
 			oncreate={handleCreateFolder}
 			ondelete={handleDeleteFolder}
 			onrename={handleRenameFolder}
-			onpagedelete={handlePageDelete}
-			onpagerename={handlePageRename}
+			ondocumentdelete={handlePageDelete}
+			ondocumentrename={handlePageRename}
 		/>
 	</div>
 </aside>

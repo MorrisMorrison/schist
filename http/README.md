@@ -40,11 +40,11 @@ The `.http` files use variables from `http-client.env.json`:
 # Health check
 curl http://localhost:8080/api/health
 
-# List pages
-curl http://localhost:8080/api/pages
+# List Documents
+curl http://localhost:8080/api/documents
 
-# Create page
-curl -X POST http://localhost:8080/api/pages \
+# Create Document
+curl -X POST http://localhost:8080/api/documents \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Page", "content": "# Test\n\nThis is a test."}'
 
@@ -69,8 +69,8 @@ make run-backend
 All endpoints return JSON responses:
 
 - `GET /api/health` → `{"status": "ok", "service": "schist"}`
-- `GET /api/pages` → `{"pages": [], "total": 0}`
-- `POST /api/pages` → `{"message": "Page created successfully"}`
+- `GET /api/doocuments` → `{"pages": [], "total": 0}`
+- `POST /api/documents` → `{"message": "Page created successfully"}`
 - `GET /api/search` → `{"query": "...", "results": [], "total": 0}`
 
 Note: These are placeholder responses. Real implementations will return actual data from the file system.

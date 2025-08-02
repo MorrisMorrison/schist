@@ -63,7 +63,7 @@
 			});
 
 			// Navigate to the new page using the path returned by the API
-			goto(`/pages${response.metaData.path}`);
+			goto(`/documents${response.metaData.path}`);
 		} catch (error) {
 			console.error('Failed to create page:', error);
 			createError = error instanceof Error ? error.message : 'Failed to create page';

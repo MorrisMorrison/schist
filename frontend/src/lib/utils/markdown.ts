@@ -354,7 +354,7 @@ function handleWikiLinkClick(event: Event): void {
 		goto(`/edit${targetPath}`);
 	} else {
 		// Navigate to the existing document
-		goto(`/pages${targetPath}`);
+		goto(`/documents${targetPath}`);
 	}
 }
 

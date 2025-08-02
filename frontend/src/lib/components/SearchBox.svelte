@@ -56,7 +56,7 @@
 		if (onSelect) {
 			onSelect(page);
 		} else {
-			window.location.href = `/pages${page.metaData.path}`;
+			window.location.href = `/documents${page.metaData.path}`;
 		}
 	}
 

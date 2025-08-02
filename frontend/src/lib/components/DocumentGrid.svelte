@@ -42,7 +42,7 @@
 	let documentToDelete = $state<string | null>(null);
 
 	function handleView(path: string) {
-		goto(`/pages${path}`);
+		goto(`/documents${path}`);
 	}
 
 	function handleEdit(path: string) {

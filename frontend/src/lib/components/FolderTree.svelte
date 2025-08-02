@@ -8,7 +8,8 @@
 		Plus,
 		Trash2,
 		Edit,
-		MoreVertical
+		MoreVertical,
+		Download
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from './ErrorAlert.svelte';
@@ -47,6 +48,9 @@
 		ondocumentrename?: (event: { document: Document }) => void;
 		onexpandall?: () => void;
 		oncollapseall?: () => void;
+		onfolderexport?: (event: { path: string; folder: FolderType }) => void;
+		ondocumentexport?: (event: { path: string; document: Document }) => void;
+		onexportall?: () => void;
 	}
 
 	let {
@@ -69,7 +73,10 @@
 		ondocumentdelete,
 		ondocumentrename,
 		onexpandall,
-		oncollapseall
+		oncollapseall,
+		onfolderexport,
+		ondocumentexport,
+		onexportall
 	}: Props = $props();
 
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
@@ -988,6 +995,31 @@
 				<File class="h-4 w-4" />
 				Create Document
 			</button>
+
+			<!-- Export button for folders -->
+			{#if onfolderexport || onexportall}
+				<button
+					type="button"
+					class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+					onclick={() => {
+						if (contextMenuOpen) {
+							if (contextMenuOpen === '/' && onexportall) {
+								onexportall();
+							} else if (onfolderexport) {
+								const folder = findFolderByPath($folders, contextMenuOpen);
+								if (folder) {
+									onfolderexport({ path: contextMenuOpen, folder });
+								}
+							}
+							closeContextMenu();
+						}
+					}}
+				>
+					<Download class="h-4 w-4" />
+					Export {contextMenuOpen === '/' ? 'All' : 'Folder'}
+				</button>
+			{/if}
+
 			{#if contextMenuOpen !== '/' && contextMenuOpen !== ''}
 				<button
 					type="button"
@@ -1030,6 +1062,24 @@
 			aria-label="Page actions"
 			tabindex="-1"
 		>
+			<!-- Export button for documents -->
+			{#if ondocumentexport}
+				<button
+					type="button"
+					class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+					onclick={() => {
+						const page = findPageByPath(pageContextMenuOpen || '');
+						if (page) {
+							ondocumentexport({ path: page.metaData.path, document: page });
+							closeContextMenu();
+						}
+					}}
+				>
+					<Download class="h-4 w-4" />
+					Export Document
+				</button>
+			{/if}
+
 			<button
 				type="button"
 				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"

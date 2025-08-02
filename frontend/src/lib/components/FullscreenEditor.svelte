@@ -29,7 +29,7 @@
 	}: FullscreenEditorProps = $props();
 
 	// Editor state
-	let editorElement: HTMLElement;
+	let editorElement = $state<HTMLElement>();
 	let editorView: EditorView | null = null;
 	let currentContent = $state(initialContent);
 	let isDirty = $state(false);

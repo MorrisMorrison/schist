@@ -229,6 +229,16 @@ export interface ImportResult {
 	failed_count: number;
 }
 
+// Export-related types
+export type ExportType = 'document' | 'folder' | 'all';
+
+export interface ExportOptions {
+	path?: string;
+	type: ExportType;
+	format?: string; // "zip" or "markdown"
+	include_meta?: boolean;
+}
+
 export function normalizePath(path: string): string {
 	if (!path) {
 		return '/';

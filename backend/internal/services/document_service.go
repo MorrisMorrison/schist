@@ -1,6 +1,8 @@
 package services
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -1113,4 +1115,135 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 	}
 
 	return finalPath
+}
+
+// Export functionality
+
+// ExportDocument exports a single document as markdown content
+func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {
+	document, err := d.GetDocumentByPath(path)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get document: %w", err)
+	}
+
+	// Generate the markdown content with metadata
+	content := fmt.Sprintf("# %s\n\n%s", document.MetaData.Title, document.Content)
+
+	// Generate filename
+	filename := filepath.Base(path)
+	if !strings.HasSuffix(filename, ".md") {
+		filename += ".md"
+	}
+
+	return []byte(content), filename, nil
+}
+
+// ExportFolder exports a folder and all its contents as a zip file
+func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error) {
+	// Normalize the folder path
+	normalizedPath := folderPath
+	if !strings.HasPrefix(normalizedPath, "/") {
+		normalizedPath = "/" + normalizedPath
+	}
+
+	// Create a buffer to write the zip file to
+	buf := new(bytes.Buffer)
+	zipWriter := zip.NewWriter(buf)
+
+	// Walk through the folder and add files to zip
+	err := d.addFolderToZip(zipWriter, normalizedPath, "")
+	if err != nil {
+		zipWriter.Close()
+		return nil, "", fmt.Errorf("failed to create zip: %w", err)
+	}
+
+	// Close the zip writer
+	err = zipWriter.Close()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to close zip: %w", err)
+	}
+
+	// Generate filename
+	folderName := filepath.Base(folderPath)
+	if folderName == "/" || folderName == "." {
+		folderName = "documents"
+	}
+	filename := fmt.Sprintf("%s.zip", folderName)
+
+	return buf.Bytes(), filename, nil
+}
+
+// ExportAll exports all documents as a zip file
+func (d *DocumentService) ExportAll() ([]byte, string, error) {
+	// Create a buffer to write the zip file to
+	buf := new(bytes.Buffer)
+	zipWriter := zip.NewWriter(buf)
+
+	// Export everything from root
+	err := d.addFolderToZip(zipWriter, "/", "")
+	if err != nil {
+		zipWriter.Close()
+		return nil, "", fmt.Errorf("failed to create zip: %w", err)
+	}
+
+	// Close the zip writer
+	err = zipWriter.Close()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to close zip: %w", err)
+	}
+
+	filename := "all-documents.zip"
+	return buf.Bytes(), filename, nil
+}
+
+// Helper function to recursively add folder contents to zip
+func (d *DocumentService) addFolderToZip(
+	zipWriter *zip.Writer,
+	folderPath string,
+	zipPrefix string,
+) error {
+	// Get all documents and filter by folder path
+	allDocuments, err := d.ListDocuments()
+	if err != nil {
+		return fmt.Errorf("failed to list documents: %w", err)
+	}
+
+	// Add documents in this folder
+	for _, doc := range allDocuments {
+		docFolder := filepath.Dir(doc.MetaData.Path)
+		if docFolder == folderPath {
+			// Create the zip path
+			zipPath := filepath.Join(zipPrefix, doc.MetaData.Title+".md")
+
+			// Create file in zip
+			fileWriter, err := zipWriter.Create(zipPath)
+			if err != nil {
+				return fmt.Errorf("failed to create file in zip: %w", err)
+			}
+
+			// Write document content
+			content := fmt.Sprintf("# %s\n\n%s", doc.MetaData.Title, doc.Content)
+			_, err = fileWriter.Write([]byte(content))
+			if err != nil {
+				return fmt.Errorf("failed to write file content: %w", err)
+			}
+		}
+	}
+
+	// Get folder structure and recursively add subfolders
+	folder, err := d.GetFolder(folderPath)
+	if err != nil {
+		return fmt.Errorf("failed to get folder %s: %w", folderPath, err)
+	}
+
+	// Recursively add subfolders
+	for _, subfolder := range folder.SubFolders {
+		subZipPrefix := filepath.Join(zipPrefix, subfolder.Name)
+		err := d.addFolderToZip(zipWriter, subfolder.Path, subZipPrefix)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

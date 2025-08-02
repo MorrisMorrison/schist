@@ -34,6 +34,14 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	// Import route (needs to be before document routes to avoid wildcard conflicts)
 	routerGroup.POST("/import/documents", h.importDocuments)
 
+	// Export routes (needs to be before document routes to avoid wildcard conflicts)
+	exportRoutes := routerGroup.Group("/export")
+	{
+		exportRoutes.GET("/document/*path", h.exportDocument)
+		exportRoutes.GET("/folder/*path", h.exportFolder)
+		exportRoutes.GET("/all", h.exportAll)
+	}
+
 	documents := routerGroup.Group("/documents")
 	{
 		documents.GET("", h.listDocuments)
@@ -808,4 +816,76 @@ func (h *APIHandler) importDocuments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+// Export handlers
+
+// exportDocument handles single document export requests
+func (h *APIHandler) exportDocument(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	// Export the document
+	content, filename, err := h.DocumentService.ExportDocument(path)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Export failed: " + err.Error(),
+		})
+		return
+	}
+
+	// Set headers for file download
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "text/markdown; charset=utf-8")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(content)))
+
+	// Send the file content
+	c.Data(http.StatusOK, "text/markdown", content)
+}
+
+// exportFolder handles folder export requests
+func (h *APIHandler) exportFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	// Export the folder
+	content, filename, err := h.DocumentService.ExportFolder(path)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Export failed: " + err.Error(),
+		})
+		return
+	}
+
+	// Set headers for zip file download
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(content)))
+
+	// Send the zip file content
+	c.Data(http.StatusOK, "application/zip", content)
+}
+
+// exportAll handles export all documents requests
+func (h *APIHandler) exportAll(c *gin.Context) {
+	// Export all documents
+	content, filename, err := h.DocumentService.ExportAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Export failed: " + err.Error(),
+		})
+		return
+	}
+
+	// Set headers for zip file download
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Length", fmt.Sprintf("%d", len(content)))
+
+	// Send the zip file content
+	c.Data(http.StatusOK, "application/zip", content)
 }

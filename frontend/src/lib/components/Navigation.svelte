@@ -5,9 +5,7 @@
 	import { BurgerIcon } from './ui/burger-icon';
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	let { currentPageSlug, isSidebarOpen }: { currentPageSlug?: string; isSidebarOpen?: boolean } =
-		$props();
+	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();
 
 	let isMenuOpen = $state(false);
 
@@ -52,19 +50,7 @@
 				<div class="flex items-center">
 					<div class="flex-shrink-0">
 						<a href="/" class="flex items-center space-x-3">
-							<!-- Clean geometric logo -->
-							<div class="relative h-8 w-8">
-								<!-- Base layer - solid diamond -->
-								<div
-									class="bg-primary/90 absolute inset-0 h-8 w-8 rotate-45 transform rounded"
-								></div>
-								<!-- Inner cutout to create frame effect -->
-								<div class="bg-primary absolute inset-1 h-6 w-6 rotate-45 transform rounded"></div>
-								<!-- Small accent dot in center -->
-								<div
-									class="bg-primary absolute top-1/2 left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 transform rounded-full"
-								></div>
-							</div>
+							<img src="/icon-128x128.png" alt="Schist Logo" class="h-16 w-16" />
 							<span class="text-foreground text-xl font-semibold tracking-tight">Schist</span>
 						</a>
 					</div>

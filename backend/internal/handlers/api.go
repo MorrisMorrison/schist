@@ -268,7 +268,9 @@ func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
 	}
 
 	// Otherwise, move to trash
-	trashPath := "/trash" + path
+	// Remove leading slash from path to avoid double slash
+	pathWithoutLeadingSlash := strings.TrimPrefix(path, "/")
+	trashPath := "/trash/" + pathWithoutLeadingSlash
 	err := h.DocumentService.MoveDocument(path, trashPath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

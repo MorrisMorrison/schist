@@ -34,14 +34,14 @@ export class EditorPage extends BasePage {
 		super(page);
 
 		// Form elements (using legacy testids until UI is updated)
-		this.titleInput = page.getByTestId('page-title-input');
+		this.titleInput = page.getByTestId('document-title-input');
 		this.contentEditor = page
 			.locator('.cm-editor .cm-content, textarea[placeholder*="content"]')
 			.first();
 		this.tagsInput = page.getByTestId('tags-input');
-		this.saveButton = page.getByTestId('save-page-button');
+		this.saveButton = page.getByTestId('save-document-button');
 		this.cancelButton = page.getByTestId('cancel-button');
-		this.deleteButton = page.getByTestId('delete-page-button');
+		this.deleteButton = page.getByTestId('delete-document-button');
 		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
 
 		// Editor features
@@ -57,7 +57,7 @@ export class EditorPage extends BasePage {
 		this.loadingSpinner = page.locator('[data-testid="loading"], .loading');
 
 		// Document info (using legacy testid until UI is updated)
-		this.documentPathInfo = page.getByTestId('page-path');
+		this.documentPathInfo = page.getByTestId('document-path');
 		this.breadcrumbs = page.getByTestId('breadcrumbs');
 	}
 
@@ -104,7 +104,7 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Add tags to the page
+	 * Add tags to the document
 	 */
 	async addTags(tags: string[]) {
 		for (const tag of tags) {
@@ -117,7 +117,7 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Save the page
+	 * Save the document
 	 */
 	async save() {
 		await this.saveButton.click();
@@ -125,11 +125,11 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Save and expect navigation to page view
+	 * Save and expect navigation to document view
 	 */
 	async saveAndExpectNavigation() {
 		await Promise.all([
-			this.page.waitForURL(/\/pages\//, { timeout: 5000 }),
+			this.page.waitForURL(/\/documents\//, { timeout: 5000 }),
 			this.saveButton.click()
 		]);
 	}
@@ -142,9 +142,9 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Delete the page (with confirmation)
+	 * Delete the document (with confirmation)
 	 */
-	async deletePage() {
+	async deleteDocument() {
 		await this.deleteButton.click();
 		await this.waitForVisible(this.confirmDeleteButton);
 		await this.confirmDeleteButton.click();
@@ -242,14 +242,14 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Verify page title is displayed
+	 * Verify document title is displayed
 	 */
 	async verifyTitle(expectedTitle: string) {
 		await expect(this.titleInput).toHaveValue(expectedTitle);
 	}
 
 	/**
-	 * Check if page has unsaved changes
+	 * Check if document has unsaved changes
 	 */
 	async hasUnsavedChanges(): Promise<boolean> {
 		// This would depend on UI indicators for unsaved changes
@@ -304,6 +304,10 @@ export class EditorPage extends BasePage {
 	 */
 	async fillPageDetails(title: string, content: string, tags: string[] = []) {
 		return this.fillDocumentDetails(title, content, tags);
+	}
+
+	async deletePage() {
+		return this.deleteDocument();
 	}
 
 	// Legacy property aliases

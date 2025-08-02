@@ -77,7 +77,7 @@ export class HomePage extends BasePage {
 	 * Navigate to pages section
 	 */
 	async goToPages() {
-		const pagesLink = this.navigation.getByRole('link', { name: /pages/i });
+		const pagesLink = this.navigation.getByRole('link', { name: /documents/i });
 		await pagesLink.click();
 		await this.page.waitForURL('/pages');
 	}

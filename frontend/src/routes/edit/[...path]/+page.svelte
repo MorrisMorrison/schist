@@ -230,7 +230,7 @@
 
 				<Button
 					variant="destructive"
-					data-testid="delete-page-button"
+					data-testid="delete-document-button"
 					onclick={handleDeleteClick}
 					disabled={isDeleting}
 				>
@@ -240,7 +240,7 @@
 
 				<Button
 					variant="default"
-					data-testid="save-page-button"
+					data-testid="save-document-button"
 					onclick={handleSave}
 					disabled={isSaving || !title.trim() || !content.trim()}
 				>

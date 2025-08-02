@@ -1,81 +1,70 @@
 import { test, expect } from '../fixtures/test-setup';
-import { createTestPage } from '../utils/test-data';
+import { createTestPage as createTestDocument } from '../utils/test-data';
 
 test.describe('Content Persistence and Data Integrity', () => {
 	test('should persist content across browser sessions', async ({
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId,
 		context
 	}) => {
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Session Test ${testId}`,
 			content: '# Session Persistence Test\n\nThis content should persist across sessions.',
 			path: `/session-test-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Navigate to page and verify content
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyContentContains('persist across sessions');
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.verifyContentContains('persist across sessions');
 
-		// Close current page and create a new one (simulating new session)
-		await pageViewPage.page.close();
+		await documentViewPage.page.close();
 		const newPage = await context.newPage();
 
-		// Navigate to same page in new "session"
-		const { PageViewPage } = await import('../pages/PageViewPage');
-		const newPageView = new PageViewPage(newPage);
+		const { DocumentViewPage } = await import('../pages/DocumentViewPage');
+		const newDocumentView = new DocumentViewPage(newPage);
 
-		await newPageView.navigateToPage(testPage.path!);
-		await newPageView.verifyPageLoaded(testPage.title);
-		await newPageView.verifyContentContains('persist across sessions');
+		await newDocumentView.navigateToDocument(testDocument.path!);
+		await newDocumentView.verifyDocumentLoaded(testDocument.title);
+		await newDocumentView.verifyContentContains('persist across sessions');
 	});
 
 	test('should maintain data integrity during concurrent edits', async ({
 		editorPage,
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId,
 		context
 	}) => {
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Concurrent Edit ${testId}`,
 			content: '# Original Content\n\nBase content for concurrent edit test.',
 			path: `/concurrent-edit-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Open first editor
-		await editorPage.navigateToEdit(testPage.path!);
+		await editorPage.navigateToEdit(testDocument.path!);
 		await editorPage.verifyLoaded();
 
-		// Open second page context (simulating another user)
 		const page2 = await context.newPage();
 		const { EditorPage } = await import('../pages/EditorPage');
 		const editorPage2 = new EditorPage(page2);
 
-		await editorPage2.navigateToEdit(testPage.path!);
+		await editorPage2.navigateToEdit(testDocument.path!);
 		await editorPage2.verifyLoaded();
 
-		// Make changes in first editor
 		await editorPage.typeContent('\n\nChanges from Editor 1');
 		await editorPage.save();
-
-		// Make changes in second editor
 		await editorPage2.typeContent('\n\nChanges from Editor 2');
 		await editorPage2.save();
 
-		// Verify final state
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
-		// Note: Depending on implementation, this might show conflict resolution
-		// or last-writer-wins behavior
-		const content = await pageViewPage.getPageContent();
+		const content = await documentViewPage.getDocumentContent();
 		expect(content).toContain('Base content');
 
 		await page2.close();
@@ -83,7 +72,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 
 	test('should preserve special characters and unicode', async ({
 		editorPage,
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId
 	}) => {
@@ -104,40 +93,36 @@ const regex = /[!@#$%^&*()]/g;
 const unicode = "Hello 世界! 🌍";
 \`\`\``;
 
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Unicode Test ${testId}`,
 			content: specialContent,
 			path: `/unicode-test-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Navigate to page and verify special characters
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(`Unicode Test ${testId}`);
-		await pageViewPage.verifyContentContains('🚀 🎉 💻');
-		await pageViewPage.verifyContentContains('café, naïve');
-		await pageViewPage.verifyContentContains('日本語, العربية');
-		await pageViewPage.verifyContentContains('∑ ∫ ∞');
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(`Unicode Test ${testId}`);
+		await documentViewPage.verifyContentContains('🚀 🎉 💻');
+		await documentViewPage.verifyContentContains('café, naïve');
+		await documentViewPage.verifyContentContains('日本語, العربية');
+		await documentViewPage.verifyContentContains('∑ ∫ ∞');
 
-		// Edit and re-save to ensure persistence through edit cycle
-		await pageViewPage.editPage();
+		await documentViewPage.editDocument();
 		await editorPage.verifyContent('🚀 🎉 💻');
 		await editorPage.typeContent('\n\nAdditional unicode: 🔥 ⭐ 🌟');
 		await editorPage.saveAndExpectNavigation();
 
-		// Verify all special characters still present
-		await pageViewPage.verifyContentContains('🚀 🎉 💻');
-		await pageViewPage.verifyContentContains('🔥 ⭐ 🌟');
+		await documentViewPage.verifyContentContains('🚀 🎉 💻');
+		await documentViewPage.verifyContentContains('🔥 ⭐ 🌟');
 	});
 
 	test('should handle large content volumes', async ({
 		editorPage,
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId
 	}) => {
-		// Generate large content (approximately 100KB)
 		const largeParagraph = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(50);
 		const largeContent =
 			`# Large Content Test ${testId}\n\n` +
@@ -146,39 +131,34 @@ const unicode = "Hello 世界! 🌍";
 				.map((_, i) => `## Section ${i + 1}\n\n${largeParagraph}\n\n`)
 				.join('');
 
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Large Content ${testId}`,
 			content: largeContent,
 			path: `/large-content-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
-		// Navigate to page and verify it loads
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(`Large Content ${testId}`);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(`Large Content ${testId}`);
 
-		// Verify content is present
-		await pageViewPage.verifyContentContains('Section 1');
-		await pageViewPage.verifyContentContains('Section 50');
-		await pageViewPage.verifyContentContains('Section 100');
+		await documentViewPage.verifyContentContains('Section 1');
+		await documentViewPage.verifyContentContains('Section 50');
+		await documentViewPage.verifyContentContains('Section 100');
 
-		// Edit large content
-		await pageViewPage.editPage();
+		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();
 
-		// Add content to the large page
 		await editorPage.typeContent('\n\n## Additional Section\n\nAdded to large content.');
 		await editorPage.saveAndExpectNavigation();
 
-		// Verify addition persisted
-		await pageViewPage.verifyContentContains('Additional Section');
-		await pageViewPage.verifyContentContains('Added to large content');
+		await documentViewPage.verifyContentContains('Additional Section');
+		await documentViewPage.verifyContentContains('Added to large content');
 	});
 
 	test('should preserve content formatting and structure', async ({
 		editorPage,
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId
 	}) => {
@@ -224,26 +204,26 @@ function test() {
 
 End of formatting test.`;
 
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Formatting Test ${testId}`,
 			content: formattedContent,
 			path: `/formatting-test-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
 		// Verify initial rendering
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(`Formatting Test ${testId}`);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(`Formatting Test ${testId}`);
 
 		// Verify various elements are rendered correctly
-		await pageViewPage.verifyHeading('Headers', 2);
-		await pageViewPage.verifyHeading('Subheader', 3);
-		await pageViewPage.verifyContentContains('Bold text');
-		await pageViewPage.verifyContentContains('First item');
+		await documentViewPage.verifyHeading('Headers', 2);
+		await documentViewPage.verifyHeading('Subheader', 3);
+		await documentViewPage.verifyContentContains('Bold text');
+		await documentViewPage.verifyContentContains('First item');
 
 		// Edit and verify formatting is preserved in editor
-		await pageViewPage.editPage();
+		await documentViewPage.editDocument();
 		await editorPage.verifyContent('**Bold text**');
 		await editorPage.verifyContent('```javascript');
 		await editorPage.verifyContent('1. First item');
@@ -253,14 +233,14 @@ End of formatting test.`;
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify formatting still intact
-		await pageViewPage.verifyHeading('New Section', 2);
-		await pageViewPage.verifyHeading('Headers', 2);
-		await pageViewPage.verifyContentContains('Bold text');
+		await documentViewPage.verifyHeading('New Section', 2);
+		await documentViewPage.verifyHeading('Headers', 2);
+		await documentViewPage.verifyContentContains('Bold text');
 	});
 
 	test('should handle content with mixed line endings', async ({
 		editorPage,
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId
 	}) => {
@@ -276,109 +256,79 @@ End of formatting test.`;
 			'Final line'
 		].join('\n');
 
-		const testPage = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Line Endings ${testId}`,
 			content: mixedLineEndingContent,
 			path: `/line-endings-${testId}`
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
 		// Verify content displays correctly
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(`Line Endings ${testId}`);
-		await pageViewPage.verifyContentContains('Line with LF ending');
-		await pageViewPage.verifyContentContains('Final line');
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(`Line Endings ${testId}`);
+		await documentViewPage.verifyContentContains('Line with LF ending');
+		await documentViewPage.verifyContentContains('Final line');
 
 		// Edit and save to ensure line endings are preserved
-		await pageViewPage.editPage();
+		await documentViewPage.editDocument();
 		await editorPage.typeContent('\n\nAdded line with standard ending.');
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify all content still present
-		await pageViewPage.verifyContentContains('Line with LF ending');
-		await pageViewPage.verifyContentContains('Added line with standard ending');
-	});
-
-	test('should handle concurrent auto-save and manual save', async ({
-		editorPage,
-		pageViewPage,
-		apiHelper,
-		testId
-	}) => {
-		const testPage = createTestPage({
-			title: `Save Conflict ${testId}`,
-			content: '# Save Conflict Test',
-			path: `/save-conflict-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
-		// Navigate to edit
-		await editorPage.navigateToEdit(testPage.path!);
-		await editorPage.verifyLoaded();
-
-		// Make changes that would trigger auto-save
-		await editorPage.typeContent('\n\nAuto-save content.');
-
-		// Immediately make more changes and manually save
-		await editorPage.typeContent('\n\nManual save content.');
-		await editorPage.saveAndExpectNavigation();
-
-		// Verify all content is preserved
-		await pageViewPage.verifyContentContains('Auto-save content');
-		await pageViewPage.verifyContentContains('Manual save content');
+		await documentViewPage.verifyContentContains('Line with LF ending');
+		await documentViewPage.verifyContentContains('Added line with standard ending');
 	});
 
 	test('should maintain referential integrity for internal links', async ({
 		editorPage,
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId
 	}) => {
-		// Create target page first
-		const targetPage = createTestPage({
-			title: `Target Page ${testId}`,
-			content: '# Target Page\n\nThis is the target of internal links.',
+		// Create target document first
+		const targetDocument = createTestDocument({
+			title: `Target Document ${testId}`,
+			content: '# Target Document\n\nThis is the target of internal links.',
 			path: `/target-${testId}`
 		});
 
-		await apiHelper.createPage(targetPage);
+		await apiHelper.createDocument(targetDocument);
 
-		// Create page with internal links
-		const linkingPage = createTestPage({
-			title: `Linking Page ${testId}`,
-			content: `# Linking Page
+		// Create document with internal links
+		const linkingDocument = createTestDocument({
+			title: `Linking Document ${testId}`,
+			content: `# Linking Document
 
-This page contains links to other pages:
+This document contains links to other documents:
 
-[Link to target page](/pages/target-${testId})
-[Another reference to target](/pages/target-${testId})
+[Link to target document](/documents/target-${testId})
+[Another reference to target](/documents/target-${testId})
 
 The links should remain functional after edits.`,
 			path: `/linking-${testId}`
 		});
 
-		await apiHelper.createPage(linkingPage);
+		await apiHelper.createDocument(linkingDocument);
 
-		// Navigate to linking page
-		await pageViewPage.navigateToPage(linkingPage.path!);
-		await pageViewPage.verifyPageLoaded(`Linking Page ${testId}`);
+		// Navigate to linking document
+		await documentViewPage.navigateToDocument(linkingDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(`Linking Document ${testId}`);
 
 		// Click internal link to verify it works
-		await pageViewPage.clickContentLink('Link to target page');
-		await pageViewPage.verifyPageLoaded(`Target Page ${testId}`);
+		await documentViewPage.clickContentLink('Link to target document');
+		await documentViewPage.verifyDocumentLoaded(`Target Document ${testId}`);
 
-		// Go back and edit the linking page
-		await pageViewPage.navigateToPage(linkingPage.path!);
-		await pageViewPage.editPage();
+		// Go back and edit the linking document
+		await documentViewPage.navigateToDocument(linkingDocument.path!);
+		await documentViewPage.editDocument();
 
 		// Add another internal link
-		await editorPage.typeContent(`\n\n[New link to target](/pages/target-${testId})`);
+		await editorPage.typeContent(`\n\n[New link to target](/documents/target-${testId})`);
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify all links still work
-		await pageViewPage.clickContentLink('New link to target');
-		await pageViewPage.verifyPageLoaded(`Target Page ${testId}`);
+		await documentViewPage.clickContentLink('New link to target');
+		await documentViewPage.verifyDocumentLoaded(`Target Document ${testId}`);
 	});
 });

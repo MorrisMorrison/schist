@@ -29,11 +29,11 @@ test.describe('E2E Infrastructure', () => {
 		await expectVisibleText(homePage.pageTitle, '');
 	});
 
-	test('fixtures create backend data', async ({ withTestPage, pageViewPage }) => {
+	test('fixtures create backend data', async ({ withTestPage, documentViewPage }) => {
 		// Navigate to the page created by the fixture
-		await pageViewPage.navigateToPage(withTestPage.path!);
-		await pageViewPage.verifyPageLoaded(withTestPage.title);
-		await expectVisibleText(pageViewPage.pageTitle, withTestPage.title);
+		await documentViewPage.navigateToPage(withTestPage.path!);
+		await documentViewPage.verifyPageLoaded(withTestPage.title);
+		await expectVisibleText(documentViewPage.pageTitle, withTestPage.title);
 	});
 });
 
@@ -70,13 +70,13 @@ test.describe('Basic App Functionality', () => {
 		await expect(editorPage.saveButton).toBeVisible();
 	});
 
-	test('can create and view a page', async ({ editorPage, pageViewPage, testPage }) => {
+	test('can create and view a page', async ({ editorPage, documentViewPage, testPage }) => {
 		// Create page through editor
 		await editorPage.navigateToNew();
 		await editorPage.fillPageDetails(testPage.title, testPage.content);
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify we're now viewing the page
-		await pageViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.verifyPageLoaded(testPage.title);
 	});
 });

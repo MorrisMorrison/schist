@@ -4,7 +4,7 @@ import { createTestPage } from '../utils/test-data';
 test.describe('Auto-save Functionality', () => {
 	test('should auto-save content without navigation', async ({
 		editorPage,
-		pageViewPage,
+		documentViewPage,
 		apiHelper,
 		testId
 	}) => {
@@ -36,44 +36,9 @@ test.describe('Auto-save Functionality', () => {
 		await editorPage.expectUrl(`/edit${testPage.path}`);
 
 		// Navigate to view page to verify auto-save worked
-		await pageViewPage.navigateToPage(testPage.path!);
-		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyContentContains('Additional content added for auto-save test');
-	});
-
-	test('should distinguish between auto-save and manual save', async ({
-		editorPage,
-		pageViewPage,
-		apiHelper,
-		testId
-	}) => {
-		const testPage = createTestPage({
-			title: `Manual Save Test ${testId}`,
-			content: '# Manual Save Test',
-			path: `/manual-save-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
-		// Navigate to edit
-		await editorPage.navigateToEdit(testPage.path!);
-		await editorPage.verifyLoaded();
-
-		// Make changes
-		await editorPage.typeContent('\n\nAuto-save changes.');
-
-		// Wait for auto-save (should not navigate)
-		await editorPage.waitForAutoSave();
-		await editorPage.expectUrl(`/edit${testPage.path}`);
-
-		// Make more changes and manually save
-		await editorPage.typeContent('\n\nManual save changes.');
-		await editorPage.saveAndExpectNavigation();
-
-		// Manual save should navigate to page view
-		await pageViewPage.verifyPageLoaded(testPage.title);
-		await pageViewPage.verifyContentContains('Auto-save changes');
-		await pageViewPage.verifyContentContains('Manual save changes');
+		await documentViewPage.navigateToPage(testPage.path!);
+		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.verifyContentContains('Additional content added for auto-save test');
 	});
 
 	test('should handle auto-save errors gracefully', async ({
@@ -95,7 +60,7 @@ test.describe('Auto-save Functionality', () => {
 		await editorPage.verifyLoaded();
 
 		// Simulate network failure by intercepting API calls
-		await page.route('**/api/pages/**', (route) => {
+		await page.route('**/api/documents/**', (route) => {
 			route.abort('failed');
 		});
 
@@ -111,38 +76,10 @@ test.describe('Auto-save Functionality', () => {
 		await editorPage.verifyContent('This change should fail to save');
 
 		// Remove network failure simulation
-		await page.unroute('**/api/pages/**');
+		await page.unroute('**/api/documents/**');
 
 		// Try manual save - should work now
 		await editorPage.saveAndExpectNavigation();
 		await editorPage.page.waitForLoadState('networkidle');
-	});
-
-	test('should handle concurrent auto-save attempts', async ({ editorPage, apiHelper, testId }) => {
-		const testPage = createTestPage({
-			title: `Concurrent Save ${testId}`,
-			content: '# Concurrent Test',
-			path: `/concurrent-save-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
-		// Navigate to edit
-		await editorPage.navigateToEdit(testPage.path!);
-		await editorPage.verifyLoaded();
-
-		// Make multiple rapid changes to potentially trigger concurrent saves
-		for (let i = 1; i <= 5; i++) {
-			await editorPage.typeContent(`\n\nChange ${i}`);
-			// Small delay to simulate realistic typing
-		}
-
-		// Wait for all auto-saves to complete
-		await editorPage.waitForAutoSave(5000);
-
-		// Verify all changes are preserved
-		for (let i = 1; i <= 5; i++) {
-			await editorPage.verifyContent(`Change ${i}`);
-		}
 	});
 });

@@ -282,7 +282,7 @@
 
 		if (currentPath.startsWith('/documents')) {
 			// Remove /document prefix and remove the last element (page name)
-			const pagePath = currentPath.substring(6); // Remove '/pages'
+			const pagePath = currentPath.substring(6); // Remove '/documents'
 			const pathSegments = pagePath.split('/').filter(Boolean);
 
 			// Remove the last segment (page name) and reconstruct the folder path
@@ -749,10 +749,10 @@
 							ondrop={(e) => handleDrop(e, folder.path)}
 							oncontextmenu={(e) => handlePageContextMenu(e, page)}
 							role="treeitem"
-							aria-label={`Page: ${page.metaData?.title || 'Untitled'}`}
+							aria-label={`Document: ${page.metaData?.title || 'Untitled'}`}
 							aria-selected={isSelectedFile(page.metaData.path)}
 							tabindex="-1"
-							data-testid="page-item"
+							data-testid="document-item"
 						>
 							<!-- Indented content container -->
 							<div
@@ -764,7 +764,7 @@
 									type="button"
 									class="focus:ring-ring flex flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 									onclick={() => ondocumentselect?.({ document: page })}
-									data-testid="page-name-button"
+									data-testid="document-name-button"
 								>
 									<File class="text-blue-primary h-4 w-4" />
 									<span class="flex-1 truncate text-left">{page.metaData?.title || 'Untitled'}</span

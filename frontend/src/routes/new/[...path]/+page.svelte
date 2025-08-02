@@ -129,7 +129,7 @@
 
 				<button
 					type="button"
-					data-testid="save-page-button"
+					data-testid="save-document-button"
 					onclick={handleCreate}
 					disabled={isCreating || !title.trim() || !content.trim()}
 					class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
@@ -201,14 +201,14 @@
 	<div class="bg-primary ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
 		<!-- Title Input -->
 		<div>
-			<label for="title" class="text-secondary block text-sm font-medium">Title</label>
+			<label for="title" class="text-secondary block text-sm font-medium">Document Title</label>
 			<div class="mt-1">
 				<input
 					id="title"
-					data-testid="page-title-input"
+					data-testid="document-title-input"
 					type="text"
 					bind:value={title}
-					placeholder="Enter page title..."
+					placeholder="Enter document title..."
 					class="border-secondary bg-primary text-primary block w-full rounded-md border px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
 				/>
 			</div>

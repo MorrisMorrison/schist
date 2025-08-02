@@ -234,7 +234,7 @@
 					onclick={handleDeleteClick}
 					disabled={isDeleting}
 				>
-					<Trash2 class="mr-2 h-4 w-4" />
+					<Trash2 class="h-4 w-4" />
 					Delete
 				</Button>
 
@@ -245,10 +245,10 @@
 					disabled={isSaving || !title.trim() || !content.trim()}
 				>
 					{#if isSaving}
-						<RotateCcw class="mr-2 h-4 w-4 animate-spin" />
+						<RotateCcw class="h-4 w-4 animate-spin" />
 						Saving...
 					{:else}
-						<Check class="mr-2 h-4 w-4" />
+						<Check class=" h-4 w-4" />
 						Save Document
 					{/if}
 				</Button>

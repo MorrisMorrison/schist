@@ -66,19 +66,23 @@
 	onclick={() => onView?.(documentPathDerived)}
 >
 	<CardHeader class="pb-3">
-		<div class="flex items-start gap-4">
-			<div class="bg-primary/90 group-hover:bg-primary/70 rounded-lg p-3 transition-colors">
+		<div class="flex min-w-0 items-start gap-4">
+			<div
+				class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors"
+			>
 				<FileText class="h-5 w-5 flex-shrink-0 text-white" />
 			</div>
-			<div class="min-w-0 flex-1 space-y-1">
-				<div class="flex items-start justify-between gap-2">
+			<div class="min-w-0 flex-1 space-y-1 overflow-hidden">
+				<div class="flex items-start gap-2">
 					<CardTitle
-						class="truncate text-base leading-tight font-semibold"
+						class="min-w-0 flex-1 truncate pr-2 text-base leading-tight font-semibold"
 						title={document.metaData.title}
 					>
 						{document.metaData.title}
 					</CardTitle>
-					<div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+					<div
+						class="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+					>
 						{#if onEdit}
 							<Button
 								variant="ghost"

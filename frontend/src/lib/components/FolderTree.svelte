@@ -698,7 +698,7 @@
 				<!-- Folder Name Area - Clickable for navigation -->
 				<button
 					type="button"
-					class="focus:ring-ring flex flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none min-w-0"
+					class="focus:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 					onclick={() => handleFolderNameClick(folder)}
 					onkeydown={(e) => handleKeydown(e, folder)}
 					tabindex="0"
@@ -709,16 +709,13 @@
 					<Folder class="text-blue-primary h-4 w-4 flex-shrink-0" />
 
 					<!-- Folder Name -->
-					<span
-						class="truncate font-medium"
-						title={folder.name}
-					>
+					<span class="truncate font-medium" title={folder.name}>
 						{folder.name}
 					</span>
 
 					<!-- Page Count Badge -->
 					{#if showPageCounts && folder.document_count > 0}
-						<span class="text-secondary text-xs opacity-75 ml-1">({folder.document_count})</span>
+						<span class="text-secondary ml-1 text-xs opacity-75">({folder.document_count})</span>
 					{/if}
 				</button>
 			</div>
@@ -789,14 +786,12 @@
 								<div class="h-4 w-4"></div>
 								<button
 									type="button"
-									class="focus:ring-ring flex flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none min-w-0"
+									class="focus:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
 									onclick={() => ondocumentselect?.({ document: page })}
 									data-testid="document-name-button"
 								>
 									<File class="text-blue-primary h-4 w-4 flex-shrink-0" />
-									<span
-										class="truncate text-left"
-										title={page.metaData?.title || 'Untitled'}
+									<span class="truncate text-left" title={page.metaData?.title || 'Untitled'}
 										>{page.metaData?.title || 'Untitled'}</span
 									>
 								</button>

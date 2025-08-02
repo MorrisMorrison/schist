@@ -11,11 +11,11 @@
 
 	function getLineTypeIcon(type: DiffLine['type']) {
 		switch (type) {
-			case 'add':
+			case 'addition':
 				return Plus;
-			case 'delete':
+			case 'deletion':
 				return Minus;
-			case 'modify':
+			case 'modification':
 				return RotateCcw;
 			default:
 				return null;
@@ -24,11 +24,11 @@
 
 	function getLineTypeClass(type: DiffLine['type']): string {
 		switch (type) {
-			case 'add':
+			case 'addition':
 				return 'bg-green-50 border-l-4 border-l-green-500 dark:bg-green-950/20';
-			case 'delete':
+			case 'deletion':
 				return 'bg-red-50 border-l-4 border-l-red-500 dark:bg-red-950/20';
-			case 'modify':
+			case 'modification':
 				return 'bg-yellow-50 border-l-4 border-l-yellow-500 dark:bg-yellow-950/20';
 			case 'context':
 				return 'bg-gray-50 dark:bg-gray-900/50';
@@ -39,11 +39,11 @@
 
 	function getLineTypeTextColor(type: DiffLine['type']): string {
 		switch (type) {
-			case 'add':
+			case 'addition':
 				return 'text-green-800 dark:text-green-200';
-			case 'delete':
+			case 'deletion':
 				return 'text-red-800 dark:text-red-200';
-			case 'modify':
+			case 'modification':
 				return 'text-yellow-800 dark:text-yellow-200';
 			case 'context':
 				return 'text-gray-700 dark:text-gray-300';
@@ -54,11 +54,11 @@
 
 	function getLineNumberColor(type: DiffLine['type']): string {
 		switch (type) {
-			case 'add':
+			case 'addition':
 				return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30';
-			case 'delete':
+			case 'deletion':
 				return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30';
-			case 'modify':
+			case 'modification':
 				return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30';
 			case 'context':
 				return 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';

@@ -52,7 +52,9 @@ export interface ToolbarProps {
 	onFormat: (type: FormattingType, value?: string) => void;
 	theme?: EditorTheme;
 	onThemeToggle?: () => void;
+	onFullscreenToggle?: () => void;
 	disabled?: boolean;
+	isFullscreen?: boolean;
 }
 
 export type FormattingType =

@@ -7,6 +7,7 @@
 
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
+	import FullscreenEditor from './FullscreenEditor.svelte';
 	import type { EditorProps, FormattingType } from '$lib/types/editor';
 	import { theme } from '$lib/stores/theme.js';
 	import { imagePasteExtension } from '$lib/utils/image-paste.js';
@@ -28,6 +29,7 @@
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
+	let isFullscreen = $state(false);
 
 	// Resize functionality
 	let editorHeight = $state(700); // Default height in pixels
@@ -171,6 +173,11 @@
 		isPreviewVisible = !isPreviewVisible;
 	}
 
+	// Toggle fullscreen mode
+	function toggleFullscreen() {
+		isFullscreen = !isFullscreen;
+	}
+
 	// Initialize CodeMirror editor
 	function initializeEditor() {
 		if (!editorElement) return;
@@ -257,6 +264,13 @@
 
 	// Keyboard shortcuts
 	function handleKeydown(event: KeyboardEvent) {
+		// F11 for fullscreen toggle
+		if (event.key === 'F11') {
+			event.preventDefault();
+			toggleFullscreen();
+			return;
+		}
+
 		if (!event.ctrlKey && !event.metaKey) return;
 
 		switch (event.key) {
@@ -446,7 +460,13 @@
 
 <div class="markdown-editor flex flex-col {themeClasses}" style="height: {editorHeight}px;">
 	<!-- Toolbar -->
-	<EditorToolbar onFormat={formatText} theme={currentTheme} disabled={readonly} />
+	<EditorToolbar
+		onFormat={formatText}
+		theme={currentTheme}
+		disabled={readonly}
+		onFullscreenToggle={toggleFullscreen}
+		isFullscreen={false}
+	/>
 
 	<!-- Editor and Preview Container -->
 	<div class="flex flex-1 overflow-hidden">
@@ -585,6 +605,17 @@
 		<div class="h-1 w-8 rounded-full bg-gray-400"></div>
 	</div>
 </div>
+
+<!-- Fullscreen Editor Modal -->
+<FullscreenEditor
+	open={isFullscreen}
+	onClose={() => (isFullscreen = false)}
+	{initialContent}
+	{autoSave}
+	{onContentChange}
+	{onSave}
+	{readonly}
+/>
 
 <style>
 	.markdown-editor {

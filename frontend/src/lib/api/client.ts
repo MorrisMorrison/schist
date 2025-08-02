@@ -19,7 +19,12 @@ import type {
 	DiffResult,
 	RestoreResponse,
 	ImportOptions,
-	ImportResult
+	ImportResult,
+	GitHubSettings,
+	GitHubStatus,
+	GitHubSyncResult,
+	GitHubSetupRequest,
+	GitHubConnectionTest
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -376,6 +381,52 @@ class SchістApiClient {
 
 		// Use a simple window.open to trigger download
 		window.open(url, '_blank');
+	}
+
+	// GitHub integration methods
+	async getGitHubSettings(): Promise<GitHubSettings> {
+		return this.request<GitHubSettings>('/settings/github');
+	}
+
+	async updateGitHubSettings(settings: Partial<GitHubSettings>): Promise<GitHubSettings> {
+		return this.request<GitHubSettings>('/settings/github', {
+			method: 'PUT',
+			body: JSON.stringify(settings)
+		});
+	}
+
+	async setupGitHub(setupRequest: GitHubSetupRequest): Promise<GitHubSettings> {
+		return this.request<GitHubSettings>('/settings/github/setup', {
+			method: 'POST',
+			body: JSON.stringify(setupRequest)
+		});
+	}
+
+	async testGitHubConnection(
+		token: string,
+		owner: string,
+		repository: string
+	): Promise<GitHubConnectionTest> {
+		return this.request<GitHubConnectionTest>('/github/test', {
+			method: 'POST',
+			body: JSON.stringify({ token, owner, repository })
+		});
+	}
+
+	async getGitHubStatus(): Promise<GitHubStatus> {
+		return this.request<GitHubStatus>('/github/status');
+	}
+
+	async syncToGitHub(): Promise<GitHubSyncResult> {
+		return this.request<GitHubSyncResult>('/github/sync', {
+			method: 'POST'
+		});
+	}
+
+	async disconnectGitHub(): Promise<void> {
+		await this.request<void>('/settings/github/disconnect', {
+			method: 'POST'
+		});
 	}
 }
 

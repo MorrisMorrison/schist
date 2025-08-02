@@ -12,9 +12,6 @@
 
 	let { children } = $props();
 
-	// Extract current page slug from URL for edit button
-	const currentPageSlug = $derived(page.params?.slug);
-
 	// Always allow sidebar to be shown - let users decide with the toggle
 	const showSidebarComponent = true;
 
@@ -42,7 +39,7 @@
 </script>
 
 <div class="bg-background min-h-screen border-0 transition-colors">
-	<Navigation {currentPageSlug} isSidebarOpen={$sidebarOpen} />
+	<Navigation isSidebarOpen={$sidebarOpen} />
 
 	<div class="app-container border-0" class:with-sidebar={sidebarVisible}>
 		<!-- Mobile backdrop -->

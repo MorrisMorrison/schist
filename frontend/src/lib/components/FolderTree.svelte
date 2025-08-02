@@ -37,12 +37,12 @@
 		storageKey?: string;
 		currentPath?: string;
 		onselect?: (event: { path: string; folder: FolderType }) => void;
-		ondocumentselect?: (event: { page: Document }) => void;
+		ondocumentselect?: (event: { document: Document }) => void;
 		oncreate?: (event: { parentPath: string }) => void;
 		ondelete?: (event: { path: string; folder: FolderType }) => void;
 		onrename?: (event: { path: string; folder: FolderType }) => void;
-		ondocumentdelete?: (event: { page: Document }) => void;
-		ondocumentrename?: (event: { page: Document }) => void;
+		ondocumentdelete?: (event: { document: Document }) => void;
+		ondocumentrename?: (event: { document: Document }) => void;
 		onexpandall?: () => void;
 		oncollapseall?: () => void;
 	}
@@ -86,11 +86,11 @@
 	let isDragging = $state(false);
 	let dragOverTarget = $state<string | null>(null);
 
-	const pages = $derived($documentsStore.documents || []);
+	const documents = $derived($documentsStore.documents || []);
 
 	const filteredFolders = $derived(
 		unifiedSearchQuery.trim()
-			? filterFoldersAndPages($folders || [], pages, unifiedSearchQuery.toLowerCase())
+			? filterFoldersAndPages($folders || [], documents, unifiedSearchQuery.toLowerCase())
 			: $folders || []
 	);
 
@@ -140,7 +140,11 @@
 		};
 	}
 
-	function pageMatchesFilters(document: Document, textQuery: string, tagFilters: string[]): boolean {
+	function pageMatchesFilters(
+		document: Document,
+		textQuery: string,
+		tagFilters: string[]
+	): boolean {
 		// Check text match in page title
 		const textMatch = !textQuery || document.metaData.title.toLowerCase().includes(textQuery);
 
@@ -202,7 +206,7 @@
 	}
 
 	function getPagesForFolder(folderPath: string) {
-		return pages.filter((page) => {
+		return documents.filter((page) => {
 			const pagePath = page.metaData?.path || '';
 
 			// Handle root folder case
@@ -468,17 +472,17 @@
 	}
 
 	function handleDeletePage(page: Document) {
-		ondocumentdelete?.({ page });
+		ondocumentdelete?.({ document: page });
 		closeContextMenu();
 	}
 
 	function handleRenamePage(page: Document) {
-		ondocumentrename?.({ page });
+		ondocumentrename?.({ document: page });
 		closeContextMenu();
 	}
 
 	function findPageByPath(path: string): Document | null {
-		return pages.find((page) => page.metaData?.path === path) || null;
+		return documents.find((page) => page.metaData?.path === path) || null;
 	}
 
 	function findFolderByPath(folders: FolderType[], path: string): FolderType | null {
@@ -759,7 +763,7 @@
 								<button
 									type="button"
 									class="focus:ring-ring flex flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
-									onclick={() => ondocumentselect?.({ page })}
+									onclick={() => ondocumentselect?.({ document: page })}
 									data-testid="page-name-button"
 								>
 									<File class="text-blue-primary h-4 w-4" />

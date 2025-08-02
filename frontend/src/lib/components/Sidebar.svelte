@@ -59,12 +59,12 @@
 	}
 
 	function handlePageDelete(event: { document: Document }) {
-		pageToDelete = event.page;
+		pageToDelete = event.document;
 		showDeletePageModal = true;
 	}
 
 	function handlePageRename(event: { document: Document }) {
-		pageToRename = event.page;
+		pageToRename = event.document;
 		showRenameDocumentModal = true;
 	}
 

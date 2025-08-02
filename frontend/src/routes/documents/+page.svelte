@@ -1,8 +1,8 @@
 <script lang="ts">
 	import FolderView from '$lib/components/FolderView.svelte';
-	import type { DocumentData } from './$types.js';
+	import type { PageData } from './$types.js';
 
-	let { data }: { data: DocumentData } = $props();
+	let { data }: { data: PageData } = $props();
 </script>
 
 <svelte:head>

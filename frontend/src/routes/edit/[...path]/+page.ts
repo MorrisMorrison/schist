@@ -7,9 +7,9 @@ export const load: PageLoad = async ({ params }) => {
 	const { path } = params;
 
 	try {
-		const page: Document = await apiClient.getDocumentByPath(path);
+		const document: Document = await apiClient.getDocumentByPath(path);
 		return {
-			page,
+			document,
 			path
 		};
 	} catch (err) {

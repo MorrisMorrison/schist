@@ -13,7 +13,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from './ErrorAlert.svelte';
 	import UnifiedSidebarSearch from './UnifiedSidebarSearch.svelte';
-	import type { Folder as FolderType, Page } from '$lib/api/types.js';
+	import type { Folder as FolderType, Document } from '$lib/api/types.js';
 	import {
 		folders,
 		isFoldersLoading,
@@ -37,12 +37,12 @@
 		storageKey?: string;
 		currentPath?: string;
 		onselect?: (event: { path: string; folder: FolderType }) => void;
-		onpageselect?: (event: { page: Document }) => void;
+		ondocumentselect?: (event: { page: Document }) => void;
 		oncreate?: (event: { parentPath: string }) => void;
 		ondelete?: (event: { path: string; folder: FolderType }) => void;
 		onrename?: (event: { path: string; folder: FolderType }) => void;
-		onpagedelete?: (event: { page: Document }) => void;
-		onpagerename?: (event: { page: Document }) => void;
+		ondocumentdelete?: (event: { page: Document }) => void;
+		ondocumentrename?: (event: { page: Document }) => void;
 		onexpandall?: () => void;
 		oncollapseall?: () => void;
 	}
@@ -59,12 +59,12 @@
 		storageKey = 'folder-tree-expanded',
 		currentPath = '',
 		onselect,
-		onpageselect,
+		ondocumentselect,
 		oncreate,
 		ondelete,
 		onrename,
-		onpagedelete,
-		onpagerename,
+		ondocumentdelete,
+		ondocumentrename,
 		onexpandall,
 		oncollapseall
 	}: Props = $props();
@@ -80,13 +80,13 @@
 	let draggedItem = $state<{
 		type: 'folder' | 'page';
 		path: string;
-		data: FolderType | Page;
+		data: FolderType | Document;
 	} | null>(null);
 	let dropTarget = $state<string | null>(null);
 	let isDragging = $state(false);
 	let dragOverTarget = $state<string | null>(null);
 
-	const pages = $derived($documentsStore.pages || []);
+	const pages = $derived($documentsStore.documents || []);
 
 	const filteredFolders = $derived(
 		unifiedSearchQuery.trim()
@@ -140,17 +140,17 @@
 		};
 	}
 
-	function pageMatchesFilters(page: Document, textQuery: string, tagFilters: string[]): boolean {
+	function pageMatchesFilters(document: Document, textQuery: string, tagFilters: string[]): boolean {
 		// Check text match in page title
-		const textMatch = !textQuery || page.metaData.title.toLowerCase().includes(textQuery);
+		const textMatch = !textQuery || document.metaData.title.toLowerCase().includes(textQuery);
 
 		// Check tag matches (AND logic - must match all specified tags with prefix matching)
 		const tagMatch =
 			tagFilters.length === 0 ||
 			Boolean(
-				page.metaData.tags &&
+				document.metaData.tags &&
 					tagFilters.every((requiredTag) =>
-						page.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
+						document.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
 					)
 			);
 
@@ -191,7 +191,7 @@
 				return {
 					...folder,
 					sub_folders: filteredSubFolders,
-					page_count: matchingPages.length
+					document_count: matchingPages.length
 				};
 			}
 
@@ -257,11 +257,11 @@
 	}
 
 	function isCurrentFile(path: string): boolean {
-		return `/pages${path}` === currentPath;
+		return `/documents${path}` === currentPath;
 	}
 
 	function isSelectedFile(path: string): boolean {
-		return `/pages${path}` === currentPath;
+		return `/documents${path}` === currentPath;
 	}
 
 	function getCurrentFolderPath(): string {
@@ -276,8 +276,8 @@
 			return folderPath || '';
 		}
 
-		if (currentPath.startsWith('/pages')) {
-			// Remove /pages prefix and remove the last element (page name)
+		if (currentPath.startsWith('/documents')) {
+			// Remove /document prefix and remove the last element (page name)
 			const pagePath = currentPath.substring(6); // Remove '/pages'
 			const pathSegments = pagePath.split('/').filter(Boolean);
 
@@ -468,12 +468,12 @@
 	}
 
 	function handleDeletePage(page: Document) {
-		onpagedelete?.({ page });
+		ondocumentdelete?.({ page });
 		closeContextMenu();
 	}
 
 	function handleRenamePage(page: Document) {
-		onpagerename?.({ page });
+		ondocumentrename?.({ page });
 		closeContextMenu();
 	}
 
@@ -509,7 +509,7 @@
 		event: DragEvent,
 		type: 'folder' | 'page',
 		path: string,
-		data: FolderType | Page
+		data: FolderType | Document
 	) {
 		if (!event.dataTransfer) return;
 
@@ -686,8 +686,8 @@
 					</span>
 
 					<!-- Page Count Badge -->
-					{#if showPageCounts && folder.page_count > 0}
-						<span class="text-secondary text-xs opacity-75">({folder.page_count})</span>
+					{#if showPageCounts && folder.document_count > 0}
+						<span class="text-secondary text-xs opacity-75">({folder.document_count})</span>
 					{/if}
 				</button>
 			</div>
@@ -759,7 +759,7 @@
 								<button
 									type="button"
 									class="focus:ring-ring flex flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
-									onclick={() => onpageselect?.({ page })}
+									onclick={() => ondocumentselect?.({ page })}
 									data-testid="page-name-button"
 								>
 									<File class="text-blue-primary h-4 w-4" />
@@ -913,7 +913,7 @@
 						name: '/',
 						path: '/',
 						created: new Date().toISOString(),
-						page_count: getFilteredRootPages().length,
+						document_count: getFilteredRootPages().length,
 						sub_folders: filteredFolders
 					},
 					0

@@ -343,7 +343,7 @@
 						>
 							<button
 								class="w-full text-left"
-								onclick={() => goto(`/pages${backlinkDocument.metaData.path}`)}
+								onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
 							>
 								<div class="mb-2 flex items-start justify-between">
 									<h3 class="group-hover:text-primary font-medium transition-colors">

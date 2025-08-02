@@ -117,7 +117,7 @@ class WikiLinkWidget extends WidgetType {
 			const path = await resolveDocumentPath(this.documentName);
 
 			if (this.exists) {
-				goto(`/pages${path}`);
+				goto(`/documents${path}`);
 			} else {
 				goto(`/edit${path}`);
 			}

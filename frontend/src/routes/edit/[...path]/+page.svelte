@@ -76,7 +76,7 @@
 			);
 
 			// Navigate back to the page view
-			await goto(`/pages/${newPath}`);
+			await goto(`/documents/${newPath}`);
 		} catch (error) {
 			console.error('Failed to save page:', error);
 			saveError = error instanceof Error ? error.message : 'Failed to save page';
@@ -224,7 +224,7 @@
 			</div>
 
 			<div class="flex items-center gap-3">
-				<Button variant="outline" href="/pages/{data.path}" data-testid="cancel-button">
+				<Button variant="outline" href="/documents/{data.path}" data-testid="cancel-button">
 					Cancel
 				</Button>
 

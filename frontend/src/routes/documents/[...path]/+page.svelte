@@ -5,7 +5,6 @@
 	import { goto } from '$app/navigation';
 	import FolderView from '$lib/components/FolderView.svelte';
 	import DocumentView from '$lib/components/DocumentView.svelte';
-	import MoveDocumentModal from '$lib/components/MoveDocumentModal.svelte';
 	import type { Document } from '$lib/api/types';
 
 	let currentDocument = $state<Document | null>(null);
@@ -13,8 +12,8 @@
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 	let isNotFound = $state(false);
-	let showMoveModal = $state(false);
-	let documentToMove = $state<Document | null>(null);
+	// let showMoveModal = $state(false); // TODO: implement move functionality
+	// let documentToMove = $state<Document | null>(null); // TODO: implement move functionality
 
 	const path = $derived(page.params.path || '');
 	const decodedPath = $derived(decodeURIComponent(path));
@@ -77,17 +76,19 @@
 		}
 	}
 
-	function handleMoveDocument(document: Document) {
-		documentToMove = document;
-		showMoveModal = true;
-	}
+	// TODO: implement move functionality
+	// function handleMoveDocument(document: Document) {
+	//	documentToMove = document;
+	//	showMoveModal = true;
+	// }
 
-	function handleDocumentMoved() {
-		showMoveModal = false;
-		documentToMove = null;
-		// Refresh the current view
-		loadContent();
-	}
+	// TODO: implement move functionality
+	// function handleDocumentMoved() {
+	//	showMoveModal = false;
+	//	documentToMove = null;
+	//	// Refresh the current view
+	//	loadContent();
+	// }
 </script>
 
 <svelte:head>
@@ -123,7 +124,6 @@
 			document={currentDocument}
 			onEdit={handleEditDocument}
 			onDelete={handleDeleteDocument}
-			onMove={handleMoveDocument}
 		/>
 	{:else if isNotFound}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
@@ -133,7 +133,8 @@
 				404 - The document you're looking for doesn't exist.
 			</p>
 			<p class="text-muted-foreground mb-8 max-w-2xl">
-				The document at <code class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
+				The document at <code
+					class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
 					>{fullPath}</code
 				> could not be found. It may have been moved, deleted, or never existed.
 			</p>
@@ -182,15 +183,3 @@
 		</div>
 	{/if}
 </div>
-
-<!-- Move Document Modal -->
-{#if showMoveModal && documentToMove}
-	<MoveDocumentModal
-		document={documentToMove}
-		onClose={() => {
-			showMoveModal = false;
-			documentToMove = null;
-		}}
-		onMoved={handleDocumentMoved}
-	/>
-{/if}

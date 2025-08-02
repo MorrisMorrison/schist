@@ -5,7 +5,7 @@
 import { test as base } from '@playwright/test';
 import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
-import { DocumentViewPage, PageViewPage } from '../pages/DocumentViewPage';
+import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
 import { ApiHelper } from '../utils/api-helpers';
 import { DirectoryManager, createDirectoryManager } from '../utils/directory-manager';
@@ -17,7 +17,6 @@ export const test = base.extend<{
 	homePage: HomePage;
 	editorPage: EditorPage;
 	documentViewPage: DocumentViewPage;
-	pageViewPage: PageViewPage;
 	folderPage: FolderPage;
 	apiHelper: ApiHelper;
 	directoryManager: DirectoryManager;
@@ -44,12 +43,6 @@ export const test = base.extend<{
 		await page.goto(workerBaseURL);
 		const documentViewPage = new DocumentViewPage(page);
 		await use(documentViewPage);
-	},
-
-	pageViewPage: async ({ page, workerBaseURL }, use) => {
-		await page.goto(workerBaseURL);
-		const pageViewPage = new PageViewPage(page);
-		await use(pageViewPage);
 	},
 
 	folderPage: async ({ page, workerBaseURL }, use) => {

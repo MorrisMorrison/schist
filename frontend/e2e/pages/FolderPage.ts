@@ -52,7 +52,7 @@ export class FolderPage extends BasePage {
 		this.folderTitle = page.locator('h1').first();
 		this.folderPath = page.getByTestId('folder-path');
 		this.subFolders = page.getByTestId('folders-section');
-		this.documents = page.getByTestId('pages-section'); // still using pages-section testid until UI updates
+		this.documents = page.getByTestId('documents-section');
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
 		// Folder actions (be more specific to avoid sidebar button conflicts)
@@ -78,7 +78,7 @@ export class FolderPage extends BasePage {
 		// List view
 		this.itemsList = page.getByTestId('items-list');
 		this.folderItems = this.itemsList.getByTestId('folder-item');
-		this.documentItems = this.itemsList.getByTestId('page-item'); // still using page-item testid until UI updates
+		this.documentItems = this.itemsList.getByTestId('document-item');
 		this.itemNames = this.itemsList.getByTestId('item-name');
 		this.itemDates = this.itemsList.getByTestId('item-date');
 
@@ -162,10 +162,10 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Create a new page in current folder
+	 * Create a new document in current folder
 	 */
-	async createPageInFolder() {
-		await this.createPageButton.click();
+	async createDocumentInFolder() {
+		await this.createDocumentButton.click();
 		await this.page.waitForURL(/\/new/);
 	}
 
@@ -182,11 +182,11 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Navigate to a page in the folder
+	 * Navigate to a document in the folder
 	 */
-	async openPage(pageName: string) {
-		const pageLink = this.pages.getByRole('link', { name: pageName });
-		await pageLink.click();
+	async openDocument(documentName: string) {
+		const documentLink = this.documents.getByRole('link', { name: documentName });
+		await documentLink.click();
 		await this.waitForLoad();
 	}
 
@@ -199,11 +199,11 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Get list of page names in folder
+	 * Get list of document names in folder
 	 */
-	async getPageNames(): Promise<string[]> {
-		const pageLinks = this.pages.locator('a');
-		return await pageLinks.allTextContents();
+	async getDocumentNames(): Promise<string[]> {
+		const documentLinks = this.documents.locator('a');
+		return await documentLinks.allTextContents();
 	}
 
 	/**
@@ -216,11 +216,11 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Verify folder contains specific page
+	 * Verify folder contains specific document
 	 */
-	async verifyContainsPage(pageName: string) {
-		const pageLink = this.pages.getByText(pageName);
-		await expect(pageLink).toBeVisible();
+	async verifyContainsDocument(documentName: string) {
+		const documentLink = this.documents.getByText(documentName);
+		await expect(documentLink).toBeVisible();
 	}
 
 	/**
@@ -317,8 +317,8 @@ export class FolderPage extends BasePage {
 	 */
 	async getTotalItemCount(): Promise<number> {
 		const folderCount = await this.folderItems.count();
-		const pageCount = await this.pageItems.count();
-		return folderCount + pageCount;
+		const documentCount = await this.documentItems.count();
+		return folderCount + documentCount;
 	}
 
 	/**
@@ -329,10 +329,10 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Count pages in folder
+	 * Count documents in folder
 	 */
-	async getPageCount(): Promise<number> {
-		return await this.pageItems.count();
+	async getDocumentCount(): Promise<number> {
+		return await this.documentItems.count();
 	}
 
 	/**
@@ -386,6 +386,26 @@ export class FolderPage extends BasePage {
 	 */
 	async canCreatePage(): Promise<boolean> {
 		return await this.canCreateDocument();
+	}
+
+	async createPageInFolder() {
+		return await this.createDocumentInFolder();
+	}
+
+	async openPage(pageName: string) {
+		return await this.openDocument(pageName);
+	}
+
+	async getPageNames(): Promise<string[]> {
+		return await this.getDocumentNames();
+	}
+
+	async verifyContainsPage(pageName: string) {
+		return await this.verifyContainsDocument(pageName);
+	}
+
+	async getPageCount(): Promise<number> {
+		return await this.getDocumentCount();
 	}
 
 	// Legacy property aliases

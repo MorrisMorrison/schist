@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Edit, Trash2, Move, Calendar, Tag, Link2, GitBranch, History } from 'lucide-svelte';
+	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from './Breadcrumbs.svelte';
@@ -19,10 +19,14 @@
 		document: Document;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void | Promise<void>;
-		onMove?: (document: Document) => void;
+		// onMove?: (document: Document) => void; // TODO: implement move functionality
 	}
 
-	let { document, onEdit = () => {}, onDelete = () => {}, onMove = () => {} }: Props = $props();
+	let {
+		document,
+		onEdit = () => {},
+		onDelete = () => {} /* onMove = () => {} */
+	}: Props = $props();
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
@@ -275,17 +279,6 @@
 			>
 				<Edit class="h-4 w-4" />
 				Edit
-			</Button>
-
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => onMove(document)}
-				title="Move document"
-				data-testid="move-document-button"
-			>
-				<Move class="h-4 w-4" />
-				Move
 			</Button>
 
 			<Button

@@ -2,7 +2,7 @@ import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 /**
- * Page object for viewing individual documents (/pages/[...path])
+ * Page object for viewing individual documents (/documents/[...path])
  */
 export class DocumentViewPage extends BasePage {
 	// Document content
@@ -62,9 +62,9 @@ export class DocumentViewPage extends BasePage {
 		this.codeBlocks = this.documentContent.locator('pre, code');
 		this.copyButtons = page.getByTestId('copy-button');
 
-		// Error states (using actual UI text until UI is updated)
-		this.notFoundMessage = page.getByText("404 - The page you're looking for doesn't exist.");
-		this.notFoundHeading = page.getByRole('heading', { name: 'Page Not Found' });
+		// Error states (using actual UI text)
+		this.notFoundMessage = page.getByText("404 - The document you're looking for doesn't exist.");
+		this.notFoundHeading = page.getByRole('heading', { name: 'Document Not Found' });
 		this.errorMessage = page.getByTestId('error-message');
 		this.loadingSpinner = page.getByTestId('loading');
 	}
@@ -73,7 +73,7 @@ export class DocumentViewPage extends BasePage {
 	 * Navigate to a specific document
 	 */
 	async navigateToDocument(documentPath: string) {
-		await this.goto(`/pages${documentPath}`);
+		await this.goto(`/documents${documentPath}`);
 		await this.waitForLoad();
 	}
 
@@ -191,7 +191,7 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Click on a link within the page content
+	 * Click on a link within the document content
 	 */
 	async clickContentLink(linkText: string) {
 		const link = this.links.getByText(linkText);
@@ -314,7 +314,7 @@ export class DocumentViewPage extends BasePage {
 	 * Verify document URL matches expected path
 	 */
 	async verifyDocumentUrl(expectedPath: string) {
-		await this.expectUrl(`/pages${expectedPath}`);
+		await this.expectUrl(`/documents${expectedPath}`);
 	}
 
 	/**

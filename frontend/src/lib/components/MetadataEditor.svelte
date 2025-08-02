@@ -58,23 +58,23 @@
 	<div class="space-y-4">
 		<div class="flex items-center gap-2">
 			<FileText class="text-muted-foreground h-4 w-4" />
-			<h3 class="text-lg font-semibold">Page Information</h3>
+			<h3 class="text-lg font-semibold">Document Information</h3>
 		</div>
 
 		<!-- Title Input -->
 		<div class="space-y-2">
 			<Label for="title" class="flex items-center gap-2 text-sm font-medium">
 				<Hash class="h-3 w-3" />
-				Page Title
+				Document Title
 			</Label>
 			<Input
 				id="title"
 				bind:value={title}
 				oninput={(e) => onTitleChange(e.currentTarget.value)}
-				placeholder="Enter page title..."
+				placeholder="Enter document title..."
 				disabled={readonly}
 				class="text-base"
-				data-testid="page-title-input"
+				data-testid="document-title-input"
 			/>
 			{#if title && computedSlug}
 				<p class="text-muted-foreground text-xs">

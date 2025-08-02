@@ -275,10 +275,10 @@ export interface GitHubSyncResult {
 export interface GitHubSetupRequest {
 	token: string;
 	owner: string;
-	repository: string;
+	repo: string;
 	branch?: string;
-	createRepository?: boolean;
-	private?: boolean;
+	auto_sync?: boolean;
+	sync_on_save?: boolean;
 }
 
 export interface GitHubConnectionTest {
@@ -286,6 +286,21 @@ export interface GitHubConnectionTest {
 	message: string;
 	repositoryExists?: boolean;
 	hasWriteAccess?: boolean;
+}
+
+export interface GitHubRepoInfo {
+	owner: string;
+	name: string;
+	full_name: string;
+	private: boolean;
+	html_url: string;
+}
+
+export interface GitHubSetupResponse {
+	message: string;
+	repository: GitHubRepoInfo;
+	auto_sync: boolean;
+	sync_on_save: boolean;
 }
 
 export function normalizePath(path: string): string {

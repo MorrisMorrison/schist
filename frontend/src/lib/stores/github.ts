@@ -53,24 +53,8 @@ export const canSync = derived(
 
 export const githubActions = {
 	async loadSettings() {
-		githubStore.update((state) => ({ ...state, loading: true, error: null }));
-
-		try {
-			const settings = await apiClient.getGitHubSettings();
-			githubStore.update((state) => ({
-				...state,
-				settings,
-				loading: false
-			}));
-			return settings;
-		} catch (error) {
-			githubStore.update((state) => ({
-				...state,
-				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to load GitHub settings'
-			}));
-			throw error;
-		}
+		// Settings are now derived from status, so just load status
+		return this.loadStatus();
 	},
 
 	async loadStatus() {
@@ -98,19 +82,18 @@ export const githubActions = {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const settings = await apiClient.setupGitHub(setupRequest);
+			const setupResult = await apiClient.setupGitHub(setupRequest);
 
 			// Reload status after setup
 			const status = await apiClient.getGitHubStatus();
 
 			githubStore.update((state) => ({
 				...state,
-				settings,
 				status,
 				loading: false
 			}));
 
-			return settings;
+			return setupResult;
 		} catch (error) {
 			githubStore.update((state) => ({
 				...state,
@@ -125,13 +108,13 @@ export const githubActions = {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const settings = await apiClient.updateGitHubSettings(settingsUpdate);
+			const status = await apiClient.updateGitHubSettings(settingsUpdate);
 			githubStore.update((state) => ({
 				...state,
-				settings,
+				status,
 				loading: false
 			}));
-			return settings;
+			return status;
 		} catch (error) {
 			githubStore.update((state) => ({
 				...state,
@@ -200,32 +183,20 @@ export const githubActions = {
 	},
 
 	async disconnect() {
-		githubStore.update((state) => ({ ...state, loading: true, error: null }));
-
-		try {
-			await apiClient.disconnectGitHub();
-
-			githubStore.update((state) => ({
-				...state,
-				settings: null,
-				status: null,
-				loading: false,
-				connectionTest: null,
-				lastSyncResult: null
-			}));
-		} catch (error) {
-			githubStore.update((state) => ({
-				...state,
-				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to disconnect GitHub'
-			}));
-			throw error;
-		}
+		// For now, just clear the local state since we don't have a disconnect API
+		githubStore.update((state) => ({
+			...state,
+			settings: null,
+			status: null,
+			loading: false,
+			connectionTest: null,
+			lastSyncResult: null
+		}));
 	},
 
 	async refresh() {
 		try {
-			await Promise.all([githubActions.loadSettings(), githubActions.loadStatus()]);
+			await githubActions.loadStatus();
 		} catch (error) {
 			// Error handling is done in individual methods
 			console.error('Failed to refresh GitHub data:', error);

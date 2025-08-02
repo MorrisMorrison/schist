@@ -110,10 +110,10 @@
 			const setupRequest: GitHubSetupRequest = {
 				token: token.trim(),
 				owner: owner.trim(),
-				repository: repository.trim(),
+				repo: repository.trim(),
 				branch: branch.trim(),
-				createRepository,
-				private: private_repo
+				auto_sync: backupMode === 'auto',
+				sync_on_save: false
 			};
 
 			await githubActions.setupGitHub(setupRequest);

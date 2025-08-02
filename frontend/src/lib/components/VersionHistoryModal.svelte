@@ -129,7 +129,7 @@
 
 <Dialog {open} onOpenChange={(isOpen) => !isOpen && onClose()}>
 	<DialogContent
-		class="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden"
+		class="flex max-h-[90vh] {showDiff ? 'max-w-7xl' : 'max-w-4xl'} flex-col overflow-hidden"
 		showCloseButton={!showDiff}
 	>
 		{#if showDiff && diffResult}

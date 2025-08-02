@@ -178,10 +178,10 @@ export interface VersionsResponse {
 
 // Version comparison interfaces
 export interface DiffLine {
-	type: 'add' | 'delete' | 'modify' | 'context';
+	type: 'addition' | 'deletion' | 'modification' | 'context';
 	content: string;
-	oldLineNumber?: number;
-	newLineNumber?: number;
+	old_line?: number;
+	new_line?: number;
 }
 
 export interface DiffSummary {

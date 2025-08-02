@@ -8,7 +8,7 @@
 	import MoveDocumentModal from '$lib/components/MoveDocumentModal.svelte';
 	import type { Document } from '$lib/api/types';
 
-	let currentPage = $state<Document | null>(null);
+	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
@@ -34,14 +34,14 @@
 	async function loadContent() {
 		isLoading = true;
 		error = null;
-		currentPage = null;
+		currentDocument = null;
 		isFolder = false;
 		isNotFound = false;
 
 		try {
 			// First try to load as a page
 			try {
-				currentPage = await documentActions.loadDocumentByPath(fullPath);
+				currentDocument = await documentActions.loadDocumentByPath(fullPath);
 				isFolder = false;
 				isNotFound = false;
 			} catch (documentError) {
@@ -92,7 +92,7 @@
 
 <svelte:head>
 	<title
-		>{currentPage?.metaData?.title ||
+		>{currentDocument?.metaData?.title ||
 			(isFolder ? (path ? path.split('/').pop() + ' - Folder' : 'Pages') : 'Pages')}</title
 	>
 </svelte:head>
@@ -118,9 +118,9 @@
 		</div>
 	{:else if isFolder}
 		<FolderView path={fullPath} />
-	{:else if currentPage}
+	{:else if currentDocument}
 		<DocumentView
-			document={currentPage}
+			document={currentDocument}
 			onEdit={handleEditPage}
 			onDelete={handleDeletePage}
 			onMove={handleMoveDocument}

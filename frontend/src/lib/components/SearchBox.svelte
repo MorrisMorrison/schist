@@ -38,9 +38,9 @@
 
 		isSearching = true;
 		try {
-			const result = await apiClient.searchPages(query.trim());
-			showDropdown = showResults && result.pages.length > 0;
-			results = result.pages;
+			const result = await apiClient.searchDocuments(query.trim());
+			showDropdown = showResults && result.documents.length > 0;
+			results = result.documents;
 		} catch (error) {
 			console.error('Search failed:', error);
 			results = [];
@@ -50,13 +50,13 @@
 		}
 	}
 
-	function handleSelectPage(page: Document) {
+	function handleSelectDocument(document: Document) {
 		query = '';
 		showDropdown = false;
 		if (onSelect) {
-			onSelect(page);
+			onSelect(document);
 		} else {
-			window.location.href = `/documents${page.metaData.path}`;
+			window.location.href = `/documents${document.metaData.path}`;
 		}
 	}
 
@@ -120,7 +120,7 @@
 				{#each results as page, i (page.metaData.slug)}
 					<button
 						type="button"
-						onclick={() => handleSelectPage(page)}
+						onclick={() => handleSelectDocument(page)}
 						class="w-full px-4 py-3 text-left first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
 					>
 						<div class="font-medium text-gray-900">{page.metaData.title}</div>

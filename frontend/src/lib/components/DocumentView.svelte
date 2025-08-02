@@ -104,7 +104,7 @@
 
 			backlinkLoading = true;
 			try {
-				backlinks = await apiClient.getPageBacklinks(documentPath);
+				backlinks = await apiClient.getDocumentBacklinks(documentPath);
 			} catch (error) {
 				console.error('Failed to load backlinks:', error);
 				backlinks = [];
@@ -122,7 +122,7 @@
 
 		versionLoading = true;
 		try {
-			const versionsResponse = await apiClient.getPageVersions(documentPath);
+			const versionsResponse = await apiClient.getDocumentVersions(documentPath);
 			versionCount = versionsResponse.total || 0;
 		} catch (error) {
 			console.error('Failed to load version count:', error);
@@ -175,7 +175,7 @@
 		// Load versions if not already loaded
 		if (versions.length === 0) {
 			try {
-				const versionsResponse = await apiClient.getPageVersions(documentPath);
+				const versionsResponse = await apiClient.getDocumentVersions(documentPath);
 				versions = versionsResponse.versions || [];
 			} catch (error) {
 				console.error('Failed to load versions:', error);

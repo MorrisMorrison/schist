@@ -5,11 +5,11 @@
 	import DeleteConfirmModal from '$lib/components/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
-	import type { DocumentData } from './$types';
 	import { generateSlug } from '$lib/utils/path';
 	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
+	import { PageData } from './$types';
 
-	let { data }: { data: DocumentData } = $props();
+	let { data }: { data: PageData } = $props();
 
 	// Handle null page during SSR
 	const document = data.document || {

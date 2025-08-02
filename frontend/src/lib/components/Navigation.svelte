@@ -4,6 +4,7 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { BurgerIcon } from './ui/burger-icon';
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
+	import { Settings } from 'lucide-svelte';
 
 	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();
 
@@ -89,6 +90,16 @@
 							<SearchBox placeholder="Search pages..." testId="nav-search-input" />
 						</div>
 					</div>
+
+					<!-- Settings Button -->
+					<a
+						href="/settings"
+						class="text-muted hover:bg-gray-hover hover:text-secondary focus:bg-gray-hover focus:text-secondary inline-flex cursor-pointer items-center justify-center rounded-md p-2 no-underline focus:outline-none"
+						title="Settings"
+					>
+						<Settings class="h-5 w-5" />
+					</a>
+
 					<ThemeToggle />
 
 					<!-- Mobile menu button -->
@@ -128,6 +139,18 @@
 					<!-- Mobile search -->
 					<div class="px-4 pb-3">
 						<SearchBox placeholder="Search pages..." testId="nav-search-input" />
+					</div>
+
+					<!-- Mobile settings -->
+					<div class="px-4 pb-3">
+						<a
+							href="/settings"
+							onclick={closeMenu}
+							class="text-secondary hover:text-primary flex items-center space-x-2 no-underline"
+						>
+							<Settings class="h-4 w-4" />
+							<span class="text-sm">Settings</span>
+						</a>
 					</div>
 
 					<!-- Mobile theme toggle -->

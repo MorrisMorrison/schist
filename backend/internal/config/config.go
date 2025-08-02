@@ -19,6 +19,14 @@ type Config struct {
 	AuthEnabled bool
 	AuthUsers   map[string]string // username -> bcrypt hash
 	AuthRealm   string
+
+	GitHubEnabled    bool
+	GitHubToken      string
+	GitHubOwner      string
+	GitHubRepo       string
+	GitHubBranch     string
+	GitHubAutoSync   bool
+	GitHubSyncOnSave bool
 }
 
 func Load() *Config {
@@ -35,6 +43,14 @@ func Load() *Config {
 		AuthEnabled: getEnvBool("SCHIST_AUTH_ENABLED", false),
 		AuthUsers:   parseAuthUsers(getEnv("SCHIST_AUTH_USERS", "")),
 		AuthRealm:   getEnv("SCHIST_AUTH_REALM", "Schist Wiki"),
+
+		GitHubEnabled:    getEnvBool("SCHIST_GITHUB_ENABLED", false),
+		GitHubToken:      getEnv("SCHIST_GITHUB_TOKEN", ""),
+		GitHubOwner:      getEnv("SCHIST_GITHUB_OWNER", ""),
+		GitHubRepo:       getEnv("SCHIST_GITHUB_REPO", ""),
+		GitHubBranch:     getEnv("SCHIST_GITHUB_BRANCH", "main"),
+		GitHubAutoSync:   getEnvBool("SCHIST_GITHUB_AUTO_SYNC", false),
+		GitHubSyncOnSave: getEnvBool("SCHIST_GITHUB_SYNC_ON_SAVE", false),
 	}
 }
 

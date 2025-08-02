@@ -178,8 +178,8 @@
 										item.type
 									)} border-r"
 								>
-									{#if item.oldLineNumber !== undefined}
-										<span class="text-xs">{item.oldLineNumber}</span>
+									{#if item.old_line !== undefined}
+										<span class="text-xs">{item.old_line}</span>
 									{:else}
 										<span class="text-xs opacity-50">—</span>
 									{/if}
@@ -190,8 +190,8 @@
 										item.type
 									)} border-r"
 								>
-									{#if item.newLineNumber !== undefined}
-										<span class="text-xs">{item.newLineNumber}</span>
+									{#if item.new_line !== undefined}
+										<span class="text-xs">{item.new_line}</span>
 									{:else}
 										<span class="text-xs opacity-50">—</span>
 									{/if}

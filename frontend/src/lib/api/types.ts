@@ -239,6 +239,55 @@ export interface ExportOptions {
 	include_meta?: boolean;
 }
 
+// GitHub integration types
+export interface GitHubConfig {
+	token: string;
+	owner: string;
+	repository: string;
+	branch: string;
+}
+
+export interface GitHubSettings {
+	enabled: boolean;
+	config: GitHubConfig;
+	backupMode: 'manual' | 'auto';
+	syncInterval: number; // minutes
+	lastSync?: string;
+	lastError?: string;
+}
+
+export interface GitHubStatus {
+	connected: boolean;
+	lastSync?: string;
+	syncInProgress: boolean;
+	error?: string;
+	repositoryUrl?: string;
+}
+
+export interface GitHubSyncResult {
+	success: boolean;
+	message: string;
+	syncedFiles?: number;
+	errors?: string[];
+	timestamp: string;
+}
+
+export interface GitHubSetupRequest {
+	token: string;
+	owner: string;
+	repository: string;
+	branch?: string;
+	createRepository?: boolean;
+	private?: boolean;
+}
+
+export interface GitHubConnectionTest {
+	success: boolean;
+	message: string;
+	repositoryExists?: boolean;
+	hasWriteAccess?: boolean;
+}
+
 export function normalizePath(path: string): string {
 	if (!path) {
 		return '/';

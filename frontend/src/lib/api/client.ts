@@ -348,6 +348,30 @@ class SchістApiClient {
 		const serverRoot = this.getApiUrl().replace('/api', '');
 		return `${serverRoot}${uploadsPath}`;
 	}
+
+	// Export methods
+	async exportDocument(path: string): Promise<void> {
+		const encodedPath = this.encodePath(path);
+		const url = `${this.getApiUrl()}/export/document${encodedPath}`;
+
+		// Use a simple window.open to trigger download
+		window.open(url, '_blank');
+	}
+
+	async exportFolder(path: string): Promise<void> {
+		const encodedPath = this.encodePath(path);
+		const url = `${this.getApiUrl()}/export/folder${encodedPath}`;
+
+		// Use a simple window.open to trigger download
+		window.open(url, '_blank');
+	}
+
+	async exportAll(): Promise<void> {
+		const url = `${this.getApiUrl()}/export/all`;
+
+		// Use a simple window.open to trigger download
+		window.open(url, '_blank');
+	}
 }
 
 export const apiClient = new SchістApiClient();

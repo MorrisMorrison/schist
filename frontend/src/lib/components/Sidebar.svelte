@@ -9,6 +9,7 @@
 	import ImportDocumentsModal from './ImportDocumentsModal.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types';
 	import { folderActions, documentActions, folders } from '$lib/stores/documents';
+	import { apiClient } from '$lib/api/client';
 	import { Button } from './ui/button';
 
 	let showCreateFolderModal = $state(false);
@@ -126,6 +127,19 @@
 	function handleImportClose() {
 		showImportModal = false;
 	}
+
+	// Export handlers
+	function handleFolderExport(event: { path: string; folder: FolderType }) {
+		apiClient.exportFolder(event.path);
+	}
+
+	function handleDocumentExport(event: { path: string; document: Document }) {
+		apiClient.exportDocument(event.path);
+	}
+
+	function handleExportAll() {
+		apiClient.exportAll();
+	}
 </script>
 
 <aside class="bg-primary border-border flex h-full w-full flex-col overflow-hidden border-r">
@@ -144,6 +158,9 @@
 			onrename={handleRenameFolder}
 			ondocumentdelete={handlePageDelete}
 			ondocumentrename={handlePageRename}
+			onfolderexport={handleFolderExport}
+			ondocumentexport={handleDocumentExport}
+			onexportall={handleExportAll}
 		/>
 	</div>
 

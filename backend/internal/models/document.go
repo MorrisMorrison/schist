@@ -77,3 +77,19 @@ type ImportError struct {
 	OriginalName string `json:"original_name"`
 	Error        string `json:"error"`
 }
+
+// Export-related types
+type ExportType string
+
+const (
+	ExportTypeDocument ExportType = "document"
+	ExportTypeFolder   ExportType = "folder"
+	ExportTypeAll      ExportType = "all"
+)
+
+type ExportOptions struct {
+	Path        string     `json:"path,omitempty"`
+	Type        ExportType `json:"type"`
+	Format      string     `json:"format,omitempty"` // "zip" or "markdown"
+	IncludeMeta bool       `json:"include_meta,omitempty"`
+}

@@ -11,14 +11,18 @@
 		ListOrdered,
 		Link,
 		Code,
-		Quote
+		Quote,
+		Maximize,
+		Minimize
 	} from 'lucide-svelte';
 
 	let {
 		onFormat,
 		theme = 'light',
-		disabled = false
-	}: Omit<ToolbarProps, 'onThemeToggle'> = $props();
+		disabled = false,
+		onFullscreenToggle,
+		isFullscreen = false
+	}: ToolbarProps = $props();
 
 	const toolbarButtons = [
 		{
@@ -214,6 +218,25 @@
 
 	<!-- Spacer -->
 	<div class="flex-1"></div>
+
+	<!-- Fullscreen Button -->
+	{#if onFullscreenToggle}
+		<Button
+			variant="ghost"
+			size="sm"
+			onclick={onFullscreenToggle}
+			title={isFullscreen ? 'Exit Fullscreen (F11)' : 'Enter Fullscreen (F11)'}
+			aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+			{disabled}
+			class="h-8 w-8 p-0"
+		>
+			{#if isFullscreen}
+				<Minimize class="h-4 w-4" />
+			{:else}
+				<Maximize class="h-4 w-4" />
+			{/if}
+		</Button>
+	{/if}
 
 	<!-- Helpful hint -->
 	<div class="text-muted-foreground hidden text-xs sm:block">

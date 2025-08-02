@@ -9,6 +9,7 @@
 	import ImportDocumentsModal from './ImportDocumentsModal.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types';
 	import { folderActions, documentActions, folders } from '$lib/stores/documents';
+	import { Button } from './ui/button';
 
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
@@ -148,11 +149,7 @@
 
 	<!-- Import Button at bottom of sidebar -->
 	<div class="border-border border-t p-4">
-		<button
-			type="button"
-			onclick={handleImportDocuments}
-			class="flex w-full items-center justify-center gap-2 rounded-md bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
-		>
+		<Button onclick={handleImportDocuments}>
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"
@@ -162,7 +159,14 @@
 				/>
 			</svg>
 			Import Documents
-		</button>
+		</Button>
+		<!-- <button
+			type="button"
+			onclick={handleImportDocuments}
+			class="flex w-full items-center justify-center gap-2 rounded-md bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
+		>
+
+		</button> -->
 	</div>
 </aside>
 

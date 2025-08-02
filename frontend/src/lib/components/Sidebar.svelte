@@ -6,8 +6,9 @@
 	import RenameFolderModal from './RenameFolderModal.svelte';
 	import RenameDocumentModal from './RenameDocumentModal.svelte';
 	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
+	import ImportDocumentsModal from './ImportDocumentsModal.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types';
-	import { folderActions, documentActions } from '$lib/stores/documents';
+	import { folderActions, documentActions, folders } from '$lib/stores/documents';
 
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
@@ -19,6 +20,7 @@
 	let showDeletePageModal = $state(false);
 	let pageToRename = $state<Document | null>(null);
 	let pageToDelete = $state<Document | null>(null);
+	let showImportModal = $state(false);
 
 	const currentPath = $derived(page.url.pathname);
 
@@ -110,6 +112,19 @@
 			goto(`/documents${newPath}`);
 		}
 	}
+
+	function handleImportDocuments() {
+		showImportModal = true;
+	}
+
+	function handleImportSuccess() {
+		showImportModal = false;
+		// Folder tree will be refreshed automatically by the modal
+	}
+
+	function handleImportClose() {
+		showImportModal = false;
+	}
 </script>
 
 <aside class="bg-primary border-border flex h-full w-full flex-col overflow-hidden border-r">
@@ -129,6 +144,25 @@
 			ondocumentdelete={handlePageDelete}
 			ondocumentrename={handlePageRename}
 		/>
+	</div>
+
+	<!-- Import Button at bottom of sidebar -->
+	<div class="border-border border-t p-4">
+		<button
+			type="button"
+			onclick={handleImportDocuments}
+			class="flex w-full items-center justify-center gap-2 rounded-md bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
+		>
+			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+				/>
+			</svg>
+			Import Documents
+		</button>
 	</div>
 </aside>
 
@@ -194,3 +228,11 @@
 		onConfirm={confirmDeleteFolder}
 	/>
 {/if}
+
+<!-- Import Documents Modal -->
+<ImportDocumentsModal
+	open={showImportModal}
+	folders={$folders}
+	onClose={handleImportClose}
+	onSuccess={handleImportSuccess}
+/>

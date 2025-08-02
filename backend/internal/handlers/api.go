@@ -31,6 +31,9 @@ func NewAPIHandler() *APIHandler {
 func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/health", h.healthCheck)
 
+	// Import route (needs to be before document routes to avoid wildcard conflicts)
+	routerGroup.POST("/import/documents", h.importDocuments)
+
 	documents := routerGroup.Group("/documents")
 	{
 		documents.GET("", h.listDocuments)
@@ -762,4 +765,47 @@ func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
 		"path":    path,
 		"hash":    commitHash,
 	})
+}
+
+// importDocuments handles document import requests
+func (h *APIHandler) importDocuments(c *gin.Context) {
+	// Parse multipart form
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid form data: " + err.Error(),
+		})
+		return
+	}
+
+	// Get uploaded files
+	files := form.File["files"]
+	if len(files) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "No files provided",
+		})
+		return
+	}
+
+	// Parse import options
+	options := &models.ImportOptions{
+		TargetPath:    c.PostForm("target_path"),
+		OverwriteMode: c.PostForm("overwrite_mode"),
+	}
+
+	// Set default overwrite mode if not specified
+	if options.OverwriteMode == "" {
+		options.OverwriteMode = "rename"
+	}
+
+	// Import documents
+	result, err := h.DocumentService.ImportDocuments(files, options)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Import failed: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

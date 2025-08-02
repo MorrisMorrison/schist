@@ -2,9 +2,12 @@ package services
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -934,4 +937,180 @@ func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) erro
 	// reads from disk dynamically
 
 	return nil
+}
+
+// ImportDocuments imports markdown files from uploaded files
+func (d *DocumentService) ImportDocuments(
+	files []*multipart.FileHeader,
+	options *models.ImportOptions,
+) (*models.ImportResult, error) {
+	result := &models.ImportResult{
+		Success:    make([]models.ImportedDocument, 0),
+		Failed:     make([]models.ImportError, 0),
+		TotalFiles: len(files),
+	}
+
+	// Validate target path
+	if options.TargetPath == "" {
+		options.TargetPath = "/"
+	}
+
+	for _, fileHeader := range files {
+		err := d.importSingleFile(fileHeader, options, result)
+		if err != nil {
+			result.Failed = append(result.Failed, models.ImportError{
+				OriginalName: fileHeader.Filename,
+				Error:        err.Error(),
+			})
+			result.FailedCount++
+		}
+	}
+
+	result.ImportedCount = len(result.Success)
+
+	return result, nil
+}
+
+// importSingleFile processes a single uploaded file
+func (d *DocumentService) importSingleFile(
+	fileHeader *multipart.FileHeader,
+	options *models.ImportOptions,
+	result *models.ImportResult,
+) error {
+	// Validate file type
+	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".md") {
+		return fmt.Errorf("only markdown files (.md) are supported")
+	}
+
+	// Open the uploaded file
+	file, err := fileHeader.Open()
+	if err != nil {
+		return fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer file.Close()
+
+	// Read file content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("failed to read file content: %w", err)
+	}
+
+	// Process the markdown content (strip Obsidian metadata, etc.)
+	processedContent := d.processImportedMarkdown(string(content))
+
+	// Generate document metadata
+	title := d.extractTitleFromContent(processedContent, fileHeader.Filename)
+	slug := utils.GenerateSlug(title)
+
+	// Determine final path
+	finalPath := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
+
+	// Create document metadata
+	now := time.Now()
+	metadata := &models.DocumentMetaData{
+		Slug:    slug,
+		Title:   title,
+		Path:    finalPath,
+		Created: now,
+		Updated: now,
+		Tags:    []string{}, // Start with empty tags
+	}
+
+	// Create document
+	document := &models.Document{
+		MetaData: metadata,
+		Content:  processedContent,
+	}
+
+	// Save the document
+	err = d.CreateDocument(document)
+	if err != nil {
+		return fmt.Errorf("failed to create document: %w", err)
+	}
+
+	// Add to success list
+	result.Success = append(result.Success, models.ImportedDocument{
+		OriginalName: fileHeader.Filename,
+		FinalPath:    finalPath,
+		Title:        title,
+	})
+
+	return nil
+}
+
+// processImportedMarkdown cleans up imported markdown content
+func (d *DocumentService) processImportedMarkdown(content string) string {
+	// Remove YAML frontmatter (Obsidian and other systems)
+	frontmatterRegex := regexp.MustCompile(`^---\s*\n.*?\n---\s*\n`)
+	content = frontmatterRegex.ReplaceAllString(content, "")
+
+	// Clean up any Obsidian-specific syntax if needed
+	// For now, we'll keep it simple and just remove frontmatter
+
+	return strings.TrimSpace(content)
+}
+
+// extractTitleFromContent attempts to extract a title from the markdown content
+func (d *DocumentService) extractTitleFromContent(content, filename string) string {
+	lines := strings.Split(content, "\n")
+
+	// Look for the first heading
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "# ") {
+			title := strings.TrimSpace(strings.TrimPrefix(line, "# "))
+			if title != "" {
+				return title
+			}
+		}
+	}
+
+	// Fall back to filename without extension
+	return strings.TrimSuffix(filename, filepath.Ext(filename))
+}
+
+// determineFinalPath determines where the document should be saved
+func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) string {
+	// Normalize target path
+	if targetPath == "" || targetPath == "/" {
+		targetPath = ""
+	} else {
+		targetPath = strings.Trim(targetPath, "/")
+		if targetPath != "" {
+			targetPath = "/" + targetPath
+		}
+	}
+
+	basePath := targetPath + "/" + slug
+	finalPath := basePath
+
+	// Check for conflicts and handle based on overwrite mode
+	counter := 1
+	for {
+		// Check if a document with this path already exists
+		_, err := d.GetDocumentByPath(finalPath)
+		if err != nil {
+			// Document doesn't exist, we can use this path
+			break
+		}
+
+		// Document exists, handle based on overwrite mode
+		switch overwriteMode {
+		case "overwrite":
+			// Use the path as-is, will overwrite
+			break
+		case "skip":
+			// This would require different handling in the calling function
+			// For now, treat as rename
+			fallthrough
+		default: // "rename" or empty
+			// Generate a new name with a counter
+			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
+			counter++
+			continue
+		}
+		break
+	}
+
+	return finalPath
 }

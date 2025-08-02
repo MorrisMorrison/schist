@@ -166,7 +166,7 @@
 
 	<!-- Import Button at bottom of sidebar -->
 	<div class="border-border border-t p-4">
-		<Button onclick={handleImportDocuments}>
+		<Button onclick={handleImportDocuments} class="w-full">
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"

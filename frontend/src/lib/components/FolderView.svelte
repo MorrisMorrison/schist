@@ -297,8 +297,9 @@
 											<Folder class="h-5 w-5 flex-shrink-0 text-white" />
 										</div>
 										<div class="min-w-0 flex-1 space-y-1">
-											<CardTitle class="truncate text-base leading-tight font-semibold"
-												>{folder.name}</CardTitle
+											<CardTitle
+												class="truncate text-base leading-tight font-semibold"
+												title={folder.name}>{folder.name}</CardTitle
 											>
 											<CardDescription class="text-muted-foreground text-sm">
 												{folder.document_count}

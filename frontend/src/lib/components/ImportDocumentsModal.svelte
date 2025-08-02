@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { apiClient } from '$lib/api/client';
 	import type { ImportOptions, ImportResult, Folder } from '$lib/api/types';
-	import { folderActions } from '$lib/stores/documents';
+	import { folderActions, documentActions } from '$lib/stores/documents';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,
@@ -77,9 +77,13 @@
 			const result = await apiClient.importDocuments(selectedFiles, options);
 			importResult = result;
 
+			// Refresh data if any files were imported successfully
+			if (result.imported_count > 0) {
+				await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
+			}
+
 			if (result.failed_count === 0) {
 				// All files imported successfully
-				await folderActions.loadFolderTree();
 				setTimeout(() => {
 					onSuccess();
 				}, 2000); // Show success message for 2 seconds
@@ -142,7 +146,7 @@
 								accept=".md"
 								multiple
 								onchange={handleFileSelect}
-								class="file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+								class="h-12 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
 							/>
 							{#if selectedFiles && selectedFiles.length > 0}
 								<div class="flex items-center gap-2 text-sm text-green-600">
@@ -213,34 +217,38 @@
 		{:else}
 			<!-- Import Results -->
 			<div class="space-y-4">
-				<div class="rounded-lg bg-gray-50 p-4">
-					<h3 class="mb-2 text-sm font-medium text-gray-900">Import Summary</h3>
+				<div class="bg-muted rounded-lg p-4">
+					<h3 class="text-foreground mb-2 text-sm font-medium">Import Summary</h3>
 					<div class="grid grid-cols-3 gap-4 text-sm">
 						<div>
-							<span class="text-gray-600">Total Files:</span>
-							<span class="ml-1 font-medium">{importResult.total_files}</span>
+							<span class="text-muted-foreground">Total Files:</span>
+							<span class="text-foreground ml-1 font-medium">{importResult.total_files}</span>
 						</div>
 						<div>
-							<span class="text-green-600">Imported:</span>
-							<span class="ml-1 font-medium">{importResult.imported_count}</span>
+							<span class="text-green-600 dark:text-green-400">Imported:</span>
+							<span class="text-foreground ml-1 font-medium">{importResult.imported_count}</span>
 						</div>
 						<div>
-							<span class="text-red-600">Failed:</span>
-							<span class="ml-1 font-medium">{importResult.failed_count}</span>
+							<span class="text-red-600 dark:text-red-400">Failed:</span>
+							<span class="text-foreground ml-1 font-medium">{importResult.failed_count}</span>
 						</div>
 					</div>
 				</div>
 
 				{#if importResult.success.length > 0}
 					<div class="space-y-2">
-						<h4 class="text-sm font-medium text-green-700">Successfully Imported</h4>
+						<h4 class="text-sm font-medium text-green-700 dark:text-green-400">
+							Successfully Imported
+						</h4>
 						<div class="max-h-32 space-y-1 overflow-y-auto">
 							{#each importResult.success as doc (doc.final_path)}
-								<div class="flex items-center gap-2 rounded bg-green-50 p-2 text-sm">
-									<CheckCircle class="h-4 w-4 flex-shrink-0 text-green-600" />
+								<div
+									class="flex items-center gap-2 rounded border border-green-200 bg-green-50 p-2 text-sm dark:border-green-800 dark:bg-green-950/20"
+								>
+									<CheckCircle class="h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
 									<span class="truncate">
-										<strong>{doc.title}</strong>
-										<span class="ml-1 text-gray-600">→ {doc.final_path}</span>
+										<strong class="text-foreground">{doc.title}</strong>
+										<span class="text-muted-foreground ml-1">→ {doc.final_path}</span>
 									</span>
 								</div>
 							{/each}
@@ -250,14 +258,18 @@
 
 				{#if importResult.failed.length > 0}
 					<div class="space-y-2">
-						<h4 class="text-sm font-medium text-red-700">Failed to Import</h4>
+						<h4 class="text-sm font-medium text-red-700 dark:text-red-400">Failed to Import</h4>
 						<div class="max-h-32 space-y-1 overflow-y-auto">
 							{#each importResult.failed as failure (failure.original_name)}
-								<div class="flex items-start gap-2 rounded bg-red-50 p-2 text-sm">
-									<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600" />
+								<div
+									class="flex items-start gap-2 rounded border border-red-200 bg-red-50 p-2 text-sm dark:border-red-800 dark:bg-red-950/20"
+								>
+									<AlertCircle
+										class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400"
+									/>
 									<div class="min-w-0">
-										<div class="truncate font-medium">{failure.original_name}</div>
-										<div class="text-xs text-red-600">{failure.error}</div>
+										<div class="text-foreground truncate font-medium">{failure.original_name}</div>
+										<div class="text-xs text-red-600 dark:text-red-400">{failure.error}</div>
 									</div>
 								</div>
 							{/each}

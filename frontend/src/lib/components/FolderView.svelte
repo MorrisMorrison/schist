@@ -290,15 +290,15 @@
 								data-testid="folder-item"
 							>
 								<CardHeader>
-									<div class="flex items-start gap-4">
+									<div class="flex min-w-0 items-start gap-4">
 										<div
-											class="bg-primary/90 group-hover:bg-primary/70 rounded-lg p-3 transition-colors"
+											class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors"
 										>
 											<Folder class="h-5 w-5 flex-shrink-0 text-white" />
 										</div>
-										<div class="min-w-0 flex-1 space-y-1">
+										<div class="min-w-0 flex-1 space-y-1 overflow-hidden">
 											<CardTitle
-												class="truncate text-base leading-tight font-semibold"
+												class="min-w-0 truncate text-base leading-tight font-semibold"
 												title={folder.name}>{folder.name}</CardTitle
 											>
 											<CardDescription class="text-muted-foreground text-sm">

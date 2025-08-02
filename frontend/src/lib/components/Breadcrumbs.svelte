@@ -5,13 +5,13 @@
 	import { ChevronRight, Home } from 'lucide-svelte';
 
 	export let path: string = '';
-	export let currentPageTitle: string = '';
+	export let currentDocumentTitle: string = '';
 	let segments: Array<{ name: string; path: string; isLast: boolean }> = [];
 	// Build breadcrumb segments from path
 	$: {
 		let rawSegments = path.split('/').filter((segment) => segment !== '');
-		const isPagePath = page.url.pathname.includes('pages');
-		if (isPagePath && rawSegments.length > 0) {
+		const isDocumentPath = page.url.pathname.includes('documents');
+		if (isDocumentPath && rawSegments.length > 0) {
 			rawSegments = rawSegments.slice(0, -1); // remove last element
 		}
 		segments = rawSegments.map((segment, index, array) => {
@@ -66,11 +66,11 @@
 		{/each}
 
 		<!-- Current page title if different from path -->
-		{#if currentPageTitle && currentPageTitle !== segments[segments.length - 1]?.name}
+		{#if currentDocumentTitle && currentDocumentTitle !== segments[segments.length - 1]?.name}
 			<li class="flex items-center gap-1">
 				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
 				<span class="text-primary px-2 py-1 text-sm font-medium" aria-current="page">
-					{currentPageTitle}
+					{currentDocumentTitle}
 				</span>
 			</li>
 		{/if}

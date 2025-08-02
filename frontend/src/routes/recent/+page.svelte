@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>Recent Documents - Schist Wiki</title>
+	<title>Recent Documents - Schist</title>
 	<meta name="description" content="Recently updated documents in your wiki" />
 </svelte:head>
 

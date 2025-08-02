@@ -78,8 +78,8 @@
 			// Navigate back to the page view
 			await goto(`/documents/${newPath}`);
 		} catch (error) {
-			console.error('Failed to save page:', error);
-			saveError = error instanceof Error ? error.message : 'Failed to save page';
+			console.error('Failed to save document:', error);
+			saveError = error instanceof Error ? error.message : 'Failed to save document';
 		} finally {
 			isSaving = false;
 		}
@@ -97,8 +97,8 @@
 			showDeleteModal = false;
 			goto('/');
 		} catch (error) {
-			console.error('Failed to delete page:', error);
-			saveError = error instanceof Error ? error.message : 'Failed to delete page';
+			console.error('Failed to delete document:', error);
+			saveError = error instanceof Error ? error.message : 'Failed to delete document';
 		} finally {
 			isDeleting = false;
 		}
@@ -207,7 +207,7 @@
 
 <svelte:head>
 	<title>Edit {document.metaData.title} - Schist Wiki</title>
-	<meta name="description" content="Edit wiki page: {document.metaData.title}" />
+	<meta name="description" content="Edit document: {document.metaData.title}" />
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -249,7 +249,7 @@
 						Saving...
 					{:else}
 						<Check class="mr-2 h-4 w-4" />
-						Save Page
+						Save Document
 					{/if}
 				</Button>
 			</div>

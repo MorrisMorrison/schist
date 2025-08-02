@@ -141,7 +141,7 @@
 				break;
 			}
 			case 'wikiLink':
-				replacement = `[[${selectedText || 'Page Name'}]]`;
+				replacement = `[[${selectedText || 'Document Name'}]]`;
 				cursorOffset = selectedText ? 0 : -2;
 				break;
 			case 'code':

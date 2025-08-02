@@ -208,7 +208,7 @@
 </svelte:head>
 
 <div class="mx-auto max-w-7xl space-y-8 p-6">
-	<Breadcrumbs path={documentPath} currentPageTitle={documentTitle} />
+	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<!-- Page Header -->
 	<header

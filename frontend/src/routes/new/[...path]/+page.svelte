@@ -103,8 +103,8 @@
 </script>
 
 <svelte:head>
-	<title>Create New Page - Schist Wiki</title>
-	<meta name="description" content="Create a new wiki page" />
+	<title>Create New Document - Schist</title>
+	<meta name="description" content="Create a new document" />
 </svelte:head>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -114,8 +114,8 @@
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-primary text-2xl font-bold">Create New Page</h1>
-				<p class="text-secondary mt-1 text-sm">Add a new page to your wiki</p>
+				<h1 class="text-primary text-2xl font-bold">Create New Document</h1>
+				<p class="text-secondary mt-1 text-sm">Add a new document to your wiki</p>
 			</div>
 
 			<div class="flex items-center space-x-3">
@@ -166,7 +166,7 @@
 								d="M5 13l4 4L19 7"
 							/>
 						</svg>
-						Save Page
+						Save Document
 					{/if}
 				</button>
 			</div>
@@ -201,7 +201,7 @@
 	<div class="bg-primary ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
 		<!-- Title Input -->
 		<div>
-			<label for="title" class="text-secondary block text-sm font-medium">Page Title</label>
+			<label for="title" class="text-secondary block text-sm font-medium">Title</label>
 			<div class="mt-1">
 				<input
 					id="title"
@@ -253,7 +253,7 @@
 					title = 'Getting Started';
 					content = `# Getting Started
 
-Welcome to this page! Here's what you need to know:
+Welcome to this Document! Here's what you need to know:
 
 ## Overview
 Brief description of what this page covers.

@@ -39,7 +39,7 @@
 		isNotFound = false;
 
 		try {
-			// First try to load as a page
+			// First try to load as a documents
 			try {
 				currentDocument = await documentActions.loadDocumentByPath(fullPath);
 				isFolder = false;
@@ -62,17 +62,17 @@
 		}
 	}
 
-	function handleEditPage() {
+	function handleEditDocument() {
 		goto(`/edit/${path}`);
 	}
 
-	async function handleDeletePage(path: string) {
+	async function handleDeleteDocument(path: string) {
 		try {
 			await documentActions.deleteDocument(path);
 			// Navigate to home page after deletion
 			goto('/');
 		} catch (err) {
-			console.error('Failed to delete page:', err);
+			console.error('Failed to delete document:', err);
 			// Could show error toast here
 		}
 	}
@@ -93,7 +93,7 @@
 <svelte:head>
 	<title
 		>{currentDocument?.metaData?.title ||
-			(isFolder ? (path ? path.split('/').pop() + ' - Folder' : 'Pages') : 'Pages')}</title
+			(isFolder ? (path ? path.split('/').pop() + ' - Folder' : 'Documents') : 'Documents')}</title
 	>
 </svelte:head>
 
@@ -121,19 +121,19 @@
 	{:else if currentDocument}
 		<DocumentView
 			document={currentDocument}
-			onEdit={handleEditPage}
-			onDelete={handleDeletePage}
+			onEdit={handleEditDocument}
+			onDelete={handleDeleteDocument}
 			onMove={handleMoveDocument}
 		/>
 	{:else if isNotFound}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
 			<div class="mb-6 text-6xl">🔍</div>
-			<h1 class="text-foreground mb-4 text-3xl font-bold">Page Not Found</h1>
+			<h1 class="text-foreground mb-4 text-3xl font-bold">Document Not Found</h1>
 			<p class="text-muted-foreground mb-2 text-lg">
-				404 - The page you're looking for doesn't exist.
+				404 - The document you're looking for doesn't exist.
 			</p>
 			<p class="text-muted-foreground mb-8 max-w-2xl">
-				The page at <code class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
+				The document at <code class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
 					>{fullPath}</code
 				> could not be found. It may have been moved, deleted, or never existed.
 			</p>
@@ -141,15 +141,15 @@
 				<button
 					class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 					onclick={() =>
-						goto('/new?title=' + encodeURIComponent(fullPath.split('/').pop() || 'New Page'))}
+						goto('/new?title=' + encodeURIComponent(fullPath.split('/').pop() || 'New Document'))}
 				>
-					Create This Page
+					Create This Document
 				</button>
 				<button
 					class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 					onclick={() => goto('/documents')}
 				>
-					Browse All Pages
+					Browse All Documents
 				</button>
 				<button
 					class="border-border text-foreground hover:bg-muted rounded-lg border px-6 py-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"

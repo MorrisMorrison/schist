@@ -957,7 +957,7 @@
 	<!-- Context Menu -->
 	{#if contextMenuOpen}
 		<div
-			class="bg-primary border-primary fixed z-50 min-w-[160px] rounded-lg border py-1 shadow-lg"
+			class="bg-primary border-primary fixed z-50 min-w-[200px] rounded-lg border py-1 shadow-lg"
 			style="left: {contextMenuPosition.x}px; top: {contextMenuPosition.y}px"
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => {
@@ -1016,7 +1016,7 @@
 					}}
 				>
 					<Download class="h-4 w-4" />
-					Export {contextMenuOpen === '/' ? 'All' : 'Folder'}
+					Export
 				</button>
 			{/if}
 
@@ -1050,7 +1050,7 @@
 	<!-- Page Context Menu -->
 	{#if pageContextMenuOpen}
 		<div
-			class="bg-primary border-primary fixed z-50 min-w-[160px] rounded-lg border py-1 shadow-lg"
+			class="bg-primary border-primary fixed z-50 min-w-[200px] rounded-lg border py-1 shadow-lg"
 			style="left: {pageContextMenuPosition.x}px; top: {pageContextMenuPosition.y}px"
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => {
@@ -1076,7 +1076,7 @@
 					}}
 				>
 					<Download class="h-4 w-4" />
-					Export Document
+					Export
 				</button>
 			{/if}
 

@@ -52,3 +52,28 @@ type Asset struct {
 	ContentType  string    `json:"content_type"`
 	Created      time.Time `json:"created"`
 }
+
+// Import-related types
+type ImportOptions struct {
+	TargetPath    string `json:"target_path"`
+	OverwriteMode string `json:"overwrite_mode"` // "skip", "overwrite", "rename"
+}
+
+type ImportResult struct {
+	Success       []ImportedDocument `json:"success"`
+	Failed        []ImportError      `json:"failed"`
+	TotalFiles    int                `json:"total_files"`
+	ImportedCount int                `json:"imported_count"`
+	FailedCount   int                `json:"failed_count"`
+}
+
+type ImportedDocument struct {
+	OriginalName string `json:"original_name"`
+	FinalPath    string `json:"final_path"`
+	Title        string `json:"title"`
+}
+
+type ImportError struct {
+	OriginalName string `json:"original_name"`
+	Error        string `json:"error"`
+}

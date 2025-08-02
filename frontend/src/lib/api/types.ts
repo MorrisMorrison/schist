@@ -204,6 +204,31 @@ export interface RestoreResponse {
 	hash: string;
 }
 
+// Import-related types
+export interface ImportOptions {
+	target_path: string;
+	overwrite_mode: 'skip' | 'overwrite' | 'rename';
+}
+
+export interface ImportedDocument {
+	original_name: string;
+	final_path: string;
+	title: string;
+}
+
+export interface ImportError {
+	original_name: string;
+	error: string;
+}
+
+export interface ImportResult {
+	success: ImportedDocument[];
+	failed: ImportError[];
+	total_files: number;
+	imported_count: number;
+	failed_count: number;
+}
+
 export function normalizePath(path: string): string {
 	if (!path) {
 		return '/';

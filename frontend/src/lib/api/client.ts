@@ -17,7 +17,9 @@ import type {
 	TagsResponse,
 	VersionsResponse,
 	DiffResult,
-	RestoreResponse
+	RestoreResponse,
+	ImportOptions,
+	ImportResult
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -318,6 +320,24 @@ class SchістApiClient {
 		const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 		await this.request<void>(`/assets/${cleanPath}`, {
 			method: 'DELETE'
+		});
+	}
+
+	async importDocuments(files: FileList, options: ImportOptions): Promise<ImportResult> {
+		const formData = new FormData();
+
+		// Add all files to the form data
+		for (let i = 0; i < files.length; i++) {
+			formData.append('files', files[i]);
+		}
+
+		// Add options
+		formData.append('target_path', options.target_path);
+		formData.append('overwrite_mode', options.overwrite_mode);
+
+		return this.request<ImportResult>(`${this.getApiUrl()}/import/documents`, {
+			method: 'POST',
+			body: formData
 		});
 	}
 

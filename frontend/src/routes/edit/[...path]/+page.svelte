@@ -7,7 +7,7 @@
 	import { documentActions } from '$lib/stores/documents.js';
 	import { generateSlug } from '$lib/utils/path';
 	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
-	import { PageData } from './$types';
+	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 

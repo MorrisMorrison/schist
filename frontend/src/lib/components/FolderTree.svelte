@@ -19,9 +19,10 @@
 		isFoldersLoading,
 		foldersError,
 		documentsStore,
-		documentActions
-	} from '$lib/stores/documents.js';
-	import { folderActions } from '$lib/stores/documents.js';
+		documentActions,
+		currentFolder
+	} from '$lib/stores/documents';
+	import { folderActions } from '$lib/stores/documents';
 	import { browser } from '$app/environment';
 	import { cn } from '$lib/utils.js';
 
@@ -380,6 +381,26 @@
 		expandedFolders = new Set(expandedFolders);
 		saveExpandedFolders();
 	}
+
+	function expandFolder(path: string) {
+		if (!expandedFolders.has(path)) {
+			expandedFolders.add(path);
+			// Create new Set to trigger reactivity
+			expandedFolders = new Set(expandedFolders);
+			saveExpandedFolders();
+		}
+	}
+
+	// Expose expandFolder function for external use
+	export { expandFolder };
+
+	// Auto-expand current folder when it changes (happens when document is created)
+	$effect(() => {
+		const current = $currentFolder;
+		if (current && current !== '/') {
+			expandFolder(current);
+		}
+	});
 
 	function handleChevronClick(event: MouseEvent, folder: FolderType) {
 		event.preventDefault();

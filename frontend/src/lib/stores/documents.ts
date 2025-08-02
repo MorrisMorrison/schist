@@ -156,7 +156,8 @@ export const documentActions = {
 			}));
 
 			if (newDocument.metaData?.path) {
-				currentFolder.set(getParentPath(newDocument.metaData.path));
+				const parentPath = getParentPath(newDocument.metaData.path);
+				currentFolder.set(parentPath);
 			}
 
 			if (documentData.metaData.path) {

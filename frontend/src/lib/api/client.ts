@@ -61,6 +61,10 @@ class SchістApiClient {
 			}
 		};
 
+		if (options.body instanceof FormData) {
+			delete (config.headers as Record<string, string>)['Content-Type'];
+		}
+
 		try {
 			const response = await fetch(url, config);
 
@@ -335,7 +339,7 @@ class SchістApiClient {
 		formData.append('target_path', options.target_path);
 		formData.append('overwrite_mode', options.overwrite_mode);
 
-		return this.request<ImportResult>(`${this.getApiUrl()}/import/documents`, {
+		return this.request<ImportResult>('/import/documents', {
 			method: 'POST',
 			body: formData
 		});

@@ -72,7 +72,10 @@
 			</div>
 			<div class="min-w-0 flex-1 space-y-1">
 				<div class="flex items-start justify-between gap-2">
-					<CardTitle class="min-w-0 flex-1 truncate text-base leading-tight font-semibold">
+					<CardTitle
+						class="truncate text-base leading-tight font-semibold"
+						title={document.metaData.title}
+					>
 						{document.metaData.title}
 					</CardTitle>
 					<div class="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">

@@ -87,3 +87,10 @@ We probably want to add a full screen button that opens the editor in full scree
 
 # Feature 5 - OIDC Integration
 We want to allow setting schist up as a oidc client, so users can use their oidc provider to authenticate this app. Our main goal is to use pocket-id as a oidc provider for now.
+
+# Feature 5 - Update  color system
+I want to have the same background colors beszel uses.
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM5JkmbXErwkJcqh7NRdSSmfaMyCNYG0Pk/ycl1LcYPEa
+16d0736e-2e4b-4b83-8fc9-77dd05c4eb75
+

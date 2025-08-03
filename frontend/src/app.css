@@ -33,6 +33,7 @@
 	--darker-gray: #161b22;
 	--medium-gray: #21262d;
 	--light-gray: #30363d;
+	--lighter-gray: #48525c;
 	--text-primary-white: #f0f6fc;
 	--text-secondary-gray: #7d8590;
 	--accent-blue: #0e7fe9;
@@ -139,8 +140,8 @@
 	--bg-secondary: var(--darker-gray);
 	--bg-content: var(--darker-gray);
 	--bg-muted: var(--medium-gray);
-	--border-primary: var(--medium-gray);
-	--border-secondary: var(--light-gray);
+	--border-primary: var(--light-gray);
+	--border-secondary: var(--lighter-gray);
 	--blue-primary: var(--accent-blue);
 	--blue-secondary: var(--accent-blue-hover);
 	--blue-muted: var(--text-secondary-gray);

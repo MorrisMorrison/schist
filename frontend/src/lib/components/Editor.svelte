@@ -42,21 +42,21 @@
 	// Custom light theme that matches our app design
 	const lightTheme = EditorView.theme({
 		'&': {
-			backgroundColor: '#f8fafc', // --gray-50
+			backgroundColor: '#ffffff', // pure white
 			color: '#0f172a' // --gray-900
 		},
 		'.cm-content': {
-			backgroundColor: '#f8fafc',
+			backgroundColor: '#ffffff',
 			color: '#0f172a'
 		},
 		'.cm-focused': {
-			backgroundColor: '#f8fafc'
+			backgroundColor: '#ffffff'
 		},
 		'.cm-editor': {
-			backgroundColor: '#f8fafc'
+			backgroundColor: '#ffffff'
 		},
 		'.cm-scroller': {
-			backgroundColor: '#f8fafc'
+			backgroundColor: '#ffffff'
 		},
 		'.cm-gutters': {
 			backgroundColor: '#f1f5f9', // --gray-100
@@ -544,18 +544,16 @@
 	/>
 
 	<!-- Editor and Preview Container -->
-	<div class="flex flex-1 overflow-hidden">
+	<div class="flex flex-1 overflow-hidden border-l border-r border-primary">
 		<!-- Editor Panel -->
 		<div
-			class="flex flex-1 flex-col border-r {currentTheme === 'dark'
-				? 'border-gray-700'
-				: 'border-gray-200'}"
+			class="flex flex-1 flex-col border-r border-primary"
 		>
 			<!-- Editor Controls -->
 			<div
-				class="flex items-center justify-between border-b px-4 py-2 {currentTheme === 'dark'
-					? 'border-gray-700 bg-gray-800'
-					: 'border-gray-200 bg-gray-50'}"
+				class="flex min-h-[3rem] items-center justify-between border-b border-primary px-4 py-2 {currentTheme === 'dark'
+					? 'bg-gray-800'
+					: 'bg-gray-50'}"
 			>
 				<div class="flex items-center gap-4">
 					<span class="text-sm font-medium">Editor</span>
@@ -577,10 +575,10 @@
 					{/if}
 				</div>
 				<button
-					class="rounded border px-3 py-1 text-sm transition-colors
+					class="rounded border border-secondary px-3 py-1 text-sm transition-colors
 						{currentTheme === 'dark'
-						? 'border-gray-600 text-gray-300 hover:bg-gray-700'
-						: 'border-gray-300 text-gray-700 hover:bg-gray-100'}"
+						? 'text-gray-300 hover:bg-gray-700'
+						: 'text-gray-700 hover:bg-gray-100'}"
 					onclick={togglePreview}
 				>
 					{isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
@@ -597,11 +595,14 @@
 		{#if isPreviewVisible}
 			<div class="flex flex-1 flex-col">
 				<div
-					class="border-b px-4 py-2 {currentTheme === 'dark'
-						? 'border-gray-700 bg-gray-800'
-						: 'border-gray-200 bg-gray-50'}"
+					class="flex min-h-[3rem] items-center justify-between border-b border-primary px-4 py-2 {currentTheme === 'dark'
+						? 'bg-gray-800'
+						: 'bg-gray-50'}"
 				>
-					<span class="text-sm font-medium">Preview</span>
+					<div class="flex items-center gap-4">
+						<span class="text-sm font-medium">Preview</span>
+					</div>
+					<div></div>
 				</div>
 				<div class="flex-1 overflow-hidden">
 					<MarkdownPreview content={currentContent} theme={currentTheme} />
@@ -613,9 +614,9 @@
 	<!-- Image upload status -->
 	{#if isUploading || uploadMessage || uploadError}
 		<div
-			class="border-t px-4 py-2 {currentTheme === 'dark'
-				? 'border-gray-700 bg-gray-800'
-				: 'border-gray-200 bg-gray-50'}"
+			class="border-t border-primary px-4 py-2 {currentTheme === 'dark'
+				? 'bg-gray-800'
+				: 'bg-gray-50'}"
 		>
 			{#if isUploading}
 				<div class="flex items-center gap-3">
@@ -651,10 +652,10 @@
 
 	<!-- Status Bar -->
 	<div
-		class="flex items-center justify-between border-t px-4 py-2 text-xs
+		class="flex items-center justify-between border-t border-primary px-4 py-2 text-xs
 		{currentTheme === 'dark'
-			? 'border-gray-700 bg-gray-800 text-gray-400'
-			: 'border-gray-200 bg-gray-50 text-gray-500'}"
+			? 'bg-gray-800 text-gray-400'
+			: 'bg-gray-50 text-gray-500'}"
 	>
 		<div class="flex items-center gap-4">
 			<span>Words: {currentContent.split(/\s+/).filter((w) => w.length > 0).length}</span>
@@ -671,7 +672,7 @@
 
 	<!-- Resize Handle -->
 	<div
-		class="flex h-4 cursor-ns-resize items-center justify-center border-t border-gray-200 bg-gray-100 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+		class="flex h-4 cursor-ns-resize items-center justify-center border-t border-primary bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
 		onmousedown={handleResizeStart}
 		role="button"
 		tabindex="0"

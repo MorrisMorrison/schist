@@ -262,7 +262,7 @@
 	{/if}
 
 	<!-- Editor Form -->
-	<div class="bg-secondary ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
+	<div class="bg-content ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
 		<!-- Enhanced Metadata Editor -->
 		<MetadataEditor
 			{title}

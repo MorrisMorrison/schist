@@ -296,7 +296,7 @@
 	</header>
 
 	<!-- Document Content -->
-	<main class="bg-secondary ring-border-primary rounded-lg p-8 shadow-sm ring-1">
+	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
 			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -315,7 +315,7 @@
 
 	<!-- Backlinks Section -->
 	{#if backlinks && backlinks.length > 0}
-		<section class="bg-secondary ring-border-primary rounded-lg p-6 shadow-sm ring-1">
+		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 			<div class="mb-4 flex items-center gap-2">
 				<Link2 class="text-muted-foreground h-5 w-5" />
 				<h2 class="text-lg font-semibold">Backlinks</h2>

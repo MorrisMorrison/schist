@@ -201,7 +201,7 @@
 	</div>
 
 	<!-- Template Suggestions -->
-	<div class="bg-secondary rounded-lg p-6">
+	<div class="bg-content rounded-lg p-6">
 		<h3 class="text-primary mb-4 text-lg font-medium">Quick Start Templates</h3>
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			<button

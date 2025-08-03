@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Config handles environment variable configuration for infrastructure settings
 type Config struct {
 	Port        string
 	DataDir     string
@@ -21,6 +22,7 @@ type Config struct {
 	AuthRealm   string
 }
 
+// Load creates Config from environment variables
 func Load() *Config {
 	return &Config{
 		Port:        getEnv("SCHIST_PORT", "8080"),
@@ -38,10 +40,12 @@ func Load() *Config {
 	}
 }
 
+// IsDevelopment returns true if running in development mode
 func (c *Config) IsDevelopment() bool {
 	return c.Environment == "development"
 }
 
+// GetPort returns port as integer with fallback
 func (c *Config) GetPort() int {
 	port, err := strconv.Atoi(c.Port)
 	if err != nil {

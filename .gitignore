@@ -38,3 +38,6 @@ backend/schist
 wiki-data/
 frontend/playwright-report
 backend/cmd/schist/test-data-worker-1
+backend/cmd/schist/schist
+project/
+test-token

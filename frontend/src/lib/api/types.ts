@@ -257,11 +257,19 @@ export interface GitHubSettings {
 }
 
 export interface GitHubStatus {
+	enabled: boolean;
 	connected: boolean;
-	lastSync?: string;
-	syncInProgress: boolean;
+	owner?: string;
+	repository?: string;
+	branch?: string;
+	auto_sync?: boolean;
+	sync_on_save?: boolean;
+	last_sync?: string;
+	last_sync_error?: string;
+	syncInProgress?: boolean;
 	error?: string;
 	repositoryUrl?: string;
+	pending_changes?: number;
 }
 
 export interface GitHubSyncResult {
@@ -279,6 +287,12 @@ export interface GitHubSetupRequest {
 	branch?: string;
 	auto_sync?: boolean;
 	sync_on_save?: boolean;
+}
+
+export interface GitHubConfigRequest {
+	auto_sync?: boolean;
+	sync_on_save?: boolean;
+	branch?: string;
 }
 
 export interface GitHubConnectionTest {

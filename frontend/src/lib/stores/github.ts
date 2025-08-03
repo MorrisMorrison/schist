@@ -5,7 +5,8 @@ import type {
 	GitHubStatus,
 	GitHubSyncResult,
 	GitHubSetupRequest,
-	GitHubConnectionTest
+	GitHubConnectionTest,
+	GitHubConfigRequest
 } from '../api/types.js';
 import { browser } from '$app/environment';
 
@@ -100,7 +101,7 @@ export const githubActions = {
 		}
 	},
 
-	async updateSettings(settingsUpdate: Partial<GitHubSettings>) {
+	async updateSettings(settingsUpdate: GitHubConfigRequest) {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {

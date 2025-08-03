@@ -24,6 +24,7 @@ import type {
 	GitHubStatus,
 	GitHubSyncResult,
 	GitHubSetupRequest,
+	GitHubConfigRequest,
 	GitHubSetupResponse,
 	GitHubConnectionTest
 } from './types.js';
@@ -389,7 +390,7 @@ class SchістApiClient {
 		return this.request<GitHubStatus>('/github/status');
 	}
 
-	async updateGitHubSettings(settings: Partial<GitHubSettings>): Promise<GitHubStatus> {
+	async updateGitHubSettings(settings: GitHubConfigRequest): Promise<GitHubStatus> {
 		return this.request<GitHubStatus>('/github/config', {
 			method: 'PUT',
 			body: JSON.stringify(settings)

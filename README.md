@@ -6,7 +6,7 @@
 
 > **"Obsidian is volcanic glass—beautiful but complex. Schist is simple rock that splits into perfect layers, just like your knowledge base should."**
 
-Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like functionality to the web browser. Named after the rock that naturally splits into thin layers (just like markdown files), Schist focuses on simplicity, speed, and ease of use while maintaining the power of interconnected knowledge management.
+Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like functionality to the web browser. Schist focuses on simplicity, speed, and ease of use while maintaining the power of interconnected knowledge management.
 
 ## Features
 
@@ -27,10 +27,10 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 # Clone and install dependencies
 git clone https://github.com/MorrisMorrison/schist.git
 cd schist
-cd frontend && npm install && cd ..
+make install
 
 # Terminal 1: Backend
-ENV=development make run-backend
+make run-backend
 
 # Terminal 2: Frontend  
 make run-frontend
@@ -39,7 +39,6 @@ make run-frontend
 Open http://localhost:5173 in your browser.
 
 ### Production
-
 ```bash
 # Using Docker (recommended)
 make run-docker

@@ -53,7 +53,6 @@ type Asset struct {
 	Created      time.Time `json:"created"`
 }
 
-// Import-related types
 type ImportOptions struct {
 	TargetPath    string `json:"target_path"`
 	OverwriteMode string `json:"overwrite_mode"` // "skip", "overwrite", "rename"

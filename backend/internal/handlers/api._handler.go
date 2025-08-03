@@ -19,8 +19,8 @@ type APIHandler struct {
 }
 
 func NewAPIHandler() *APIHandler {
-	cfg := config.Load()
-	dataDir := cfg.DataDir
+	appConfig := config.Load()
+	dataDir := appConfig.DataDir
 	documentService := services.NewDocumentService(dataDir)
 
 	gitService, err := services.NewGitService(dataDir)
@@ -30,16 +30,16 @@ func NewAPIHandler() *APIHandler {
 
 	ignoreService := services.NewIgnoreService(dataDir)
 
-	appConfigService := services.NewAppConfigService(dataDir)
-	if err := appConfigService.Load(); err != nil {
-		fmt.Printf("Warning: failed to load app config: %v\n", err)
+	settings, err := config.LoadSettings(dataDir)
+	if err != nil {
+		fmt.Printf("Warning: failed to load settings: %v\n", err)
 	}
 
 	return &APIHandler{
 		DocumentService: documentService,
 		AssetService:    services.NewAssetService(dataDir),
 		LinkService:     services.NewLinkService(documentService, ignoreService),
-		GitHubService:   services.NewGitHubService(cfg, gitService, appConfigService),
+		GitHubService:   services.NewGitHubService(appConfig, gitService, settings),
 	}
 }
 

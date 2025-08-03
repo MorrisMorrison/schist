@@ -28,11 +28,18 @@ func NewAPIHandler() *APIHandler {
 		fmt.Printf("Warning: failed to initialize git service: %v\n", err)
 	}
 
+	ignoreService := services.NewIgnoreService(dataDir)
+
+	appConfigService := services.NewAppConfigService(dataDir)
+	if err := appConfigService.Load(); err != nil {
+		fmt.Printf("Warning: failed to load app config: %v\n", err)
+	}
+
 	return &APIHandler{
 		DocumentService: documentService,
 		AssetService:    services.NewAssetService(dataDir),
-		LinkService:     services.NewLinkService(documentService),
-		GitHubService:   services.NewGitHubService(cfg, gitService),
+		LinkService:     services.NewLinkService(documentService, ignoreService),
+		GitHubService:   services.NewGitHubService(cfg, gitService, appConfigService),
 	}
 }
 

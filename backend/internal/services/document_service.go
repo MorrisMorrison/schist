@@ -21,8 +21,9 @@ import (
 const MARKDOWN_FILE_ENDING = ".md"
 
 type DocumentService struct {
-	dataDir    string
-	gitService *GitService
+	dataDir       string
+	gitService    *GitService
+	ignoreService *IgnoreService
 }
 
 func NewDocumentService(dataDir string) *DocumentService {
@@ -30,15 +31,15 @@ func NewDocumentService(dataDir string) *DocumentService {
 		dataDir: dataDir,
 	}
 
-	// Initialize GitService - log errors but don't fail
 	gitService, err := NewGitService(dataDir)
 	if err != nil {
 		log.Printf("Warning: Failed to initialize GitService: %v", err)
-		// Continue without git integration
 	} else {
 		ds.gitService = gitService
 		log.Printf("GitService initialized successfully for directory: %s", dataDir)
 	}
+
+	ds.ignoreService = NewIgnoreService(dataDir)
 
 	return ds
 }
@@ -56,7 +57,7 @@ func (d *DocumentService) Search(query string) ([]*models.Document, error) {
 	lowerTextQuery := strings.ToLower(textQuery)
 
 	for _, document := range documents {
-		if strings.Contains(document.MetaData.Path, "/trash") {
+		if d.ignoreService.ShouldIgnore(document.MetaData.Path) {
 			continue
 		}
 
@@ -142,8 +143,8 @@ func (d *DocumentService) GetAllTags() (map[string]int, error) {
 	tagCounts := make(map[string]int)
 
 	for _, document := range documents {
-		// Skip trash documents
-		if strings.Contains(document.MetaData.Path, "/trash") {
+		// Skip ignored documents
+		if d.ignoreService.ShouldIgnore(document.MetaData.Path) {
 			continue
 		}
 
@@ -239,10 +240,17 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 		}
 
 		if dirEntry.IsDir() {
+			if d.ignoreService.ShouldIgnoreFile(path) {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
 		if !strings.HasSuffix(dirEntry.Name(), MARKDOWN_FILE_ENDING) {
+			return nil
+		}
+
+		if d.ignoreService.ShouldIgnoreFile(path) {
 			return nil
 		}
 
@@ -448,7 +456,8 @@ func (d *DocumentService) populateFolderContents(folder *models.Folder, folderPa
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			if entry.Name() == "trash" || strings.HasPrefix(entry.Name(), ".") {
+			entryPath := filepath.Join(folder.Path, entry.Name())
+			if d.ignoreService.ShouldIgnore(entryPath) {
 				continue
 			}
 			subfolder := d.createSubfolder(folder.Path, entry)
@@ -520,8 +529,8 @@ func (d *DocumentService) getRootFolder() (*models.Folder, error) {
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			// Skip trash folder and hidden folders
-			if entry.Name() == "trash" || strings.HasPrefix(entry.Name(), ".") {
+			entryPath := filepath.Join(d.dataDir, entry.Name())
+			if d.ignoreService.ShouldIgnoreFile(entryPath) {
 				continue
 			}
 
@@ -566,21 +575,11 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 			return err
 		}
 
-		// Skip the root data directory itself
 		if path == d.dataDir {
 			return nil
 		}
 
-		if strings.Contains(path, "/assets") {
-			return nil
-		}
-
-		if strings.Contains(path, "/trash") {
-			return nil
-		}
-
-		// Skip hidden directories (starting with .)
-		if strings.HasPrefix(dirEntry.Name(), ".") {
+		if d.ignoreService.ShouldIgnoreFile(path) {
 			if dirEntry.IsDir() {
 				return filepath.SkipDir
 			}
@@ -882,7 +881,6 @@ func (d *DocumentService) DeleteFolder(path string) error {
 	return nil
 }
 
-// GetDocumentVersions returns version history for a document
 func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentVersion, error) {
 	if d.gitService == nil {
 		return nil, fmt.Errorf("git service not available")
@@ -891,7 +889,6 @@ func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentV
 	return d.gitService.GetDocumentVersions(documentPath)
 }
 
-// GetDocumentAtVersion returns a document at a specific version
 func (d *DocumentService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Document, error) {
 	if d.gitService == nil {
 		return nil, fmt.Errorf("git service not available")
@@ -900,20 +897,16 @@ func (d *DocumentService) GetDocumentAtVersion(documentPath string, commitHash s
 	return d.gitService.GetDocumentAtVersion(documentPath, commitHash)
 }
 
-// commitDocumentChange commits a document change to git if GitService is available
 func (d *DocumentService) commitDocumentChange(documentPath string, message string) {
 	if d.gitService == nil {
-		// Git not available, skip silently
 		return
 	}
 
 	if err := d.gitService.CommitDocument(documentPath, message); err != nil {
-		// Log error but don't fail the operation
 		log.Printf("Warning: Failed to commit document change for %s: %v", documentPath, err)
 	}
 }
 
-// CompareDocumentVersions compares two versions of a document and returns a structured diff
 func (d *DocumentService) CompareDocumentVersions(documentPath, hash1, hash2 string) (*DiffResult, error) {
 	if d.gitService == nil {
 		return nil, fmt.Errorf("git service not available")
@@ -922,13 +915,11 @@ func (d *DocumentService) CompareDocumentVersions(documentPath, hash1, hash2 str
 	return d.gitService.CompareVersions(documentPath, hash1, hash2)
 }
 
-// RestoreDocumentToVersion restores a document to a previous version
 func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) error {
 	if d.gitService == nil {
 		return fmt.Errorf("git service not available")
 	}
 
-	// Use GitService to restore the document
 	if err := d.gitService.RestoreDocument(path, commitHash); err != nil {
 		return fmt.Errorf("failed to restore document: %w", err)
 	}
@@ -941,7 +932,6 @@ func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) erro
 	return nil
 }
 
-// ImportDocuments imports markdown files from uploaded files
 func (d *DocumentService) ImportDocuments(
 	files []*multipart.FileHeader,
 	options *models.ImportOptions,
@@ -952,7 +942,6 @@ func (d *DocumentService) ImportDocuments(
 		TotalFiles: len(files),
 	}
 
-	// Validate target path
 	if options.TargetPath == "" {
 		options.TargetPath = "/"
 	}
@@ -973,41 +962,33 @@ func (d *DocumentService) ImportDocuments(
 	return result, nil
 }
 
-// importSingleFile processes a single uploaded file
 func (d *DocumentService) importSingleFile(
 	fileHeader *multipart.FileHeader,
 	options *models.ImportOptions,
 	result *models.ImportResult,
 ) error {
-	// Validate file type
 	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".md") {
 		return fmt.Errorf("only markdown files (.md) are supported")
 	}
 
-	// Open the uploaded file
 	file, err := fileHeader.Open()
 	if err != nil {
 		return fmt.Errorf("failed to open uploaded file: %w", err)
 	}
 	defer file.Close()
 
-	// Read file content
 	content, err := io.ReadAll(file)
 	if err != nil {
 		return fmt.Errorf("failed to read file content: %w", err)
 	}
 
-	// Process the markdown content (strip Obsidian metadata, etc.)
 	processedContent := d.processImportedMarkdown(string(content))
 
-	// Generate document metadata
 	title := d.extractTitleFromContent(processedContent, fileHeader.Filename)
 	slug := utils.GenerateSlug(title)
 
-	// Determine final path
 	finalPath := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
 
-	// Create document metadata
 	now := time.Now()
 	metadata := &models.DocumentMetaData{
 		Slug:    slug,
@@ -1018,19 +999,15 @@ func (d *DocumentService) importSingleFile(
 		Tags:    []string{}, // Start with empty tags
 	}
 
-	// Create document
 	document := &models.Document{
 		MetaData: metadata,
 		Content:  processedContent,
 	}
-
-	// Save the document
 	err = d.CreateDocument(document)
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}
 
-	// Add to success list
 	result.Success = append(result.Success, models.ImportedDocument{
 		OriginalName: fileHeader.Filename,
 		FinalPath:    finalPath,
@@ -1040,7 +1017,6 @@ func (d *DocumentService) importSingleFile(
 	return nil
 }
 
-// processImportedMarkdown cleans up imported markdown content
 func (d *DocumentService) processImportedMarkdown(content string) string {
 	// Remove YAML frontmatter (Obsidian and other systems)
 	frontmatterRegex := regexp.MustCompile(`^---\s*\n.*?\n---\s*\n`)
@@ -1052,11 +1028,9 @@ func (d *DocumentService) processImportedMarkdown(content string) string {
 	return strings.TrimSpace(content)
 }
 
-// extractTitleFromContent attempts to extract a title from the markdown content
 func (d *DocumentService) extractTitleFromContent(content, filename string) string {
 	lines := strings.Split(content, "\n")
 
-	// Look for the first heading
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "# ") {
@@ -1067,11 +1041,10 @@ func (d *DocumentService) extractTitleFromContent(content, filename string) stri
 		}
 	}
 
-	// Fall back to filename without extension
 	return strings.TrimSuffix(filename, filepath.Ext(filename))
 }
 
-// determineFinalPath determines where the document should be saved
+// TODO implement
 func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) string {
 	// Normalize target path
 	if targetPath == "" || targetPath == "/" {
@@ -1089,14 +1062,11 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 	// Check for conflicts and handle based on overwrite mode
 	counter := 1
 	for {
-		// Check if a document with this path already exists
 		_, err := d.GetDocumentByPath(finalPath)
 		if err != nil {
-			// Document doesn't exist, we can use this path
 			break
 		}
 
-		// Document exists, handle based on overwrite mode
 		switch overwriteMode {
 		case "overwrite":
 			// Use the path as-is, will overwrite
@@ -1117,19 +1087,14 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 	return finalPath
 }
 
-// Export functionality
-
-// ExportDocument exports a single document as markdown content
 func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {
 	document, err := d.GetDocumentByPath(path)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get document: %w", err)
 	}
 
-	// Generate the markdown content with metadata
 	content := fmt.Sprintf("# %s\n\n%s", document.MetaData.Title, document.Content)
 
-	// Generate filename
 	filename := filepath.Base(path)
 	if !strings.HasSuffix(filename, ".md") {
 		filename += ".md"
@@ -1138,32 +1103,26 @@ func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {
 	return []byte(content), filename, nil
 }
 
-// ExportFolder exports a folder and all its contents as a zip file
 func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error) {
-	// Normalize the folder path
 	normalizedPath := folderPath
 	if !strings.HasPrefix(normalizedPath, "/") {
 		normalizedPath = "/" + normalizedPath
 	}
 
-	// Create a buffer to write the zip file to
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 
-	// Walk through the folder and add files to zip
 	err := d.addFolderToZip(zipWriter, normalizedPath, "")
 	if err != nil {
 		zipWriter.Close()
 		return nil, "", fmt.Errorf("failed to create zip: %w", err)
 	}
 
-	// Close the zip writer
 	err = zipWriter.Close()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to close zip: %w", err)
 	}
 
-	// Generate filename
 	folderName := filepath.Base(folderPath)
 	if folderName == "/" || folderName == "." {
 		folderName = "documents"
@@ -1173,20 +1132,16 @@ func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error
 	return buf.Bytes(), filename, nil
 }
 
-// ExportAll exports all documents as a zip file
 func (d *DocumentService) ExportAll() ([]byte, string, error) {
-	// Create a buffer to write the zip file to
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 
-	// Export everything from root
 	err := d.addFolderToZip(zipWriter, "/", "")
 	if err != nil {
 		zipWriter.Close()
 		return nil, "", fmt.Errorf("failed to create zip: %w", err)
 	}
 
-	// Close the zip writer
 	err = zipWriter.Close()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to close zip: %w", err)
@@ -1196,32 +1151,26 @@ func (d *DocumentService) ExportAll() ([]byte, string, error) {
 	return buf.Bytes(), filename, nil
 }
 
-// Helper function to recursively add folder contents to zip
 func (d *DocumentService) addFolderToZip(
 	zipWriter *zip.Writer,
 	folderPath string,
 	zipPrefix string,
 ) error {
-	// Get all documents and filter by folder path
 	allDocuments, err := d.ListDocuments()
 	if err != nil {
 		return fmt.Errorf("failed to list documents: %w", err)
 	}
 
-	// Add documents in this folder
 	for _, doc := range allDocuments {
 		docFolder := filepath.Dir(doc.MetaData.Path)
 		if docFolder == folderPath {
-			// Create the zip path
 			zipPath := filepath.Join(zipPrefix, doc.MetaData.Title+".md")
 
-			// Create file in zip
 			fileWriter, err := zipWriter.Create(zipPath)
 			if err != nil {
 				return fmt.Errorf("failed to create file in zip: %w", err)
 			}
 
-			// Write document content
 			content := fmt.Sprintf("# %s\n\n%s", doc.MetaData.Title, doc.Content)
 			_, err = fileWriter.Write([]byte(content))
 			if err != nil {
@@ -1230,13 +1179,11 @@ func (d *DocumentService) addFolderToZip(
 		}
 	}
 
-	// Get folder structure and recursively add subfolders
 	folder, err := d.GetFolder(folderPath)
 	if err != nil {
 		return fmt.Errorf("failed to get folder %s: %w", folderPath, err)
 	}
 
-	// Recursively add subfolders
 	for _, subfolder := range folder.SubFolders {
 		subZipPrefix := filepath.Join(zipPrefix, subfolder.Name)
 		err := d.addFolderToZip(zipWriter, subfolder.Path, subZipPrefix)

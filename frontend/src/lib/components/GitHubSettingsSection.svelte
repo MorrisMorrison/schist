@@ -15,7 +15,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-svelte';
-	import type { GitHubSetupRequest } from '$lib/api/types';
+	import type { GitHubSetupRequest} from '$lib/api/types';
 	import { onMount } from 'svelte';
 
 	let token = $state('');
@@ -27,47 +27,42 @@
 	let backupMode = $state<'manual' | 'auto'>('manual');
 	let syncInterval = $state(60);
 	let formError = $state('');
-	let tokenChanged = $state(false); // Track if user has modified the token field
+	let tokenChanged = $state(false); 
 
 	let activeTab = $state<'setup' | 'sync'>('setup');
 
 	$effect(() => {
 		if ($githubStatus && $githubStatus.connected) {
-			// Show empty token field - user must enter token for any operations
 			token = '';
-			// Use type assertion to access backend properties
-			const status = $githubStatus as any;
+
+			const status = $githubStatus;
 			owner = status.owner || '';
 			repository = status.repository || '';
 			branch = status.branch || 'main';
 			backupMode = status.auto_sync ? 'auto' : 'manual';
-			syncInterval = 60; // Default since not returned by backend
-			tokenChanged = false; // Reset token change tracking when settings load
+			syncInterval = 60;
+			tokenChanged = false;
 		}
 	});
 
 	const isConnected = $derived($githubStatus?.connected ?? false);
-	const canTest = $derived(
-		// Can test if user has entered a token AND basic fields are filled
+	const canTestConnection = $derived(
 		token.trim() && owner.trim() && repository.trim()
 	);
 	const hasChanges = $derived(
 		$githubStatus && $githubStatus.connected
 			? (() => {
-					const status = $githubStatus as any;
-					// For connected users, only check non-token fields that can be updated
+					const status = $githubStatus;
 					return branch !== status.branch || (backupMode === 'auto') !== status.auto_sync;
 				})()
-			: canTest // For new setup, check if form is ready
+			: canTestConnection 
 	);
 
 	onMount(() => {
 		githubActions.refresh();
-		// Always stay on setup tab - status info is now shown in the footer
 	});
 
 	function validateForm(): boolean {
-		// Token is always required for setup and testing
 		if (!token.trim()) {
 			formError = 'GitHub token is required';
 			return false;
@@ -94,7 +89,6 @@
 	}
 
 	function validateSettingsUpdate(): boolean {
-		// For settings updates, we only need basic validation (no token required)
 		if (!branch.trim()) {
 			formError = 'Branch name is required';
 			return false;
@@ -114,7 +108,6 @@
 		try {
 			await githubActions.testConnection(token.trim(), owner.trim(), repository.trim());
 		} catch {
-			// Error is handled by the store
 		}
 	}
 
@@ -122,7 +115,6 @@
 		if (!validateForm()) return;
 
 		try {
-			// Use original token if not changed, otherwise use the new token
 			const tokenToUse = tokenChanged
 				? token.trim()
 				: $githubSettings?.config.token || token.trim();
@@ -138,28 +130,22 @@
 
 			await githubActions.setupGitHub(setupRequest);
 
-			await (githubActions.updateSettings as any)({
+			await githubActions.updateSettings({
 				auto_sync: backupMode === 'auto',
 				branch: branch.trim()
 			});
-
-			// Stay on setup tab - status info is now shown in the footer
 		} catch {
-			// Error is handled by the store
 		}
 	}
 
 	async function updateSettings() {
 		if (!validateSettingsUpdate()) return;
-
 		try {
-			// For updates, we only send the fields that can be changed
-			await (githubActions.updateSettings as any)({
+			await githubActions.updateSettings({
 				auto_sync: backupMode === 'auto',
 				branch: branch.trim()
 			});
 		} catch {
-			// Error is handled by the store
 		}
 	}
 
@@ -167,7 +153,6 @@
 		try {
 			await githubActions.syncToGitHub();
 		} catch {
-			// Error is handled by the store
 		}
 	}
 
@@ -176,7 +161,6 @@
 			await githubActions.disconnect();
 			activeTab = 'setup';
 		} catch {
-			// Error is handled by the store
 		}
 	}
 
@@ -185,7 +169,6 @@
 
 		const date = new Date(timestamp);
 
-		// Check if the date is invalid or is the Go zero time (year 1 or 1970)
 		if (isNaN(date.getTime()) || date.getFullYear() <= 1970) {
 			return 'Never';
 		}
@@ -381,13 +364,13 @@
 						<div class="space-y-2">
 							<Label>Last Sync</Label>
 							<div class="text-sm text-gray-900 dark:text-gray-100">
-								{formatLastSync(($githubStatus as any)?.last_sync)}
+								{formatLastSync($githubStatus?.last_sync)}
 							</div>
 						</div>
 
 						<!-- Repository Link -->
-						{#if ($githubStatus as any)?.owner && ($githubStatus as any)?.repository}
-							{@const status = $githubStatus as any}
+						{#if $githubStatus?.owner && $githubStatus?.repository}
+							{@const status = $githubStatus}
 							<div class="space-y-2">
 								<Label>Repository</Label>
 								<div class="flex items-center">
@@ -424,7 +407,7 @@
 						type="button"
 						variant="outline"
 						onclick={testConnection}
-						disabled={!canTest || $isTestingConnection}
+						disabled={!canTestConnection || $isTestingConnection}
 					>
 						{#if $isTestingConnection}
 							<Loader2 class="mr-2 h-4 w-4 animate-spin" />
@@ -448,7 +431,7 @@
 						type="submit"
 						disabled={isConnected
 							? !hasChanges || $isGitHubLoading
-							: !canTest || !hasChanges || $isGitHubLoading}
+							: !canTestConnection || !hasChanges || $isGitHubLoading}
 					>
 						{#if $isGitHubLoading}
 							<Loader2 class="mr-2 h-4 w-4 animate-spin" />

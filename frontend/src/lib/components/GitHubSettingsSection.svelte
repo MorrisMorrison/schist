@@ -163,7 +163,7 @@
 			await githubActions.disconnect();
 			activeTab = 'setup';
 		} catch {
-			console.error("Error disconnecting from github")
+			console.error('Error disconnecting from github');
 		}
 	}
 

@@ -408,13 +408,10 @@ class SchістApiClient {
 		owner: string,
 		repository: string
 	): Promise<GitHubConnectionTest> {
-		// Test connection through setup endpoint with dry run
-		return this.request<GitHubConnectionTest>('/github/setup', {
+		return this.request<GitHubConnectionTest>('/github/test', {
 			method: 'POST',
 			body: JSON.stringify({ token, owner, repo: repository, branch: 'main' })
-		})
-			.then(() => ({ success: true, message: 'Connection successful' }))
-			.catch((error) => ({ success: false, message: error.message }));
+		});
 	}
 
 	async syncToGitHub(): Promise<GitHubSyncResult> {

@@ -82,7 +82,7 @@ export const githubActions = {
 		try {
 			const setupResult = await apiClient.setupGitHub(setupRequest);
 
-			const status = await apiClient.getGitHubStatus();
+			const status = setupResult.status || (await apiClient.getGitHubStatus());
 
 			githubStore.update((state) => ({
 				...state,

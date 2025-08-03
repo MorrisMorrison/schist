@@ -1,5 +1,4 @@
 <script lang="ts">
-	import '../../app.css';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Card,
@@ -9,9 +8,6 @@
 		CardTitle
 	} from '$lib/components/ui/card';
 	import { LogIn } from 'lucide-svelte';
-
-	// Import theme store to initialize theme
-	import '$lib/stores/theme.js';
 
 	// Placeholder function for OAuth authentication
 	function handleLogin() {
@@ -25,7 +21,7 @@
 	<meta name="description" content="Login to Schist Wiki" />
 </svelte:head>
 
-<div class="bg-background flex min-h-screen items-center justify-center p-4">
+<div class="login-page bg-background flex min-h-screen items-center justify-center p-4">
 	<Card class="w-full max-w-md shadow-lg">
 		<CardHeader class="space-y-4 pb-8 text-center">
 			<div class="mx-auto flex h-16 w-16 items-center justify-center">
@@ -65,3 +61,19 @@
 		</CardContent>
 	</Card>
 </div>
+
+<style>
+	.login-page {
+		/* Ensure complete isolation from any parent styles */
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		z-index: 9999;
+		/* Reset any potentially inherited styles */
+		margin: 0;
+		padding: 1rem;
+		box-sizing: border-box;
+	}
+</style>

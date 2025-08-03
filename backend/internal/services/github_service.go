@@ -17,6 +17,7 @@ import (
 
 type GitHubService struct {
 	config     *appconfig.Config
+	appConfig  *AppConfigService
 	client     *github.Client
 	gitService *GitService
 	ctx        context.Context
@@ -72,14 +73,31 @@ type GitHubRepoInfo struct {
 	CloneURL    string `json:"clone_url"`
 }
 
-func NewGitHubService(config *appconfig.Config, gitService *GitService) *GitHubService {
+func NewGitHubService(config *appconfig.Config, gitService *GitService, appConfigService *AppConfigService) *GitHubService {
 	service := &GitHubService{
 		config:     config,
+		appConfig:  appConfigService,
 		gitService: gitService,
 		ctx:        context.Background(),
 	}
 
-	if config.GitHubEnabled && config.GitHubToken != "" {
+	envGitHubConfig := &GitHubAppConfig{
+		Enabled:    config.GitHubEnabled,
+		Token:      config.GitHubToken,
+		Owner:      config.GitHubOwner,
+		Repository: config.GitHubRepo,
+		Branch:     config.GitHubBranch,
+		AutoSync:   config.GitHubAutoSync,
+		SyncOnSave: config.GitHubSyncOnSave,
+		LastSync:   config.GitHubLastSync,
+	}
+
+	if err := appConfigService.MigrateFromEnvConfig(envGitHubConfig); err != nil {
+		fmt.Printf("Warning: failed to migrate GitHub config: %v\n", err)
+	}
+
+	githubConfig := appConfigService.GetGitHubConfig()
+	if githubConfig.Enabled && githubConfig.Token != "" {
 		if err := service.initializeClient(); err != nil {
 			fmt.Printf("Warning: failed to initialize GitHub client: %v\n", err)
 		}
@@ -89,12 +107,13 @@ func NewGitHubService(config *appconfig.Config, gitService *GitService) *GitHubS
 }
 
 func (gs *GitHubService) initializeClient() error {
-	if gs.config.GitHubToken == "" {
+	githubConfig := gs.appConfig.GetGitHubConfig()
+	if githubConfig.Token == "" {
 		return fmt.Errorf("github token not configured")
 	}
 
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: gs.config.GitHubToken},
+		&oauth2.Token{AccessToken: githubConfig.Token},
 	)
 	tc := oauth2.NewClient(gs.ctx, ts)
 	gs.client = github.NewClient(tc)
@@ -139,17 +158,22 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, fmt.Errorf("branch %s not found in repository %s/%s: %w", branch, req.Owner, req.Repo, err)
 	}
 
-	gs.config.GitHubEnabled = true
-	gs.config.GitHubToken = req.Token
-	gs.config.GitHubOwner = req.Owner
-	gs.config.GitHubRepo = req.Repo
-	gs.config.GitHubBranch = branch
-	gs.config.GitHubAutoSync = req.AutoSync
-	gs.config.GitHubSyncOnSave = req.SyncOnSave
+	githubConfig := &GitHubAppConfig{
+		Enabled:    true,
+		Token:      req.Token,
+		Owner:      req.Owner,
+		Repository: req.Repo,
+		Branch:     branch,
+		AutoSync:   req.AutoSync,
+		SyncOnSave: req.SyncOnSave,
+	}
+
+	if err := gs.appConfig.UpdateGitHubConfig(githubConfig); err != nil {
+		return nil, fmt.Errorf("failed to save GitHub config: %w", err)
+	}
 
 	gs.client = tempClient
 
-	// Setup git remote for pushing to GitHub
 	if err := gs.setupGitRemote(); err != nil {
 		return nil, fmt.Errorf("failed to setup git remote: %w", err)
 	}
@@ -171,21 +195,23 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 }
 
 func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
+	githubConfig := gs.appConfig.GetGitHubConfig()
+
 	status := &GitHubSyncStatus{
-		Enabled:    gs.config.GitHubEnabled,
-		Owner:      gs.config.GitHubOwner,
-		Repository: gs.config.GitHubRepo,
-		Branch:     gs.config.GitHubBranch,
-		AutoSync:   gs.config.GitHubAutoSync,
-		SyncOnSave: gs.config.GitHubSyncOnSave,
-		LastSync:   gs.config.GitHubLastSync,
+		Enabled:    githubConfig.Enabled,
+		Owner:      githubConfig.Owner,
+		Repository: githubConfig.Repository,
+		Branch:     githubConfig.Branch,
+		AutoSync:   githubConfig.AutoSync,
+		SyncOnSave: githubConfig.SyncOnSave,
+		LastSync:   githubConfig.LastSync,
 	}
 
-	if !gs.config.GitHubEnabled || gs.client == nil {
+	if !githubConfig.Enabled || gs.client == nil {
 		return status, nil
 	}
 
-	_, _, err := gs.client.Repositories.Get(gs.ctx, gs.config.GitHubOwner, gs.config.GitHubRepo)
+	_, _, err := gs.client.Repositories.Get(gs.ctx, githubConfig.Owner, githubConfig.Repository)
 	status.Connected = err == nil
 
 	if err != nil {
@@ -200,33 +226,39 @@ func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
 }
 
 func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
-	if !gs.config.GitHubEnabled {
+	githubConfig := gs.appConfig.GetGitHubConfig()
+
+	if !githubConfig.Enabled {
 		return fmt.Errorf("github integration is not enabled")
 	}
 
+	updatedConfig := *githubConfig
+
 	if req.AutoSync != nil {
-		gs.config.GitHubAutoSync = *req.AutoSync
+		updatedConfig.AutoSync = *req.AutoSync
 	}
 
 	if req.SyncOnSave != nil {
-		gs.config.GitHubSyncOnSave = *req.SyncOnSave
+		updatedConfig.SyncOnSave = *req.SyncOnSave
 	}
 
 	if req.Branch != nil && *req.Branch != "" {
 		if gs.client != nil {
-			_, _, err := gs.client.Repositories.GetBranch(gs.ctx, gs.config.GitHubOwner, gs.config.GitHubRepo, *req.Branch, 1)
+			_, _, err := gs.client.Repositories.GetBranch(gs.ctx, githubConfig.Owner, githubConfig.Repository, *req.Branch, 1)
 			if err != nil {
 				return fmt.Errorf("branch %s not found in repository: %w", *req.Branch, err)
 			}
 		}
-		gs.config.GitHubBranch = *req.Branch
+		updatedConfig.Branch = *req.Branch
 	}
 
-	return nil
+	return gs.appConfig.UpdateGitHubConfig(&updatedConfig)
 }
 
 func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
-	if !gs.config.GitHubEnabled {
+	githubConfig := gs.appConfig.GetGitHubConfig()
+
+	if !githubConfig.Enabled {
 		return nil, fmt.Errorf("github integration is not enabled")
 	}
 
@@ -244,40 +276,37 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 		SyncTime: time.Now().Format(time.RFC3339),
 	}
 
-	// Verify GitHub connection first
-	_, _, err := gs.client.Repositories.Get(gs.ctx, gs.config.GitHubOwner, gs.config.GitHubRepo)
+	_, _, err := gs.client.Repositories.Get(gs.ctx, githubConfig.Owner, githubConfig.Repository)
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to connect to github repository: %v", err)
 		return result, nil
 	}
 
-	// Ensure git remote is properly configured
 	if err := gs.setupGitRemote(); err != nil {
 		result.Error = fmt.Sprintf("failed to setup git remote: %v", err)
 		return result, nil
 	}
 
-	// Commit any uncommitted changes before sync
 	if err := gs.commitUncommittedChanges(); err != nil {
 		result.Error = fmt.Sprintf("failed to commit uncommitted changes: %v", err)
 		return result, nil
 	}
 
-	// Count commits before push to calculate synced commits
 	commitsBefore, err := gs.countLocalCommits()
 	if err != nil {
 		result.Error = fmt.Sprintf("failed to count local commits: %v", err)
 		return result, nil
 	}
 
-	// Push to GitHub with force-with-lease for safety
 	if err := gs.pushToGitHub(); err != nil {
 		result.Error = fmt.Sprintf("failed to push to github: %v", err)
 		return result, nil
 	}
 
-	// Update last sync timestamp in config
-	gs.config.GitHubLastSync = time.Now()
+	githubConfig.LastSync = time.Now()
+	if err := gs.appConfig.UpdateGitHubConfig(githubConfig); err != nil {
+		fmt.Printf("Warning: failed to update last sync time: %v\n", err)
+	}
 
 	result.Success = true
 	result.FilesSync = 0 // We sync the entire repository, not individual files
@@ -287,7 +316,9 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 }
 
 func (gs *GitHubService) ValidateAccess() error {
-	if !gs.config.GitHubEnabled {
+	githubConfig := gs.appConfig.GetGitHubConfig()
+
+	if !githubConfig.Enabled {
 		return fmt.Errorf("github integration is not enabled")
 	}
 
@@ -297,25 +328,25 @@ func (gs *GitHubService) ValidateAccess() error {
 		}
 	}
 
-	// Test repository access
-	_, _, err := gs.client.Repositories.Get(gs.ctx, gs.config.GitHubOwner, gs.config.GitHubRepo)
+	_, _, err := gs.client.Repositories.Get(gs.ctx, githubConfig.Owner, githubConfig.Repository)
 	if err != nil {
-		return fmt.Errorf("failed to access repository %s/%s: %w", gs.config.GitHubOwner, gs.config.GitHubRepo, err)
+		return fmt.Errorf("failed to access repository %s/%s: %w", githubConfig.Owner, githubConfig.Repository, err)
 	}
 
-	// Test branch access
 	_, _, err = gs.client.Repositories.GetBranch(
-		gs.ctx, gs.config.GitHubOwner, gs.config.GitHubRepo, gs.config.GitHubBranch, 1,
+		gs.ctx, githubConfig.Owner, githubConfig.Repository, githubConfig.Branch, 1,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to access branch %s: %w", gs.config.GitHubBranch, err)
+		return fmt.Errorf("failed to access branch %s: %w", githubConfig.Branch, err)
 	}
 
 	return nil
 }
 
 func (gs *GitHubService) GetRepositoryInfo() (*GitHubRepoInfo, error) {
-	if !gs.config.GitHubEnabled {
+	githubConfig := gs.appConfig.GetGitHubConfig()
+
+	if !githubConfig.Enabled {
 		return nil, fmt.Errorf("github integration is not enabled")
 	}
 
@@ -325,14 +356,14 @@ func (gs *GitHubService) GetRepositoryInfo() (*GitHubRepoInfo, error) {
 		}
 	}
 
-	repo, _, err := gs.client.Repositories.Get(gs.ctx, gs.config.GitHubOwner, gs.config.GitHubRepo)
+	repo, _, err := gs.client.Repositories.Get(gs.ctx, githubConfig.Owner, githubConfig.Repository)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get repository info: %w", err)
 	}
 
 	repoInfo := &GitHubRepoInfo{
-		Owner:    gs.config.GitHubOwner,
-		Name:     gs.config.GitHubRepo,
+		Owner:    githubConfig.Owner,
+		Name:     githubConfig.Repository,
 		FullName: *repo.FullName,
 		Private:  *repo.Private,
 		HTMLURL:  *repo.HTMLURL,
@@ -347,15 +378,18 @@ func (gs *GitHubService) GetRepositoryInfo() (*GitHubRepoInfo, error) {
 }
 
 func (gs *GitHubService) IsEnabled() bool {
-	return gs.config.GitHubEnabled
+	githubConfig := gs.appConfig.GetGitHubConfig()
+	return githubConfig.Enabled
 }
 
 func (gs *GitHubService) ShouldSyncOnSave() bool {
-	return gs.config.GitHubEnabled && gs.config.GitHubSyncOnSave
+	githubConfig := gs.appConfig.GetGitHubConfig()
+	return githubConfig.Enabled && githubConfig.SyncOnSave
 }
 
 func (gs *GitHubService) ShouldAutoSync() bool {
-	return gs.config.GitHubEnabled && gs.config.GitHubAutoSync
+	githubConfig := gs.appConfig.GetGitHubConfig()
+	return githubConfig.Enabled && githubConfig.AutoSync
 }
 
 func (gs *GitHubService) TriggerSync(documentPath string) error {
@@ -377,34 +411,30 @@ func (gs *GitHubService) setupGitRemote() error {
 		return fmt.Errorf("git service or repository not available")
 	}
 
-	// Construct GitHub repository URL with token authentication
-	remoteURL := fmt.Sprintf("https://%s@github.com/%s/%s.git",
-		gs.config.GitHubToken,
-		gs.config.GitHubOwner,
-		gs.config.GitHubRepo)
+	githubConfig := gs.appConfig.GetGitHubConfig()
 
-	// Get repository configuration
+	remoteURL := fmt.Sprintf("https://%s@github.com/%s/%s.git",
+		githubConfig.Token,
+		githubConfig.Owner,
+		githubConfig.Repository)
+
 	cfg, err := gs.gitService.repository.Config()
 	if err != nil {
 		return fmt.Errorf("failed to get repository config: %w", err)
 	}
 
-	// Check if origin remote already exists
 	if _, exists := cfg.Remotes["origin"]; exists {
-		// Update existing remote URL
 		cfg.Remotes["origin"] = &config.RemoteConfig{
 			Name: "origin",
 			URLs: []string{remoteURL},
 		}
 	} else {
-		// Add new origin remote
 		cfg.Remotes["origin"] = &config.RemoteConfig{
 			Name: "origin",
 			URLs: []string{remoteURL},
 		}
 	}
 
-	// Save the updated configuration
 	gs.gitService.repository.Storer.SetConfig(cfg)
 
 	return nil
@@ -420,24 +450,20 @@ func (gs *GitHubService) commitUncommittedChanges() error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Check if there are any uncommitted changes
 	status, err := worktree.Status()
 	if err != nil {
 		return fmt.Errorf("failed to get worktree status: %w", err)
 	}
 
-	// If no changes, nothing to commit
 	if status.IsClean() {
 		return nil
 	}
 
-	// Add all changes to staging area
 	err = worktree.AddGlob(".")
 	if err != nil {
 		return fmt.Errorf("failed to add files to staging: %w", err)
 	}
 
-	// Create commit for sync operation
 	signature := &object.Signature{
 		Name:  "Schist Sync",
 		Email: "sync@schist.local",
@@ -459,7 +485,6 @@ func (gs *GitHubService) countLocalCommits() (int, error) {
 		return 0, fmt.Errorf("git service or repository not available")
 	}
 
-	// Get commit iterator from HEAD
 	commitIter, err := gs.gitService.repository.Log(&git.LogOptions{})
 	if err != nil {
 		return 0, fmt.Errorf("failed to get commit log: %w", err)
@@ -483,26 +508,24 @@ func (gs *GitHubService) pushToGitHub() error {
 		return fmt.Errorf("git service or repository not available")
 	}
 
-	// Create authentication object with GitHub token
+	githubConfig := gs.appConfig.GetGitHubConfig()
+
 	auth := &http.BasicAuth{
-		Username: gs.config.GitHubOwner, // Can be anything except an empty string
-		Password: gs.config.GitHubToken,
+		Username: githubConfig.Owner,
+		Password: githubConfig.Token,
 	}
 
-	// Push options with force-with-lease for safety
 	pushOptions := &git.PushOptions{
 		RemoteName: "origin",
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", gs.config.GitHubBranch, gs.config.GitHubBranch)),
+			config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", githubConfig.Branch, githubConfig.Branch)),
 		},
 		Auth:  auth,
-		Force: true, // Use force push since we want local to be authoritative
+		Force: true,
 	}
 
-	// Execute the push
 	err := gs.gitService.repository.Push(pushOptions)
 	if err != nil {
-		// Check if it's a "non-fast-forward" error, which is expected with our strategy
 		if err == git.NoErrAlreadyUpToDate {
 			return nil // Already up to date is not an error
 		}

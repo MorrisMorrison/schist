@@ -94,7 +94,8 @@ func TestLinkService_ParseWikiLinks(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	documentService := NewDocumentService(tempDir)
-	linkService := NewLinkService(documentService)
+	ignoreService := NewIgnoreService(tempDir)
+	linkService := NewLinkService(documentService, ignoreService)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -130,7 +131,8 @@ func TestLinkService_ResolveTargetToPath(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	documentService := NewDocumentService(tempDir)
-	linkService := NewLinkService(documentService)
+	ignoreService := NewIgnoreService(tempDir)
+	linkService := NewLinkService(documentService, ignoreService)
 
 	// Create a test page
 	testDocument := &models.Document{
@@ -195,7 +197,8 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	documentService := NewDocumentService(tempDir)
-	linkService := NewLinkService(documentService)
+	ignoreService := NewIgnoreService(tempDir)
+	linkService := NewLinkService(documentService, ignoreService)
 
 	// Create test pages
 	targetDocument := &models.Document{
@@ -304,7 +307,8 @@ func TestLinkService_GetBrokenLinks(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	documentService := NewDocumentService(tempDir)
-	linkService := NewLinkService(documentService)
+	ignoreService := NewIgnoreService(tempDir)
+	linkService := NewLinkService(documentService, ignoreService)
 
 	// Create a page with broken links
 	documentWithBrokenLinks := &models.Document{

@@ -20,7 +20,6 @@ import type {
 	RestoreResponse,
 	ImportOptions,
 	ImportResult,
-	GitHubSettings,
 	GitHubStatus,
 	GitHubSyncResult,
 	GitHubSetupRequest,

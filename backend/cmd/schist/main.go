@@ -9,44 +9,49 @@ import (
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/handlers"
 	"github.com/MorrisMorrison/schist/internal/middleware"
+	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	config := config.Load()
+	// Initialize all services with proper dependency injection
+	services, err := services.NewServices()
+	if err != nil {
+		log.Fatalf("Failed to initialize services: %v", err)
+	}
 
 	// dev logging: timestamp + filename:line
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	if !config.IsDevelopment() {
+	if !services.Config.IsDevelopment() {
 		// prod logging: timestamp only
 		log.SetFlags(log.LstdFlags)
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	initDataDir(config)
+	initDataDir(services.Config)
 
 	router := gin.Default()
 
-	setupCORS(router, config)
-	setupMiddleware(router, config)
+	setupCORS(router, services.Config)
+	setupMiddleware(router, services.Config)
 
-	apiHandler := handlers.NewAPIHandler()
-	staticHandler := handlers.NewStaticHandler(config.StaticDir)
+	apiHandler := handlers.NewAPIHandler(services)
+	staticHandler := handlers.NewStaticHandler(services.Config.StaticDir)
 
 	api := router.Group("/api")
 	apiHandler.SetupAPIRoutes(api)
 
 	// Serve user-uploaded assets from data directory
-	router.Static("/uploads", filepath.Join(config.DataDir, "assets"))
+	router.Static("/uploads", filepath.Join(services.Config.DataDir, "assets"))
 
-	if !config.IsDevelopment() {
+	if !services.Config.IsDevelopment() {
 		staticHandler.SetupStaticRoutes(router)
 	}
 
-	port := fmt.Sprintf(":%s", config.Port)
-	log.Printf("Starting Schist server on port %s (env: %s)", config.Port, config.Environment)
+	port := fmt.Sprintf(":%s", services.Config.Port)
+	log.Printf("Starting Schist server on port %s (env: %s)", services.Config.Port, services.Config.Environment)
 
 	if err := router.Run(port); err != nil {
 		log.Fatal("Failed to start server:", err)

@@ -26,22 +26,12 @@ type DocumentService struct {
 	ignoreService *IgnoreService
 }
 
-func NewDocumentService(dataDir string) *DocumentService {
-	ds := &DocumentService{
-		dataDir: dataDir,
+func NewDocumentService(dataDir string, gitService *GitService, ignoreService *IgnoreService) *DocumentService {
+	return &DocumentService{
+		dataDir:       dataDir,
+		gitService:    gitService,
+		ignoreService: ignoreService,
 	}
-
-	gitService, err := NewGitService(dataDir)
-	if err != nil {
-		log.Printf("Warning: Failed to initialize GitService: %v", err)
-	} else {
-		ds.gitService = gitService
-		log.Printf("GitService initialized successfully for directory: %s", dataDir)
-	}
-
-	ds.ignoreService = NewIgnoreService(dataDir)
-
-	return ds
 }
 
 func (d *DocumentService) Search(query string) ([]*models.Document, error) {

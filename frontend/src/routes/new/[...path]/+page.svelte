@@ -6,9 +6,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents';
 	import { generateSlug } from '$lib/utils/path';
-	import { Check, CircleX, Info, Loader2 } from 'lucide-svelte';
+	import { Check, CircleX, Loader2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import Input from '$lib/components/ui/input/input.svelte';
+	import MarkdownInfoHelp from '$lib/components/MarkdownInfoHelp.svelte';
 
 	// Get initial title from URL params if provided (e.g., from 404 page)
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
@@ -309,25 +310,5 @@ What to do before the next meeting.`;
 		</div>
 	</div>
 
-	<!-- Help Text -->
-	<div class="bg-blue-muted rounded-lg p-4">
-		<div class="flex">
-			<div class="flex-shrink-0">
-				<Info class="text-blue h-5 w-5"></Info>
-			</div>
-			<div class="ml-3">
-				<h3 class="text-sm font-medium text-black dark:text-white">Markdown Tips</h3>
-				<div class=" mt-2 text-sm">
-					<ul class="list-inside list-disc space-y-1">
-						<li><strong># Heading</strong> for main headings</li>
-						<li><strong>**bold**</strong> for bold text</li>
-						<li><strong>*italic*</strong> for italic text</li>
-						<li><strong>[link](url)</strong> for links</li>
-						<li><strong>```code```</strong> for code blocks</li>
-						<li><strong>- [ ] Task</strong> for checkboxes</li>
-					</ul>
-				</div>
-			</div>
-		</div>
-	</div>
+	<MarkdownInfoHelp showTaskExample={true} />
 </div>

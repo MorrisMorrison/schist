@@ -84,21 +84,6 @@ func NewGitHubService(
 		ctx:        context.Background(),
 	}
 
-	envGitHubConfig := &GitHubAppConfig{
-		Enabled:    config.GitHubEnabled,
-		Token:      config.GitHubToken,
-		Owner:      config.GitHubOwner,
-		Repository: config.GitHubRepo,
-		Branch:     config.GitHubBranch,
-		AutoSync:   config.GitHubAutoSync,
-		SyncOnSave: config.GitHubSyncOnSave,
-		LastSync:   config.GitHubLastSync,
-	}
-
-	if err := appConfigService.MigrateFromEnvConfig(envGitHubConfig); err != nil {
-		fmt.Printf("Warning: failed to migrate GitHub config: %v\n", err)
-	}
-
 	githubConfig := appConfigService.GetGitHubConfig()
 	if githubConfig.Enabled && githubConfig.Token != "" {
 		if err := service.initializeClient(); err != nil {

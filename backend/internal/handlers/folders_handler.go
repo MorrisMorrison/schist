@@ -1,0 +1,200 @@
+package handlers
+
+import (
+	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+func (h *APIHandler) getFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	folder, err := h.DocumentService.GetFolder(path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, folder)
+}
+
+func (h *APIHandler) getFolderTree(c *gin.Context) {
+	folders, err := h.DocumentService.GetFolderTree()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"folders": folders,
+		"total":   len(folders),
+	})
+}
+
+func (h *APIHandler) createFolder(c *gin.Context) {
+	type CreateFolderRequest struct {
+		Path string `json:"path" binding:"required"`
+	}
+
+	var req CreateFolderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	path := req.Path
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	err := h.DocumentService.CreateFolder(path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Folder created successfully",
+		"path":    path,
+	})
+}
+
+func (h *APIHandler) renameFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	type RenameRequest struct {
+		NewName string `json:"newName" binding:"required"`
+	}
+
+	var req RenameRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	err = h.DocumentService.RenameFolder(path, req.NewName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Folder renamed successfully",
+		"path":    path,
+		"newName": req.NewName,
+	})
+}
+
+func (h *APIHandler) deleteFolder(c *gin.Context) {
+	path := c.Param("path")
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	err := h.DocumentService.DeleteFolder(path)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Folder deleted successfully",
+		"path":    path,
+	})
+}
+
+func (h *APIHandler) moveFolder(c *gin.Context) {
+	type MoveFolderRequest struct {
+		OldPath string `json:"oldPath" binding:"required"`
+		NewPath string `json:"newPath" binding:"required"`
+	}
+
+	var req MoveFolderRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if !strings.HasPrefix(req.OldPath, "/") {
+		req.OldPath = "/" + req.OldPath
+	}
+	if !strings.HasPrefix(req.NewPath, "/") {
+		req.NewPath = "/" + req.NewPath
+	}
+
+	err = h.DocumentService.MoveFolder(req.OldPath, req.NewPath)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Folder moved successfully",
+		"oldPath": req.OldPath,
+		"newPath": req.NewPath,
+	})
+}
+
+func (h *APIHandler) moveDocument(c *gin.Context) {
+	type MoveRequest struct {
+		OldPath string `json:"oldPath" binding:"required"`
+		NewPath string `json:"newPath" binding:"required"`
+	}
+
+	var req MoveRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if !strings.HasPrefix(req.OldPath, "/") {
+		req.OldPath = "/" + req.OldPath
+	}
+	if !strings.HasPrefix(req.NewPath, "/") {
+		req.NewPath = "/" + req.NewPath
+	}
+
+	err = h.DocumentService.MoveDocument(req.OldPath, req.NewPath)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Document moved successfully",
+		"oldPath": req.OldPath,
+		"newPath": req.NewPath,
+	})
+}

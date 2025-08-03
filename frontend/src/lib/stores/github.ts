@@ -33,7 +33,6 @@ const initialState: GitHubState = {
 
 export const githubStore = writable<GitHubState>(initialState);
 
-// Derived stores for easier access to specific parts of the state
 export const githubSettings = derived(githubStore, ($store) => $store.settings);
 export const githubStatus = derived(githubStore, ($store) => $store.status);
 export const isGitHubLoading = derived(githubStore, ($store) => $store.loading);
@@ -43,7 +42,6 @@ export const lastSyncResult = derived(githubStore, ($store) => $store.lastSyncRe
 export const connectionTest = derived(githubStore, ($store) => $store.connectionTest);
 export const isTestingConnection = derived(githubStore, ($store) => $store.testingConnection);
 
-// Computed properties
 export const isGitHubConnected = derived(githubStatus, ($status) => $status?.connected ?? false);
 export const isGitHubEnabled = derived(githubSettings, ($settings) => $settings?.enabled ?? false);
 export const canSync = derived(
@@ -53,7 +51,6 @@ export const canSync = derived(
 
 export const githubActions = {
 	async loadSettings() {
-		// Settings are now derived from status, so just load status
 		return this.loadStatus();
 	},
 
@@ -84,7 +81,6 @@ export const githubActions = {
 		try {
 			const setupResult = await apiClient.setupGitHub(setupRequest);
 
-			// Reload status after setup
 			const status = await apiClient.getGitHubStatus();
 
 			githubStore.update((state) => ({
@@ -161,7 +157,6 @@ export const githubActions = {
 		try {
 			const result = await apiClient.syncToGitHub();
 
-			// Reload status after sync
 			const status = await apiClient.getGitHubStatus();
 
 			githubStore.update((state) => ({
@@ -198,7 +193,6 @@ export const githubActions = {
 		try {
 			await githubActions.loadStatus();
 		} catch (error) {
-			// Error handling is done in individual methods
 			console.error('Failed to refresh GitHub data:', error);
 		}
 	},
@@ -212,7 +206,6 @@ export const githubActions = {
 	}
 };
 
-// Auto-load GitHub data when the store is initialized in the browser
 if (browser) {
 	githubActions.refresh().catch(console.error);
 }

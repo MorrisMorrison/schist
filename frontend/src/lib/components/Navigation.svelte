@@ -94,10 +94,10 @@
 					<!-- Settings Button -->
 					<a
 						href="/settings"
-						class="text-muted hover:bg-gray-hover hover:text-secondary focus:bg-gray-hover focus:text-secondary inline-flex cursor-pointer items-center justify-center rounded-md p-2 no-underline focus:outline-none"
+						class="border-secondary bg-primary text-primary hover:bg-gray-hover text-sm' cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 						title="Settings"
 					>
-						<Settings class="h-5 w-5" />
+						<Settings class="h-4 w-4" />
 					</a>
 
 					<ThemeToggle />

@@ -18,7 +18,6 @@
 	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
 
-	// GitHub form state
 	let token = $state('');
 	let owner = $state('');
 	let repository = $state('');
@@ -29,10 +28,8 @@
 	let syncInterval = $state(60);
 	let formError = $state('');
 
-	// UI state
 	let activeTab = $state<'setup' | 'status' | 'sync'>('setup');
 
-	// Initialize form when component mounts or settings change
 	$effect(() => {
 		if ($githubSettings) {
 			token = $githubSettings.config.token || '';
@@ -58,10 +55,8 @@
 	);
 
 	onMount(() => {
-		// Load GitHub data when component mounts
 		githubActions.refresh();
 
-		// Set initial tab based on connection status
 		if ($githubStatus?.connected) {
 			activeTab = 'status';
 		}
@@ -118,7 +113,6 @@
 
 			await githubActions.setupGitHub(setupRequest);
 
-			// Update settings with backup mode and sync interval
 			await githubActions.updateSettings({
 				backupMode,
 				syncInterval

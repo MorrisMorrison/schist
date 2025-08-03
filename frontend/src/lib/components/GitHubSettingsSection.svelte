@@ -15,7 +15,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-svelte';
-	import type { GitHubSetupRequest} from '$lib/api/types';
+	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
 
 	let token = $state('');
@@ -27,7 +27,7 @@
 	let backupMode = $state<'manual' | 'auto'>('manual');
 	let syncInterval = $state(60);
 	let formError = $state('');
-	let tokenChanged = $state(false); 
+	let tokenChanged = $state(false);
 
 	let activeTab = $state<'setup' | 'sync'>('setup');
 
@@ -46,16 +46,14 @@
 	});
 
 	const isConnected = $derived($githubStatus?.connected ?? false);
-	const canTestConnection = $derived(
-		token.trim() && owner.trim() && repository.trim()
-	);
+	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
 	const hasChanges = $derived(
 		$githubStatus && $githubStatus.connected
 			? (() => {
 					const status = $githubStatus;
 					return branch !== status.branch || (backupMode === 'auto') !== status.auto_sync;
 				})()
-			: canTestConnection 
+			: canTestConnection
 	);
 
 	onMount(() => {
@@ -108,6 +106,7 @@
 		try {
 			await githubActions.testConnection(token.trim(), owner.trim(), repository.trim());
 		} catch {
+			console.error('Error testing connection');
 		}
 	}
 
@@ -135,6 +134,7 @@
 				branch: branch.trim()
 			});
 		} catch {
+			console.error('Error setting up github');
 		}
 	}
 
@@ -146,6 +146,7 @@
 				branch: branch.trim()
 			});
 		} catch {
+			console.error('Error updating github settings');
 		}
 	}
 
@@ -153,6 +154,7 @@
 		try {
 			await githubActions.syncToGitHub();
 		} catch {
+			console.error('Error syncing with github');
 		}
 	}
 
@@ -161,6 +163,7 @@
 			await githubActions.disconnect();
 			activeTab = 'setup';
 		} catch {
+			console.error("Error disconnecting from github")
 		}
 	}
 

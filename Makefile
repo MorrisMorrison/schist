@@ -7,8 +7,8 @@ install:
 	cd backend/cmd/schist && go mod download
 
 build: install
-	cd frontend && npm run build
-	cd backend/cmd/schist && go build
+	make build-frontend
+	make build-backend
 
 build-frontend:
 	cd frontend && npm run build

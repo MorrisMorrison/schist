@@ -28,6 +28,16 @@
 	--ocean-blue-light: #e0f2fe;
 	--ocean-blue-dark: #0c4a6e;
 
+	/* Minimal Dark Theme - GitHub Inspired */
+	--true-black: #0d1117;
+	--darker-gray: #161b22;
+	--medium-gray: #21262d;
+	--light-gray: #30363d;
+	--text-primary-white: #f0f6fc;
+	--text-secondary-gray: #7d8590;
+	--accent-blue: #0e7fe9;
+	--accent-blue-hover: #0284c7;
+
 	/* Semantic Colors */
 	--success: #10b981;
 	--warning: #f59e0b;
@@ -89,56 +99,56 @@
 }
 
 .dark {
-	/* Dark Mode - Professional Gray Palette */
-	--background: var(--gray-900);
-	--foreground: var(--gray-50);
-	--card: var(--gray-800);
-	--card-foreground: var(--gray-50);
-	--popover: var(--gray-800);
-	--popover-foreground: var(--gray-50);
-	--primary: var(--ocean-blue);
+	/* Minimal Dark Mode - GitHub Inspired */
+	--background: var(--true-black);
+	--foreground: var(--text-primary-white);
+	--card: var(--darker-gray);
+	--card-foreground: var(--text-primary-white);
+	--popover: var(--darker-gray);
+	--popover-foreground: var(--text-primary-white);
+	--primary: var(--accent-blue);
 	--primary-foreground: var(--pure-white);
-	--secondary: var(--gray-800);
-	--secondary-foreground: var(--gray-50);
-	--muted: var(--gray-800);
-	--muted-foreground: var(--gray-400);
-	--accent: var(--gray-800);
-	--accent-foreground: var(--gray-50);
+	--secondary: var(--medium-gray);
+	--secondary-foreground: var(--text-primary-white);
+	--muted: var(--medium-gray);
+	--muted-foreground: var(--text-secondary-gray);
+	--accent: var(--light-gray);
+	--accent-foreground: var(--text-primary-white);
 	--destructive: var(--error);
 	--destructive-foreground: var(--pure-white);
-	--border: var(--gray-700);
-	--input: var(--gray-700);
-	--ring: var(--ocean-blue);
+	--border: var(--medium-gray);
+	--input: var(--medium-gray);
+	--ring: var(--accent-blue);
 
-	/* Sidebar Dark Mode */
-	--sidebar: var(--gray-900);
-	--sidebar-foreground: var(--gray-50);
-	--sidebar-primary: var(--ocean-blue);
-	--sidebar-primary-foreground: var(--pure-white);
-	--sidebar-accent: var(--gray-800);
-	--sidebar-accent-foreground: var(--gray-50);
-	--sidebar-border: var(--gray-700);
-	--sidebar-ring: var(--ocean-blue);
+	/* Sidebar Minimal Dark */
+	--sidebar: var(--true-black);
+	--sidebar-foreground: var(--text-primary-white);
+	--sidebar-primary: var(--text-secondary-gray);
+	--sidebar-primary-foreground: var(--text-primary-white);
+	--sidebar-accent: var(--light-gray);
+	--sidebar-accent-foreground: var(--text-primary-white);
+	--sidebar-border: var(--medium-gray);
+	--sidebar-ring: var(--accent-blue);
 
-	/* Legacy Dark Mode Variables */
-	--text-primary: var(--gray-50);
-	--text-secondary: var(--gray-400);
-	--text-muted: var(--gray-500);
-	--bg-primary: var(--gray-900);
-	--bg-secondary: var(--gray-800);
-	--bg-muted: var(--gray-700);
-	--border-primary: var(--gray-700);
-	--border-secondary: var(--gray-600);
-	--blue-primary: var(--ocean-blue);
-	--blue-secondary: var(--ocean-blue-hover);
-	--blue-muted: var(--ocean-blue-dark);
+	/* Legacy Minimal Dark Variables */
+	--text-primary: var(--text-primary-white);
+	--text-secondary: var(--text-secondary-gray);
+	--text-muted: var(--text-secondary-gray);
+	--bg-primary: var(--true-black);
+	--bg-secondary: var(--darker-gray);
+	--bg-muted: var(--medium-gray);
+	--border-primary: var(--medium-gray);
+	--border-secondary: var(--light-gray);
+	--blue-primary: var(--accent-blue);
+	--blue-secondary: var(--accent-blue-hover);
+	--blue-muted: var(--text-secondary-gray);
 	--red-primary: var(--error);
 	--red-secondary: var(--error);
 	--red-muted: var(--error);
 	--red-bg: #7f1d1d;
-	--blue-bg: var(--ocean-blue-dark);
-	--gray-hover: var(--gray-800);
-	--gray-active: var(--gray-700);
+	--blue-bg: var(--darker-gray);
+	--gray-hover: var(--light-gray);
+	--gray-active: var(--medium-gray);
 }
 
 @theme inline {

@@ -3,9 +3,12 @@
 	import { page } from '$app/state';
 	import Editor from '$lib/components/Editor.svelte';
 	import TagInput from '$lib/components/TagInput.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents';
 	import { generateSlug } from '$lib/utils/path';
+	import { Check, CircleX, Info, Loader2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
+	import Input from '$lib/components/ui/input/input.svelte';
 
 	// Get initial title from URL params if provided (e.g., from 404 page)
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
@@ -15,7 +18,6 @@
 	let content = $state('');
 	let tags = $state<string[]>([]);
 
-	// Initialize title and content when initialTitle changes
 	$effect(() => {
 		if (initialTitle && !title) {
 			title = initialTitle;
@@ -62,7 +64,6 @@
 				content: content.trim()
 			});
 
-			// Navigate to the new page using the path returned by the API
 			goto(`/documents${response.metaData.path}`);
 		} catch (error) {
 			console.error('Failed to create page:', error);
@@ -91,7 +92,6 @@
 
 	function generatePath(title: string): string {
 		const slug = generateSlug(title);
-		// Handle root path case - if data.path is empty or just "/", don't add extra slash
 		if (!data.path || data.path === '/') {
 			return `/${slug}`;
 		}
@@ -119,56 +119,20 @@
 			</div>
 
 			<div class="flex items-center space-x-3">
-				<a
-					href="/"
-					data-testid="cancel-button"
-					class="bg-secondary text-primary hover:bg-gray-hover focus:bg-gray-active inline-flex items-center rounded-md px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none"
-				>
-					Cancel
-				</a>
-
-				<button
-					type="button"
+				<Button href="/" data-testid="cancel-button" variant="outline">Cancel</Button>
+				<Button
 					data-testid="save-document-button"
 					onclick={handleCreate}
 					disabled={isCreating || !title.trim() || !content.trim()}
-					class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{#if isCreating}
-						<svg
-							class="mr-1.5 h-4 w-4 animate-spin"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-							/>
-						</svg>
+						<Loader2 class="h-4 w-4 animate-spin"></Loader2>
 						Creating...
 					{:else}
-						<!-- <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 4v16m8-8H4"
-							/>
-						</svg> -->
-						<svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M5 13l4 4L19 7"
-							/>
-						</svg>
+						<Check class="h-4 w-4"></Check>
 						Save Document
 					{/if}
-				</button>
+				</Button>
 			</div>
 		</div>
 	</div>
@@ -178,14 +142,7 @@
 		<div class="bg-red-muted rounded-md p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">
-					<svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-						/>
-					</svg>
+					<CircleX class="h-5 w-5 text-red-400"></CircleX>
 				</div>
 				<div class="ml-3">
 					<h3 class="text-red-primary text-sm font-medium">Error</h3>
@@ -203,14 +160,13 @@
 		<div>
 			<label for="title" class="text-secondary block text-sm font-medium">Document Title</label>
 			<div class="mt-1">
-				<input
+				<Input
 					id="title"
 					data-testid="document-title-input"
 					type="text"
 					bind:value={title}
 					placeholder="Enter document title..."
-					class="border-secondary bg-primary text-primary block w-full rounded-md border px-3 py-2 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none sm:text-sm"
-				/>
+				></Input>
 			</div>
 			{#if title.trim()}
 				<p class="text-muted mt-1 text-sm">
@@ -357,23 +313,11 @@ What to do before the next meeting.`;
 	<div class="bg-blue-muted rounded-lg p-4">
 		<div class="flex">
 			<div class="flex-shrink-0">
-				<svg
-					class="text-blue-primary h-5 w-5"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-					/>
-				</svg>
+				<Info class="text-blue h-5 w-5"></Info>
 			</div>
 			<div class="ml-3">
-				<h3 class="text-blue-primary text-sm font-medium">Markdown Tips</h3>
-				<div class="text-blue-secondary mt-2 text-sm">
+				<h3 class="text-sm font-medium text-black dark:text-white">Markdown Tips</h3>
+				<div class=" mt-2 text-sm">
 					<ul class="list-inside list-disc space-y-1">
 						<li><strong># Heading</strong> for main headings</li>
 						<li><strong>**bold**</strong> for bold text</li>

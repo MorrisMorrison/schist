@@ -73,7 +73,10 @@ type GitHubRepoInfo struct {
 	CloneURL    string `json:"clone_url"`
 }
 
-func NewGitHubService(config *appconfig.Config, gitService *GitService, appConfigService *AppConfigService) *GitHubService {
+func NewGitHubService(
+	config *appconfig.Config,
+	gitService *GitService,
+	appConfigService *AppConfigService) *GitHubService {
 	service := &GitHubService{
 		config:     config,
 		appConfig:  appConfigService,
@@ -435,7 +438,10 @@ func (gs *GitHubService) setupGitRemote() error {
 		}
 	}
 
-	gs.gitService.repository.Storer.SetConfig(cfg)
+	err = gs.gitService.repository.Storer.SetConfig(cfg)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

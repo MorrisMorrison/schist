@@ -11,6 +11,7 @@
 	import CreateFolderModal from './CreateFolderModal.svelte';
 	import { Plus, FolderPlus, File, Folder } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import {
 		Card,
 		CardContent,
@@ -40,6 +41,7 @@
 
 	let showCreateFolderModal = $state(false);
 	let isLoadingFolderData = $state(false);
+	let multiSelectMode = $state(false);
 	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name'); // 'name', 'created', 'modified'
 	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc'); // 'asc', 'desc'
 
@@ -226,7 +228,6 @@
 			<div
 				class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2"
 			>
-				>
 				<label class="text-secondary text-sm font-medium" for="sort-select">Sort by:</label>
 				<select
 					bind:value={sortBy}
@@ -281,7 +282,7 @@
 										<div
 											class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors"
 										>
-											<Folder class="h-5 w-5 flex-shrink-0 text-white" />
+											<Folder class="h-4 w-4 flex-shrink-0 text-white" />
 										</div>
 										<div class="min-w-0 flex-1 space-y-1 overflow-hidden">
 											<CardTitle
@@ -304,10 +305,22 @@
 			<!-- Documents -->
 			{#if currentFolderDocuments().length > 0}
 				<section class="space-y-6" data-testid="documents-section">
-					<h2 class="text-foreground text-xl font-semibold">Documents</h2>
+					<div class="flex items-center justify-between">
+						<h2 class="text-foreground text-xl font-semibold">Documents</h2>
+						<div class="flex items-center gap-2">
+							<span class="text-muted-foreground text-sm">Multi-select</span>
+							<ToggleSlider
+								checked={multiSelectMode}
+								onCheckedChange={(enabled: boolean) => (multiSelectMode = enabled)}
+								size="sm"
+							/>
+						</div>
+					</div>
 					<DocumentGrid
 						documents={currentFolderDocuments()}
 						showPath={mode !== 'folder'}
+						{multiSelectMode}
+						onMultiSelectModeChange={(enabled: boolean) => (multiSelectMode = enabled)}
 						emptyMessage={mode === 'recent'
 							? 'No recent activity yet. Create your first document to get started!'
 							: mode === 'all'

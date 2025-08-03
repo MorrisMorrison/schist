@@ -6,14 +6,14 @@
 	import FolderView from '$lib/components/FolderView.svelte';
 	import DocumentView from '$lib/components/DocumentView.svelte';
 	import type { Document } from '$lib/api/types';
+	import { Button } from '$lib/components/ui/button';
+	import { Home, Plus, RotateCcw, Search } from 'lucide-svelte';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
 	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 	let isNotFound = $state(false);
-	// let showMoveModal = $state(false); // TODO: implement move functionality
-	// let documentToMove = $state<Document | null>(null); // TODO: implement move functionality
 
 	const path = $derived(page.params.path || '');
 	const decodedPath = $derived(decodeURIComponent(path));
@@ -23,7 +23,6 @@
 		loadContent();
 	});
 
-	// Watch for path changes
 	$effect(() => {
 		if (path !== undefined) {
 			loadContent();
@@ -38,18 +37,15 @@
 		isNotFound = false;
 
 		try {
-			// First try to load as a documents
 			try {
 				currentDocument = await documentActions.loadDocumentByPath(fullPath);
 				isFolder = false;
 				isNotFound = false;
 			} catch (documentError) {
-				// Check if it's a 404 error
 				if (documentError instanceof Error && documentError.message.includes('404')) {
 					isNotFound = true;
 					isFolder = false;
 				} else {
-					// If not 404, treat as folder
 					isFolder = true;
 					isNotFound = false;
 				}
@@ -68,27 +64,11 @@
 	async function handleDeleteDocument(path: string) {
 		try {
 			await documentActions.deleteDocument(path);
-			// Navigate to home page after deletion
 			goto('/');
 		} catch (err) {
 			console.error('Failed to delete document:', err);
-			// Could show error toast here
 		}
 	}
-
-	// TODO: implement move functionality
-	// function handleMoveDocument(document: Document) {
-	//	documentToMove = document;
-	//	showMoveModal = true;
-	// }
-
-	// TODO: implement move functionality
-	// function handleDocumentMoved() {
-	//	showMoveModal = false;
-	//	documentToMove = null;
-	//	// Refresh the current view
-	//	loadContent();
-	// }
 </script>
 
 <svelte:head>
@@ -110,12 +90,7 @@
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
 			<h1 class="text-foreground mb-4 text-2xl font-semibold">Error</h1>
 			<p class="text-muted-foreground mb-8 max-w-2xl">{error}</p>
-			<button
-				class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-				onclick={loadContent}
-			>
-				Try Again
-			</button>
+			<Button onclick={loadContent}>Try Again</Button>
 		</div>
 	{:else if isFolder}
 		<FolderView path={fullPath} />
@@ -139,25 +114,22 @@
 				> could not be found. It may have been moved, deleted, or never existed.
 			</p>
 			<div class="flex flex-wrap justify-center gap-4 md:flex-row">
-				<button
-					class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+				<Button
+					size="lg"
 					onclick={() =>
 						goto('/new?title=' + encodeURIComponent(fullPath.split('/').pop() || 'New Document'))}
 				>
-					Create This Document
-				</button>
-				<button
-					class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-					onclick={() => goto('/documents')}
+					<Plus class="h-5 w-5 text-white"></Plus>
+					Create this Document</Button
 				>
-					Browse All Documents
-				</button>
-				<button
-					class="border-border text-foreground hover:bg-muted rounded-lg border px-6 py-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-					onclick={() => goto('/')}
+				<Button variant="secondary" size="lg" onclick={() => goto('/documents')}>
+					<Search class="h-5 w-5 text-white"></Search>
+					Browse All Documents</Button
 				>
-					Go to Home
-				</button>
+				<Button variant="outline" size="lg" onclick={() => goto('/')}>
+					<Home class="h-5 w-5 text-white"></Home>
+					Go to Home</Button
+				>
 			</div>
 		</div>
 	{:else}
@@ -167,18 +139,14 @@
 				We encountered an unexpected error while loading this content.
 			</p>
 			<div class="flex flex-wrap justify-center gap-4 md:flex-row">
-				<button
-					class="rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-					onclick={loadContent}
+				<Button onclick={loadContent}>
+					<RotateCcw class="h-5 w-5 text-white"></RotateCcw>
+					Try Again</Button
 				>
-					Try Again
-				</button>
-				<button
-					class="border-border text-foreground hover:bg-muted rounded-lg border px-6 py-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-					onclick={() => goto('/')}
+				<Button variant="outline" size="lg" onclick={() => goto('/')}>
+					<Home class="h-5 w-5 text-white"></Home>
+					Go to Home</Button
 				>
-					Go to Home
-				</button>
 			</div>
 		</div>
 	{/if}

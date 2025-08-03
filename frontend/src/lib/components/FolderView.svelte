@@ -69,30 +69,20 @@
 		let filteredDocuments;
 
 		if (mode === 'recent') {
-			// Filter documents excluding trash
-			filteredDocuments = ($documentsStore.documents || [])
-				.filter((document) => !document.metaData.path.includes('/trash'))
-				.slice(0, recentLimit);
+			filteredDocuments = ($documentsStore.documents || []).slice(0, recentLimit);
 		} else if (mode === 'all') {
-			// Return all documents
-			filteredDocuments = ($documentsStore.documents || []).filter(
-				(document) => !document.metaData.path.includes('/trash')
-			);
+			filteredDocuments = $documentsStore.documents || [];
 		} else {
-			// Original folder filtering logic
 			filteredDocuments = ($documentsStore.documents || []).filter((document) => {
 				const documentPath = document.metaData?.path || '';
 				const isRoot = path === '' || path === '/';
 				if (isRoot) {
-					// Documents in root folder don't have '/' after the first character
 					return documentPath.split('/').length === 2; // ['', 'filename']
 				}
 
-				// check if document is directly in this folder
 				const folderSegments = path.split('/').filter(Boolean);
 				const documentSegments = documentPath.split('/').filter(Boolean);
 
-				// Document must be exactly one level deeper than the folder
 				return (
 					documentSegments.length === folderSegments.length + 1 &&
 					documentSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
@@ -100,7 +90,6 @@
 			});
 		}
 
-		// Apply sorting to all documents
 		return filteredDocuments.sort((a, b) => {
 			let comparison = 0;
 
@@ -122,7 +111,7 @@
 
 	const subFolders = $derived(() => {
 		if (mode === 'recent' || mode === 'all') {
-			return []; // No folders in recent/all modes
+			return [];
 		}
 		return (currentFolderData()?.sub_folders || []).sort((a, b) => {
 			const result = a.name.localeCompare(b.name);
@@ -130,9 +119,7 @@
 		});
 	});
 
-	// Load folder contents on mount and path changes
 	$effect(() => {
-		// Initialize stores with initial data if provided
 		if (initialDocuments?.length > 0) {
 			documentsStore.update((state) => ({ ...state, documents: initialDocuments }));
 		}
@@ -140,7 +127,6 @@
 			foldersStore.update((state) => ({ ...state, folders: initialFolders }));
 		}
 
-		// Load fresh data if not provided or when path changes
 		if (initialDocuments?.length === 0 || initialFolders?.length === 0) {
 			loadFolderData();
 		}
@@ -240,6 +226,7 @@
 			<div
 				class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2"
 			>
+				>
 				<label class="text-secondary text-sm font-medium" for="sort-select">Sort by:</label>
 				<select
 					bind:value={sortBy}

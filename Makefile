@@ -1,4 +1,4 @@
-.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui check
+.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui check verify
 
 all: build
 
@@ -60,3 +60,8 @@ e2e-ui:
 
 check:
 	cd frontend && npm run check
+	
+verify:
+	make fmt
+	make lint
+	make check

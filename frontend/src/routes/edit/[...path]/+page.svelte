@@ -6,7 +6,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
 	import { generateSlug } from '$lib/utils/path';
-	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
+	import { Check, Trash2, RotateCcw, CircleX, Info } from 'lucide-svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -25,10 +25,8 @@
 	let isDeleting = $state(false);
 	let showDeleteModal = $state(false);
 
-	// Single auto-save timer
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// Track original values to detect changes
 	const originalTitle = document.metaData.title;
 	const originalContent = document.content;
 	const originalTags = JSON.stringify(document.metaData.tags || []);
@@ -54,11 +52,9 @@
 		isSaving = true;
 		saveError = '';
 
-		// We need to generate a slug from the title
 		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
-			// Use 'manual' saveType for manual saves to create git versions
 			await documentActions.updateDocumentByPath(
 				data.path,
 				{
@@ -75,7 +71,6 @@
 				'manual'
 			);
 
-			// Navigate back to the page view
 			await goto(`/documents/${newPath}`);
 		} catch (error) {
 			console.error('Failed to save document:', error);
@@ -120,12 +115,10 @@
 	}
 
 	function scheduleAutoSave() {
-		// Clear existing timer
 		if (autoSaveTimer) {
 			clearTimeout(autoSaveTimer);
 		}
 
-		// Only auto-save if there are actual changes
 		const hasChanges =
 			title !== originalTitle ||
 			content !== originalContent ||
@@ -157,7 +150,6 @@
 		isSaving = true;
 		saveError = '';
 
-		// We need to generate a slug from the title
 		const slug = title
 			.trim()
 			.toLowerCase()
@@ -165,7 +157,6 @@
 			.replace(/^-|-$/g, '');
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
-			// Use 'auto' saveType for auto-saves to prevent version creation
 			await documentActions.updateDocumentByPath(
 				data.path,
 				{
@@ -181,8 +172,6 @@
 				},
 				'auto'
 			);
-
-			// Don't navigate on autosave - just stay on the edit page
 		} catch (error) {
 			console.error('Failed to auto-save page:', error);
 			saveError = error instanceof Error ? error.message : 'Failed to auto-save page';
@@ -192,13 +181,11 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		// Ctrl+S or Cmd+S to save
 		if ((event.ctrlKey || event.metaKey) && event.key === 's') {
 			event.preventDefault();
 			handleSave();
 		}
 
-		// Escape to cancel delete confirmation
 		if (event.key === 'Escape' && showDeleteModal) {
 			showDeleteModal = false;
 		}
@@ -261,19 +248,7 @@
 		<div class="bg-red-muted rounded-md p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">
-					<svg
-						class="text-red-primary h-5 w-5"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-						/>
-					</svg>
+					<CircleX class="text-red-primary h-5 w-5"></CircleX>
 				</div>
 				<div class="ml-3">
 					<h3 class="text-red-primary text-sm font-medium">Error</h3>
@@ -323,19 +298,7 @@
 	<div class="bg-blue-muted rounded-lg p-4">
 		<div class="flex">
 			<div class="flex-shrink-0">
-				<svg
-					class="text-blue-primary h-5 w-5"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-					/>
-				</svg>
+				<Info class="text-blue-primary h-5 w-5"></Info>
 			</div>
 			<div class="ml-3">
 				<h3 class="text-blue-primary text-sm font-medium dark:text-white">Markdown Tips</h3>

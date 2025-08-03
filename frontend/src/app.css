@@ -37,7 +37,7 @@
 	--error-light: #fee2e2;
 
 	/* Shadcn/UI Variables - Light Mode */
-	--background: var(--gray-50);
+	--background: var(--pure-white);
 	--foreground: var(--gray-900);
 	--card: var(--pure-white);
 	--card-foreground: var(--gray-900);
@@ -71,7 +71,7 @@
 	--text-primary: var(--gray-900);
 	--text-secondary: var(--gray-600);
 	--text-muted: var(--gray-500);
-	--bg-primary: var(--gray-50);
+	--bg-primary: var(--pure-white);
 	--bg-secondary: var(--gray-100);
 	--bg-muted: var(--gray-200);
 	--border-primary: var(--gray-200);

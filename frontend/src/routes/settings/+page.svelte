@@ -6,7 +6,7 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { Github, Settings } from 'lucide-svelte';
+	import { Github } from 'lucide-svelte';
 	import GitHubSettingsSection from '$lib/components/GitHubSettingsSection.svelte';
 </script>
 
@@ -38,7 +38,7 @@
 	</Card>
 
 	<!-- Future Settings Sections -->
-	<Card>
+	<!-- <Card>
 		<CardHeader>
 			<CardTitle class="flex items-center gap-3">
 				<Settings class="h-6 w-6 text-gray-700 dark:text-gray-300" />
@@ -51,5 +51,5 @@
 				<p>More settings coming soon...</p>
 			</div>
 		</CardContent>
-	</Card>
+	</Card> -->
 </div>

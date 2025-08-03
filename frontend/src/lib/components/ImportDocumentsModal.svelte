@@ -176,16 +176,16 @@
 						<Label>If file already exists</Label>
 						<div class="space-y-2">
 							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="rename" />
-								<span class="text-sm">Rename (recommended)</span>
+								<input type="radio" bind:group={overwriteMode} value="skip" />
+								<span class="text-sm">Skip</span>
 							</label>
 							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="skip" />
-								<span class="text-sm">Skip existing files</span>
+								<input type="radio" bind:group={overwriteMode} value="rename" />
+								<span class="text-sm">Rename</span>
 							</label>
 							<label class="flex items-center space-x-2">
 								<input type="radio" bind:group={overwriteMode} value="overwrite" />
-								<span class="text-sm text-orange-600">Overwrite existing files</span>
+								<span class="text-sm text-orange-600">Overwrite</span>
 							</label>
 						</div>
 					</div>

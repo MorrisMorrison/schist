@@ -93,8 +93,12 @@ func TestLinkService_ParseWikiLinks(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	documentService := NewDocumentService(tempDir)
+	gitService, err := NewGitService(tempDir)
+	if err != nil {
+		t.Skipf("Skipping test, git service not available: %v", err)
+	}
 	ignoreService := NewIgnoreService(tempDir)
+	documentService := NewDocumentService(tempDir, gitService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)
 
 	for _, tt := range tests {
@@ -130,8 +134,12 @@ func TestLinkService_ResolveTargetToPath(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	documentService := NewDocumentService(tempDir)
+	gitService, err := NewGitService(tempDir)
+	if err != nil {
+		t.Skipf("Skipping test, git service not available: %v", err)
+	}
 	ignoreService := NewIgnoreService(tempDir)
+	documentService := NewDocumentService(tempDir, gitService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)
 
 	// Create a test page
@@ -196,8 +204,12 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	documentService := NewDocumentService(tempDir)
+	gitService, err := NewGitService(tempDir)
+	if err != nil {
+		t.Skipf("Skipping test, git service not available: %v", err)
+	}
 	ignoreService := NewIgnoreService(tempDir)
+	documentService := NewDocumentService(tempDir, gitService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)
 
 	// Create test pages
@@ -306,8 +318,12 @@ func TestLinkService_GetBrokenLinks(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	documentService := NewDocumentService(tempDir)
+	gitService, err := NewGitService(tempDir)
+	if err != nil {
+		t.Skipf("Skipping test, git service not available: %v", err)
+	}
 	ignoreService := NewIgnoreService(tempDir)
+	documentService := NewDocumentService(tempDir, gitService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)
 
 	// Create a page with broken links

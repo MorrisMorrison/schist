@@ -23,6 +23,15 @@ func setupTestDir(t *testing.T) (string, func()) {
 	return testDir, cleanup
 }
 
+func setupDocumentService(t *testing.T, testDir string) *services.DocumentService {
+	gitService, err := services.NewGitService(testDir)
+	if err != nil {
+		t.Skipf("Skipping test, git service not available: %v", err)
+	}
+	ignoreService := services.NewIgnoreService(testDir)
+	return services.NewDocumentService(testDir, gitService, ignoreService)
+}
+
 func createTestPage() *models.Document {
 	return &models.Document{
 		MetaData: &models.DocumentMetaData{
@@ -37,7 +46,7 @@ func TestDocumentService_CreateDocument(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("creates page successfully", func(t *testing.T) {
 		page := createTestPage()
@@ -102,7 +111,7 @@ func TestDocumentService_ReadDocument(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("reads existing page successfully", func(t *testing.T) {
 		// Create a test page first
@@ -149,7 +158,7 @@ func TestDocumentService_UpdateDocument(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("updates existing page", func(t *testing.T) {
 		// Create original page
@@ -181,7 +190,7 @@ func TestDocumentService_DeleteDocument(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("deletes existing page", func(t *testing.T) {
 		// Create a page first
@@ -215,7 +224,7 @@ func TestDocumentService_ListDocuments(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("lists all pages", func(t *testing.T) {
 		// Create multiple pages
@@ -319,7 +328,7 @@ func TestDocumentService_BuildFilePath(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("creates correct file path", func(t *testing.T) {
 		page := &models.Document{
@@ -343,7 +352,11 @@ func TestDocumentService_BuildFilePath(t *testing.T) {
 func TestDocumentService_ErrorCases(t *testing.T) {
 	t.Run("invalid data directory", func(t *testing.T) {
 		// Create file service with invalid directory
-		documentService := services.NewDocumentService("/invalid/path/that/does/not/exist")
+		// For error testing, we need to create services with invalid path
+		invalidPath := "/invalid/path/that/does/not/exist"
+		gitService, _ := services.NewGitService(invalidPath) // This will fail but we need to continue
+		ignoreService := services.NewIgnoreService(invalidPath)
+		documentService := services.NewDocumentService(invalidPath, gitService, ignoreService)
 
 		page := createTestPage()
 		err := documentService.CreateDocument(page)
@@ -364,7 +377,7 @@ func TestDocumentService_ErrorCases(t *testing.T) {
 			os.Chmod(testDir, 0755)
 		}()
 
-		documentService := services.NewDocumentService(testDir)
+		documentService := setupDocumentService(t, testDir)
 		page := createTestPage()
 
 		err = documentService.CreateDocument(page)
@@ -376,7 +389,7 @@ func TestDocumentService_Integration(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("full CRUD workflow", func(t *testing.T) {
 		// Create
@@ -417,7 +430,7 @@ func TestDocumentService_RenameFolder(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
 
-	documentService := services.NewDocumentService(testDir)
+	documentService := setupDocumentService(t, testDir)
 
 	t.Run("successfully renames empty folder", func(t *testing.T) {
 		// Create a folder
@@ -749,7 +762,7 @@ func TestDocumentService_RenameFolder(t *testing.T) {
 func TestDocumentService_MoveFolder(t *testing.T) {
 	t.Run("successfully moves folder to different parent", func(t *testing.T) {
 		testDir := t.TempDir()
-		documentService := services.NewDocumentService(testDir)
+		documentService := setupDocumentService(t, testDir)
 
 		// Create folder structure: /source/child-folder with a page
 		sourceDir := filepath.Join(testDir, "source")
@@ -797,7 +810,7 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 
 	t.Run("fails to move folder into itself", func(t *testing.T) {
 		testDir := t.TempDir()
-		documentService := services.NewDocumentService(testDir)
+		documentService := setupDocumentService(t, testDir)
 
 		// Create folder structure
 		sourceDir := filepath.Join(testDir, "parent")
@@ -813,7 +826,7 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 
 	t.Run("fails to move non-existent folder", func(t *testing.T) {
 		testDir := t.TempDir()
-		documentService := services.NewDocumentService(testDir)
+		documentService := setupDocumentService(t, testDir)
 
 		err := documentService.MoveFolder("/non-existent", "/target/folder")
 		assert.Error(t, err)
@@ -822,7 +835,7 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 
 	t.Run("fails to move to existing destination", func(t *testing.T) {
 		testDir := t.TempDir()
-		documentService := services.NewDocumentService(testDir)
+		documentService := setupDocumentService(t, testDir)
 
 		// Create both source and destination folders
 		sourceDir := filepath.Join(testDir, "source")
@@ -839,7 +852,7 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 
 	t.Run("fails to move root folder", func(t *testing.T) {
 		testDir := t.TempDir()
-		documentService := services.NewDocumentService(testDir)
+		documentService := setupDocumentService(t, testDir)
 
 		err := documentService.MoveFolder("/", "/target")
 		assert.Error(t, err)

@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
@@ -18,28 +16,12 @@ type APIHandler struct {
 	GitHubService   *services.GitHubService
 }
 
-func NewAPIHandler() *APIHandler {
-	appConfig := config.Load()
-	dataDir := appConfig.DataDir
-	documentService := services.NewDocumentService(dataDir)
-
-	gitService, err := services.NewGitService(dataDir)
-	if err != nil {
-		fmt.Printf("Warning: failed to initialize git service: %v\n", err)
-	}
-
-	ignoreService := services.NewIgnoreService(dataDir)
-
-	settings, err := config.LoadSettings(dataDir)
-	if err != nil {
-		fmt.Printf("Warning: failed to load settings: %v\n", err)
-	}
-
+func NewAPIHandler(services *services.Services) *APIHandler {
 	return &APIHandler{
-		DocumentService: documentService,
-		AssetService:    services.NewAssetService(dataDir),
-		LinkService:     services.NewLinkService(documentService, ignoreService),
-		GitHubService:   services.NewGitHubService(appConfig, gitService, settings),
+		DocumentService: services.DocumentService,
+		AssetService:    services.AssetService,
+		LinkService:     services.LinkService,
+		GitHubService:   services.GitHubService,
 	}
 }
 

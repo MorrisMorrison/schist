@@ -313,6 +313,7 @@ export interface GitHubRepoInfo {
 export interface GitHubSetupResponse {
 	message: string;
 	repository: GitHubRepoInfo;
+	status?: GitHubStatus;
 	auto_sync: boolean;
 	sync_on_save: boolean;
 }

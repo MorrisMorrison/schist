@@ -72,6 +72,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	github := routerGroup.Group("/github")
 	{
 		github.POST("/setup", h.setupGitHub)
+		github.POST("/test", h.testGitHubConnection)
 		github.GET("/status", h.getGitHubStatus)
 		github.POST("/sync", h.syncToGitHub)
 		github.PUT("/config", h.updateGitHubConfig)

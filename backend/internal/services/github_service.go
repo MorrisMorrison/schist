@@ -334,6 +334,44 @@ func (gs *GitHubService) ValidateAccess() error {
 	return nil
 }
 
+func (gs *GitHubService) TestConnection(token, owner, repo, branch string) error {
+	if token == "" {
+		return fmt.Errorf("github token is required")
+	}
+	if owner == "" {
+		return fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return fmt.Errorf("repository name is required")
+	}
+
+	if branch == "" {
+		branch = "main"
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(gs.ctx, ts)
+	tempClient := github.NewClient(tc)
+
+	repoInfo, _, err := tempClient.Repositories.Get(gs.ctx, owner, repo)
+	if err != nil {
+		return fmt.Errorf("failed to access repository %s/%s: %w", owner, repo, err)
+	}
+
+	if branch == "main" && repoInfo.DefaultBranch != nil {
+		branch = *repoInfo.DefaultBranch
+	}
+
+	_, _, err = tempClient.Repositories.GetBranch(gs.ctx, owner, repo, branch, 1)
+	if err != nil {
+		return fmt.Errorf("failed to access branch %s: %w", branch, err)
+	}
+
+	return nil
+}
+
 func (gs *GitHubService) GetRepositoryInfo() (*GitHubRepoInfo, error) {
 	githubSettings := gs.settings.GetGitHubSettings()
 
@@ -404,31 +442,37 @@ func (gs *GitHubService) setupGitRemote() error {
 
 	githubSettings := gs.settings.GetGitHubSettings()
 
-	remoteURL := fmt.Sprintf("https://%s@github.com/%s/%s.git",
-		githubSettings.Token,
+	// Use HTTPS URL without token for better security
+	remoteURL := fmt.Sprintf("https://github.com/%s/%s.git",
 		githubSettings.Owner,
 		githubSettings.Repository)
 
+	// Get current repository configuration
 	cfg, err := gs.gitService.repository.Config()
 	if err != nil {
 		return fmt.Errorf("failed to get repository config: %w", err)
 	}
 
-	if _, exists := cfg.Remotes["origin"]; exists {
-		cfg.Remotes["origin"] = &config.RemoteConfig{
-			Name: "origin",
-			URLs: []string{remoteURL},
-		}
-	} else {
-		cfg.Remotes["origin"] = &config.RemoteConfig{
-			Name: "origin",
-			URLs: []string{remoteURL},
-		}
+	// Create or update the origin remote
+	cfg.Remotes["origin"] = &config.RemoteConfig{
+		Name: "origin",
+		URLs: []string{remoteURL},
 	}
 
+	// Persist configuration to the repository
 	err = gs.gitService.repository.Storer.SetConfig(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to persist git config: %w", err)
+	}
+
+	// Verify the remote was set correctly
+	verifyConfig, err := gs.gitService.repository.Config()
+	if err != nil {
+		return fmt.Errorf("failed to verify git config: %w", err)
+	}
+
+	if remote, exists := verifyConfig.Remotes["origin"]; !exists || len(remote.URLs) == 0 || remote.URLs[0] != remoteURL {
+		return fmt.Errorf("failed to set git remote - verification failed")
 	}
 
 	return nil

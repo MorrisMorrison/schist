@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -27,6 +28,7 @@ type Config struct {
 	GitHubBranch     string
 	GitHubAutoSync   bool
 	GitHubSyncOnSave bool
+	GitHubLastSync   time.Time
 }
 
 func Load() *Config {

@@ -14,7 +14,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
-	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw, Cloud } from 'lucide-svelte';
+	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-svelte';
 	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
 
@@ -27,42 +27,47 @@
 	let backupMode = $state<'manual' | 'auto'>('manual');
 	let syncInterval = $state(60);
 	let formError = $state('');
+	let tokenChanged = $state(false); // Track if user has modified the token field
 
-	let activeTab = $state<'setup' | 'status' | 'sync'>('setup');
+	let activeTab = $state<'setup' | 'sync'>('setup');
 
 	$effect(() => {
-		if ($githubSettings) {
-			token = $githubSettings.config.token || '';
-			owner = $githubSettings.config.owner || '';
-			repository = $githubSettings.config.repository || '';
-			branch = $githubSettings.config.branch || 'main';
-			backupMode = $githubSettings.backupMode || 'manual';
-			syncInterval = $githubSettings.syncInterval || 60;
+		if ($githubStatus && $githubStatus.connected) {
+			// Show empty token field - user must enter token for any operations
+			token = '';
+			// Use type assertion to access backend properties
+			const status = $githubStatus as any;
+			owner = status.owner || '';
+			repository = status.repository || '';
+			branch = status.branch || 'main';
+			backupMode = status.auto_sync ? 'auto' : 'manual';
+			syncInterval = 60; // Default since not returned by backend
+			tokenChanged = false; // Reset token change tracking when settings load
 		}
 	});
 
 	const isConnected = $derived($githubStatus?.connected ?? false);
-	const canTest = $derived(token.trim() && owner.trim() && repository.trim());
+	const canTest = $derived(
+		// Can test if user has entered a token AND basic fields are filled
+		token.trim() && owner.trim() && repository.trim()
+	);
 	const hasChanges = $derived(
-		$githubSettings
-			? token !== $githubSettings.config.token ||
-					owner !== $githubSettings.config.owner ||
-					repository !== $githubSettings.config.repository ||
-					branch !== $githubSettings.config.branch ||
-					backupMode !== $githubSettings.backupMode ||
-					syncInterval !== $githubSettings.syncInterval
-			: canTest
+		$githubStatus && $githubStatus.connected
+			? (() => {
+					const status = $githubStatus as any;
+					// For connected users, only check non-token fields that can be updated
+					return branch !== status.branch || (backupMode === 'auto') !== status.auto_sync;
+				})()
+			: canTest // For new setup, check if form is ready
 	);
 
 	onMount(() => {
 		githubActions.refresh();
-
-		if ($githubStatus?.connected) {
-			activeTab = 'status';
-		}
+		// Always stay on setup tab - status info is now shown in the footer
 	});
 
 	function validateForm(): boolean {
+		// Token is always required for setup and testing
 		if (!token.trim()) {
 			formError = 'GitHub token is required';
 			return false;
@@ -75,6 +80,21 @@
 			formError = 'Repository name is required';
 			return false;
 		}
+		if (!branch.trim()) {
+			formError = 'Branch name is required';
+			return false;
+		}
+		if (syncInterval < 5) {
+			formError = 'Sync interval must be at least 5 minutes';
+			return false;
+		}
+
+		formError = '';
+		return true;
+	}
+
+	function validateSettingsUpdate(): boolean {
+		// For settings updates, we only need basic validation (no token required)
 		if (!branch.trim()) {
 			formError = 'Branch name is required';
 			return false;
@@ -102,8 +122,13 @@
 		if (!validateForm()) return;
 
 		try {
+			// Use original token if not changed, otherwise use the new token
+			const tokenToUse = tokenChanged
+				? token.trim()
+				: $githubSettings?.config.token || token.trim();
+
 			const setupRequest: GitHubSetupRequest = {
-				token: token.trim(),
+				token: tokenToUse,
 				owner: owner.trim(),
 				repo: repository.trim(),
 				branch: branch.trim(),
@@ -113,30 +138,25 @@
 
 			await githubActions.setupGitHub(setupRequest);
 
-			await githubActions.updateSettings({
-				backupMode,
-				syncInterval
+			await (githubActions.updateSettings as any)({
+				auto_sync: backupMode === 'auto',
+				branch: branch.trim()
 			});
 
-			activeTab = 'status';
+			// Stay on setup tab - status info is now shown in the footer
 		} catch {
 			// Error is handled by the store
 		}
 	}
 
 	async function updateSettings() {
-		if (!validateForm()) return;
+		if (!validateSettingsUpdate()) return;
 
 		try {
-			await githubActions.updateSettings({
-				config: {
-					token: token.trim(),
-					owner: owner.trim(),
-					repository: repository.trim(),
-					branch: branch.trim()
-				},
-				backupMode,
-				syncInterval
+			// For updates, we only send the fields that can be changed
+			await (githubActions.updateSettings as any)({
+				auto_sync: backupMode === 'auto',
+				branch: branch.trim()
 			});
 		} catch {
 			// Error is handled by the store
@@ -162,7 +182,14 @@
 
 	function formatLastSync(timestamp?: string): string {
 		if (!timestamp) return 'Never';
+
 		const date = new Date(timestamp);
+
+		// Check if the date is invalid or is the Go zero time (year 1 or 1970)
+		if (isNaN(date.getTime()) || date.getFullYear() <= 1970) {
+			return 'Never';
+		}
+
 		return date.toLocaleString();
 	}
 
@@ -188,17 +215,6 @@
 		>
 			<Settings class="mr-1 inline h-4 w-4" />
 			Setup
-		</button>
-		<button
-			type="button"
-			onclick={() => (activeTab = 'status')}
-			class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'status'
-				? 'border-blue-500 text-blue-600 dark:text-blue-400'
-				: 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
-			disabled={!isConnected}
-		>
-			<Cloud class="mr-1 inline h-4 w-4" />
-			Status
 		</button>
 		<button
 			type="button"
@@ -235,6 +251,7 @@
 						bind:value={token}
 						placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
 						required
+						oninput={() => (tokenChanged = true)}
 					/>
 					<p class="text-sm text-gray-600 dark:text-gray-400">
 						Create a token at <a
@@ -338,6 +355,69 @@
 				</div>
 			{/if}
 
+			<!-- Status Section (when connected) -->
+			{#if isConnected && $githubStatus}
+				<Separator />
+
+				<div class="space-y-4">
+					<h3 class="text-lg font-medium">Status</h3>
+
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+						<!-- Connection Status -->
+						<div class="space-y-2">
+							<Label>Connection Status</Label>
+							<div class="flex items-center gap-2">
+								{#if $githubStatus?.connected}
+									<CheckCircle class="h-4 w-4 text-green-500" />
+									<span class="text-sm text-green-600 dark:text-green-400">Connected</span>
+								{:else}
+									<AlertCircle class="h-4 w-4 text-red-500" />
+									<span class="text-sm text-red-600 dark:text-red-400">Disconnected</span>
+								{/if}
+							</div>
+						</div>
+
+						<!-- Last Sync -->
+						<div class="space-y-2">
+							<Label>Last Sync</Label>
+							<div class="text-sm text-gray-900 dark:text-gray-100">
+								{formatLastSync(($githubStatus as any)?.last_sync)}
+							</div>
+						</div>
+
+						<!-- Repository Link -->
+						{#if ($githubStatus as any)?.owner && ($githubStatus as any)?.repository}
+							{@const status = $githubStatus as any}
+							<div class="space-y-2">
+								<Label>Repository</Label>
+								<div class="flex items-center">
+									<a
+										href="https://github.com/{status.owner}/{status.repository}"
+										target="_blank"
+										class="truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
+										title="https://github.com/{status.owner}/{status.repository}"
+									>
+										{status.owner}/{status.repository}
+									</a>
+								</div>
+							</div>
+						{/if}
+					</div>
+
+					<!-- Error Display -->
+					{#if $githubStatus?.error}
+						<div
+							class="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-300"
+						>
+							<AlertCircle class="h-4 w-4 flex-shrink-0" />
+							{$githubStatus.error}
+						</div>
+					{/if}
+				</div>
+			{/if}
+
+			<Separator />
+
 			<div class="flex flex-col justify-between gap-4 sm:flex-row">
 				<div class="space-x-2">
 					<Button
@@ -364,7 +444,12 @@
 							Disconnect
 						</Button>
 					{/if}
-					<Button type="submit" disabled={!canTest || !hasChanges || $isGitHubLoading}>
+					<Button
+						type="submit"
+						disabled={isConnected
+							? !hasChanges || $isGitHubLoading
+							: !canTest || !hasChanges || $isGitHubLoading}
+					>
 						{#if $isGitHubLoading}
 							<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 						{/if}
@@ -373,68 +458,6 @@
 				</div>
 			</div>
 		</form>
-	{/if}
-
-	<!-- Status Tab -->
-	{#if activeTab === 'status'}
-		<div class="space-y-4">
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-				<div class="space-y-2">
-					<span class="text-sm font-medium text-gray-600 dark:text-gray-400">Connection Status</span
-					>
-					<div class="flex items-center gap-2">
-						{#if $githubStatus?.connected}
-							<CheckCircle class="h-4 w-4 text-green-500" />
-							<span class="text-green-600 dark:text-green-400">Connected</span>
-						{:else}
-							<AlertCircle class="h-4 w-4 text-red-500" />
-							<span class="text-red-600 dark:text-red-400">Disconnected</span>
-						{/if}
-					</div>
-				</div>
-
-				<div class="space-y-2">
-					<span class="text-sm font-medium text-gray-600 dark:text-gray-400">Last Sync</span>
-					<div class="text-sm">{formatLastSync($githubStatus?.lastSync)}</div>
-				</div>
-			</div>
-
-			{#if $githubStatus?.repositoryUrl}
-				<div class="space-y-2">
-					<span class="text-sm font-medium text-gray-600 dark:text-gray-400">Repository</span>
-					<a
-						href={$githubStatus.repositoryUrl}
-						target="_blank"
-						class="text-blue-600 hover:underline dark:text-blue-400"
-					>
-						{$githubStatus.repositoryUrl}
-					</a>
-				</div>
-			{/if}
-
-			{#if $githubSettings}
-				<div class="space-y-2">
-					<span class="text-sm font-medium text-gray-600 dark:text-gray-400">Backup Mode</span>
-					<div class="text-sm capitalize">{$githubSettings.backupMode}</div>
-				</div>
-
-				{#if $githubSettings.backupMode === 'auto'}
-					<div class="space-y-2">
-						<span class="text-sm font-medium text-gray-600 dark:text-gray-400">Sync Interval</span>
-						<div class="text-sm">{$githubSettings.syncInterval} minutes</div>
-					</div>
-				{/if}
-			{/if}
-
-			{#if $githubStatus?.error}
-				<div
-					class="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-300"
-				>
-					<AlertCircle class="h-4 w-4 flex-shrink-0" />
-					{$githubStatus.error}
-				</div>
-			{/if}
-		</div>
 	{/if}
 
 	<!-- Sync Tab -->

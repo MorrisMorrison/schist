@@ -53,9 +53,13 @@ test.describe.serial('Document Move', () => {
 			// Perform drag and drop
 			await documentTreeItem.dragTo(folderTreeItem);
 
-			// Wait for the move operation to complete
-			await page.waitForLoadState('networkidle');
-			await page.waitForTimeout(500); // Give the UI time to update
+			// Wait for the move API call to complete
+			await page.waitForResponse(
+				(response) => response.url().includes('/documents/move') && response.status() === 200
+			);
+
+			// Wait for DOM updates after the move
+			await page.waitForLoadState('domcontentloaded');
 
 			// Navigate to the target folder
 			await folderPage.openSubFolder(testFolderName);
@@ -66,7 +70,7 @@ test.describe.serial('Document Move', () => {
 
 			// Click on the moved document to navigate to it
 			const documentLink = folderPage.documents.getByText(testDocument.title);
-			await documentLink.waitFor({ state: 'visible', timeout: 5000 });
+			await documentLink.waitFor({ state: 'visible' });
 			await documentLink.click();
 
 			// Verify we navigated to the document view

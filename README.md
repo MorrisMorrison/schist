@@ -19,6 +19,61 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 - 🐳 **Docker ready** - Easy deployment with Docker
 - ⚡ **Fast** - Built with Go backend and Svelte frontend
 
+## Installation
+
+### Docker (Recommended)
+
+The easiest way to run Schist is using Docker:
+
+```bash
+docker pull ghcr.io/morrismorrison/schist:latest
+docker run -d \
+  --name schist \
+  -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  -e ENV=production \
+  ghcr.io/morrismorrison/schist:latest
+```
+
+### Docker Compose
+
+For a more permanent setup, create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  schist:
+    image: ghcr.io/morrismorrison/schist:latest
+    container_name: schist
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - ENV=production
+      - SCHIST_PORT=8080
+      - SCHIST_DATA_DIR=/app/data
+      # Optional: Enable authentication
+      # - SCHIST_AUTH_ENABLED=true
+      # - SCHIST_AUTH_USERS=admin:$2a$10$your_bcrypt_hash_here
+      # Optional: Enable rate limiting
+      # - SCHIST_RATE_LIMIT_ENABLED=true
+      # - SCHIST_RATE_LIMIT_RPM=100
+```
+
+Then run:
+```bash
+docker-compose up -d
+```
+
+Your wiki will be available at http://localhost:8080 (or your server's address)
+
+### Configuration
+
+Schist works out of the box with minimal configuration. For advanced setup including authentication, rate limiting, and security options, see the [Configuration Guide](docs/CONFIGURATION.md).
+
 ## Quick Start
 
 ### Development

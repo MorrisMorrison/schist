@@ -2,7 +2,7 @@
 
 /**
  * Manual test data cleanup script
- * 
+ *
  * This script can be run manually to clean up accumulated test data directories.
  * Usage: npm run cleanup-test-data
  */
@@ -20,13 +20,13 @@ const TEST_DATA_DIRS = [
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-1'),
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-2'),
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-3'),
-	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-4'),
+	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-4')
 ];
 
 // Test result directories
 const TEST_RESULT_DIRS = [
 	resolve(__dirname, '../test-results'),
-	resolve(__dirname, '../playwright-report'),
+	resolve(__dirname, '../playwright-report')
 ];
 
 async function cleanupDirectory(dirPath) {

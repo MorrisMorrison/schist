@@ -121,20 +121,23 @@
 					<button
 						type="button"
 						onclick={() => handleSelectDocument(page)}
-						class="w-full px-4 py-3 text-left first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+						class="w-full px-4 py-3 text-left first:rounded-t-lg last:rounded-b-lg hover:bg-[--gray-hover] focus:bg-[--gray-hover] focus:outline-none"
 					>
-						<div class="font-medium text-gray-900">{page.metaData.title}</div>
-						<div class="text-sm text-gray-500">{page.metaData.path}</div>
+						<div class="font-medium text-[--foreground]">{page.metaData.title}</div>
+						<div class="text-sm text-[--muted-foreground]">{page.metaData.path}</div>
 						{#if page.metaData.tags && page.metaData.tags.length > 0}
 							<div class="mt-1 flex flex-wrap gap-1">
 								{#each page.metaData.tags as tag (tag)}
-									<span class="rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">{tag}</span>
+									<span
+										class="rounded-full bg-[--primary] px-2 py-0.5 text-xs text-[--primary-foreground]"
+										>{tag}</span
+									>
 								{/each}
 							</div>
 						{/if}
 					</button>
 					{#if i < results.length - 1}
-						<div class="mt-1 mr-4 mb-1 ml-4 border-t-1 bg-gray-100"></div>
+						<div class="mt-1 mr-4 mb-1 ml-4 border-t-1 bg-[--border]"></div>
 					{/if}
 				{/each}
 			</div>

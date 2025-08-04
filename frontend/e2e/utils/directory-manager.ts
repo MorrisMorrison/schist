@@ -23,8 +23,8 @@ export interface CleanupMetrics {
 	errors: string[];
 }
 
-interface PageListData {
-	pages: Array<{
+interface DocumentListData {
+	documents: Array<{
 		metaData?: {
 			title?: string;
 			path?: string;
@@ -56,7 +56,7 @@ export class DirectoryManager {
 	 */
 	async initializeDirectory(): Promise<DirectoryState> {
 		console.log(`[Worker ${this.workerIndex}] 🚀 Initializing directory: ${this.dataDirectory}`);
-		
+
 		// Wait for backend to be ready first
 		const isReady = await this.apiHelper.waitForApiReady(30000);
 		if (!isReady) {
@@ -70,14 +70,18 @@ export class DirectoryManager {
 		// Double-check cleanup was successful
 		const isClean = await this.validateCleanState();
 		if (!isClean) {
-			console.warn(`[Worker ${this.workerIndex}] ⚠️  Initial cleanup incomplete, performing emergency cleanup...`);
+			console.warn(
+				`[Worker ${this.workerIndex}] ⚠️  Initial cleanup incomplete, performing emergency cleanup...`
+			);
 			await this.emergencyCleanup();
 		}
 
 		// Get initial state
 		const initialState = await this.getDirectoryState();
-		console.log(`[Worker ${this.workerIndex}] ✅ Directory initialized - Pages: ${initialState.pageCount}, Folders: ${initialState.folderCount}`);
-		
+		console.log(
+			`[Worker ${this.workerIndex}] ✅ Directory initialized - Pages: ${initialState.pageCount}, Folders: ${initialState.folderCount}`
+		);
+
 		return initialState;
 	}
 
@@ -99,8 +103,8 @@ export class DirectoryManager {
 					this.apiHelper.getFolder('')
 				]);
 
-				const pageCount = Array.isArray((pagesResponse.data as PageListData)?.pages)
-					? (pagesResponse.data as PageListData).pages.length
+				const pageCount = Array.isArray((pagesResponse.data as DocumentListData)?.documents)
+					? (pagesResponse.data as DocumentListData).documents.length
 					: 0;
 
 				const folderCount = Array.isArray((foldersResponse.data as FolderListData)?.folders)
@@ -165,8 +169,8 @@ export class DirectoryManager {
 
 			// Delete remaining pages
 			const pagesResponse = await this.apiHelper.listPages();
-			if (pagesResponse.data && Array.isArray((pagesResponse.data as PageListData).pages)) {
-				const pages = (pagesResponse.data as PageListData).pages;
+			if (pagesResponse.data && Array.isArray((pagesResponse.data as DocumentListData).documents)) {
+				const pages = (pagesResponse.data as DocumentListData).documents;
 				for (const page of pages) {
 					try {
 						if (page.metaData?.path) {
@@ -266,8 +270,8 @@ export class DirectoryManager {
 	async verifyIsolation(): Promise<boolean> {
 		try {
 			const pagesResponse = await this.apiHelper.listPages();
-			if (pagesResponse.data && Array.isArray((pagesResponse.data as PageListData).pages)) {
-				const pages = (pagesResponse.data as PageListData).pages;
+			if (pagesResponse.data && Array.isArray((pagesResponse.data as DocumentListData).documents)) {
+				const pages = (pagesResponse.data as DocumentListData).documents;
 
 				const pageCount = pages.length;
 				if (pageCount > 50) {

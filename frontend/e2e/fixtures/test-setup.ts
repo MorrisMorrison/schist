@@ -36,17 +36,17 @@ if (typeof process !== 'undefined') {
 		// Note: Async operations don't work in exit handler, but we try anyway
 		performGlobalCleanup().catch(() => {});
 	});
-	
+
 	process.on('SIGINT', async () => {
 		await performGlobalCleanup();
 		process.exit(0);
 	});
-	
+
 	process.on('SIGTERM', async () => {
 		await performGlobalCleanup();
 		process.exit(0);
 	});
-	
+
 	process.on('uncaughtException', async (error) => {
 		console.error('Uncaught exception:', error);
 		await performGlobalCleanup();

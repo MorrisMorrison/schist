@@ -47,9 +47,9 @@ Edit this text to test the functionality.`;
 </svelte:head>
 
 <div class="flex h-screen flex-col">
-	<header class="bg-blue-600 p-4 text-white">
+	<header class="bg-[--primary] p-4 text-[--primary-foreground]">
 		<h1 class="text-xl font-bold">Markdown Editor Test</h1>
-		<p class="text-blue-100">Testing the Schist wiki markdown editor</p>
+		<p class="text-[--primary-foreground] opacity-80">Testing the Schist wiki markdown editor</p>
 	</header>
 
 	<main class="flex-1 p-4">

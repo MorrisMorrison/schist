@@ -25,7 +25,7 @@
 	<Card>
 		<CardHeader>
 			<CardTitle class="flex items-center gap-3">
-				<Github class="h-6 w-6 text-gray-700 dark:text-gray-300" />
+				<Github class="h-6 w-6 text-[--muted-foreground]" />
 				GitHub Integration
 			</CardTitle>
 			<CardDescription>
@@ -41,13 +41,13 @@
 	<!-- <Card>
 		<CardHeader>
 			<CardTitle class="flex items-center gap-3">
-				<Settings class="h-6 w-6 text-gray-700 dark:text-gray-300" />
+				<Settings class="h-6 w-6 text-[--muted-foreground]" />
 				General Settings
 			</CardTitle>
 			<CardDescription>General application preferences and configurations.</CardDescription>
 		</CardHeader>
 		<CardContent>
-			<div class="py-8 text-center text-gray-500 dark:text-gray-400">
+			<div class="py-8 text-center text-[--muted-foreground]">
 				<p>More settings coming soon...</p>
 			</div>
 		</CardContent>

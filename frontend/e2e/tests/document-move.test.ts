@@ -46,32 +46,26 @@ test.describe.serial('Document Move', () => {
 
 		const folderTree = page.getByTestId('folder-tree');
 
-		// Find document and target folder in tree
 		const documentTreeItem = folderTree.getByText(testDocument.title);
 		const folderTreeItem = folderTree.getByText(testFolderName);
 
 		if ((await documentTreeItem.isVisible()) && (await folderTreeItem.isVisible())) {
-			// Perform drag and drop
 			await documentTreeItem.dragTo(folderTreeItem);
 
 			await page.waitForLoadState('networkidle');
 
-			// Navigate to target folder to verify document was moved
 			await folderPage.openSubFolder(testFolderName);
 			await folderPage.verifyFolderLoaded(testFolderName);
 
-			// Check if document appears in target folder - if folder is empty, that's expected behavior for now
 			const emptyFolderMessage = folderPage.page.locator('[data-testid="empty-folder-message"]');
 			const documentsSection = folderPage.page.locator('[data-testid="documents-section"]');
 			
 			if (await emptyFolderMessage.isVisible()) {
 				console.log('Target folder appears empty after move - document filtering may have issues');
-				// Skip document verification in folder view for now
 			} else {
 				await folderPage.verifyContainsDocument(testDocument.title);
 			}
 
-			// If document is visible in folder view, verify it's accessible at new location
 			if (await documentsSection.isVisible()) {
 				const documentLink = folderPage.documents.getByText(testDocument.title);
 				if (await documentLink.isVisible()) {
@@ -80,7 +74,6 @@ test.describe.serial('Document Move', () => {
 				}
 			}
 
-			// Verify URL reflects new location
 			await documentViewPage.expectUrl(`/documents/${testFolderName}${testDocumentPath}`);
 		}
 	});

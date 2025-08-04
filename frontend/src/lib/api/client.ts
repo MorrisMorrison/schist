@@ -30,12 +30,21 @@ import type {
 import { normalizePath } from './types.js';
 
 class SchістApiClient {
-	private baseUrl: string = 'http://localhost:8080/api';
+	private baseUrl: string;
+
+	constructor() {
+		this.baseUrl = this.determineApiUrl();
+	}
+
+	private determineApiUrl(): string {
+		if (env.PUBLIC_API_URL) {
+			return env.PUBLIC_API_URL;
+		}
+
+		return '/api';
+	}
 
 	private getApiUrl(): string {
-		if (env.PUBLIC_API_URL) {
-			this.baseUrl = env.PUBLIC_API_URL;
-		}
 		return this.baseUrl;
 	}
 
@@ -353,10 +362,15 @@ class SchістApiClient {
 	}
 
 	getAssetUrl(path: string): string {
-		// Convert /assets/ path to /uploads/ for user-uploaded content
 		const uploadsPath = path.replace('/assets/', '/uploads/');
-		// Remove /api from base URL to get server root
-		const serverRoot = this.getApiUrl().replace('/api', '');
+
+		const apiUrl = this.getApiUrl();
+
+		if (apiUrl === '/api') {
+			return uploadsPath;
+		}
+
+		const serverRoot = apiUrl.replace('/api', '');
 		return `${serverRoot}${uploadsPath}`;
 	}
 

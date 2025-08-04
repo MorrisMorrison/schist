@@ -219,28 +219,28 @@ func TestAssetService_GetAssetPath(t *testing.T) {
 		_, err := assetService.GetAssetPath("")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "asset path cannot be empty")
+		assert.Contains(t, err.Error(), "path cannot be empty")
 	})
 
 	t.Run("returns error for path not starting with slash", func(t *testing.T) {
 		_, err := assetService.GetAssetPath("assets/images/test.png")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "asset path must start with '/'")
+		assert.Contains(t, err.Error(), "path must start with '/'")
 	})
 
 	t.Run("prevents directory traversal", func(t *testing.T) {
 		_, err := assetService.GetAssetPath("/assets/../../../etc/passwd")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "asset path cannot contain '..'")
+		assert.Contains(t, err.Error(), "path cannot contain '.' or '..' segments")
 	})
 
 	t.Run("rejects path with invalid characters", func(t *testing.T) {
 		_, err := assetService.GetAssetPath("/assets/images/test<script>.png")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid asset path: path contains invalid characters")
+		assert.Contains(t, err.Error(), "path contains invalid characters")
 	})
 
 	t.Run("allows valid asset paths with dots", func(t *testing.T) {
@@ -322,7 +322,7 @@ func TestAssetService_DeleteAsset(t *testing.T) {
 		err := assetService.DeleteAsset("/invalid/../path")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "asset path cannot contain '..'")
+		assert.Contains(t, err.Error(), "path cannot contain '.' or '..' segments")
 	})
 }
 

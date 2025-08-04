@@ -14,7 +14,6 @@
 	<div class="text-center">
 		<div class="mx-auto max-w-md">
 			{#if status === 404}
-				<!-- 404 Page Not Found -->
 				<svg
 					class="mx-auto h-24 w-24 text-[--muted-foreground]"
 					fill="none"
@@ -92,7 +91,6 @@
 					</div>
 				{/if}
 			{:else}
-				<!-- Other errors -->
 				<svg
 					class="mx-auto h-24 w-24 text-[--destructive]"
 					fill="none"

@@ -1,7 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { browser } from '$app/environment';
 
-// General application settings
 interface AppSettings {
 	autoSave: boolean;
 	autoSaveInterval: number; // minutes
@@ -12,14 +11,12 @@ interface AppSettings {
 	defaultNewDocumentPath: string;
 }
 
-// Export settings
 interface ExportSettings {
 	defaultFormat: 'markdown' | 'html' | 'pdf';
 	includeMeta: boolean;
 	preserveStructure: boolean;
 }
 
-// All settings combined
 interface Settings {
 	app: AppSettings;
 	export: ExportSettings;
@@ -44,7 +41,6 @@ const defaultSettings: Settings = {
 
 const SETTINGS_STORAGE_KEY = 'schist_settings';
 
-// Load settings from localStorage
 function loadSettings(): Settings {
 	if (!browser) return defaultSettings;
 
@@ -52,7 +48,6 @@ function loadSettings(): Settings {
 		const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
 		if (stored) {
 			const parsed = JSON.parse(stored);
-			// Merge with defaults to ensure all properties exist
 			return {
 				app: { ...defaultSettings.app, ...parsed.app },
 				export: { ...defaultSettings.export, ...parsed.export }
@@ -65,7 +60,6 @@ function loadSettings(): Settings {
 	return defaultSettings;
 }
 
-// Save settings to localStorage
 function saveSettings(settings: Settings): void {
 	if (!browser) return;
 
@@ -76,23 +70,18 @@ function saveSettings(settings: Settings): void {
 	}
 }
 
-// Create the settings store
 export const settings = writable<Settings>(loadSettings());
 
-// Subscribe to store changes and save to localStorage
 if (browser) {
 	settings.subscribe((value) => {
 		saveSettings(value);
 	});
 }
 
-// Derived stores for easier access to specific settings
 export const appSettings = derived(settings, ($settings) => $settings.app);
 export const exportSettings = derived(settings, ($settings) => $settings.export);
 
-// Settings actions
 export const settingsActions = {
-	// App settings
 	updateAppSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
 		settings.update((current) => ({
 			...current,
@@ -103,7 +92,6 @@ export const settingsActions = {
 		}));
 	},
 
-	// Export settings
 	updateExportSetting<K extends keyof ExportSettings>(key: K, value: ExportSettings[K]) {
 		settings.update((current) => ({
 			...current,
@@ -114,7 +102,6 @@ export const settingsActions = {
 		}));
 	},
 
-	// Bulk updates
 	updateAppSettings(newSettings: Partial<AppSettings>) {
 		settings.update((current) => ({
 			...current,
@@ -135,12 +122,10 @@ export const settingsActions = {
 		}));
 	},
 
-	// Reset to defaults
 	resetToDefaults() {
 		settings.set(defaultSettings);
 	},
 
-	// Reset specific section
 	resetAppSettings() {
 		settings.update((current) => ({
 			...current,
@@ -156,5 +141,4 @@ export const settingsActions = {
 	}
 };
 
-// Export types for use in components
 export type { Settings, AppSettings, ExportSettings };

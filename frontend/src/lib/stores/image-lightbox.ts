@@ -23,7 +23,6 @@ export const imageLightboxActions = {
 	}
 };
 
-// Global function for markdown onclick
 declare global {
 	interface Window {
 		openImageLightbox: (src: string, alt: string) => void;

@@ -38,7 +38,6 @@
 			/>
 		</div>
 
-		<!-- Main navigation content -->
 		<div
 			class="mx-auto px-4 transition-all duration-300 ease-in-out sm:px-6 lg:px-8"
 			class:pl-16={showSidebarToggle}
@@ -47,7 +46,6 @@
 			class:max-w-none={isSidebarOpen}
 		>
 			<div class="flex h-16 justify-between">
-				<!-- Left side - Logo and main navigation -->
 				<div class="flex items-center">
 					<div class="flex-shrink-0">
 						<a href="/" class="flex items-center space-x-3">
@@ -56,7 +54,6 @@
 						</a>
 					</div>
 
-					<!-- Desktop navigation -->
 					<div class="hidden md:ml-6 md:flex md:space-x-8">
 						<a
 							href="/"
@@ -79,19 +76,15 @@
 					</div>
 				</div>
 
-				<!-- Spacer for centering when no search -->
 				<div class="flex-1"></div>
 
-				<!-- Right side - Actions -->
 				<div class="flex items-center space-x-4">
-					<!-- Search box - always on the right -->
 					<div class="hidden md:block">
 						<div class="w-64">
 							<SearchBox placeholder="Search pages..." testId="nav-search-input" />
 						</div>
 					</div>
 
-					<!-- Settings Button -->
 					<a
 						href="/settings"
 						class="border-secondary bg-primary text-primary hover:bg-gray-hover text-sm' cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
@@ -102,7 +95,6 @@
 
 					<ThemeToggle />
 
-					<!-- Mobile menu button -->
 					<button
 						type="button"
 						onclick={toggleMenu}
@@ -132,16 +124,13 @@
 			</div>
 		</div>
 
-		<!-- Mobile menu -->
 		{#if isMenuOpen}
 			<div class="md:hidden">
 				<div class="border-primary space-y-1 border-t pt-2 pb-3">
-					<!-- Mobile search -->
 					<div class="px-4 pb-3">
 						<SearchBox placeholder="Search pages..." testId="nav-search-input" />
 					</div>
 
-					<!-- Mobile settings -->
 					<div class="px-4 pb-3">
 						<a
 							href="/settings"
@@ -153,12 +142,10 @@
 						</a>
 					</div>
 
-					<!-- Mobile theme toggle -->
 					<div class="px-4 pb-3">
 						<ThemeToggle />
 					</div>
 
-					<!-- Mobile navigation links -->
 					<a
 						href="/"
 						onclick={closeMenu}

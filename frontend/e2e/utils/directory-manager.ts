@@ -55,17 +55,30 @@ export class DirectoryManager {
 	 * Initialize directory for testing - ensures clean state
 	 */
 	async initializeDirectory(): Promise<DirectoryState> {
-		// Perform aggressive cleanup to ensure clean state
-		await this.performAggressiveCleanup();
-
-		// Wait for backend to be ready
+		console.log(`[Worker ${this.workerIndex}] 🚀 Initializing directory: ${this.dataDirectory}`);
+		
+		// Wait for backend to be ready first
 		const isReady = await this.apiHelper.waitForApiReady(30000);
 		if (!isReady) {
 			throw new Error(`Backend not ready for worker ${this.workerIndex}`);
 		}
 
+		// Perform aggressive cleanup to ensure clean state (handles any leftover data)
+		console.log(`[Worker ${this.workerIndex}] 🧹 Cleaning up any existing test data...`);
+		await this.performAggressiveCleanup();
+
+		// Double-check cleanup was successful
+		const isClean = await this.validateCleanState();
+		if (!isClean) {
+			console.warn(`[Worker ${this.workerIndex}] ⚠️  Initial cleanup incomplete, performing emergency cleanup...`);
+			await this.emergencyCleanup();
+		}
+
 		// Get initial state
-		return await this.getDirectoryState();
+		const initialState = await this.getDirectoryState();
+		console.log(`[Worker ${this.workerIndex}] ✅ Directory initialized - Pages: ${initialState.pageCount}, Folders: ${initialState.folderCount}`);
+		
+		return initialState;
 	}
 
 	/**

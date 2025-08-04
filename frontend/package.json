@@ -15,7 +15,8 @@
 		"test:unit": "vitest",
 		"test": "npm run test:unit",
 		"test:e2e": "npm run build && npx playwright test",
-		"test:e2e-ui": "npm run build && npx playwright test --ui"
+		"test:e2e-ui": "npm run build && npx playwright test --ui",
+		"cleanup-test-data": "node scripts/cleanup-test-data.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",

@@ -37,7 +37,8 @@ backend/schist
 .claude/
 wiki-data/
 frontend/playwright-report
-backend/cmd/schist/test-data-worker-1
+frontend/test-results
+backend/cmd/schist/test-data-worker-*
 backend/cmd/schist/schist
 project/
 test-token

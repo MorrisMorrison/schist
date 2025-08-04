@@ -1,11 +1,5 @@
 <script lang="ts">
-	import {
-		Card,
-		CardHeader,
-		CardTitle,
-		CardDescription,
-		CardContent
-	} from '$lib/components/ui/card';
+	import { Card, CardHeader } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Edit, Trash2, Move, FileText } from 'lucide-svelte';
@@ -17,10 +11,13 @@
 		showTags?: boolean;
 		showDates?: boolean;
 		showPath?: boolean;
+		enableMultiSelect?: boolean;
+		isSelected?: boolean;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void;
 		onView?: (path: string) => void;
 		onMove?: (document: Document) => void;
+		onToggleSelect?: (event: Event) => void;
 	}
 
 	let {
@@ -28,10 +25,13 @@
 		showTags = true,
 		showDates = true,
 		showPath = true,
+		enableMultiSelect = false,
+		isSelected = false,
 		onEdit,
 		onDelete,
 		onView,
-		onMove
+		onMove,
+		onToggleSelect
 	}: Props = $props();
 
 	function formatDate(dateString?: string): string {
@@ -39,14 +39,20 @@
 		return new Date(dateString).toLocaleDateString();
 	}
 
-	function getExcerpt(content: string, maxLength: number = 120): string {
+	function getExcerpt(content: string, maxLength: number = 150): string {
 		// Remove markdown syntax for excerpt
 		const plainText = content
+			.replace(/---[\s\S]*?---/g, '') // Remove frontmatter
 			.replace(/#+\s/g, '') // Remove headers
 			.replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
 			.replace(/\*(.*?)\*/g, '$1') // Remove italic
 			.replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links
-			.replace(/`(.*?)`/g, '$1') // Remove code
+			.replace(/`(.*?)`/g, '$1') // Remove inline code
+			.replace(/```[\s\S]*?```/g, '') // Remove code blocks
+			.replace(/>\s/g, '') // Remove blockquotes
+			.replace(/[-*+]\s/g, '') // Remove list markers
+			.replace(/\n+/g, ' ') // Replace newlines with spaces
+			.replace(/\s+/g, ' ') // Normalize whitespace
 			.trim();
 
 		return plainText.length > maxLength ? plainText.substring(0, maxLength) + '...' : plainText;
@@ -62,24 +68,36 @@
 </script>
 
 <Card
-	class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg"
-	onclick={() => onView?.(documentPathDerived)}
+	class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg {isSelected
+		? 'ring-primary ring-2'
+		: ''} relative"
+	onclick={(e) => {
+		if (enableMultiSelect) {
+			onToggleSelect?.(e);
+		} else {
+			onView?.(documentPathDerived);
+		}
+	}}
 >
-	<CardHeader class="pb-3">
-		<div class="flex min-w-0 items-start gap-4">
+	<CardHeader class="p-4">
+		<div class="flex items-start gap-3">
+			<!-- File Icon -->
 			<div
 				class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors"
 			>
-				<FileText class="h-5 w-5 flex-shrink-0 text-white" />
+				<FileText class="h-4 w-4 text-white" />
 			</div>
-			<div class="min-w-0 flex-1 space-y-1 overflow-hidden">
-				<div class="flex items-start gap-2">
-					<CardTitle
-						class="min-w-0 flex-1 truncate pr-2 text-base leading-tight font-semibold"
+
+			<!-- Content Area -->
+			<div class="min-w-0 flex-1">
+				<!-- Title and Actions Row -->
+				<div class="mb-2 flex items-start justify-between gap-2">
+					<h3
+						class="text-foreground truncate text-sm leading-tight font-medium"
 						title={document.metaData.title}
 					>
 						{document.metaData.title}
-					</CardTitle>
+					</h3>
 					<div
 						class="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100"
 					>
@@ -87,84 +105,90 @@
 							<Button
 								variant="ghost"
 								size="sm"
-								class="hover:bg-primary/10 transition-all duration-200 hover:scale-105"
+								class="hover:bg-primary/10 h-6 w-6 p-0"
 								onclick={(e) => {
 									e.stopPropagation();
 									onEdit(document.metaData.path!);
 								}}
 							>
-								<Edit class="h-4 w-4" />
+								<Edit class="h-3 w-3" />
 							</Button>
 						{/if}
 						{#if onMove}
 							<Button
 								variant="ghost"
 								size="sm"
-								class="hover:bg-primary/10 transition-all duration-200 hover:scale-105"
+								class="hover:bg-primary/10 h-6 w-6 p-0"
 								onclick={(e) => {
 									e.stopPropagation();
 									onMove(document);
 								}}
 							>
-								<Move class="h-4 w-4" />
+								<Move class="h-3 w-3" />
 							</Button>
 						{/if}
 						{#if onDelete}
 							<Button
 								variant="ghost"
 								size="sm"
-								class="hover:bg-destructive/10 transition-all duration-200 hover:scale-105"
+								class="hover:bg-destructive/10 h-6 w-6 p-0"
 								onclick={(e) => {
 									e.stopPropagation();
 									onDelete(document.metaData.slug!);
 								}}
 							>
-								<Trash2 class="text-destructive h-4 w-4" />
+								<Trash2 class="text-destructive h-3 w-3" />
 							</Button>
 						{/if}
 					</div>
 				</div>
 
-				<!-- Compact metadata -->
-				<CardDescription class="text-muted-foreground text-sm">
-					{#if showPath && showDates}
-						{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'} •
-						{#if document.metaData.updated}
-							Updated {formatDate(document.metaData.updated)}
-						{:else if document.metaData.created}
-							Created {formatDate(document.metaData.created)}
+				<!-- Content Preview -->
+				{#if document.content}
+					<p class="text-muted-foreground/80 mb-2 line-clamp-2 text-xs leading-relaxed">
+						{getExcerpt(document.content, 100)}
+					</p>
+				{/if}
+
+				<!-- Metadata Row -->
+				<div class="text-muted-foreground flex items-center justify-between text-xs">
+					<div class="flex items-center gap-2">
+						{#if showPath}
+							<span class="truncate"
+								>{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'}</span
+							>
 						{/if}
-					{:else if showPath}
-						{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'}
-					{:else if showDates}
-						{#if document.metaData.updated}
-							Updated {formatDate(document.metaData.updated)}
-						{:else if document.metaData.created}
-							Created {formatDate(document.metaData.created)}
+						{#if showPath && showDates}
+							<span>•</span>
 						{/if}
+						{#if showDates}
+							<span class="whitespace-nowrap">
+								{#if document.metaData.updated}
+									{formatDate(document.metaData.updated)}
+								{:else if document.metaData.created}
+									{formatDate(document.metaData.created)}
+								{/if}
+							</span>
+						{/if}
+					</div>
+
+					<!-- Tags -->
+					{#if showTags && document.metaData.tags && document.metaData.tags.length > 0}
+						<div class="flex flex-wrap gap-1">
+							{#each document.metaData.tags.slice(0, 2) as tag (tag)}
+								<Badge variant="secondary" class="h-4 px-1.5 py-0 text-xs">
+									{tag}
+								</Badge>
+							{/each}
+							{#if document.metaData.tags.length > 2}
+								<Badge variant="secondary" class="h-4 px-1.5 py-0 text-xs">
+									+{document.metaData.tags.length - 2}
+								</Badge>
+							{/if}
+						</div>
 					{/if}
-				</CardDescription>
+				</div>
 			</div>
 		</div>
 	</CardHeader>
-
-	{#if document.content || (showTags && document.metaData.tags && document.metaData.tags.length > 0)}
-		<CardContent class="space-y-3 pt-0">
-			{#if document.content}
-				<p class="text-muted-foreground text-sm leading-relaxed">
-					{getExcerpt(document.content)}
-				</p>
-			{/if}
-
-			{#if showTags && document.metaData.tags && document.metaData.tags.length > 0}
-				<div class="flex flex-wrap gap-1.5">
-					{#each document.metaData.tags as tag (tag)}
-						<Badge variant="default" class="px-2 py-0.5 text-xs">
-							{tag}
-						</Badge>
-					{/each}
-				</div>
-			{/if}
-		</CardContent>
-	{/if}
 </Card>

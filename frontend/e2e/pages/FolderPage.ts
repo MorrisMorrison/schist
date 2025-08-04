@@ -1,46 +1,36 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
-/**
- * Page object for folder views (/folders/[...path])
- */
 export class FolderPage extends BasePage {
-	// Folder content
 	readonly folderTitle: Locator;
 	readonly folderPath: Locator;
 	readonly subFolders: Locator;
 	readonly documents: Locator;
 	readonly emptyFolderMessage: Locator;
 
-	// Folder actions
 	readonly createFolderButton: Locator;
 	readonly createDocumentButton: Locator;
 	readonly folderActionsMenu: Locator;
 
-	// Create folder modal
 	readonly createFolderModal: Locator;
 	readonly folderNameInput: Locator;
 	readonly confirmCreateFolder: Locator;
 	readonly cancelCreateFolder: Locator;
 
-	// Folder tree (sidebar)
 	readonly folderTree: Locator;
 	readonly folderTreeItems: Locator;
 	readonly expandableNodes: Locator;
 
-	// List view
 	readonly itemsList: Locator;
 	readonly folderItems: Locator;
 	readonly documentItems: Locator;
 	readonly itemNames: Locator;
 	readonly itemDates: Locator;
 
-	// Navigation
 	readonly breadcrumbs: Locator;
 	readonly backButton: Locator;
 	readonly homeLink: Locator;
 
-	// View controls
 	readonly viewToggle: Locator;
 	readonly sortOptions: Locator;
 	readonly filterInput: Locator;
@@ -48,15 +38,11 @@ export class FolderPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
-		// Folder content
 		this.folderTitle = page.locator('h1').first();
 		this.folderPath = page.getByTestId('folder-path');
-		// Note: subFolders section removed - folders now only in sidebar
-		this.subFolders = page.locator('[data-testid="folders-section"]'); // Keep for backward compatibility but will be empty
 		this.documents = page.getByTestId('documents-section');
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
-		// Folder actions (be more specific to avoid sidebar button conflicts)
 		this.createFolderButton = page
 			.getByRole('button', { name: /new folder|create folder/i })
 			.first();
@@ -65,30 +51,25 @@ export class FolderPage extends BasePage {
 			.first();
 		this.folderActionsMenu = page.getByTestId('folder-actions');
 
-		// Create folder modal
 		this.createFolderModal = page.getByTestId('create-folder-modal');
 		this.folderNameInput = page.getByTestId('folder-name');
 		this.confirmCreateFolder = this.createFolderModal.getByTestId('create-folder-btn');
 		this.cancelCreateFolder = this.createFolderModal.getByTestId('cancel-create-folder-btn');
 
-		// Folder tree
 		this.folderTree = page.getByTestId('folder-tree');
 		this.folderTreeItems = this.folderTree.locator('[role="treeitem"]');
 		this.expandableNodes = this.folderTree.locator('[aria-expanded]');
 
-		// List view
 		this.itemsList = page.getByTestId('items-list');
 		this.folderItems = this.itemsList.getByTestId('folder-item');
 		this.documentItems = this.itemsList.getByTestId('document-item');
 		this.itemNames = this.itemsList.getByTestId('item-name');
 		this.itemDates = this.itemsList.getByTestId('item-date');
 
-		// Navigation
 		this.breadcrumbs = page.getByTestId('breadcrumbs');
 		this.backButton = page.getByRole('button', { name: /back/i });
 		this.homeLink = page.getByRole('link', { name: /home/i });
 
-		// View controls
 		this.viewToggle = page.getByTestId('view-toggle');
 		this.sortOptions = page.getByTestId('sort-options');
 		this.filterInput = page.getByPlaceholder(/filter|search/i);
@@ -174,8 +155,6 @@ export class FolderPage extends BasePage {
 	 * Navigate to a subfolder - now uses sidebar navigation only
 	 */
 	async openSubFolder(folderName: string) {
-		// Since we removed folder cards from main content, use sidebar navigation
-		// Look for the "Open folder" button with the exact folder name pattern
 		const folderButton = this.folderTree.getByRole('button', { name: `Open folder ${folderName}` });
 		await folderButton.click();
 		await this.waitForLoad();
@@ -215,14 +194,9 @@ export class FolderPage extends BasePage {
 	 * Verify folder contains specific subfolder - now checks sidebar only
 	 */
 	async verifyContainsFolder(folderName: string) {
-		// Since folder cards are removed from main content, verify in sidebar
-		// For nested folders, we need to expand the parent folder first to see children
-
-		// First, try to find if there's an expandable parent folder that needs to be opened
 		const expandButtons = this.folderTree.getByRole('button').filter({ hasText: /expand folder/i });
 		const expandCount = await expandButtons.count();
 
-		// Try expanding any collapsed folders to reveal nested structure
 		for (let i = 0; i < expandCount; i++) {
 			const expandButton = expandButtons.nth(i);
 			if (await expandButton.isVisible()) {
@@ -231,11 +205,9 @@ export class FolderPage extends BasePage {
 			}
 		}
 
-		// Now look for the folder button anywhere in the tree (works for both root and nested)
 		const folderButton = this.folderTree
 			.getByRole('button', { name: new RegExp(`Open folder ${folderName}`, 'i') });
 
-		// Wait a bit for the sidebar to update after folder creation
 		await this.page.waitForTimeout(500);
 		await expect(folderButton.first()).toBeVisible({ timeout: 10000 });
 	}

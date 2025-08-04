@@ -43,10 +43,11 @@ test.describe.serial('Folder Tree Creation', () => {
 		await page.waitForLoadState('networkidle');
 
 		await folderPage.expandTreeNode('parent-tree-folder');
-		
-		const nestedFolderButton = folderPage.folderTree
-			.getByRole('button', { name: new RegExp(`Open folder ${nestedFolderName}`, 'i') });
-		
+
+		const nestedFolderButton = folderPage.folderTree.getByRole('button', {
+			name: new RegExp(`Open folder ${nestedFolderName}`, 'i')
+		});
+
 		if (await nestedFolderButton.isVisible()) {
 			await folderPage.verifyContainsFolder(nestedFolderName);
 		} else {

@@ -40,6 +40,7 @@ export class FolderPage extends BasePage {
 
 		this.folderTitle = page.locator('h1').first();
 		this.folderPath = page.getByTestId('folder-path');
+		this.subFolders = page.getByTestId('folder-tree'); // Folders are now in sidebar tree only
 		this.documents = page.getByTestId('documents-section');
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
@@ -175,11 +176,11 @@ export class FolderPage extends BasePage {
 	async getSubFolderNames(): Promise<string[]> {
 		// Get folder names from sidebar tree by looking for "Open folder" buttons
 		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
-		const ariaLabels = await folderButtons.evaluateAll(elements => 
-			elements.map(el => el.getAttribute('aria-label') || '')
+		const ariaLabels = await folderButtons.evaluateAll((elements) =>
+			elements.map((el) => el.getAttribute('aria-label') || '')
 		);
 		// Extract just the folder name from "Open folder [name]" aria-label
-		return ariaLabels.map(label => label.replace('Open folder ', ''));
+		return ariaLabels.map((label) => label.replace('Open folder ', ''));
 	}
 
 	/**
@@ -205,11 +206,26 @@ export class FolderPage extends BasePage {
 			}
 		}
 
-		const folderButton = this.folderTree
-			.getByRole('button', { name: new RegExp(`Open folder ${folderName}`, 'i') });
+		const folderButton = this.folderTree.getByRole('button', {
+			name: new RegExp(`Open folder ${folderName}`, 'i')
+		});
 
 		await this.page.waitForTimeout(500);
 		await expect(folderButton.first()).toBeVisible({ timeout: 10000 });
+	}
+
+	/**
+	 * Check if folder exists in sidebar (returns boolean)
+	 */
+	async folderExistsInSidebar(folderName: string): Promise<boolean> {
+		try {
+			const folderButton = this.folderTree.getByRole('button', {
+				name: new RegExp(`Open folder ${folderName}`, 'i')
+			});
+			return await folderButton.first().isVisible({ timeout: 2000 });
+		} catch {
+			return false;
+		}
 	}
 
 	/**

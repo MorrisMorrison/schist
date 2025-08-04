@@ -44,12 +44,12 @@ test.describe('Navigation and Routing', () => {
 
 		const emptyMessage = documentViewPage.page.locator('[data-testid="empty-folder-message"]');
 		const documentsSection = documentViewPage.page.locator('[data-testid="documents-section"]');
-		
+
 		if (await emptyMessage.isVisible()) {
 			console.log('Folder appears empty - no child documents found');
-			return; 
+			return;
 		}
-		
+
 		const childText = `Child ${testId}`;
 		await documentsSection.getByText(childText, { exact: false }).waitFor();
 	});

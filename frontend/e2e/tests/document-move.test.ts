@@ -59,7 +59,7 @@ test.describe.serial('Document Move', () => {
 
 			const emptyFolderMessage = folderPage.page.locator('[data-testid="empty-folder-message"]');
 			const documentsSection = folderPage.page.locator('[data-testid="documents-section"]');
-			
+
 			if (await emptyFolderMessage.isVisible()) {
 				console.log('Target folder appears empty after move - document filtering may have issues');
 			} else {

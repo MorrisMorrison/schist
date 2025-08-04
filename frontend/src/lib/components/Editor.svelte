@@ -544,14 +544,13 @@
 	/>
 
 	<!-- Editor and Preview Container -->
-	<div class="flex flex-1 overflow-hidden border-l border-r border-primary">
+	<div class="border-primary flex flex-1 overflow-hidden border-r border-l">
 		<!-- Editor Panel -->
-		<div
-			class="flex flex-1 flex-col border-r border-primary"
-		>
+		<div class="border-primary flex flex-1 flex-col border-r">
 			<!-- Editor Controls -->
 			<div
-				class="flex min-h-[3rem] items-center justify-between border-b border-primary px-4 py-2 {currentTheme === 'dark'
+				class="border-primary flex min-h-[3rem] items-center justify-between border-b px-4 py-2 {currentTheme ===
+				'dark'
 					? 'bg-gray-800'
 					: 'bg-gray-50'}"
 			>
@@ -575,10 +574,8 @@
 					{/if}
 				</div>
 				<button
-					class="rounded border border-secondary px-3 py-1 text-sm transition-colors
-						{currentTheme === 'dark'
-						? 'text-gray-300 hover:bg-gray-700'
-						: 'text-gray-700 hover:bg-gray-100'}"
+					class="border-secondary rounded border px-3 py-1 text-sm transition-colors
+						{currentTheme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}"
 					onclick={togglePreview}
 				>
 					{isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
@@ -595,7 +592,8 @@
 		{#if isPreviewVisible}
 			<div class="flex flex-1 flex-col">
 				<div
-					class="flex min-h-[3rem] items-center justify-between border-b border-primary px-4 py-2 {currentTheme === 'dark'
+					class="border-primary flex min-h-[3rem] items-center justify-between border-b px-4 py-2 {currentTheme ===
+					'dark'
 						? 'bg-gray-800'
 						: 'bg-gray-50'}"
 				>
@@ -614,7 +612,7 @@
 	<!-- Image upload status -->
 	{#if isUploading || uploadMessage || uploadError}
 		<div
-			class="border-t border-primary px-4 py-2 {currentTheme === 'dark'
+			class="border-primary border-t px-4 py-2 {currentTheme === 'dark'
 				? 'bg-gray-800'
 				: 'bg-gray-50'}"
 		>
@@ -652,10 +650,8 @@
 
 	<!-- Status Bar -->
 	<div
-		class="flex items-center justify-between border-t border-primary px-4 py-2 text-xs
-		{currentTheme === 'dark'
-			? 'bg-gray-800 text-gray-400'
-			: 'bg-gray-50 text-gray-500'}"
+		class="border-primary flex items-center justify-between border-t px-4 py-2 text-xs
+		{currentTheme === 'dark' ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'}"
 	>
 		<div class="flex items-center gap-4">
 			<span>Words: {currentContent.split(/\s+/).filter((w) => w.length > 0).length}</span>
@@ -672,7 +668,7 @@
 
 	<!-- Resize Handle -->
 	<div
-		class="flex h-4 cursor-ns-resize items-center justify-center border-t border-primary bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+		class="border-primary flex h-4 cursor-ns-resize items-center justify-center border-t bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
 		onmousedown={handleResizeStart}
 		role="button"
 		tabindex="0"

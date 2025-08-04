@@ -176,8 +176,7 @@ export class FolderPage extends BasePage {
 	async openSubFolder(folderName: string) {
 		// Since we removed folder cards from main content, use sidebar navigation
 		// Look for the "Open folder" button with the exact folder name pattern
-		const folderButton = this.folderTree
-			.getByRole('button', { name: `Open folder ${folderName}` });
+		const folderButton = this.folderTree.getByRole('button', { name: `Open folder ${folderName}` });
 		await folderButton.click();
 		await this.waitForLoad();
 	}
@@ -195,13 +194,13 @@ export class FolderPage extends BasePage {
 	 * Get list of subfolder names - now from sidebar only
 	 */
 	async getSubFolderNames(): Promise<string[]> {
-		// Get folder names from sidebar tree instead of main content
-		const folderButtons = this.folderTree
-			.locator('[role="treeitem"]')
-			.filter({ has: this.page.locator('button').filter({ hasText: /\w+/ }) })
-			.locator('button')
-			.first(); // Get folder buttons, not document buttons
-		return await folderButtons.allTextContents();
+		// Get folder names from sidebar tree by looking for "Open folder" buttons
+		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
+		const ariaLabels = await folderButtons.evaluateAll(elements => 
+			elements.map(el => el.getAttribute('aria-label') || '')
+		);
+		// Extract just the folder name from "Open folder [name]" aria-label
+		return ariaLabels.map(label => label.replace('Open folder ', ''));
 	}
 
 	/**
@@ -218,11 +217,11 @@ export class FolderPage extends BasePage {
 	async verifyContainsFolder(folderName: string) {
 		// Since folder cards are removed from main content, verify in sidebar
 		// For nested folders, we need to expand the parent folder first to see children
-		
+
 		// First, try to find if there's an expandable parent folder that needs to be opened
 		const expandButtons = this.folderTree.getByRole('button').filter({ hasText: /expand folder/i });
 		const expandCount = await expandButtons.count();
-		
+
 		// Try expanding any collapsed folders to reveal nested structure
 		for (let i = 0; i < expandCount; i++) {
 			const expandButton = expandButtons.nth(i);
@@ -231,12 +230,11 @@ export class FolderPage extends BasePage {
 				await this.page.waitForTimeout(300); // Wait for expansion
 			}
 		}
-		
+
 		// Now look for the folder button anywhere in the tree (works for both root and nested)
 		const folderButton = this.folderTree
-			.getByRole('button')
-			.filter({ hasText: new RegExp(`(Open folder )?${folderName}`, 'i') });
-		
+			.getByRole('button', { name: new RegExp(`Open folder ${folderName}`, 'i') });
+
 		// Wait a bit for the sidebar to update after folder creation
 		await this.page.waitForTimeout(500);
 		await expect(folderButton.first()).toBeVisible({ timeout: 10000 });
@@ -352,10 +350,9 @@ export class FolderPage extends BasePage {
 	 * Count subfolders - now from sidebar only
 	 */
 	async getSubFolderCount(): Promise<number> {
-		// Count folders in sidebar tree instead of main content
-		const folderButtons = this.folderTree
-			.getByRole('button')
-			.filter({ hasText: /^[^(]*$/ }); // Exclude document buttons (which have doc count in parentheses)
+		// Count folders in sidebar tree by looking for buttons with "Open folder" aria-label
+		// These are the buttons that open folders, not documents
+		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
 		return await folderButtons.count();
 	}
 

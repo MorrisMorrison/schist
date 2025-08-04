@@ -106,10 +106,10 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await expect(confirmDialog).not.toBeVisible();
 		await page.waitForLoadState('networkidle');
 
-		// Wait for the folder to be removed from the UI before checking count
-		await expect(folderPage.subFolders.getByText(testFolderName)).not.toBeVisible({
-			timeout: 5000
-		});
+		// Wait for the folder to be removed from the sidebar tree
+		await expect(folderPage.folderTree
+			.getByTestId('folder-tree-item')
+			.filter({ hasText: testFolderName })).not.toBeVisible();
 
 		// Verify folder count decreased
 		const newCount = await folderPage.getSubFolderCount();

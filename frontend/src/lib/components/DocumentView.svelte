@@ -38,7 +38,6 @@
 	const documentUpdated = $derived(document.metaData?.updated);
 	const documentTags = $derived(document.metaData?.tags || []);
 
-	// DOM reference for the content container
 	let contentContainer = $state<HTMLDivElement>();
 
 	function formatDate(dateString?: string): string {
@@ -51,23 +50,18 @@
 		});
 	}
 
-	// Enhanced markdown rendering with copy buttons
 	let renderedMarkdown = $state('');
 
-	// Backlinks functionality
 	let backlinks = $state<Document[]>([]);
 	let backlinkLoading = $state(false);
 
-	// Version count functionality
 	let versionCount = $state<number | undefined>(undefined);
 	let versionLoading = $state(false);
 
-	// Version history functionality
 	let showVersionHistory = $state(false);
 	let versions = $state<DocumentVersion[]>([]);
 
 	$effect(() => {
-		// Ensure the effect tracks page.content changes
 		const content = document.content;
 
 		if (content) {
@@ -101,7 +95,6 @@
 		}
 	});
 
-	// Load backlinks when document changes
 	$effect(() => {
 		async function loadBacklinks() {
 			if (!documentPath) return;
@@ -120,7 +113,6 @@
 		loadBacklinks();
 	});
 
-	// Function to refresh version count
 	async function refreshVersionCount() {
 		if (!documentPath) return;
 
@@ -136,9 +128,7 @@
 		}
 	}
 
-	// Load version count when document changes
 	$effect(() => {
-		// Track documentPath and document updated timestamp
 		void documentPath;
 		void documentUpdated;
 
@@ -154,7 +144,6 @@
 
 		try {
 			const result = onDelete(documentPath);
-			// If onDelete returns a promise, wait for it
 			if (result && typeof result.then === 'function') {
 				await result;
 			}
@@ -176,7 +165,6 @@
 
 		showVersionHistory = true;
 
-		// Load versions if not already loaded
 		if (versions.length === 0) {
 			try {
 				const versionsResponse = await apiClient.getDocumentVersions(documentPath);
@@ -197,11 +185,10 @@
 
 		try {
 			await apiClient.restoreDocumentToVersion(documentPath, version.hash);
-			// Refresh the document to show the restored content
 			window.location.reload();
 		} catch (error) {
 			console.error('Failed to restore version:', error);
-			throw error; // Re-throw to let the modal handle the error display
+			throw error;
 		}
 	}
 </script>

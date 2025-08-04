@@ -21,7 +21,6 @@
 		readonly = false
 	}: Omit<EditorProps, 'theme'> = $props();
 
-	// Editor state
 	let editorElement: HTMLElement;
 	let editorView: EditorView | null = null;
 	let currentContent = $state(initialContent);
@@ -30,16 +29,14 @@
 	let isPreviewVisible = $state(true);
 	let isFullscreen = $state(false);
 
-	// Resize functionality
-	let editorHeight = $state(700); // Default height in pixels
+	let editorHeight = $state(700);
 	let isResizing = $state(false);
 	let resizeStartY = $state(0);
 	let resizeStartHeight = $state(0);
 
-	// Use the global theme store
 	const currentTheme = $derived($theme);
 
-	// Custom light theme that matches our app design
+	// Custom light theme
 	const lightTheme = EditorView.theme({
 		'&': {
 			backgroundColor: '#ffffff', // pure white
@@ -77,7 +74,7 @@
 		}
 	});
 
-	// Custom dark theme that matches our app design
+	// Custom dark theme
 	const darkTheme = EditorView.theme({
 		'&': {
 			backgroundColor: '#0f172a', // --gray-900
@@ -115,7 +112,6 @@
 		}
 	});
 
-	// Auto-save configuration
 	const autoSaveConfig = {
 		enabled: true,
 		interval: 30000, // 30 seconds
@@ -123,10 +119,8 @@
 		...autoSave
 	};
 
-	// Auto-save timer
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// Image upload state
 	let isUploading = $state(false);
 	let uploadProgress = $state(0);
 	let uploadMessage = $state<string | null>(null);
@@ -145,11 +139,9 @@
 			onContentChange(content);
 		}
 
-		// Schedule auto-save
 		scheduleAutoSave();
 	}
 
-	// Schedule auto-save
 	function scheduleAutoSave() {
 		if (!autoSaveConfig.enabled || !isDirty) return;
 
@@ -162,7 +154,6 @@
 		}, autoSaveConfig.intervalInMillis);
 	}
 
-	// Save content
 	async function saveContent() {
 		if (!isDirty || !autoSaveConfig.onSave) return;
 
@@ -175,7 +166,6 @@
 		}
 	}
 
-	// Format text based on type
 	function formatText(type: FormattingType, value?: string) {
 		if (!editorView) return;
 
@@ -243,26 +233,21 @@
 
 	// Theme toggle is handled by the global theme store now
 
-	// Toggle preview visibility
 	function togglePreview() {
 		isPreviewVisible = !isPreviewVisible;
 	}
 
-	// Toggle fullscreen mode
 	function toggleFullscreen() {
 		isFullscreen = !isFullscreen;
 	}
 
-	// Initialize CodeMirror editor
 	function initializeEditor() {
 		if (!editorElement) return;
 
-		// Destroy existing editor
 		if (editorView) {
 			editorView.destroy();
 		}
 
-		// Create editor state
 		const state = EditorState.create({
 			doc: currentContent,
 			extensions: [
@@ -330,14 +315,12 @@
 			]
 		});
 
-		// Create editor view
 		editorView = new EditorView({
 			state,
 			parent: editorElement
 		});
 	}
 
-	// Keyboard shortcuts
 	function handleKeydown(event: KeyboardEvent) {
 		// F11 for fullscreen toggle
 		if (event.key === 'F11') {
@@ -390,14 +373,12 @@
 		}
 	}
 
-	// Resize functionality
 	function handleResizeStart(event: MouseEvent) {
 		event.preventDefault();
 		isResizing = true;
 		resizeStartY = event.clientY;
 		resizeStartHeight = editorHeight;
 
-		// Add global event listeners
 		document.addEventListener('mousemove', handleResizeMove);
 		document.addEventListener('mouseup', handleResizeEnd);
 		document.body.style.cursor = 'ns-resize';
@@ -408,7 +389,7 @@
 		if (!isResizing) return;
 
 		const deltaY = event.clientY - resizeStartY;
-		const newHeight = Math.max(200, resizeStartHeight + deltaY); // Minimum height of 200px
+		const newHeight = Math.max(200, resizeStartHeight + deltaY);
 		editorHeight = newHeight;
 	}
 
@@ -420,7 +401,6 @@
 		document.body.style.userSelect = '';
 	}
 
-	// Component lifecycle
 	onMount(() => {
 		initializeEditor();
 	});

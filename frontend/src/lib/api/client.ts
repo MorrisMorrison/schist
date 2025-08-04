@@ -51,8 +51,6 @@ class SchістApiClient {
 	private encodePath(path: string): string {
 		const normalizedPath = normalizePath(path);
 
-		// Split path into segments, encode each segment, then rejoin
-		// This preserves the forward slashes while encoding special characters in segments
 		const segments = normalizedPath.split('/');
 		const encodedSegments = segments.map((segment) =>
 			segment ? encodeURIComponent(segment) : segment
@@ -185,8 +183,6 @@ class SchістApiClient {
 		});
 	}
 
-	// Folder operations
-
 	async getFolderTree(): Promise<Folder[]> {
 		const response = await this.request<FolderTreeResponse>('/folders');
 		return response.folders;
@@ -215,7 +211,6 @@ class SchістApiClient {
 		});
 	}
 
-	// Move operations
 	async moveDocument(moveRequest: MoveDocumentRequest): Promise<MoveDocumentResponse> {
 		const normalizedRequest = {
 			oldPath: normalizePath(moveRequest.oldPath),
@@ -238,18 +233,15 @@ class SchістApiClient {
 		});
 	}
 
-	// Search
 	async searchDocuments(query: string): Promise<SearchResult> {
 		const params = new URLSearchParams({ q: query });
 		return this.request<SearchResult>(`/search?${params}`);
 	}
 
-	// Get all tags with counts
 	async getAllTags(): Promise<TagsResponse> {
 		return this.request<TagsResponse>('/tags');
 	}
 
-	// Wiki link operations
 	async getDocumentBacklinks(path: string): Promise<Document[]> {
 		const encodedPath = this.encodePath(path);
 		const response = await this.request<{ backlinks: Document[]; total: number }>(
@@ -258,7 +250,6 @@ class SchістApiClient {
 		return response.backlinks;
 	}
 
-	// Version operations
 	async getDocumentVersions(path: string, options?: RequestInit): Promise<VersionsResponse> {
 		const normalizedPath = normalizePath(path);
 		const params = new URLSearchParams({ path: normalizedPath });
@@ -287,18 +278,15 @@ class SchістApiClient {
 		});
 	}
 
-	// Asset operations
 	async uploadImage(file: File, onProgress?: (progress: number) => void): Promise<Asset> {
 		const formData = new FormData();
 		formData.append('file', file);
 
-		// For file uploads, we need to handle this differently than JSON requests
 		const url = `${this.getApiUrl()}/assets/upload`;
 
 		return new Promise((resolve, reject) => {
 			const xhr = new XMLHttpRequest();
 
-			// Handle progress if callback provided
 			if (onProgress) {
 				xhr.upload.addEventListener('progress', (event) => {
 					if (event.lengthComputable) {
@@ -336,7 +324,6 @@ class SchістApiClient {
 	}
 
 	async deleteAsset(path: string): Promise<void> {
-		// Remove leading slash if present since API expects it
 		const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 		await this.request<void>(`/assets/${cleanPath}`, {
 			method: 'DELETE'
@@ -346,12 +333,10 @@ class SchістApiClient {
 	async importDocuments(files: FileList, options: ImportOptions): Promise<ImportResult> {
 		const formData = new FormData();
 
-		// Add all files to the form data
 		for (let i = 0; i < files.length; i++) {
 			formData.append('files', files[i]);
 		}
 
-		// Add options
 		formData.append('target_path', options.target_path);
 		formData.append('overwrite_mode', options.overwrite_mode);
 
@@ -374,12 +359,10 @@ class SchістApiClient {
 		return `${serverRoot}${uploadsPath}`;
 	}
 
-	// Export methods
 	async exportDocument(path: string): Promise<void> {
 		const encodedPath = this.encodePath(path);
 		const url = `${this.getApiUrl()}/export/document${encodedPath}`;
 
-		// Use a simple window.open to trigger download
 		window.open(url, '_blank');
 	}
 
@@ -387,18 +370,15 @@ class SchістApiClient {
 		const encodedPath = this.encodePath(path);
 		const url = `${this.getApiUrl()}/export/folder${encodedPath}`;
 
-		// Use a simple window.open to trigger download
 		window.open(url, '_blank');
 	}
 
 	async exportAll(): Promise<void> {
 		const url = `${this.getApiUrl()}/export/all`;
 
-		// Use a simple window.open to trigger download
 		window.open(url, '_blank');
 	}
 
-	// GitHub integration methods
 	async getGitHubStatus(): Promise<GitHubStatus> {
 		return this.request<GitHubStatus>('/github/status');
 	}

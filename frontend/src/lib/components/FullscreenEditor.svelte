@@ -32,7 +32,6 @@
 		readonly = false
 	}: FullscreenEditorProps = $props();
 
-	// Editor state
 	let editorElement = $state<HTMLElement>();
 	let editorView: EditorView | null = null;
 	let currentContent = $state(initialContent);
@@ -40,16 +39,13 @@
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
 
-	// Image upload state
 	let isUploading = $state(false);
 	let uploadProgress = $state(0);
 	let uploadMessage = $state<string | null>(null);
 	let uploadError = $state<string | null>(null);
 
-	// Use the global theme store
 	const currentTheme = $derived($theme);
 
-	// Custom light theme that matches our app design
 	const lightTheme = EditorView.theme({
 		'&': {
 			backgroundColor: '#f8fafc', // --gray-50
@@ -87,7 +83,6 @@
 		}
 	});
 
-	// Custom dark theme that matches our app design
 	const darkTheme = EditorView.theme({
 		'&': {
 			backgroundColor: '#0f172a', // --gray-900
@@ -125,7 +120,6 @@
 		}
 	});
 
-	// Auto-save configuration
 	const autoSaveConfig = {
 		enabled: true,
 		interval: 30000, // 30 seconds
@@ -133,27 +127,21 @@
 		...autoSave
 	};
 
-	// Auto-save timer
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// Update content and trigger change event
 	function updateContent(content: string) {
-		// Avoid unnecessary updates
 		if (content === currentContent) return;
 
 		currentContent = content;
 		isDirty = true;
 
-		// Call external change handler
 		if (onContentChange) {
 			onContentChange(content);
 		}
 
-		// Schedule auto-save
 		scheduleAutoSave();
 	}
 
-	// Schedule auto-save
 	function scheduleAutoSave() {
 		if (!autoSaveConfig.enabled || !isDirty) return;
 
@@ -166,7 +154,6 @@
 		}, autoSaveConfig.intervalInMillis);
 	}
 
-	// Save content
 	async function saveContent() {
 		if (!isDirty || !autoSaveConfig.onSave) return;
 
@@ -179,7 +166,6 @@
 		}
 	}
 
-	// Format text based on type
 	function formatText(type: FormattingType, value?: string) {
 		if (!editorView) return;
 
@@ -245,21 +231,17 @@
 		editorView.focus();
 	}
 
-	// Toggle preview visibility
 	function togglePreview() {
 		isPreviewVisible = !isPreviewVisible;
 	}
 
-	// Initialize CodeMirror editor
 	function initializeEditor() {
 		if (!editorElement) return;
 
-		// Destroy existing editor
 		if (editorView) {
 			editorView.destroy();
 		}
 
-		// Create editor state
 		const state = EditorState.create({
 			doc: currentContent,
 			extensions: [
@@ -270,7 +252,6 @@
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						const newContent = update.state.doc.toString();
-						// Only update if content actually changed to avoid loops
 						if (newContent !== currentContent) {
 							updateContent(newContent);
 						}
@@ -327,14 +308,12 @@
 			]
 		});
 
-		// Create editor view
 		editorView = new EditorView({
 			state,
 			parent: editorElement
 		});
 	}
 
-	// Keyboard shortcuts
 	function handleKeydown(event: KeyboardEvent) {
 		// F11 or Escape to exit fullscreen
 		if (event.key === 'F11' || event.key === 'Escape') {
@@ -369,10 +348,8 @@
 			case 'k':
 				event.preventDefault();
 				if (event.shiftKey) {
-					// Shift+Ctrl+K for wiki links
 					formatText('wikiLink');
 				} else {
-					// Ctrl+K for regular links
 					formatText('link');
 				}
 				break;
@@ -387,7 +364,6 @@
 		}
 	}
 
-	// Component lifecycle
 	onMount(() => {
 		if (open) {
 			initializeEditor();
@@ -403,14 +379,12 @@
 		}
 	});
 
-	// Reactive updates when modal opens/closes
 	$effect(() => {
 		if (open && editorElement && !editorView) {
 			initializeEditor();
 		}
 	});
 
-	// Reactive theme updates
 	$effect(() => {
 		if (editorView && currentTheme && open) {
 			const extensions = [
@@ -482,7 +456,6 @@
 		}
 	});
 
-	// Update editor content when initialContent prop changes
 	$effect(() => {
 		if (editorView && initialContent !== currentContent && open) {
 			const newContent = initialContent || '';
@@ -498,7 +471,6 @@
 		}
 	});
 
-	// Theme classes
 	const themeClasses = $derived(
 		currentTheme === 'dark' ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'
 	);

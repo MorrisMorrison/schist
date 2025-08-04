@@ -75,7 +75,7 @@ export const currentFolderDocuments = derived(
 				(document) =>
 					!document.metaData.path ||
 					document.metaData.path === '/' ||
-					!document.metaData.path.includes('/', 1) // No additional slashes after the first
+					!document.metaData.path.includes('/', 1)
 			);
 		}
 
@@ -258,14 +258,11 @@ export const documentActions = {
 		try {
 			const updatedDocument = await apiClient.updateDocumentByPath(path, documentData, saveType);
 
-			// Check if the document path has changed
 			const pathChanged = updatedDocument.metaData.path !== path;
 
 			if (pathChanged) {
-				// If path changed, refresh both documents and folder tree to ensure consistency
 				await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree()]);
 			} else {
-				// If path didn't change, just update the local state
 				documentsStore.update((state) => ({
 					...state,
 					documents: state.documents.map((d) => (d.metaData.path === path ? updatedDocument : d)),
@@ -342,16 +339,13 @@ export const documentActions = {
 	}
 };
 
-// Helper function to combine text query and tag filters
 function buildSearchQuery(textQuery: string, tags: string[]): string {
 	const parts: string[] = [];
 
-	// Add text query if present
 	if (textQuery.trim()) {
 		parts.push(textQuery.trim());
 	}
 
-	// Add tag filters
 	for (const tag of tags) {
 		parts.push(`tag:${tag}`);
 	}
@@ -361,7 +355,6 @@ function buildSearchQuery(textQuery: string, tags: string[]): string {
 
 export const searchActions = {
 	async search(query?: string, tags?: string[]) {
-		// Get current state for defaults
 		const currentState = get(searchStore);
 		const finalQuery = query ?? currentState.query;
 		const finalTags = tags ?? currentState.selectedTags;
@@ -375,7 +368,6 @@ export const searchActions = {
 		}));
 
 		try {
-			// Combine text query and tag filters into a single search query
 			const combinedQuery = buildSearchQuery(finalQuery, finalTags);
 			const results = await apiClient.searchDocuments(combinedQuery);
 
@@ -434,7 +426,6 @@ export const searchActions = {
 		searchStore.update((state) => ({ ...state, selectedTags: [] }));
 	},
 
-	// Perform search with current state
 	async performSearch() {
 		const currentState = get(searchStore);
 		return this.search(currentState.query, currentState.selectedTags);
@@ -450,7 +441,6 @@ export const searchActions = {
 
 		try {
 			const allResults = await apiClient.searchDocuments(query);
-			// Filter results to only include documents in the specified folder
 			const results = allResults.documents.filter(
 				(document) => document.metaData.path && document.metaData.path.startsWith(folderPath)
 			);
@@ -474,7 +464,6 @@ export const searchActions = {
 };
 
 export const folderActions = {
-	// Load folder tree
 	async loadFolderTree() {
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 

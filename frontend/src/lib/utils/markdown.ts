@@ -46,7 +46,6 @@ hljs.registerLanguage('yml', yaml);
 hljs.registerLanguage('dockerfile', dockerfile);
 hljs.registerLanguage('nginx', nginx);
 
-// Wiki link processing
 interface WikiLink {
 	target: string;
 	displayText: string;
@@ -63,11 +62,9 @@ function generateSlug(title: string): string {
 }
 
 async function resolveWikiLink(target: string): Promise<WikiLink> {
-	// First try to find exact title match by searching all documents
 	try {
 		const documents = await apiClient.getDocuments();
 
-		// Case-insensitive title matching
 		const matchingDocument = documents.find(
 			(document: { metaData: { title: string; path: string } }) =>
 				document.metaData.title.toLowerCase() === target.toLowerCase()
@@ -84,7 +81,6 @@ async function resolveWikiLink(target: string): Promise<WikiLink> {
 		console.warn('Failed to fetch documents for wiki link resolution:', error);
 	}
 
-	// If no exact match, generate slug-based path
 	const slug = generateSlug(target);
 	return {
 		target,
@@ -94,12 +90,9 @@ async function resolveWikiLink(target: string): Promise<WikiLink> {
 }
 
 function preprocessWikiLinks(content: string): string {
-	// Store wiki links temporarily with placeholders
 	const wikiLinks: Array<{ placeholder: string; target: string; displayText: string }> = [];
 	let linkIndex = 0;
 
-	// Replace [[Page Name]] and [[Page Name|Display Text]] with placeholders
-	// Use HTML comment style placeholder to avoid markdown interference
 	const processed = content.replace(
 		/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
 		(match, target, display) => {
@@ -114,18 +107,15 @@ function preprocessWikiLinks(content: string): string {
 		}
 	);
 
-	// Store links for later processing with a unique identifier
 	const sessionId = `wikiLinks_${Date.now()}_${Math.random()}`;
 	(globalThis as Record<string, unknown>)[sessionId] = wikiLinks;
 
-	// Store the session ID in the processed content for later retrieval
 	const processedWithSession = `${processed}\n<!-- WIKI_SESSION:${sessionId} -->`;
 
 	return processedWithSession;
 }
 
 async function postprocessWikiLinks(html: string): Promise<string> {
-	// Extract session ID from HTML
 	const sessionMatch = html.match(/<!-- WIKI_SESSION:([^-]+) -->/);
 	if (!sessionMatch) {
 		return html;
@@ -140,25 +130,21 @@ async function postprocessWikiLinks(html: string): Promise<string> {
 		}>) || [];
 
 	if (wikiLinks.length === 0) {
-		// Remove session comment and return
 		return html.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
 	}
 
 	let processedHtml = html;
 
-	// Process each wiki link
 	for (const link of wikiLinks) {
 		try {
 			const resolvedLink = await resolveWikiLink(link.target);
 
-			// Check if the target document exists
 			let linkClass = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
 			let title = `Go to ${resolvedLink.target}`;
 
 			try {
 				await apiClient.getDocumentByPath(resolvedLink.path);
 			} catch {
-				// Document doesn't exist - style as broken link
 				linkClass =
 					'wiki-link broken-link text-red-500 hover:text-red-700 hover:underline cursor-pointer';
 				title = `Document "${resolvedLink.target}" does not exist (click to create)`;
@@ -166,24 +152,20 @@ async function postprocessWikiLinks(html: string): Promise<string> {
 
 			const linkHtml = `<span class="${linkClass}" data-wiki-target="${resolvedLink.path}" title="${title}">${link.displayText}</span>`;
 
-			// Replace all occurrences of the placeholder (in case it appears multiple times)
 			processedHtml = processedHtml.split(link.placeholder).join(linkHtml);
 		} catch (error) {
 			console.error('Failed to process wiki link:', error);
-			// Fallback to broken link
 			const linkHtml = `<span class="wiki-link broken-link text-red-500 hover:text-red-700 hover:underline cursor-pointer" data-wiki-target="/${generateSlug(link.target)}" title="Failed to resolve link">${link.displayText}</span>`;
 			processedHtml = processedHtml.split(link.placeholder).join(linkHtml);
 		}
 	}
 
-	// Clean up session-specific data and remove session comment
 	delete (globalThis as Record<string, unknown>)[sessionId];
 	processedHtml = processedHtml.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
 
 	return processedHtml;
 }
 
-// Custom renderer for code blocks and images
 const renderer = new marked.Renderer();
 
 function parseSizeToClass(size: string): string {
@@ -202,24 +184,21 @@ function parseSizeToClass(size: string): string {
 		return `max-w-[${size}px]`;
 	}
 
-	return 'max-w-[75%]'; // Default fallback
+	return 'max-w-[75%]';
 }
 
 renderer.image = function ({ href, title, text }: Tokens.Image): string {
-	// Convert local asset paths to full URLs
 	let src = href;
 	const alt = text || '';
-	let sizeClass = 'max-w-[75%]'; // Default to large size
+	let sizeClass = 'max-w-[75%]';
 	let actualTitle = title || '';
 
-	// Parse size from title (format: "Title|size")
 	if (title && title.includes('|')) {
 		const [titlePart, sizePart] = title.split('|', 2);
 		actualTitle = titlePart;
 		sizeClass = parseSizeToClass(sizePart);
 	}
 
-	// Check if href starts with /assets/ (ignoring query parameters)
 	const pathWithoutQuery = href.split('?')[0];
 	if (pathWithoutQuery.startsWith('/assets/')) {
 		src = apiClient.getAssetUrl(href);
@@ -306,14 +285,11 @@ marked.setOptions({
 
 export async function parseMarkdownWithCopyButtons(content: string): Promise<string> {
 	try {
-		// First preprocess wiki links
 		const preprocessedContent = preprocessWikiLinks(content);
 
-		// Parse markdown normally
 		const result = await marked.parse(preprocessedContent);
 		const htmlString = typeof result === 'string' ? result : String(result);
 
-		// Post-process wiki links in the HTML
 		const finalHtml = await postprocessWikiLinks(htmlString);
 
 		return finalHtml;
@@ -346,14 +322,11 @@ function handleWikiLinkClick(event: Event): void {
 
 	if (!targetPath) return;
 
-	// Check if it's a broken link
 	const isBrokenLink = linkElement.classList.contains('broken-link');
 
 	if (isBrokenLink) {
-		// Navigate to edit page to create the new document
 		goto(`/edit${targetPath}`);
 	} else {
-		// Navigate to the existing document
 		goto(`/documents${targetPath}`);
 	}
 }

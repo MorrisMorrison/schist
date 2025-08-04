@@ -10,14 +10,12 @@ import { apiClient } from '$lib/api/client';
 import { goto } from '$app/navigation';
 import type { Document } from '$lib/api/types';
 
-// Cache for documents to avoid frequent API calls
 let documentsCache: Document[] = [];
 let cacheTime = 0;
-const CACHE_DURATION = 60000; // 1 minute (increased for better performance)
+const CACHE_DURATION = 60000;
 
-// Cache for document existence checks
 const existsCache = new Map<string, { exists: boolean; time: number }>();
-const EXISTS_CACHE_DURATION = 30000; // 30 seconds
+const EXISTS_CACHE_DURATION = 30000;
 
 async function getDocuments(): Promise<Document[]> {
 	const now = Date.now();
@@ -27,14 +25,12 @@ async function getDocuments(): Promise<Document[]> {
 			cacheTime = now;
 		} catch (error) {
 			console.warn('Failed to fetch documents for wiki links:', error);
-			// Return empty array if fetch fails, don't crash
 			return [];
 		}
 	}
 	return documentsCache;
 }
 
-// Generate slug like the backend does
 function generateSlug(title: string): string {
 	return title
 		.toLowerCase()
@@ -44,12 +40,10 @@ function generateSlug(title: string): string {
 		.replace(/^-|-$/g, '');
 }
 
-// Check if a document exists with caching
 async function documentExists(documentName: string): Promise<boolean> {
 	const now = Date.now();
 	const cacheKey = documentName.toLowerCase();
 
-	// Check cache first
 	const cached = existsCache.get(cacheKey);
 	if (cached && now - cached.time < EXISTS_CACHE_DURATION) {
 		return cached.exists;
@@ -59,7 +53,6 @@ async function documentExists(documentName: string): Promise<boolean> {
 		const documents = await getDocuments();
 		const exists = documents.some((document) => document.metaData.title.toLowerCase() === cacheKey);
 
-		// Cache the result
 		existsCache.set(cacheKey, { exists, time: now });
 
 		return exists;
@@ -69,7 +62,6 @@ async function documentExists(documentName: string): Promise<boolean> {
 	}
 }
 
-// Resolve document name to path
 async function resolveDocumentPath(documentName: string): Promise<string> {
 	const documents = await getDocuments();
 	const matchingDocument = documents.find(

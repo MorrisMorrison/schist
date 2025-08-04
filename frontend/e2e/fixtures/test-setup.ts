@@ -12,6 +12,48 @@ import { DirectoryManager, createDirectoryManager } from '../utils/directory-man
 import { TestMonitor, createTestMonitor } from '../utils/test-monitor';
 import { generateTestId } from '../utils/test-data';
 
+// Global cleanup registry to ensure cleanup happens even if tests fail
+const globalCleanupRegistry = new Map<number, DirectoryManager>();
+
+// Global cleanup function - called when process exits
+async function performGlobalCleanup() {
+	console.log('🧹 Performing global test data cleanup...');
+	for (const [workerIndex, manager] of globalCleanupRegistry.entries()) {
+		try {
+			console.log(`[Worker ${workerIndex}] Emergency cleanup...`);
+			await manager.emergencyCleanup();
+			console.log(`[Worker ${workerIndex}] ✅ Emergency cleanup completed`);
+		} catch (error) {
+			console.error(`[Worker ${workerIndex}] ❌ Emergency cleanup failed:`, error);
+		}
+	}
+	globalCleanupRegistry.clear();
+}
+
+// Register global cleanup handlers
+if (typeof process !== 'undefined') {
+	process.on('exit', () => {
+		// Note: Async operations don't work in exit handler, but we try anyway
+		performGlobalCleanup().catch(() => {});
+	});
+	
+	process.on('SIGINT', async () => {
+		await performGlobalCleanup();
+		process.exit(0);
+	});
+	
+	process.on('SIGTERM', async () => {
+		await performGlobalCleanup();
+		process.exit(0);
+	});
+	
+	process.on('uncaughtException', async (error) => {
+		console.error('Uncaught exception:', error);
+		await performGlobalCleanup();
+		process.exit(1);
+	});
+}
+
 // Extend base test with our fixtures
 export const test = base.extend<{
 	homePage: HomePage;
@@ -53,26 +95,35 @@ export const test = base.extend<{
 
 	// Directory manager fixture - handles directory lifecycle
 	directoryManager: async ({ request }, use, testInfo) => {
-		const directoryManager = createDirectoryManager(request, testInfo.parallelIndex || 0);
+		const workerIndex = testInfo.parallelIndex || 0;
+		const directoryManager = createDirectoryManager(request, workerIndex);
 
-		// Initialize directory with clean state
-		await directoryManager.initializeDirectory();
+		// Register for global cleanup
+		globalCleanupRegistry.set(workerIndex, directoryManager);
 
-		// Log initial state
-		await use(directoryManager);
+		try {
+			// Initialize directory with clean state (this will clean up any leftover data)
+			await directoryManager.initializeDirectory();
 
-		// Post-test cleanup and validation
-		await directoryManager.logDirectoryState('Before cleanup');
-		await directoryManager.performAggressiveCleanup();
+			// Log initial state
+			await use(directoryManager);
 
-		// Verify cleanup was successful
-		const isClean = await directoryManager.validateCleanState();
-		if (!isClean) {
-			console.warn(`Worker ${testInfo.parallelIndex} cleanup verification failed`);
-			await directoryManager.emergencyCleanup();
+			// Post-test cleanup and validation
+			await directoryManager.logDirectoryState('Before cleanup');
+			await directoryManager.performAggressiveCleanup();
+
+			// Verify cleanup was successful
+			const isClean = await directoryManager.validateCleanState();
+			if (!isClean) {
+				console.warn(`Worker ${workerIndex} cleanup verification failed`);
+				await directoryManager.emergencyCleanup();
+			}
+
+			await directoryManager.logDirectoryState('After cleanup');
+		} finally {
+			// Always unregister from global cleanup after successful cleanup
+			globalCleanupRegistry.delete(workerIndex);
 		}
-
-		await directoryManager.logDirectoryState('After cleanup');
 	},
 
 	// Test monitor fixture - provides monitoring and validation

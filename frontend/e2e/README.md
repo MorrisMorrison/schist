@@ -96,6 +96,43 @@ test('document test', async ({ documentViewPage, testDocument }) => {
 
 ## Test Data Management
 
+### Automatic Cleanup
+
+The test framework includes robust test data cleanup mechanisms:
+
+1. **Global Cleanup Registry**: Registers directory managers for cleanup even if tests fail
+2. **Signal Handlers**: Cleans up test data on process termination (SIGINT, SIGTERM)
+3. **Fixture-based Cleanup**: Each test worker cleans up its data directory after completion
+4. **Emergency Cleanup**: Multiple retry attempts if standard cleanup fails
+
+### Manual Cleanup
+
+If test data accumulates (e.g., due to interrupted test runs), use the manual cleanup script:
+
+```bash
+npm run cleanup-test-data
+```
+
+This script removes:
+- All `test-data-worker-*` directories in the backend
+- Test result directories (`test-results`, `playwright-report`)
+
+### Test Data Isolation
+
+Each Playwright worker uses its own isolated data directory:
+- Worker 0: `backend/cmd/schist/test-data-worker-1`
+- Worker 1: `backend/cmd/schist/test-data-worker-2`
+- etc.
+
+This ensures tests don't interfere with each other and can run in parallel safely.
+
+### Preventing Test Data Accumulation
+
+1. **Let tests complete**: Avoid interrupting test runs with Ctrl+C
+2. **Monitor cleanup logs**: Check that cleanup completes successfully
+3. **Run cleanup script**: Use `npm run cleanup-test-data` if data accumulates
+4. **Check .gitignore**: Test data directories are excluded from version control
+
 ### Fixtures
 
 - `testDocument` - Generated test document data

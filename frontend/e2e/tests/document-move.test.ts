@@ -68,7 +68,7 @@ test.describe.serial('Document Move', () => {
 			const documentLink = folderPage.documents.getByText(testDocument.title);
 			await documentLink.waitFor({ state: 'visible', timeout: 5000 });
 			await documentLink.click();
-			
+
 			// Verify we navigated to the document view
 			await documentViewPage.verifyDocumentLoaded(testDocument.title);
 			await documentViewPage.expectUrl(`/documents/${testFolderName}${testDocumentPath}`);

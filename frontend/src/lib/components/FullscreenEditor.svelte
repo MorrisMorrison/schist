@@ -6,15 +6,20 @@
 
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
-	import type { EditorProps, FormattingType } from '$lib/types/editor';
+	import type { FormattingType, AutoSaveConfig } from '$lib/types/editor';
 	import { theme } from '$lib/stores/theme.js';
 	import { imagePasteExtension } from '$lib/utils/image-paste.js';
 	import { wikiLinksExtension } from '$lib/utils/wiki-links.js';
 	import type { Asset } from '$lib/api/types.js';
 
-	interface FullscreenEditorProps extends Omit<EditorProps, 'theme'> {
+	interface FullscreenEditorProps {
 		open: boolean;
 		onClose: () => void;
+		initialContent?: string;
+		autoSave?: Partial<AutoSaveConfig>;
+		onContentChange?: (content: string) => void;
+		onSave?: (content: string) => Promise<void> | void;
+		readonly?: boolean;
 	}
 
 	let {

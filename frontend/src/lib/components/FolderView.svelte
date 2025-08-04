@@ -9,16 +9,10 @@
 	import DocumentGrid from './DocumentGrid.svelte';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import CreateFolderModal from './CreateFolderModal.svelte';
-	import { Plus, FolderPlus, File, Folder } from 'lucide-svelte';
+	import { Plus, FolderPlus, File } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
-	import {
-		Card,
-		CardContent,
-		CardHeader,
-		CardTitle,
-		CardDescription
-	} from '$lib/components/ui/card';
+	import { Card, CardContent } from '$lib/components/ui/card';
 	import type { Document, Folder as FolderType } from '$lib/api/types';
 
 	interface Props {
@@ -45,28 +39,6 @@
 	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name'); // 'name', 'created', 'modified'
 	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc'); // 'asc', 'desc'
 
-	const currentFolderData = $derived(() => {
-		const isRoot = path === '' || path === '/';
-		if (isRoot) {
-			const rootDocumentCount = ($documentsStore.documents || []).filter((document) => {
-				const documentPath = document.metaData?.path || '';
-				return documentPath.split('/').length === 2; // ['', 'filename']
-			}).length;
-
-			return {
-				name: 'Root',
-				path: '/',
-				created: new Date().toISOString(),
-				document_count: rootDocumentCount,
-				sub_folders:
-					$foldersStore.folders?.filter((f) => {
-						const segments = f.path.split('/').filter(Boolean);
-						return segments.length === 1;
-					}) || []
-			};
-		}
-		return $foldersStore.folders?.find((f) => f.path === path);
-	});
 	const currentFolderDocuments = $derived(() => {
 		let filteredDocuments;
 
@@ -111,16 +83,6 @@
 		});
 	});
 
-	const subFolders = $derived(() => {
-		if (mode === 'recent' || mode === 'all') {
-			return [];
-		}
-		return (currentFolderData()?.sub_folders || []).sort((a, b) => {
-			const result = a.name.localeCompare(b.name);
-			return sortOrder === 'desc' ? -result : result;
-		});
-	});
-
 	$effect(() => {
 		if (initialDocuments?.length > 0) {
 			documentsStore.update((state) => ({ ...state, documents: initialDocuments }));
@@ -143,10 +105,6 @@
 		} finally {
 			isLoadingFolderData = false;
 		}
-	}
-
-	function navigateToFolder(folderPath: string) {
-		goto(`/folders${folderPath}`);
 	}
 
 	function navigateToNewDocument(path: string) {
@@ -199,11 +157,6 @@
 						{currentFolderDocuments().length === 1 ? 'document' : 'documents'} total
 					</span>
 				{:else}
-					<span class="font-medium">
-						{subFolders().length}
-						{subFolders().length === 1 ? 'folder' : 'folders'}
-					</span>
-					<span class="text-muted">•</span>
 					<span class="font-medium">
 						{currentFolderDocuments().length}
 						{currentFolderDocuments().length === 1 ? 'document' : 'documents'}
@@ -265,43 +218,7 @@
 
 	<!-- Content -->
 	<Card class="border-border bg-card shadow-sm">
-		<CardContent class="space-y-10 p-8">
-			<!-- Subfolders -->
-			{#if subFolders().length > 0}
-				<section class="space-y-6" data-testid="folders-section">
-					<h2 class="text-foreground text-xl font-semibold">Folders</h2>
-					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-						{#each subFolders() as folder (folder.path)}
-							<Card
-								class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg"
-								onclick={() => navigateToFolder(folder.path)}
-								data-testid="folder-item"
-							>
-								<CardHeader>
-									<div class="flex min-w-0 items-start gap-4">
-										<div
-											class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors"
-										>
-											<Folder class="h-4 w-4 flex-shrink-0 text-white" />
-										</div>
-										<div class="min-w-0 flex-1 space-y-1 overflow-hidden">
-											<CardTitle
-												class="min-w-0 truncate text-base leading-tight font-semibold"
-												title={folder.name}>{folder.name}</CardTitle
-											>
-											<CardDescription class="text-muted-foreground text-sm">
-												{folder.document_count}
-												{folder.document_count === 1 ? 'document' : 'documents'}
-											</CardDescription>
-										</div>
-									</div>
-								</CardHeader>
-							</Card>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
+		<CardContent class="p-8">
 			<!-- Documents -->
 			{#if currentFolderDocuments().length > 0}
 				<section class="space-y-6" data-testid="documents-section">
@@ -331,7 +248,7 @@
 			{/if}
 
 			<!-- Empty State -->
-			{#if subFolders().length === 0 && currentFolderDocuments().length === 0}
+			{#if currentFolderDocuments().length === 0}
 				<div
 					class="flex flex-col items-center justify-center py-12 text-center"
 					data-testid="empty-folder-message"

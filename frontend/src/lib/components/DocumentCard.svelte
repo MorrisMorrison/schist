@@ -82,9 +82,10 @@
 	<CardHeader class="p-4">
 		<div class="flex items-start gap-3">
 			<!-- File Icon -->
-									<div class="bg-primary/90  group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors">
-										
-				<FileText class="text-white h-4 w-4" />
+			<div
+				class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors"
+			>
+				<FileText class="h-4 w-4 text-white" />
 			</div>
 
 			<!-- Content Area -->

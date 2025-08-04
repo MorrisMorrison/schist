@@ -93,19 +93,16 @@ function preprocessWikiLinks(content: string): string {
 	const wikiLinks: Array<{ placeholder: string; target: string; displayText: string }> = [];
 	let linkIndex = 0;
 
-	const processed = content.replace(
-		/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
-		(match, target, display) => {
-			const placeholder = `<!--WIKI_LINK_${linkIndex}-->`;
-			wikiLinks.push({
-				placeholder,
-				target: target.trim(),
-				displayText: display ? display.trim() : target.trim()
-			});
-			linkIndex++;
-			return placeholder;
-		}
-	);
+	const processed = content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, display) => {
+		const placeholder = `<!--WIKI_LINK_${linkIndex}-->`;
+		wikiLinks.push({
+			placeholder,
+			target: target.trim(),
+			displayText: display ? display.trim() : target.trim()
+		});
+		linkIndex++;
+		return placeholder;
+	});
 
 	const sessionId = `wikiLinks_${Date.now()}_${Math.random()}`;
 	(globalThis as Record<string, unknown>)[sessionId] = wikiLinks;

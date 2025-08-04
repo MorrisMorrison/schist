@@ -4,7 +4,6 @@ export interface CopyResult {
 }
 
 export async function copyToClipboard(text: string): Promise<CopyResult> {
-	// Modern Clipboard API (preferred)
 	if (navigator.clipboard && window.isSecureContext) {
 		try {
 			await navigator.clipboard.writeText(text);

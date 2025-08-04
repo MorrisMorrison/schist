@@ -2,15 +2,13 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 function getInitialSidebarState(): boolean {
-	if (!browser) return true; // Default to open on server
+	if (!browser) return true;
 
 	const stored = localStorage.getItem('sidebarOpen');
 	if (stored !== null) {
 		return stored === 'true';
 	}
 
-	// No stored preference, default based on screen size
-	// Open on desktop (>= 768px), closed on mobile
 	return window.innerWidth >= 768;
 }
 

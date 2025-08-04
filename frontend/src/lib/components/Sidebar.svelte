@@ -105,12 +105,9 @@
 		showRenameDocumentModal = false;
 		pageToRename = null;
 
-		// Refresh the pages list
 		await documentActions.loadDocuments();
 
-		// Check if we're currently viewing the page that was renamed
 		if (currentPath === `/documents${oldPath}`) {
-			// Navigate to the new path
 			goto(`/documents${newPath}`);
 		}
 	}
@@ -121,14 +118,12 @@
 
 	function handleImportSuccess() {
 		showImportModal = false;
-		// Folder tree will be refreshed automatically by the modal
 	}
 
 	function handleImportClose() {
 		showImportModal = false;
 	}
 
-	// Export handlers
 	function handleFolderExport(event: { path: string; folder: FolderType }) {
 		apiClient.exportFolder(event.path);
 	}
@@ -164,7 +159,6 @@
 		/>
 	</div>
 
-	<!-- Import Button at bottom of sidebar -->
 	<div class="border-border border-t p-4">
 		<Button onclick={handleImportDocuments} class="w-full">
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,17 +171,9 @@
 			</svg>
 			Import Documents
 		</Button>
-		<!-- <button
-			type="button"
-			onclick={handleImportDocuments}
-			class="flex w-full items-center justify-center gap-2 rounded-md bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100"
-		>
-
-		</button> -->
 	</div>
 </aside>
 
-<!-- Create Folder Modal -->
 <CreateFolderModal
 	open={showCreateFolderModal}
 	parentPath={parentPathForModal}
@@ -198,7 +184,6 @@
 	onCreated={handleFolderCreated}
 />
 
-<!-- Rename Folder Modal -->
 <RenameFolderModal
 	open={showRenameFolderModal}
 	folder={folderToRename}
@@ -209,7 +194,6 @@
 	onRenamed={handleFolderRenamed}
 />
 
-<!-- Rename Page Modal -->
 {#if pageToRename}
 	<RenameDocumentModal
 		open={showRenameDocumentModal}
@@ -222,7 +206,6 @@
 	/>
 {/if}
 
-<!-- Delete Page Modal -->
 {#if pageToDelete}
 	<DeleteConfirmModal
 		open={showDeletePageModal}
@@ -236,7 +219,6 @@
 	/>
 {/if}
 
-<!-- Delete Folder Modal -->
 {#if folderToDelete}
 	<DeleteConfirmModal
 		open={showDeleteFolderModal}
@@ -250,7 +232,6 @@
 	/>
 {/if}
 
-<!-- Import Documents Modal -->
 <ImportDocumentsModal
 	open={showImportModal}
 	folders={$folders}

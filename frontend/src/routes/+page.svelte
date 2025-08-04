@@ -17,7 +17,6 @@
 	initialFolders={data.folders}
 />
 
-<!-- Error Message -->
 {#if data.error}
 	<div class="rounded-md bg-[--error-light] p-4">
 		<div class="flex">

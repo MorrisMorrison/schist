@@ -179,7 +179,6 @@ export const githubActions = {
 	},
 
 	async disconnect() {
-		// For now, just clear the local state since we don't have a disconnect API
 		githubStore.update((state) => ({
 			...state,
 			settings: null,

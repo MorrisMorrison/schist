@@ -25,44 +25,6 @@ class ImagePasteHandler {
 		);
 	}
 
-	private async verifyImageAccess(assetPath: string): Promise<void> {
-		const imageUrl = apiClient.getAssetUrl(assetPath);
-
-		return new Promise((resolve, reject) => {
-			const img = new Image();
-			// eslint-disable-next-line prefer-const
-			let timeoutId: number;
-
-			const cleanup = () => {
-				clearTimeout(timeoutId);
-				img.onload = null;
-				img.onerror = null;
-			};
-
-			img.onload = () => {
-				cleanup();
-				resolve();
-			};
-
-			img.onerror = () => {
-				cleanup();
-				setTimeout(() => {
-					const retryImg = new Image();
-					retryImg.onload = () => resolve();
-					retryImg.onerror = () => reject(new Error(`Image not accessible at ${imageUrl}`));
-					retryImg.src = imageUrl + '?t=' + Date.now(); // Cache bust
-				}, 200);
-			};
-
-			timeoutId = window.setTimeout(() => {
-				cleanup();
-				reject(new Error(`Image load timeout for ${imageUrl}`));
-			}, 3000);
-
-			img.src = imageUrl;
-		});
-	}
-
 	private async handleImageUpload(file: File, view: EditorView): Promise<void> {
 		try {
 			this.options.onUploadStart?.();
@@ -71,9 +33,7 @@ class ImagePasteHandler {
 				this.options.onUploadProgress?.(progress);
 			});
 
-			// Insert markdown image syntax at cursor position
 			const cursor = view.state.selection.main.head;
-			// Add timestamp to bust browser cache for newly uploaded images
 			const cacheBustPath = `${asset.path}?t=${Date.now()}`;
 			const imageMarkdown = `![${asset.original_name}](${cacheBustPath} "${asset.original_name}|large")`;
 
@@ -149,7 +109,6 @@ export function imagePasteExtension(options: ImagePasteOptions = {}) {
 			return handler.handleDrop(event, view);
 		},
 		dragover(event: DragEvent) {
-			// Prevent default to allow drop
 			const dataTransfer = event.dataTransfer;
 			if (dataTransfer) {
 				const hasImages = Array.from(dataTransfer.types).includes('Files');

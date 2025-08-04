@@ -59,10 +59,7 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.verifyContainsFolder(renamedFolderName);
 
 		// Verify old name no longer exists
-		const oldFolderExists = await folderPage.subFolders
-			.getByRole('link', { name: testFolderName })
-			.isVisible()
-			.catch(() => false);
+		const oldFolderExists = await folderPage.folderExistsInSidebar(testFolderName);
 		expect(oldFolderExists).toBe(false);
 
 		// Verify renamed folder is functional
@@ -107,9 +104,9 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Wait for the folder to be removed from the sidebar tree
-		await expect(folderPage.folderTree
-			.getByTestId('folder-tree-item')
-			.filter({ hasText: testFolderName })).not.toBeVisible();
+		await expect(
+			folderPage.folderTree.getByTestId('folder-tree-item').filter({ hasText: testFolderName })
+		).not.toBeVisible();
 
 		// Verify folder count decreased
 		const newCount = await folderPage.getSubFolderCount();
@@ -180,11 +177,8 @@ test.describe.serial('Folder Rename and Delete', () => {
 
 		await page.waitForLoadState('networkidle');
 
-		// Verify folder no longer appears in main view
-		const folderExists = await folderPage.subFolders
-			.getByRole('link', { name: testFolderName })
-			.isVisible()
-			.catch(() => false);
+		// Verify folder no longer appears in sidebar
+		const folderExists = await folderPage.folderExistsInSidebar(testFolderName);
 		expect(folderExists).toBe(false);
 
 		// Verify folder was moved to trash (not permanently deleted)

@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/test-setup';
 
 test.describe.serial('Folder Creation', () => {
 	const testFolderName = 'test-folder-e2e';
-	const cleanFolderName = 'test-folder-e2e'; 
+	const cleanFolderName = 'test-folder-e2e';
 
 	test.beforeEach(async ({ apiHelper }) => {
 		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {}); // Ignore if folder doesn't exist
@@ -21,7 +21,7 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.verifyContainsFolder(cleanFolderName);
 
 		await folderPage.openSubFolder(cleanFolderName);
-		await folderPage.verifyFolderLoaded(); 
+		await folderPage.verifyFolderLoaded();
 		await folderPage.verifyFolderUrl(`/${cleanFolderName}`);
 	});
 
@@ -48,7 +48,7 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.navigateToRoot();
 
 		const inputName = 'My Test Folder';
-		const expectedName = 'my-test-folder'; 
+		const expectedName = 'my-test-folder';
 
 		await folderPage.createFolder(inputName);
 
@@ -89,10 +89,7 @@ test.describe.serial('Folder Creation', () => {
 		const finalCount = await folderPage.getSubFolderCount();
 		expect(finalCount).toBe(initialCount);
 
-		const folderExists = await folderPage.subFolders
-			.getByRole('link', { name: testFolderName })
-			.isVisible()
-			.catch(() => false);
+		const folderExists = await folderPage.folderExistsInSidebar(testFolderName);
 		expect(folderExists).toBe(false);
 	});
 
@@ -107,13 +104,13 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.fillInput(folderPage.folderNameInput, testFolderName);
 		await folderPage.confirmCreateFolder.click();
 
-		await folderPage.page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {
-		});
+		await folderPage.page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {});
 
-		const folderButtons = folderPage.folderTree
-			.getByRole('button', { name: new RegExp(`Open folder ${cleanFolderName}`, 'i') });
+		const folderButtons = folderPage.folderTree.getByRole('button', {
+			name: new RegExp(`Open folder ${cleanFolderName}`, 'i')
+		});
 		const count = await folderButtons.count();
-		
+
 		if (count === 0) {
 			console.log('No folders found - the first folder creation might have failed or been removed');
 			expect(count).toBeLessThanOrEqual(1);

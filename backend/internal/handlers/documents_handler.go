@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/models"
+	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -55,10 +56,7 @@ func (h *APIHandler) createDocument(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentByPath(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	document, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
@@ -72,10 +70,7 @@ func (h *APIHandler) getDocumentByPath(c *gin.Context) {
 }
 
 func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	type UpdateDocumentRequest struct {
 		*models.Document
@@ -123,10 +118,7 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 }
 
 func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	if strings.HasPrefix(path, "/trash") {
 		err := h.DocumentService.DeleteDocument(path)

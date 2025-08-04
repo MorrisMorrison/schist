@@ -50,30 +50,27 @@ test.describe.serial('Document Move', () => {
 		const folderTreeItem = folderTree.getByText(testFolderName);
 
 		if ((await documentTreeItem.isVisible()) && (await folderTreeItem.isVisible())) {
+			// Perform drag and drop
 			await documentTreeItem.dragTo(folderTreeItem);
 
+			// Wait for the move operation to complete
 			await page.waitForLoadState('networkidle');
+			await page.waitForTimeout(500); // Give the UI time to update
 
+			// Navigate to the target folder
 			await folderPage.openSubFolder(testFolderName);
 			await folderPage.verifyFolderLoaded(testFolderName);
 
-			const emptyFolderMessage = folderPage.page.locator('[data-testid="empty-folder-message"]');
-			const documentsSection = folderPage.page.locator('[data-testid="documents-section"]');
+			// Verify the document was moved to the target folder
+			await folderPage.verifyContainsDocument(testDocument.title);
 
-			if (await emptyFolderMessage.isVisible()) {
-				console.log('Target folder appears empty after move - document filtering may have issues');
-			} else {
-				await folderPage.verifyContainsDocument(testDocument.title);
-			}
-
-			if (await documentsSection.isVisible()) {
-				const documentLink = folderPage.documents.getByText(testDocument.title);
-				if (await documentLink.isVisible()) {
-					await documentLink.click();
-					await documentViewPage.verifyDocumentLoaded(testDocument.title);
-				}
-			}
-
+			// Click on the moved document to navigate to it
+			const documentLink = folderPage.documents.getByText(testDocument.title);
+			await documentLink.waitFor({ state: 'visible', timeout: 5000 });
+			await documentLink.click();
+			
+			// Verify we navigated to the document view
+			await documentViewPage.verifyDocumentLoaded(testDocument.title);
 			await documentViewPage.expectUrl(`/documents/${testFolderName}${testDocumentPath}`);
 		}
 	});

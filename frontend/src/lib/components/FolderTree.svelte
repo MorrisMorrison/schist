@@ -1,19 +1,11 @@
 <script lang="ts">
-	import {
-		ChevronRight,
-		ChevronDown,
-		Folder,
-		FolderOpen,
-		File,
-		Plus,
-		Trash2,
-		Edit,
-		MoreVertical,
-		Download
-	} from 'lucide-svelte';
+	import { Folder, FolderOpen, Plus } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from './ErrorAlert.svelte';
 	import UnifiedSidebarSearch from './UnifiedSidebarSearch.svelte';
+	import FolderTreeNode from './FolderTreeNode.svelte';
+	import FolderContextMenu from './FolderContextMenu.svelte';
+	import DocumentContextMenu from './DocumentContextMenu.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
 	import {
 		folders,
@@ -26,6 +18,7 @@
 	import { folderActions } from '$lib/stores/documents';
 	import { browser } from '$app/environment';
 	import { cn } from '$lib/utils.js';
+	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 
 	interface Props {
 		selectedPath?: string;
@@ -86,15 +79,8 @@
 	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let unifiedSearchQuery = $state('');
 
-	// Drag and Drop State
-	let draggedItem = $state<{
-		type: 'folder' | 'page';
-		path: string;
-		data: FolderType | Document;
-	} | null>(null);
-	let dropTarget = $state<string | null>(null);
-	let isDragging = $state(false);
-	let dragOverTarget = $state<string | null>(null);
+	// Initialize drag and drop composable
+	const dragAndDrop = useDragAndDrop(showPages);
 
 	const documents = $derived($documentsStore.documents || []);
 
@@ -270,14 +256,6 @@
 		return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
 	}
 
-	function isCurrentFile(path: string): boolean {
-		return `/documents${path}` === currentPath;
-	}
-
-	function isSelectedFile(path: string): boolean {
-		return `/documents${path}` === currentPath;
-	}
-
 	function getCurrentFolderPath(): string {
 		console.log(currentPath);
 		if (!currentPath || currentPath === '/' || currentPath === '' || currentPath === '/folders') {
@@ -346,16 +324,13 @@
 		let x: number, y: number;
 
 		if (event instanceof MouseEvent) {
-			// Position menu at mouse coordinates with small offset
 			x = event.clientX + 5;
-			y = event.clientY - 50; // Position above click point (working value)
+			y = event.clientY - 50;
 		} else {
-			// Fallback for keyboard events
 			x = rect.left;
 			y = rect.bottom + 2;
 		}
 
-		// Ensure the menu doesn't go off screen
 		const menuWidth = 160;
 		const menuHeight = 120;
 
@@ -363,7 +338,7 @@
 			x = window.innerWidth - menuWidth - 10;
 		}
 		if (y < 0) {
-			y = 10; // Don't go above viewport
+			y = 10;
 		}
 		if (y + menuHeight > window.innerHeight) {
 			y = window.innerHeight - menuHeight - 10;
@@ -384,7 +359,6 @@
 		} else {
 			expandedFolders.add(path);
 		}
-		// Create new Set to trigger reactivity
 		expandedFolders = new Set(expandedFolders);
 		saveExpandedFolders();
 	}
@@ -392,16 +366,13 @@
 	function expandFolder(path: string) {
 		if (!expandedFolders.has(path)) {
 			expandedFolders.add(path);
-			// Create new Set to trigger reactivity
 			expandedFolders = new Set(expandedFolders);
 			saveExpandedFolders();
 		}
 	}
 
-	// Expose expandFolder function for external use
 	export { expandFolder };
 
-	// Auto-expand current folder when it changes (happens when document is created)
 	$effect(() => {
 		const current = $currentFolder;
 		if (current && current !== '/') {
@@ -409,55 +380,30 @@
 		}
 	});
 
-	function handleChevronClick(event: MouseEvent, folder: FolderType) {
-		event.preventDefault();
-		event.stopPropagation();
-		toggleExpanded(folder.path);
-	}
-
-	function handleFolderNameClick(folder: FolderType) {
+	function handleFolderSelect(folder: FolderType) {
 		onselect?.({ path: folder.path, folder });
 	}
 
-	function handleKeydown(event: KeyboardEvent, folder: FolderType) {
-		switch (event.key) {
-			case 'Enter':
-			case ' ':
-				event.preventDefault();
-				handleFolderNameClick(folder);
-				break;
-			case 'ArrowRight':
-				event.preventDefault();
-				if (!expandedFolders.has(folder.path)) {
-					toggleExpanded(folder.path);
-				}
-				break;
-			case 'ArrowLeft':
-				event.preventDefault();
-				if (expandedFolders.has(folder.path)) {
-					toggleExpanded(folder.path);
-				}
-				break;
-		}
-	}
-
-	// Context menu actions
 	function handleCreateFolder(parentPath: string) {
 		oncreate?.({ parentPath });
-		closeContextMenu();
 	}
 
 	function handleDeleteFolder(folder: FolderType) {
 		ondelete?.({ path: folder.path, folder });
-		closeContextMenu();
 	}
 
 	function handleRenameFolder(folder: FolderType) {
 		onrename?.({ path: folder.path, folder });
-		closeContextMenu();
 	}
 
-	// Page context menu handlers
+	function handleFolderExport(folder: FolderType) {
+		if (folder.path === '/' && onexportall) {
+			onexportall();
+		} else if (onfolderexport) {
+			onfolderexport({ path: folder.path, folder });
+		}
+	}
+
 	function handlePageContextMenu(event: MouseEvent | KeyboardEvent, page: Document) {
 		if (!enableContextMenu) return;
 
@@ -477,7 +423,6 @@
 			y = rect.bottom + 2;
 		}
 
-		// Ensure the menu doesn't go off screen
 		const menuWidth = 160;
 		const menuHeight = 80;
 
@@ -497,12 +442,16 @@
 
 	function handleDeletePage(page: Document) {
 		ondocumentdelete?.({ document: page });
-		closeContextMenu();
 	}
 
 	function handleRenamePage(page: Document) {
 		ondocumentrename?.({ document: page });
-		closeContextMenu();
+	}
+
+	function handleDocumentExport(page: Document) {
+		if (ondocumentexport) {
+			ondocumentexport({ path: page.metaData.path, document: page });
+		}
 	}
 
 	function findPageByPath(path: string): Document | null {
@@ -533,306 +482,10 @@
 		};
 	});
 
-	function handleDragStart(
-		event: DragEvent,
-		type: 'folder' | 'page',
-		path: string,
-		data: FolderType | Document
-	) {
-		if (!event.dataTransfer) return;
-
-		draggedItem = { type, path, data };
-		isDragging = true;
-
-		event.dataTransfer.effectAllowed = 'move';
-		event.dataTransfer.setData('application/json', JSON.stringify({ type, path, data }));
-
-		if (event.target instanceof HTMLElement) {
-			const dragImage = event.target.cloneNode(true) as HTMLElement;
-			dragImage.style.opacity = '0.7';
-			event.dataTransfer.setDragImage(dragImage, 0, 0);
-		}
-	}
-
-	function handleDragEnd() {
-		draggedItem = null;
-		isDragging = false;
-		dropTarget = null;
-		dragOverTarget = null;
-	}
-
-	function handleDragOver(event: DragEvent, targetPath: string) {
-		if (!draggedItem || draggedItem.path === targetPath) return;
-
-		if (draggedItem.type === 'folder' && targetPath.startsWith(draggedItem.path + '/')) {
-			return;
-		}
-
-		event.preventDefault();
-		event.dataTransfer!.dropEffect = 'move';
-		dragOverTarget = targetPath;
-	}
-
-	function handleDragEnter(event: DragEvent, targetPath: string) {
-		if (!draggedItem || draggedItem.path === targetPath) return;
-
-		if (draggedItem.type === 'folder' && targetPath.startsWith(draggedItem.path + '/')) {
-			return;
-		}
-
-		event.preventDefault();
-		dropTarget = targetPath;
-	}
-
-	function handleDragLeave(event: DragEvent, targetPath: string) {
-		if (event.currentTarget === event.target) {
-			if (dropTarget === targetPath) {
-				dropTarget = null;
-			}
-			if (dragOverTarget === targetPath) {
-				dragOverTarget = null;
-			}
-		}
-	}
-
-	async function handleDrop(event: DragEvent, targetPath: string) {
-		event.preventDefault();
-
-		if (!draggedItem) return;
-
-		const { type, path: sourcePath } = draggedItem;
-
-		if (sourcePath === targetPath) return;
-
-		if (type === 'folder' && targetPath.startsWith(sourcePath + '/')) {
-			return;
-		}
-
-		try {
-			const sourcePathSegments = sourcePath.split('/').filter(Boolean);
-			const itemName = sourcePathSegments[sourcePathSegments.length - 1];
-			const newPath = targetPath === '/' ? `/${itemName}` : `${targetPath}/${itemName}`;
-
-			if (type === 'folder') {
-				await folderActions.moveFolder(sourcePath, newPath);
-			} else {
-				await documentActions.moveDocumentPath(sourcePath, newPath);
-			}
-
-			await folderActions.loadFolderTree();
-			if (showPages) {
-				await documentActions.loadDocuments();
-			}
-		} catch (error) {
-			console.error('Failed to move item:', error);
-		} finally {
-			draggedItem = null;
-			isDragging = false;
-			dropTarget = null;
-			dragOverTarget = null;
-		}
+	function getCurrentFolderFromPath(path: string): FolderType | null {
+		return findFolderByPath($folders || [], path);
 	}
 </script>
-
-{#snippet folderNode(folder: FolderType, depth: number)}
-	{@const isExpanded = expandedFolders.has(folder.path)}
-	{@const isSelected = selectedPath === folder.path}
-	{@const isCurrent = isCurrentPath(folder.path)}
-	{@const hasSubFolders = folder.sub_folders && folder.sub_folders.length > 0}
-	{@const hasPages = showPages && getFilteredPagesForFolder(folder.path).length > 0}
-	{@const hasExpandableContent = hasSubFolders || hasPages}
-	{@const indentLevel = Math.min(depth, maxDepth)}
-	{@const isBeingDragged = isDragging && draggedItem?.path === folder.path}
-	{@const isDropTarget = dropTarget === folder.path}
-	{@const isDragOver = dragOverTarget === folder.path}
-
-	<div class="relative">
-		<!-- Folder Row -->
-		<div
-			class={cn(
-				'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-				'hover:bg-accent hover:text-accent-foreground',
-				isSelected && 'bg-accent text-accent-foreground',
-				isCurrent && 'bg-accent font-medium',
-				isBeingDragged && 'opacity-50',
-				isDropTarget && 'bg-primary/10 ring-primary ring-2',
-				isDragOver && 'bg-primary/20'
-			)}
-			draggable="true"
-			ondragstart={(e) => handleDragStart(e, 'folder', folder.path, folder)}
-			ondragend={handleDragEnd}
-			ondragover={(e) => handleDragOver(e, folder.path)}
-			ondragenter={(e) => handleDragEnter(e, folder.path)}
-			ondragleave={(e) => handleDragLeave(e, folder.path)}
-			ondrop={(e) => handleDrop(e, folder.path)}
-			oncontextmenu={(e) => {
-				handleContextMenu(e, folder);
-			}}
-			role="treeitem"
-			aria-expanded={hasExpandableContent ? isExpanded : undefined}
-			aria-selected={isSelected}
-			aria-level={depth + 1}
-			tabindex="-1"
-			data-testid="folder-tree-item"
-		>
-			<!-- Indented content container -->
-			<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {indentLevel * 16}px">
-				<!-- Expand/Collapse Icon - Separate clickable area -->
-				<button
-					type="button"
-					class="flex h-4 w-4 flex-shrink-0 cursor-pointer items-center justify-center rounded"
-					onclick={(e) => handleChevronClick(e, folder)}
-					tabindex={hasExpandableContent ? 0 : -1}
-					aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
-					disabled={!hasExpandableContent}
-					data-testid="folder-expand-button"
-				>
-					{#if hasExpandableContent}
-						{#if isExpanded}
-							<ChevronDown class="h-3 w-3" />
-						{:else}
-							<ChevronRight class="h-3 w-3" />
-						{/if}
-					{/if}
-				</button>
-				<!-- Folder Name Area - Clickable for navigation -->
-				<button
-					type="button"
-					class="focus:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
-					onclick={() => handleFolderNameClick(folder)}
-					onkeydown={(e) => handleKeydown(e, folder)}
-					tabindex="0"
-					aria-label={`Open folder ${folder.name}`}
-					data-testid="folder-name-button"
-				>
-					<!-- Folder Icon -->
-					<Folder class="text-blue-primary h-4 w-4 flex-shrink-0" />
-
-					<!-- Folder Name -->
-					<span class="truncate font-medium" title={folder.name}>
-						{folder.name}
-					</span>
-
-					<!-- Page Count Badge -->
-					{#if showPageCounts && folder.document_count > 0}
-						<span class="text-secondary ml-1 text-xs opacity-75">({folder.document_count})</span>
-					{/if}
-				</button>
-			</div>
-
-			<!-- Context Menu Trigger - Positioned absolutely to the right -->
-			{#if enableContextMenu}
-				<span
-					class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
-					onclick={(e) => {
-						e.stopPropagation();
-						handleContextMenu(e, folder);
-					}}
-					onkeydown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.preventDefault();
-							e.stopPropagation();
-							handleContextMenu(e, folder);
-						}
-					}}
-					role="button"
-					tabindex="0"
-					aria-label="Folder options"
-					data-testid="folder-context-menu-trigger"
-				>
-					<MoreVertical class="h-3 w-3" />
-				</span>
-			{/if}
-		</div>
-
-		<!-- Sub-folders and pages when expanded -->
-		{#if isExpanded}
-			<div class="mt-1">
-				<!-- Render pages in current folder first if showPages is enabled -->
-				{#if showPages}
-					{#each getFilteredPagesForFolder(folder.path) as page (page.metaData?.slug || page.metaData?.path)}
-						{@const pageIsBeingDragged = isDragging && draggedItem?.path === page.metaData.path}
-						{@const pageIsDropTarget = dropTarget === page.metaData.path}
-						{@const pageIsDragOver = dragOverTarget === page.metaData.path}
-						<div
-							class={cn(
-								'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-								'hover:bg-accent hover:text-accent-foreground',
-								isSelectedFile(page.metaData.path) && 'bg-accent text-accent-foreground',
-								isCurrentFile(page.metaData.path) && 'bg-accent font-medium',
-								pageIsBeingDragged && 'opacity-50',
-								pageIsDropTarget && 'bg-primary/10 ring-primary ring-2',
-								pageIsDragOver && 'bg-primary/20'
-							)}
-							draggable="true"
-							ondragstart={(e) => handleDragStart(e, 'page', page.metaData.path, page)}
-							ondragend={handleDragEnd}
-							ondragover={(e) => handleDragOver(e, folder.path)}
-							ondragenter={(e) => handleDragEnter(e, folder.path)}
-							ondragleave={(e) => handleDragLeave(e, folder.path)}
-							ondrop={(e) => handleDrop(e, folder.path)}
-							oncontextmenu={(e) => handlePageContextMenu(e, page)}
-							role="treeitem"
-							aria-label={`Document: ${page.metaData?.title || 'Untitled'}`}
-							aria-selected={isSelectedFile(page.metaData.path)}
-							tabindex="-1"
-							data-testid="document-item"
-						>
-							<!-- Indented content container -->
-							<div
-								class="flex w-full items-center gap-2 pr-8"
-								style="margin-left: {(depth + 1) * 16}px"
-							>
-								<div class="h-4 w-4"></div>
-								<button
-									type="button"
-									class="focus:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
-									onclick={() => ondocumentselect?.({ document: page })}
-									data-testid="document-name-button"
-								>
-									<File class="text-blue-primary h-4 w-4 flex-shrink-0" />
-									<span class="truncate text-left" title={page.metaData?.title || 'Untitled'}
-										>{page.metaData?.title || 'Untitled'}</span
-									>
-								</button>
-							</div>
-
-							<!-- Page Context Menu Trigger - Positioned absolutely to the right -->
-							{#if enableContextMenu}
-								<span
-									class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
-									onclick={(e) => {
-										e.stopPropagation();
-										handlePageContextMenu(e, page);
-									}}
-									onkeydown={(e) => {
-										if (e.key === 'Enter' || e.key === ' ') {
-											e.preventDefault();
-											e.stopPropagation();
-											handlePageContextMenu(e, page);
-										}
-									}}
-									role="button"
-									tabindex="0"
-									aria-label="Page options"
-								>
-									<MoreVertical class="h-3 w-3" />
-								</span>
-							{/if}
-						</div>
-					{/each}
-				{/if}
-
-				<!-- Render sub-folders -->
-				{#if hasSubFolders}
-					{#each folder.sub_folders as subFolder (subFolder.path)}
-						{@render folderNode(subFolder, depth + 1)}
-					{/each}
-				{/if}
-			</div>
-		{/if}
-	</div>
-{/snippet}
 
 <svelte:window onclick={handleOutsideClick} />
 
@@ -935,174 +588,102 @@
 				}
 			}}
 		>
-			<!-- Root folder containing root pages and root-level folders -->
 			{#if showPages}
-				{@render folderNode(
-					{
+				<FolderTreeNode
+					folder={{
 						name: '/',
 						path: '/',
 						created: new Date().toISOString(),
 						document_count: getFilteredRootPages().length,
 						sub_folders: filteredFolders
-					},
-					0
-				)}
+					}}
+					depth={0}
+					{maxDepth}
+					isExpanded={expandedFolders.has('/')}
+					isSelected={selectedPath === '/'}
+					isCurrent={isCurrentPath('/')}
+					{showPages}
+					{showPageCounts}
+					{enableContextMenu}
+					filteredPages={getFilteredRootPages()}
+					{selectedPath}
+					{currentPath}
+					isDragging={dragAndDrop.isDragging}
+					draggedItem={dragAndDrop.draggedItem}
+					dropTarget={dragAndDrop.dropTarget}
+					dragOverTarget={dragAndDrop.dragOverTarget}
+					{expandedFolders}
+					onToggleExpanded={toggleExpanded}
+					onFolderSelect={handleFolderSelect}
+					onContextMenu={handleContextMenu}
+					onDragStart={dragAndDrop.handleDragStart}
+					onDragEnd={dragAndDrop.handleDragEnd}
+					onDragOver={dragAndDrop.handleDragOver}
+					onDragEnter={dragAndDrop.handleDragEnter}
+					onDragLeave={dragAndDrop.handleDragLeave}
+					onDrop={dragAndDrop.handleDrop}
+					onDocumentSelect={ondocumentselect}
+					onDocumentContextMenu={handlePageContextMenu}
+					{getFilteredPagesForFolder}
+				/>
 			{:else}
 				{#each filteredFolders as folder (folder.path)}
-					{@render folderNode(folder, 0)}
+					<FolderTreeNode
+						{folder}
+						depth={0}
+						{maxDepth}
+						isExpanded={expandedFolders.has(folder.path)}
+						isSelected={selectedPath === folder.path}
+						isCurrent={isCurrentPath(folder.path)}
+						{showPages}
+						{showPageCounts}
+						{enableContextMenu}
+						filteredPages={getFilteredPagesForFolder(folder.path)}
+						{selectedPath}
+						{currentPath}
+						isDragging={dragAndDrop.isDragging}
+						draggedItem={dragAndDrop.draggedItem}
+						dropTarget={dragAndDrop.dropTarget}
+						dragOverTarget={dragAndDrop.dragOverTarget}
+						{expandedFolders}
+						onToggleExpanded={toggleExpanded}
+						onFolderSelect={handleFolderSelect}
+						onContextMenu={handleContextMenu}
+						onDragStart={dragAndDrop.handleDragStart}
+						onDragEnd={dragAndDrop.handleDragEnd}
+						onDragOver={dragAndDrop.handleDragOver}
+						onDragEnter={dragAndDrop.handleDragEnter}
+						onDragLeave={dragAndDrop.handleDragLeave}
+						onDrop={dragAndDrop.handleDrop}
+						onDocumentSelect={ondocumentselect}
+						onDocumentContextMenu={handlePageContextMenu}
+						{getFilteredPagesForFolder}
+					/>
 				{/each}
 			{/if}
 		</div>
 	{/if}
 
-	<!-- Context Menu -->
-	{#if contextMenuOpen}
-		<div
-			class="bg-primary border-primary fixed z-50 min-w-[180px] rounded-lg border py-1 shadow-lg"
-			style="left: {contextMenuPosition.x}px; top: {contextMenuPosition.y}px"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => {
-				if (e.key === 'Escape') {
-					closeContextMenu();
-				}
-			}}
-			role="menu"
-			aria-label="Folder actions"
-			data-testid="context-menu"
-			tabindex="-1"
-		>
-			<button
-				type="button"
-				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-				onclick={() => {
-					if (contextMenuOpen) {
-						handleCreateFolder(contextMenuOpen);
-					}
-				}}
-			>
-				<Plus class="h-4 w-4" />
-				Create Subfolder
-			</button>
-			<button
-				type="button"
-				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-				onclick={() => {
-					if (contextMenuOpen) {
-						ondocumentcreate?.({ parentPath: contextMenuOpen });
-						closeContextMenu();
-					}
-				}}
-			>
-				<File class="h-4 w-4" />
-				Create Document
-			</button>
+	<FolderContextMenu
+		folder={contextMenuOpen ? getCurrentFolderFromPath(contextMenuOpen) : null}
+		position={contextMenuPosition}
+		isOpen={!!contextMenuOpen}
+		onClose={closeContextMenu}
+		onCreateFolder={handleCreateFolder}
+		onCreateDocument={(parentPath) => ondocumentcreate?.({ parentPath })}
+		onRename={handleRenameFolder}
+		onDelete={handleDeleteFolder}
+		onFolderExport={onfolderexport ? handleFolderExport : undefined}
+		onExportAll={onexportall}
+	/>
 
-			<!-- Export button for folders -->
-			{#if onfolderexport || onexportall}
-				<button
-					type="button"
-					class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-					onclick={() => {
-						if (contextMenuOpen) {
-							if (contextMenuOpen === '/' && onexportall) {
-								onexportall();
-							} else if (onfolderexport) {
-								const folder = findFolderByPath($folders, contextMenuOpen);
-								if (folder) {
-									onfolderexport({ path: contextMenuOpen, folder });
-								}
-							}
-							closeContextMenu();
-						}
-					}}
-				>
-					<Download class="h-4 w-4" />
-					Export
-				</button>
-			{/if}
-
-			{#if contextMenuOpen !== '/' && contextMenuOpen !== ''}
-				<button
-					type="button"
-					class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-					onclick={() => {
-						const folder = findFolderByPath($folders, contextMenuOpen || '');
-						if (folder) handleRenameFolder(folder);
-					}}
-				>
-					<Edit class="h-4 w-4" />
-					Rename
-				</button>
-				<button
-					type="button"
-					class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
-					onclick={() => {
-						const folder = findFolderByPath($folders, contextMenuOpen || '');
-						if (folder) handleDeleteFolder(folder);
-					}}
-				>
-					<Trash2 class="h-4 w-4" />
-					Delete
-				</button>
-			{/if}
-		</div>
-	{/if}
-
-	<!-- Page Context Menu -->
-	{#if pageContextMenuOpen}
-		<div
-			class="bg-primary border-primary fixed z-50 min-w-[140px] rounded-lg border py-1 shadow-lg"
-			style="left: {pageContextMenuPosition.x}px; top: {pageContextMenuPosition.y}px"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => {
-				if (e.key === 'Escape') {
-					closeContextMenu();
-				}
-			}}
-			role="menu"
-			aria-label="Page actions"
-			tabindex="-1"
-		>
-			<!-- Export button for documents -->
-			{#if ondocumentexport}
-				<button
-					type="button"
-					class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-					onclick={() => {
-						const page = findPageByPath(pageContextMenuOpen || '');
-						if (page) {
-							ondocumentexport({ path: page.metaData.path, document: page });
-							closeContextMenu();
-						}
-					}}
-				>
-					<Download class="h-4 w-4" />
-					Export
-				</button>
-			{/if}
-
-			<button
-				type="button"
-				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-				onclick={() => {
-					const page = findPageByPath(pageContextMenuOpen || '');
-					if (page) handleRenamePage(page);
-				}}
-			>
-				<Edit class="h-4 w-4" />
-				Rename
-			</button>
-			<button
-				type="button"
-				class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
-				onclick={() => {
-					const page = findPageByPath(pageContextMenuOpen || '');
-					if (page) handleDeletePage(page);
-				}}
-			>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</button>
-		</div>
-	{/if}
+	<DocumentContextMenu
+		document={pageContextMenuOpen ? findPageByPath(pageContextMenuOpen) : null}
+		position={pageContextMenuPosition}
+		isOpen={!!pageContextMenuOpen}
+		onClose={closeContextMenu}
+		onRename={handleRenamePage}
+		onDelete={handleDeletePage}
+		onExport={ondocumentexport ? handleDocumentExport : undefined}
+	/>
 </div>

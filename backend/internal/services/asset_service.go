@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -97,47 +96,13 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 }
 
 func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
-	if relativePath == "" {
-		return "", fmt.Errorf("asset path cannot be empty")
-	}
-
-	if !strings.HasPrefix(relativePath, "/") {
-		return "", fmt.Errorf("asset path must start with '/'")
-	}
-
-	if strings.Contains(relativePath, "..") {
-		return "", fmt.Errorf("asset path cannot contain '..'")
-	}
-
-	// Additional asset-specific validation (allow dots for file extensions)
-	// Only allow alphanumeric, hyphens, underscores, forward slashes, and dots
-	validAssetPathRegex := `^[a-zA-Z0-9\-_/.]+$`
-	matched, err := regexp.MatchString(validAssetPathRegex, relativePath)
+	// Use centralized path validation and security checks
+	fullPath, err := utils.SafeFilePath(s.dataDir, relativePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to validate asset path: %w", err)
-	}
-	if !matched {
-		return "", fmt.Errorf("invalid asset path: path contains invalid characters")
+		return "", err
 	}
 
-	cleanPath := strings.TrimPrefix(relativePath, "/")
-
-	fullPath := filepath.Join(s.dataDir, cleanPath)
-
-	absDataDir, err := filepath.Abs(s.dataDir)
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve data directory: %w", err)
-	}
-
-	absFullPath, err := filepath.Abs(fullPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve asset path: %w", err)
-	}
-
-	if !strings.HasPrefix(absFullPath, absDataDir) {
-		return "", fmt.Errorf("invalid asset path: outside data directory")
-	}
-
+	// Check if file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return "", fmt.Errorf("asset not found: %s", relativePath)
 	}

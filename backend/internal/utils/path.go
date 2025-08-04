@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -22,6 +23,10 @@ var (
 
 // validPathRegex matches valid path characters: letters, numbers, hyphens, underscores, forward slashes
 var validPathRegex = regexp.MustCompile(`^[a-zA-Z0-9\-_/]+$`)
+
+// validAssetPathRegex matches valid asset path characters:
+// letters, numbers, hyphens, underscores, forward slashes, dots
+var validAssetPathRegex = regexp.MustCompile(`^[a-zA-Z0-9\-_/.]+$`)
 
 // validFolderNameRegex matches valid folder names: lowercase letters, numbers, hyphens
 var validFolderNameRegex = regexp.MustCompile(`^[a-z0-9\-]+$`)
@@ -180,4 +185,89 @@ func ExtractSlugFromPath(path string) string {
 	}
 
 	return "index"
+}
+
+// ValidateAssetPath validates asset paths, allowing dots for file extensions.
+// Uses the same base rules as ValidatePath but permits dots in filenames.
+func ValidateAssetPath(path string) error {
+	if path == "" {
+		return ErrEmptyPath
+	}
+
+	if !strings.HasPrefix(path, PathSeparator) {
+		return ErrPathMustStartWithSlash
+	}
+
+	// Split path into segments and validate each
+	segments := strings.Split(strings.Trim(path, PathSeparator), PathSeparator)
+
+	// Remove empty segments from consecutive slashes
+	var cleanSegments []string
+	for _, segment := range segments {
+		if segment != "" {
+			cleanSegments = append(cleanSegments, segment)
+		}
+	}
+
+	// Check for invalid segments first (. and ..)
+	for _, segment := range cleanSegments {
+		if segment == "." || segment == ".." {
+			return ErrPathContainsInvalidSegments
+		}
+	}
+
+	// Check for invalid characters using asset-specific regex (allows dots)
+	if !validAssetPathRegex.MatchString(path) {
+		return ErrPathContainsInvalidCharacters
+	}
+
+	// Check depth
+	if len(cleanSegments) > MaxPathDepth {
+		return ErrPathTooDeep
+	}
+
+	return nil
+}
+
+// SafeFilePath validates a path and returns a safe file path within the given data directory.
+// This function prevents directory traversal attacks by ensuring the resolved path
+// stays within the data directory.
+func SafeFilePath(dataDir, path string) (string, error) {
+	// First validate the path format
+	if err := ValidateAssetPath(path); err != nil {
+		return "", err
+	}
+
+	// Clean the path and remove leading slash for joining
+	cleanPath := strings.TrimPrefix(path, PathSeparator)
+
+	// Join with data directory
+	fullPath := filepath.Join(dataDir, cleanPath)
+
+	// Resolve absolute paths to prevent directory traversal
+	absDataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve data directory: %w", err)
+	}
+
+	absFullPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve asset path: %w", err)
+	}
+
+	// Ensure the resolved path is within the data directory
+	if !strings.HasPrefix(absFullPath, absDataDir) {
+		return "", fmt.Errorf("invalid asset path: outside data directory")
+	}
+
+	return fullPath, nil
+}
+
+// EnsureLeadingSlash ensures a path starts with "/" by adding it if missing.
+// This is commonly needed in HTTP handlers when processing path parameters.
+func EnsureLeadingSlash(path string) string {
+	if !strings.HasPrefix(path, PathSeparator) {
+		return PathSeparator + path
+	}
+	return path
 }

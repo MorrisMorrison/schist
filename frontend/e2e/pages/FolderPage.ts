@@ -1,46 +1,36 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
-/**
- * Page object for folder views (/folders/[...path])
- */
 export class FolderPage extends BasePage {
-	// Folder content
 	readonly folderTitle: Locator;
 	readonly folderPath: Locator;
 	readonly subFolders: Locator;
 	readonly documents: Locator;
 	readonly emptyFolderMessage: Locator;
 
-	// Folder actions
 	readonly createFolderButton: Locator;
 	readonly createDocumentButton: Locator;
 	readonly folderActionsMenu: Locator;
 
-	// Create folder modal
 	readonly createFolderModal: Locator;
 	readonly folderNameInput: Locator;
 	readonly confirmCreateFolder: Locator;
 	readonly cancelCreateFolder: Locator;
 
-	// Folder tree (sidebar)
 	readonly folderTree: Locator;
 	readonly folderTreeItems: Locator;
 	readonly expandableNodes: Locator;
 
-	// List view
 	readonly itemsList: Locator;
 	readonly folderItems: Locator;
 	readonly documentItems: Locator;
 	readonly itemNames: Locator;
 	readonly itemDates: Locator;
 
-	// Navigation
 	readonly breadcrumbs: Locator;
 	readonly backButton: Locator;
 	readonly homeLink: Locator;
 
-	// View controls
 	readonly viewToggle: Locator;
 	readonly sortOptions: Locator;
 	readonly filterInput: Locator;
@@ -48,14 +38,11 @@ export class FolderPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
-		// Folder content
 		this.folderTitle = page.locator('h1').first();
 		this.folderPath = page.getByTestId('folder-path');
-		this.subFolders = page.getByTestId('folders-section');
 		this.documents = page.getByTestId('documents-section');
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
-		// Folder actions (be more specific to avoid sidebar button conflicts)
 		this.createFolderButton = page
 			.getByRole('button', { name: /new folder|create folder/i })
 			.first();
@@ -64,30 +51,25 @@ export class FolderPage extends BasePage {
 			.first();
 		this.folderActionsMenu = page.getByTestId('folder-actions');
 
-		// Create folder modal
 		this.createFolderModal = page.getByTestId('create-folder-modal');
 		this.folderNameInput = page.getByTestId('folder-name');
 		this.confirmCreateFolder = this.createFolderModal.getByTestId('create-folder-btn');
 		this.cancelCreateFolder = this.createFolderModal.getByTestId('cancel-create-folder-btn');
 
-		// Folder tree
 		this.folderTree = page.getByTestId('folder-tree');
 		this.folderTreeItems = this.folderTree.locator('[role="treeitem"]');
 		this.expandableNodes = this.folderTree.locator('[aria-expanded]');
 
-		// List view
 		this.itemsList = page.getByTestId('items-list');
 		this.folderItems = this.itemsList.getByTestId('folder-item');
 		this.documentItems = this.itemsList.getByTestId('document-item');
 		this.itemNames = this.itemsList.getByTestId('item-name');
 		this.itemDates = this.itemsList.getByTestId('item-date');
 
-		// Navigation
 		this.breadcrumbs = page.getByTestId('breadcrumbs');
 		this.backButton = page.getByRole('button', { name: /back/i });
 		this.homeLink = page.getByRole('link', { name: /home/i });
 
-		// View controls
 		this.viewToggle = page.getByTestId('view-toggle');
 		this.sortOptions = page.getByTestId('sort-options');
 		this.filterInput = page.getByPlaceholder(/filter|search/i);
@@ -170,14 +152,11 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Navigate to a subfolder
+	 * Navigate to a subfolder - now uses sidebar navigation only
 	 */
 	async openSubFolder(folderName: string) {
-		const folderCard = this.subFolders
-			.getByTestId('folder-item')
-			.filter({ hasText: folderName })
-			.first();
-		await folderCard.click();
+		const folderButton = this.folderTree.getByRole('button', { name: `Open folder ${folderName}` });
+		await folderButton.click();
 		await this.waitForLoad();
 	}
 
@@ -191,11 +170,16 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Get list of subfolder names
+	 * Get list of subfolder names - now from sidebar only
 	 */
 	async getSubFolderNames(): Promise<string[]> {
-		const folderCards = this.subFolders.getByTestId('folder-item');
-		return await folderCards.allTextContents();
+		// Get folder names from sidebar tree by looking for "Open folder" buttons
+		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
+		const ariaLabels = await folderButtons.evaluateAll(elements => 
+			elements.map(el => el.getAttribute('aria-label') || '')
+		);
+		// Extract just the folder name from "Open folder [name]" aria-label
+		return ariaLabels.map(label => label.replace('Open folder ', ''));
 	}
 
 	/**
@@ -207,12 +191,25 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Verify folder contains specific subfolder
+	 * Verify folder contains specific subfolder - now checks sidebar only
 	 */
 	async verifyContainsFolder(folderName: string) {
-		// Look for folder cards or links within the subfolders section
-		const folderCard = this.subFolders.getByTestId('folder-item').filter({ hasText: folderName });
-		await expect(folderCard).toBeVisible();
+		const expandButtons = this.folderTree.getByRole('button').filter({ hasText: /expand folder/i });
+		const expandCount = await expandButtons.count();
+
+		for (let i = 0; i < expandCount; i++) {
+			const expandButton = expandButtons.nth(i);
+			if (await expandButton.isVisible()) {
+				await expandButton.click();
+				await this.page.waitForTimeout(300); // Wait for expansion
+			}
+		}
+
+		const folderButton = this.folderTree
+			.getByRole('button', { name: new RegExp(`Open folder ${folderName}`, 'i') });
+
+		await this.page.waitForTimeout(500);
+		await expect(folderButton.first()).toBeVisible({ timeout: 10000 });
 	}
 
 	/**
@@ -322,10 +319,13 @@ export class FolderPage extends BasePage {
 	}
 
 	/**
-	 * Count subfolders
+	 * Count subfolders - now from sidebar only
 	 */
 	async getSubFolderCount(): Promise<number> {
-		return await this.subFolders.getByTestId('folder-item').count();
+		// Count folders in sidebar tree by looking for buttons with "Open folder" aria-label
+		// These are the buttons that open folders, not documents
+		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
+		return await folderButtons.count();
 	}
 
 	/**

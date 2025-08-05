@@ -218,7 +218,7 @@
 
 	<!-- Content -->
 	<Card class="border-border bg-card shadow-sm">
-		<CardContent class="p-8">
+		<CardContent class="pl-8 pr-8 pt-4 pb-6">
 			<!-- Documents -->
 			{#if currentFolderDocuments().length > 0}
 				<section class="space-y-6" data-testid="documents-section">

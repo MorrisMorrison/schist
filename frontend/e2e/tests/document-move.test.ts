@@ -27,6 +27,8 @@ test.describe.serial('Document Move', () => {
 		testId,
 		page
 	}) => {
+		// Skip this test in CI due to drag and drop reliability issues
+		// test.skip(!!process.env.CI, 'Drag and drop test is flaky in CI environment');
 		// Create target folder
 		await folderPage.navigateToRoot();
 		await folderPage.createFolder(testFolderName);

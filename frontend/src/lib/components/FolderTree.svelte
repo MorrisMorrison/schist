@@ -483,6 +483,15 @@
 	});
 
 	function getCurrentFolderFromPath(path: string): FolderType | null {
+		if (path === '/') {
+			return {
+				name: '/',
+				path: '/',
+				created: new Date().toISOString(),
+				document_count: getFilteredRootPages().length,
+				sub_folders: filteredFolders
+			};
+		}
 		return findFolderByPath($folders || [], path);
 	}
 </script>

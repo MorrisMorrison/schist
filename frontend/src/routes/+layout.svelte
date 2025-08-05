@@ -5,6 +5,7 @@
 	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { createKeyboardShortcutHandler, type KeyboardShortcutHandlers } from '$lib/utils/keyboard-shortcuts';
 
 	// Import theme store to initialize
 	import '$lib/stores/theme.js';
@@ -29,19 +30,15 @@
 		}
 	});
 
-	// Global keyboard shortcuts
-	function handleGlobalKeydown(event: KeyboardEvent) {
-		// Quick switcher: Cmd/Ctrl + K
-		if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-			event.preventDefault();
-			quickSwitcherOpen = true;
-		}
+	// Keyboard shortcut handlers
+	const keyboardHandlers: KeyboardShortcutHandlers = {
+		openQuickSwitcher: () => quickSwitcherOpen = true,
+		closeQuickSwitcher: () => quickSwitcherOpen = false,
+		isQuickSwitcherOpen: () => quickSwitcherOpen
+	};
 
-		// Close quick switcher on Escape
-		if (event.key === 'Escape' && quickSwitcherOpen) {
-			quickSwitcherOpen = false;
-		}
-	}
+	// Create the keyboard shortcut handler
+	const handleGlobalKeydown = createKeyboardShortcutHandler(page, keyboardHandlers);
 
 	// Handle custom event from navigation
 	function handleOpenQuickSwitcher() {

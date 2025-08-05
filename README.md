@@ -75,35 +75,6 @@ Your wiki will be available at http://localhost:8080 (or your server's address)
 
 Schist works out of the box with minimal configuration. For advanced setup including authentication, rate limiting, and security options, see the [Configuration Guide](docs/CONFIGURATION.md).
 
-## Quick Start
-
-### Development
-
-```bash
-# Clone and install dependencies
-git clone https://github.com/MorrisMorrison/schist.git
-cd schist
-make install
-
-# Terminal 1: Backend
-make run-backend
-
-# Terminal 2: Frontend  
-make run-frontend
-```
-
-Open http://localhost:5173 in your browser.
-
-### Production
-```bash
-# Using Docker (recommended)
-make run-docker
-
-# Or build manually
-make build
-cd backend && ./schist
-```
-
 Schist will be available at http://localhost:8080
 
 ## Keyboard Shortcuts

@@ -9,22 +9,19 @@ export interface KeyboardShortcutHandlers {
 	isQuickSwitcherOpen: () => boolean;
 }
 
-export function createKeyboardShortcutHandler(
-	page: Page,
-	handlers: KeyboardShortcutHandlers
-) {
+export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShortcutHandlers) {
 	return function handleGlobalKeydown(event: KeyboardEvent) {
 		const isCmdOrCtrl = event.metaKey || event.ctrlKey;
 		const currentPath = page.url.pathname;
-		
+
 		// Prevent shortcuts when user is typing in input fields
 		const activeElement = document.activeElement as HTMLElement;
-		const isTyping = activeElement && (
-			activeElement.tagName === 'INPUT' || 
-			activeElement.tagName === 'TEXTAREA' || 
-			(activeElement as HTMLElement).contentEditable === 'true'
-		);
-		
+		const isTyping =
+			activeElement &&
+			(activeElement.tagName === 'INPUT' ||
+				activeElement.tagName === 'TEXTAREA' ||
+				(activeElement as HTMLElement).contentEditable === 'true');
+
 		// Only allow Escape and Quick Switcher when typing
 		if (isTyping && !(event.key === 'Escape' || (isCmdOrCtrl && event.key === 'k'))) {
 			return;
@@ -62,7 +59,7 @@ export function createKeyboardShortcutHandler(
 		// Document actions (only when viewing a document)
 		if (currentPath.startsWith('/documents/')) {
 			const documentPath = currentPath.replace('/documents', '');
-			
+
 			// Cmd/Ctrl + E: Edit current document
 			if (isCmdOrCtrl && event.key === 'e') {
 				event.preventDefault();
@@ -122,7 +119,7 @@ export function createKeyboardShortcutHandler(
 }
 
 function handleCreateDocument(currentPath: string) {
-	const newDocPath = currentPath.startsWith('/documents/') 
+	const newDocPath = currentPath.startsWith('/documents/')
 		? `/new${currentPath.replace('/documents', '')}`
 		: '/new';
 	goto(newDocPath);
@@ -130,7 +127,7 @@ function handleCreateDocument(currentPath: string) {
 
 function handleCreateFolder(currentPath: string) {
 	// Navigate to current folder (or root) and trigger folder creation
-	const folderPath = currentPath.startsWith('/documents/') 
+	const folderPath = currentPath.startsWith('/documents/')
 		? currentPath.replace('/documents', '/folders')
 		: '/folders';
 	goto(folderPath);
@@ -142,16 +139,20 @@ function handleCreateFolder(currentPath: string) {
 
 function handleDeleteDocument(documentPath: string) {
 	// Dispatch event to trigger delete confirmation
-	window.dispatchEvent(new CustomEvent('deleteDocument', { 
-		detail: { path: documentPath } 
-	}));
+	window.dispatchEvent(
+		new CustomEvent('deleteDocument', {
+			detail: { path: documentPath }
+		})
+	);
 }
 
 function handleDownloadDocument(documentPath: string) {
 	// Dispatch event to trigger document download
-	window.dispatchEvent(new CustomEvent('downloadDocument', { 
-		detail: { path: documentPath } 
-	}));
+	window.dispatchEvent(
+		new CustomEvent('downloadDocument', {
+			detail: { path: documentPath }
+		})
+	);
 }
 
 // Keyboard shortcut documentation for help/reference
@@ -159,20 +160,20 @@ export const KEYBOARD_SHORTCUTS = {
 	navigation: {
 		'Cmd/Ctrl + K': 'Open Quick Switcher',
 		'Cmd/Ctrl + H': 'Go to Home',
-		'Cmd/Ctrl + ,': 'Go to Settings',
+		'Cmd/Ctrl + ,': 'Go to Settings'
 	},
 	creation: {
 		'Cmd/Ctrl + N': 'Create new document',
-		'Cmd/Ctrl + Shift + N': 'Create new folder',
+		'Cmd/Ctrl + Shift + N': 'Create new folder'
 	},
 	document: {
 		'Cmd/Ctrl + E': 'Edit current document',
 		'Cmd/Ctrl + D': 'Delete current document',
-		'Cmd/Ctrl + S': 'Download current document',
+		'Cmd/Ctrl + S': 'Download current document'
 	},
 	ui: {
 		'Cmd/Ctrl + T': 'Toggle theme',
 		'Cmd/Ctrl + B': 'Toggle sidebar',
-		'Escape': 'Close Quick Switcher',
+		Escape: 'Close Quick Switcher'
 	}
 } as const;

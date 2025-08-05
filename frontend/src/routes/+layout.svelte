@@ -6,16 +6,16 @@
 	import KeyboardShortcutsModal from '$lib/components/KeyboardShortcutsModal.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { createKeyboardShortcutHandler, type KeyboardShortcutHandlers } from '$lib/utils/keyboard-shortcuts';
+	import {
+		createKeyboardShortcutHandler,
+		type KeyboardShortcutHandlers
+	} from '$lib/utils/keyboard-shortcuts';
 
-	// Import theme store to initialize
 	import '$lib/stores/theme.js';
-	// Import sidebar store
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
 
 	let { children } = $props();
 
-	// Modal states
 	let quickSwitcherOpen = $state(false);
 	let keyboardShortcutsOpen = $state(false);
 
@@ -32,29 +32,20 @@
 		}
 	});
 
-	// Keyboard shortcut handlers
 	const keyboardHandlers: KeyboardShortcutHandlers = {
-		openQuickSwitcher: () => quickSwitcherOpen = true,
-		closeQuickSwitcher: () => quickSwitcherOpen = false,
+		openQuickSwitcher: () => (quickSwitcherOpen = true),
+		closeQuickSwitcher: () => (quickSwitcherOpen = false),
 		isQuickSwitcherOpen: () => quickSwitcherOpen
 	};
 
-	// Create the keyboard shortcut handler
 	const handleGlobalKeydown = createKeyboardShortcutHandler(page, keyboardHandlers);
 
-	// Handle custom event from navigation
 	function handleOpenQuickSwitcher() {
 		quickSwitcherOpen = true;
 	}
 
-	// Ensure theme is initialized on mount
 	onMount(() => {
-		// Theme initialization is handled in the store
-
-		// Add global keyboard listener
 		document.addEventListener('keydown', handleGlobalKeydown);
-
-		// Add custom event listener for quick switcher
 		window.addEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
 
 		return () => {
@@ -63,7 +54,6 @@
 		};
 	});
 
-	// Handle backdrop click on mobile
 	function handleBackdropClick() {
 		if (window.innerWidth < 768 && $sidebarOpen) {
 			sidebarActions.close();
@@ -109,7 +99,7 @@
 			<button
 				type="button"
 				onclick={() => (keyboardShortcutsOpen = true)}
-				class="text-muted-foreground hover:text-foreground text-sm transition-colors underline-offset-4 hover:underline"
+				class="text-muted-foreground hover:text-foreground text-sm underline-offset-4 transition-colors hover:underline"
 			>
 				⌨️ Keyboard Shortcuts
 			</button>

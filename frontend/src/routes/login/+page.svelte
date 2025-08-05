@@ -9,9 +9,7 @@
 	} from '$lib/components/ui/card';
 	import { LogIn } from 'lucide-svelte';
 
-	// Placeholder function for OAuth authentication
 	function handleLogin() {
-		// TODO: Implement OAuth login
 		console.log('Login clicked');
 	}
 </script>
@@ -64,14 +62,12 @@
 
 <style>
 	.login-page {
-		/* Ensure complete isolation from any parent styles */
 		position: fixed;
 		top: 0;
 		left: 0;
 		width: 100vw;
 		height: 100vh;
 		z-index: 9999;
-		/* Reset any potentially inherited styles */
 		margin: 0;
 		padding: 1rem;
 		box-sizing: border-box;

@@ -24,7 +24,6 @@
 	let error = $state('');
 	let isLoading = $state(false);
 
-	// Reset form when modal opens
 	$effect(() => {
 		if (open) {
 			folderName = '';
@@ -48,11 +47,6 @@
 		if (name.length > 50) {
 			return false;
 		}
-
-		// const reserved = ['api', 'admin', 'pages', 'folders', 'auth', 'docs'];
-		// if (reserved.includes(name.toLowerCase())) {
-		// 	return false;
-		// }
 
 		return true;
 	}

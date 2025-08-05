@@ -31,7 +31,6 @@
 
 	async function handleConfirm() {
 		const result = onConfirm();
-		// If onConfirm returns a promise, await it
 		if (result && typeof result.then === 'function') {
 			await result;
 		}

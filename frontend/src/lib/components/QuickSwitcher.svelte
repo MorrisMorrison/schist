@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { apiClient } from '$lib/api/client';
 	import type { Document } from '$lib/api/types';
@@ -28,9 +27,7 @@
 
 	// Derived state - automatically computed, no infinite loops
 	const displayResults = $derived(
-		query.trim() === '' 
-			? recentDocuments.slice(0, 8)
-			: results.slice(0, 10)
+		query.trim() === '' ? recentDocuments.slice(0, 8) : results.slice(0, 10)
 	);
 
 	$effect(() => {
@@ -51,7 +48,7 @@
 			results = [];
 			selectedIndex = 0;
 		}
-		
+
 		// Cleanup timeout on effect cleanup
 		return () => {
 			clearTimeout(searchTimeout);
@@ -148,8 +145,6 @@
 	>
 		<div
 			class="bg-card border-border w-full max-w-2xl rounded-lg border shadow-2xl"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
 			role="document"
 		>
 			<div class="flex items-center gap-3 border-b p-4">
@@ -162,6 +157,7 @@
 					class="placeholder:text-muted-foreground flex-1 bg-transparent text-lg outline-none"
 					autocomplete="off"
 					spellcheck="false"
+					data-testid="quick-switcher-input"
 				/>
 				{#if isSearching}
 					<div
@@ -203,6 +199,7 @@
 								: ''}"
 							onclick={() => selectDocument(document)}
 							onmouseenter={() => (selectedIndex = index)}
+							data-testid="quick-switcher-result"
 						>
 							<div class="bg-primary/10 text-primary flex-shrink-0 rounded p-1.5">
 								<FileText class="h-4 w-4" />
@@ -220,7 +217,7 @@
 
 							{#if document.metaData.tags && document.metaData.tags.length > 0}
 								<div class="flex gap-1">
-									{#each document.metaData.tags.slice(0, 2) as tag}
+									{#each document.metaData.tags.slice(0, 2) as tag (tag)}
 										<span
 											class="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-xs"
 										>

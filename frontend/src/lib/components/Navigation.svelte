@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import SearchBox from './SearchBox.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { BurgerIcon } from './ui/burger-icon';
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
-	import { Settings } from 'lucide-svelte';
+	import { Settings, Search } from 'lucide-svelte';
 
 	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();
 
@@ -18,6 +17,11 @@
 
 	function closeMenu() {
 		isMenuOpen = false;
+	}
+
+	function openQuickSwitcher() {
+		// Dispatch a custom event that the layout can listen to
+		window.dispatchEvent(new CustomEvent('openQuickSwitcher'));
 	}
 
 	$effect(() => {
@@ -80,9 +84,20 @@
 
 				<div class="flex items-center space-x-4">
 					<div class="hidden md:block">
-						<div class="w-64">
-							<SearchBox placeholder="Search pages..." testId="nav-search-input" />
-						</div>
+						<button
+							type="button"
+							onclick={openQuickSwitcher}
+							class="bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground flex w-64 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+							title="Quick search (⌘K)"
+							data-testid="quick-switcher-button"
+						>
+							<Search class="h-4 w-4" />
+							<span class="flex-1 text-left">Search documents...</span>
+							<kbd
+								class="bg-muted text-muted-foreground pointer-events-none rounded border px-1.5 py-0.5 font-mono text-xs"
+								>⌘K</kbd
+							>
+						</button>
 					</div>
 
 					<a
@@ -128,7 +143,22 @@
 			<div class="md:hidden">
 				<div class="border-primary space-y-1 border-t pt-2 pb-3">
 					<div class="px-4 pb-3">
-						<SearchBox placeholder="Search pages..." testId="nav-search-input" />
+						<button
+							type="button"
+							onclick={() => {
+								openQuickSwitcher();
+								closeMenu();
+							}}
+							class="bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
+							data-testid="quick-switcher-button-mobile"
+						>
+							<Search class="h-4 w-4" />
+							<span class="flex-1 text-left">Search documents...</span>
+							<kbd
+								class="bg-muted text-muted-foreground pointer-events-none rounded border px-1.5 py-0.5 font-mono text-xs"
+								>⌘K</kbd
+							>
+						</button>
 					</div>
 
 					<div class="px-4 pb-3">

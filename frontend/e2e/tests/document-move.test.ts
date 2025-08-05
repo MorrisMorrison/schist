@@ -20,7 +20,7 @@ test.describe.serial('Document Move', () => {
 		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
 	});
 
-	test.only('should move document between folders via drag and drop', async ({
+	test('should move document between folders via drag and drop', async ({
 		documentViewPage,
 		folderPage,
 		apiHelper,

@@ -9,7 +9,6 @@
 
 	let { content, theme = 'light', className = '' }: PreviewProps = $props();
 
-	// Container reference for initializing copy buttons
 	let containerRef: HTMLDivElement;
 
 	let htmlContent = $state('');
@@ -18,7 +17,6 @@
 		const updateContent = async () => {
 			try {
 				htmlContent = await parseMarkdownWithCopyButtons(content);
-				// Initialize markdown interactions after content is rendered
 				if (containerRef) {
 					initializeMarkdownInteractions(containerRef);
 				}

@@ -32,7 +32,6 @@
 	const newPath = $derived(parentPath === '/' ? `/${folderName}` : `${parentPath}/${folderName}`);
 	const isValidName = $derived(validateFolderName(folderName));
 
-	// Initialize folder name when folder changes
 	$effect(() => {
 		if (folder && open) {
 			folderName = folder.name;
@@ -51,7 +50,6 @@
 			return false;
 		}
 
-		// Don't allow same name as current
 		if (folder && name.trim() === folder.name) {
 			return false;
 		}

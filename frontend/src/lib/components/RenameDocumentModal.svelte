@@ -30,7 +30,6 @@
 	const currentPath = $derived(document?.metaData?.path || '');
 	const isValidTitle = $derived(validateDocumentTitle(documentTitle));
 
-	// Initialize document title when document changes
 	$effect(() => {
 		if (document && open) {
 			documentTitle = document.metaData?.title || '';
@@ -45,7 +44,6 @@
 			return false;
 		}
 
-		// Don't allow same title as current
 		if (document && title.trim() === currentTitle) {
 			return false;
 		}

@@ -72,15 +72,11 @@ async function resolveDocumentPath(documentName: string): Promise<string> {
 		return matchingDocument.metaData.path;
 	}
 
-	// If no exact match, generate slug-based path
 	const slug = generateSlug(documentName);
 	return `/${slug}`;
 }
 
-// Wiki link regex pattern
 const wikiLinkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
-
-// Widget for clickable wiki links
 class WikiLinkWidget extends WidgetType {
 	constructor(
 		private documentName: string,
@@ -127,10 +123,7 @@ class WikiLinkWidget extends WidgetType {
 	}
 }
 
-// Effect for updating wiki link decorations
 const updateWikiLinksEffect = StateEffect.define<DecorationSet>();
-
-// State field for wiki link decorations
 const wikiLinksField = StateField.define<DecorationSet>({
 	create() {
 		return Decoration.none;
@@ -147,13 +140,12 @@ const wikiLinksField = StateField.define<DecorationSet>({
 	provide: (f) => EditorView.decorations.from(f)
 });
 
-// Function to find and decorate wiki links
 async function findWikiLinks(state: EditorState): Promise<Range<Decoration>[]> {
 	const decorations: Range<Decoration>[] = [];
 	const text = state.doc.toString();
 
 	let match;
-	wikiLinkRegex.lastIndex = 0; // Reset regex
+	wikiLinkRegex.lastIndex = 0;
 
 	while ((match = wikiLinkRegex.exec(text)) !== null) {
 		const [fullMatch, documentName, displayText] = match;
@@ -210,7 +202,6 @@ const wikiLinksPlugin = ViewPlugin.fromClass(
 				try {
 					const decorations = await findWikiLinks(this.view.state);
 
-					// Only update if the view is still valid
 					if (this.view.state.doc) {
 						this.view.dispatch({
 							effects: updateWikiLinksEffect.of(Decoration.set(decorations))
@@ -219,43 +210,37 @@ const wikiLinksPlugin = ViewPlugin.fromClass(
 				} catch (error) {
 					console.warn('Failed to update wiki link decorations:', error);
 				}
-			}, 750); // Increased debounce for better performance
+			}, 750);
 		}
 	}
 );
 
-// Autocomplete for wiki links
 async function wikiLinkCompletion(context: CompletionContext): Promise<CompletionResult | null> {
 	const line = context.state.doc.lineAt(context.pos);
 	const lineText = line.text;
 	const lineStart = line.from;
 	const cursorInLine = context.pos - lineStart;
 
-	// Find if we're inside [[...]] brackets
 	const beforeCursor = lineText.slice(0, cursorInLine);
 	const afterCursor = lineText.slice(cursorInLine);
 
 	const openBrackets = beforeCursor.lastIndexOf('[[');
 	const closeBrackets = beforeCursor.lastIndexOf(']]');
 
-	// Check if we're inside an open wiki link
 	if (openBrackets === -1 || closeBrackets > openBrackets) {
 		return null;
 	}
 
-	// Check if there's a closing bracket after cursor
 	const nextCloseBrackets = afterCursor.indexOf(']]');
 	if (nextCloseBrackets === -1) {
 		return null;
 	}
-
-	// Extract the current search term
 	const searchTerm = beforeCursor.slice(openBrackets + 2).split('|')[0];
 
 	const documents = await getDocuments();
 	const options = documents
 		.filter((document) => document.metaData.title.toLowerCase().includes(searchTerm.toLowerCase()))
-		.slice(0, 10) // Limit to 10 suggestions
+		.slice(0, 10)
 		.map((document) => ({
 			label: document.metaData.title,
 			type: 'variable',
@@ -274,7 +259,6 @@ async function wikiLinkCompletion(context: CompletionContext): Promise<Completio
 	};
 }
 
-// Syntax highlighting for wiki links
 const wikiLinkHighlight = syntaxHighlighting(
 	HighlightStyle.define([
 		{
@@ -285,45 +269,17 @@ const wikiLinkHighlight = syntaxHighlighting(
 	])
 );
 
-// Key bindings for wiki link shortcuts (currently unused but available for future use)
-// const wikiLinkKeymap = [
-// 	{
-// 		key: 'Ctrl-k',
-// 		mac: 'Cmd-k',
-// 		run: (view: EditorView) => {
-// 			const selection = view.state.selection.main;
-// 			const selectedText = view.state.doc.sliceString(selection.from, selection.to);
-
-// 			const replacement = selectedText ? `[[${selectedText}]]` : '[[]]';
-
-// 			const transaction = view.state.update({
-// 				changes: { from: selection.from, to: selection.to, insert: replacement },
-// 				selection: selectedText
-// 					? { anchor: selection.from + replacement.length }
-// 					: { anchor: selection.from + 2 } // Position cursor between brackets
-// 			});
-
-// 			view.dispatch(transaction);
-// 			view.focus();
-// 			return true;
-// 		}
-// 	}
-// ];
-
-// Main extension that combines all wiki link functionality
 export function wikiLinksExtension() {
 	return [
 		wikiLinksField,
 		wikiLinksPlugin,
-		// Only provide wiki link completion when inside [[...]] brackets
 		autocompletion({
 			maxRenderedOptions: 10,
 			activateOnTyping: true,
 			override: [
 				(context) => {
-					// Only provide wiki completion inside wiki links, otherwise return null
 					const result = wikiLinkCompletion(context);
-					return result; // This will be null when not in wiki links
+					return result;
 				}
 			]
 		}),

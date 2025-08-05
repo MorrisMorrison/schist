@@ -1,7 +1,6 @@
 <script lang="ts">
 	import '../../app.css';
 
-	// Import theme store to initialize theme
 	import '$lib/stores/theme.js';
 
 	let { children } = $props();

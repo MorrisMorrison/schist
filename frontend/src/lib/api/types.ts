@@ -204,7 +204,6 @@ export interface RestoreResponse {
 	hash: string;
 }
 
-// Import-related types
 export interface ImportOptions {
 	target_path: string;
 	overwrite_mode: 'skip' | 'overwrite' | 'rename';

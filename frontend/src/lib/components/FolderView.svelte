@@ -122,7 +122,6 @@
 		<Breadcrumbs {path} />
 	{/if}
 
-	<!-- Folder Header -->
 	<div
 		class="border-border flex w-full flex-col items-start gap-6 border-b pb-8 md:flex-row md:items-start md:justify-between md:gap-8"
 	>
@@ -143,7 +142,6 @@
 				{/if}
 			</h1>
 
-			<!-- Statistics -->
 			<div class="text-secondary flex items-center gap-2 text-sm">
 				{#if mode === 'recent'}
 					<span class="font-medium">
@@ -177,7 +175,6 @@
 		<div
 			class="flex w-full flex-col items-start gap-2 md:w-auto md:flex-row md:items-center md:gap-4"
 		>
-			<!-- Sort Controls -->
 			<div
 				class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2"
 			>
@@ -216,10 +213,8 @@
 		</div>
 	</div>
 
-	<!-- Content -->
 	<Card class="border-border bg-card shadow-sm">
 		<CardContent class="pt-4 pr-8 pb-6 pl-8">
-			<!-- Documents -->
 			{#if currentFolderDocuments().length > 0}
 				<section class="space-y-6" data-testid="documents-section">
 					<div class="flex items-center justify-between">
@@ -247,7 +242,6 @@
 				</section>
 			{/if}
 
-			<!-- Empty State -->
 			{#if currentFolderDocuments().length === 0}
 				<div
 					class="flex flex-col items-center justify-center py-12 text-center"

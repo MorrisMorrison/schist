@@ -131,7 +131,6 @@
 </script>
 
 <div class="relative">
-	<!-- Folder Row -->
 	<div
 		class={cn(
 			'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
@@ -157,9 +156,7 @@
 		tabindex="-1"
 		data-testid="folder-tree-item"
 	>
-		<!-- Indented content container -->
 		<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {indentLevel * 16}px">
-			<!-- Expand/Collapse Icon - Separate clickable area -->
 			<button
 				type="button"
 				class="flex h-4 w-4 flex-shrink-0 cursor-pointer items-center justify-center rounded"
@@ -178,7 +175,6 @@
 				{/if}
 			</button>
 
-			<!-- Folder Name Area - Clickable for navigation -->
 			<button
 				type="button"
 				class="focus:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
@@ -188,15 +184,12 @@
 				aria-label={`Open folder ${folder.name}`}
 				data-testid="folder-name-button"
 			>
-				<!-- Folder Icon -->
 				<Folder class="text-blue-primary h-4 w-4 flex-shrink-0" />
 
-				<!-- Folder Name -->
 				<span class="truncate font-medium" title={folder.name}>
 					{folder.name}
 				</span>
 
-				<!-- Page Count Badge -->
 				{#if showPageCounts && folder.document_count > 0}
 					<span class="text-secondary ml-1 text-xs opacity-75">({folder.document_count})</span>
 				{/if}
@@ -228,10 +221,8 @@
 		{/if}
 	</div>
 
-	<!-- Sub-folders and pages when expanded -->
 	{#if isExpanded}
 		<div class="mt-1">
-			<!-- Render pages in current folder first if showPages is enabled -->
 			{#if showPages}
 				{#each filteredPages as page (page.metaData?.slug || page.metaData?.path)}
 					<DocumentItem
@@ -256,7 +247,6 @@
 				{/each}
 			{/if}
 
-			<!-- Render sub-folders -->
 			{#if hasSubFolders}
 				{#each folder.sub_folders as subFolder (subFolder.path)}
 					<FolderTreeNode

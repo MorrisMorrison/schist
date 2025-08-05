@@ -73,7 +73,6 @@
 	data-testid="document-item"
 	data-document-path={document.metaData.path}
 >
-	<!-- Indented content container -->
 	<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {(depth + 1) * 16}px">
 		<div class="h-4 w-4"></div>
 		<button
@@ -89,7 +88,6 @@
 		</button>
 	</div>
 
-	<!-- Document Context Menu Trigger - Positioned absolutely to the right -->
 	{#if enableContextMenu}
 		<span
 			class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"

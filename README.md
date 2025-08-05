@@ -18,6 +18,7 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 - 🎨 **Clean interface** - Responsive design with dark/light themes
 - 🐳 **Docker ready** - Easy deployment with Docker
 - ⚡ **Fast** - Built with Go backend and Svelte frontend
+- ⌨️ **Keyboard shortcuts** - Navigate efficiently with global hotkeys
 
 ## Installation
 
@@ -104,6 +105,29 @@ cd backend && ./schist
 ```
 
 Schist will be available at http://localhost:8080
+
+## Keyboard Shortcuts
+
+Schist provides powerful keyboard shortcuts for efficient navigation and document management:
+
+### Navigation
+- `Cmd/Ctrl + K` - Open Quick Switcher (search and navigate to documents)
+- `Cmd/Ctrl + H` - Go to Home
+- `Cmd/Ctrl + ,` - Go to Settings
+
+### Document Actions
+- `Cmd/Ctrl + N` - Create new document
+- `Cmd/Ctrl + Shift + N` - Create new folder
+- `Cmd/Ctrl + E` - Edit current document *(when viewing)*
+- `Cmd/Ctrl + D` - Delete current document *(when viewing)*
+- `Cmd/Ctrl + S` - Download current document *(when viewing)*
+
+### UI Controls
+- `Cmd/Ctrl + T` - Toggle dark/light theme
+- `Cmd/Ctrl + B` - Toggle sidebar
+- `Escape` - Close Quick Switcher or modals
+
+**💡 Tip:** Press `Cmd/Ctrl + K` to open the Quick Switcher, then start typing to instantly search and navigate to any document!
 
 ## Documentation
 

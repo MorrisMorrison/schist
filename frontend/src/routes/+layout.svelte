@@ -3,6 +3,7 @@
 	import Navigation from '$lib/components/Navigation.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
+	import KeyboardShortcutsModal from '$lib/components/KeyboardShortcutsModal.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { createKeyboardShortcutHandler, type KeyboardShortcutHandlers } from '$lib/utils/keyboard-shortcuts';
@@ -14,8 +15,9 @@
 
 	let { children } = $props();
 
-	// Quick switcher state
+	// Modal states
 	let quickSwitcherOpen = $state(false);
+	let keyboardShortcutsOpen = $state(false);
 
 	// Always allow sidebar to be shown - let users decide with the toggle
 	const showSidebarComponent = true;
@@ -100,14 +102,31 @@
 			{@render children()}
 		</main>
 	</div>
+
+	<!-- Footer -->
+	<footer class="border-border bg-background border-t px-4 py-3">
+		<div class="flex items-center justify-center">
+			<button
+				type="button"
+				onclick={() => (keyboardShortcutsOpen = true)}
+				class="text-muted-foreground hover:text-foreground text-sm transition-colors underline-offset-4 hover:underline"
+			>
+				⌨️ Keyboard Shortcuts
+			</button>
+		</div>
+	</footer>
 </div>
 
 <QuickSwitcher open={quickSwitcherOpen} onClose={() => (quickSwitcherOpen = false)} />
+<KeyboardShortcutsModal
+	open={keyboardShortcutsOpen}
+	onClose={() => (keyboardShortcutsOpen = false)}
+/>
 
 <style>
 	.app-container {
 		display: flex;
-		height: calc(100vh - 4rem); /* Adjust based on navigation height */
+		height: calc(100vh - 4rem - 3rem); /* Navigation height + footer height */
 		position: relative;
 	}
 

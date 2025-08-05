@@ -52,7 +52,7 @@
 					<div>
 						<h3 class="text-foreground mb-3 text-lg font-medium">Navigation</h3>
 						<div class="space-y-2">
-							{#each Object.entries(KEYBOARD_SHORTCUTS.navigation) as [shortcut, description]}
+							{#each Object.entries(KEYBOARD_SHORTCUTS.navigation) as [shortcut, description] (shortcut)}
 								<div class="flex items-center justify-between">
 									<span class="text-muted-foreground text-sm">{description}</span>
 									<kbd
@@ -69,7 +69,7 @@
 					<div>
 						<h3 class="text-foreground mb-3 text-lg font-medium">Document Actions</h3>
 						<div class="space-y-2">
-							{#each Object.entries(KEYBOARD_SHORTCUTS.creation) as [shortcut, description]}
+							{#each Object.entries(KEYBOARD_SHORTCUTS.creation) as [shortcut, description] (shortcut)}
 								<div class="flex items-center justify-between">
 									<span class="text-muted-foreground text-sm">{description}</span>
 									<kbd
@@ -79,7 +79,7 @@
 									</kbd>
 								</div>
 							{/each}
-							{#each Object.entries(KEYBOARD_SHORTCUTS.document) as [shortcut, description]}
+							{#each Object.entries(KEYBOARD_SHORTCUTS.document) as [shortcut, description] (shortcut)}
 								<div class="flex items-center justify-between">
 									<span class="text-muted-foreground text-sm">{description}</span>
 									<kbd
@@ -96,7 +96,7 @@
 					<div>
 						<h3 class="text-foreground mb-3 text-lg font-medium">UI Controls</h3>
 						<div class="space-y-2">
-							{#each Object.entries(KEYBOARD_SHORTCUTS.ui) as [shortcut, description]}
+							{#each Object.entries(KEYBOARD_SHORTCUTS.ui) as [shortcut, description] (shortcut)}
 								<div class="flex items-center justify-between">
 									<span class="text-muted-foreground text-sm">{description}</span>
 									<kbd

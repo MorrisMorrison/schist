@@ -138,7 +138,6 @@
 	role="toolbar"
 	aria-label="Formatting toolbar"
 >
-	<!-- Text Formatting Group -->
 	<div class="flex items-center gap-1">
 		{#each textButtons as button (button.type)}
 			<Button
@@ -158,7 +157,6 @@
 
 	<div class="bg-border h-6 w-px"></div>
 
-	<!-- Headings Group -->
 	<div class="flex items-center gap-1">
 		{#each headingButtons as button (button.type)}
 			<Button
@@ -178,7 +176,6 @@
 
 	<div class="bg-border h-6 w-px"></div>
 
-	<!-- Lists Group -->
 	<div class="flex items-center gap-1">
 		{#each listButtons as button (button.type)}
 			<Button
@@ -198,7 +195,6 @@
 
 	<div class="bg-border h-6 w-px"></div>
 
-	<!-- Insert Group -->
 	<div class="flex items-center gap-1">
 		{#each insertButtons as button (button.type)}
 			<Button
@@ -216,10 +212,8 @@
 		{/each}
 	</div>
 
-	<!-- Spacer -->
 	<div class="flex-1"></div>
 
-	<!-- Fullscreen Button -->
 	{#if onFullscreenToggle}
 		<Button
 			variant="ghost"
@@ -238,14 +232,12 @@
 		</Button>
 	{/if}
 
-	<!-- Helpful hint -->
 	<div class="text-muted-foreground hidden text-xs sm:block">
 		Use keyboard shortcuts for faster formatting
 	</div>
 </div>
 
 <style>
-	/* Ensure consistent toolbar heights */
 	.editor-toolbar {
 		min-height: 3.5rem;
 	}
@@ -257,12 +249,10 @@
 			padding: 0.75rem;
 		}
 
-		/* Hide separators on mobile */
 		.editor-toolbar .w-px {
 			display: none;
 		}
 
-		/* Hide hint text on very small screens */
 		.editor-toolbar .text-xs {
 			display: none;
 		}

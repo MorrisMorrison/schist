@@ -158,7 +158,6 @@
 </script>
 
 <div class="space-y-4 {className}">
-	<!-- Multi-select Toggle -->
 	{#if showMultiSelectToggle && documents.length > 0}
 		<div class="flex justify-end">
 			<ToggleSlider
@@ -169,7 +168,6 @@
 		</div>
 	{/if}
 
-	<!-- Selection Toolbar -->
 	{#if actualMultiSelectMode && selectedDocuments.size > 0}
 		<div class="bg-muted border-border flex items-center justify-between rounded-lg border p-3">
 			<div class="flex items-center gap-3">
@@ -193,18 +191,15 @@
 		</div>
 	{/if}
 
-	<!-- Error Display -->
 	{#if error}
 		<ErrorAlert {error} onDismiss={() => documentActions.clearError()} />
 	{/if}
 
-	<!-- Loading Spinner -->
 	{#if loading}
 		<div class="flex justify-center py-8">
 			<LoadingSpinner size="lg" />
 		</div>
 	{:else if documents.length === 0}
-		<!-- Empty State -->
 		<div class="flex flex-col items-center justify-center py-12 text-center">
 			<FileText class="text-muted-foreground mb-4 h-12 w-12" />
 			<h3 class="text-foreground mb-2 text-lg font-medium">No documents yet</h3>
@@ -212,7 +207,6 @@
 			<Button onclick={() => goto('/new')}>Create your first document</Button>
 		</div>
 	{:else}
-		<!-- Document Grid -->
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{#each documents as document (document.metaData.path + document.metaData.slug)}
 				<DocumentCard

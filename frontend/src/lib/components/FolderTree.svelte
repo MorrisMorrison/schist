@@ -499,7 +499,6 @@
 <svelte:window onclick={handleOutsideClick} />
 
 <div class={cn('select-none', className)}>
-	<!-- Actions Header -->
 	{#if showActions}
 		<div class="border-border flex items-center justify-between border-b p-4">
 			<h2 class="text-primary text-lg font-semibold">Pages</h2>
@@ -535,7 +534,6 @@
 		</div>
 	{/if}
 
-	<!-- Enhanced Search with Tag Support -->
 	{#if showSearch}
 		<div class="border-border border-b p-3">
 			<UnifiedSidebarSearch
@@ -549,18 +547,15 @@
 		</div>
 	{/if}
 
-	<!-- Error Display -->
 	{#if $foldersError}
 		<ErrorAlert error={$foldersError} onDismiss={() => folderActions.clearError()} />
 	{/if}
 
-	<!-- Loading State -->
 	{#if $isFoldersLoading}
 		<div class="flex items-center justify-center py-8">
 			<div class="border-border border-t-primary h-6 w-6 animate-spin rounded-full border-2"></div>
 		</div>
 	{:else if !$isFoldersLoading && $folders !== null && filteredFolders.length === 0}
-		<!-- Empty State -->
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>

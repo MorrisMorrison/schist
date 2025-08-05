@@ -43,6 +43,11 @@
 		}
 	}
 
+	// Handle custom event from navigation
+	function handleOpenQuickSwitcher() {
+		quickSwitcherOpen = true;
+	}
+
 	// Ensure theme is initialized on mount
 	onMount(() => {
 		// Theme initialization is handled in the store
@@ -50,8 +55,12 @@
 		// Add global keyboard listener
 		document.addEventListener('keydown', handleGlobalKeydown);
 
+		// Add custom event listener for quick switcher
+		window.addEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
+
 		return () => {
 			document.removeEventListener('keydown', handleGlobalKeydown);
+			window.removeEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
 		};
 	});
 

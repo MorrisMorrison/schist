@@ -71,6 +71,7 @@
 	aria-selected={isSelected}
 	tabindex="-1"
 	data-testid="document-item"
+	data-document-path={document.metaData.path}
 >
 	<!-- Indented content container -->
 	<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {(depth + 1) * 16}px">

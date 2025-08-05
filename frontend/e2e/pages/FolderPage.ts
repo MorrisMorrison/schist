@@ -232,8 +232,26 @@ export class FolderPage extends BasePage {
 	 * Verify folder contains specific document
 	 */
 	async verifyContainsDocument(documentName: string) {
-		const documentLink = this.documents.getByText(documentName);
-		await expect(documentLink).toBeVisible();
+		// Try more robust selectors first, fallback to text
+		const documentByTestId = this.documents.getByTestId('document-item').filter({ hasText: documentName });
+		const documentByText = this.documents.getByText(documentName);
+		
+		// Check if we can find it by test ID first
+		if (await documentByTestId.first().isVisible().catch(() => false)) {
+			await expect(documentByTestId.first()).toBeVisible();
+		} else {
+			// Fallback to text-based search
+			await expect(documentByText).toBeVisible();
+		}
+	}
+
+	/**
+	 * Find document by path attribute (more robust than text)
+	 */
+	async findDocumentByPath(documentPath: string) {
+		return this.documents.locator(`[aria-label*="${documentPath}"]`).or(
+			this.documents.getByTestId('document-item').filter({ hasText: documentPath })
+		);
 	}
 
 	/**

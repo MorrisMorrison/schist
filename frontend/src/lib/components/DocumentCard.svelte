@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Card, CardHeader } from '$lib/components/ui/card';
+	import { Card } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Edit, Trash2, Move, FileText } from 'lucide-svelte';
@@ -79,87 +79,81 @@
 		}
 	}}
 >
-	<CardHeader class="p-4">
-		<div class="flex items-start gap-3">
-			<!-- File Icon -->
-			<div
-				class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-3 transition-colors"
-			>
+	<div class="p-3 h-full flex flex-col">
+		<!-- Row 1: Icon + Title -->
+		<div class="flex items-center gap-3 mb-2">
+			<!-- Icon -->
+			<div class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-2 transition-colors">
 				<FileText class="h-4 w-4 text-white" />
 			</div>
-
-			<!-- Content Area -->
-			<div class="min-w-0 flex-1">
-				<!-- Title and Actions Row -->
-				<div class="mb-2 flex items-start justify-between gap-2">
-					<h3
-						class="text-foreground truncate text-sm leading-tight font-medium"
-						title={document.metaData.title}
+			
+			<!-- Title (truncated with ellipsis) -->
+			<h3 class="text-foreground text-sm font-medium leading-tight truncate flex-1 min-w-0" title={document.metaData.title}>
+				{document.metaData.title}
+			</h3>
+			
+			<!-- Action buttons -->
+			<div class="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+				{#if onEdit}
+					<Button
+						variant="ghost"
+						size="sm"
+						class="hover:bg-primary/10 h-6 w-6 p-0"
+						onclick={(e) => {
+							e.stopPropagation();
+							onEdit(document.metaData.path!);
+						}}
 					>
-						{document.metaData.title}
-					</h3>
-					<div
-						class="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-					>
-						{#if onEdit}
-							<Button
-								variant="ghost"
-								size="sm"
-								class="hover:bg-primary/10 h-6 w-6 p-0"
-								onclick={(e) => {
-									e.stopPropagation();
-									onEdit(document.metaData.path!);
-								}}
-							>
-								<Edit class="h-3 w-3" />
-							</Button>
-						{/if}
-						{#if onMove}
-							<Button
-								variant="ghost"
-								size="sm"
-								class="hover:bg-primary/10 h-6 w-6 p-0"
-								onclick={(e) => {
-									e.stopPropagation();
-									onMove(document);
-								}}
-							>
-								<Move class="h-3 w-3" />
-							</Button>
-						{/if}
-						{#if onDelete}
-							<Button
-								variant="ghost"
-								size="sm"
-								class="hover:bg-destructive/10 h-6 w-6 p-0"
-								onclick={(e) => {
-									e.stopPropagation();
-									onDelete(document.metaData.slug!);
-								}}
-							>
-								<Trash2 class="text-destructive h-3 w-3" />
-							</Button>
-						{/if}
-					</div>
-				</div>
-
-				<!-- Content Preview -->
-				{#if document.content}
-					<p class="text-muted-foreground/80 mb-2 line-clamp-2 text-xs leading-relaxed">
-						{getExcerpt(document.content, 100)}
-					</p>
+						<Edit class="h-3 w-3" />
+					</Button>
 				{/if}
+				{#if onMove}
+					<Button
+						variant="ghost"
+						size="sm"
+						class="hover:bg-primary/10 h-6 w-6 p-0"
+						onclick={(e) => {
+							e.stopPropagation();
+							onMove(document);
+						}}
+					>
+						<Move class="h-3 w-3" />
+					</Button>
+				{/if}
+				{#if onDelete}
+					<Button
+						variant="ghost"
+						size="sm"
+						class="hover:bg-destructive/10 h-6 w-6 p-0"
+						onclick={(e) => {
+							e.stopPropagation();
+							onDelete(document.metaData.slug!);
+						}}
+					>
+						<Trash2 class="text-destructive h-3 w-3" />
+					</Button>
+				{/if}
+			</div>
+		</div>
 
-				<!-- Metadata Row -->
-				<div class="text-muted-foreground flex items-center justify-between text-xs">
-					<div class="flex items-center gap-2">
+		<!-- Row 2: Content (2-3 lines with ellipsis) -->
+		{#if document.content}
+			<div class="text-muted-foreground/80 text-xs leading-relaxed mb-2 flex-1 overflow-hidden">
+				<div class="line-clamp-3">
+					{getExcerpt(document.content, 120)}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Row 3: Footer (Date + Tags in single row) -->
+		<div class="mt-auto pt-1.5 border-t border-border/50">
+			<div class="flex items-center justify-between gap-2">
+				<!-- Date and Path -->
+				{#if showDates || showPath}
+					<div class="text-muted-foreground text-xs flex items-center gap-1 min-w-0">
 						{#if showPath}
-							<span class="truncate"
-								>{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'}</span
-							>
-						{/if}
-						{#if showPath && showDates}
-							<span>•</span>
+							<span class="truncate">{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'}</span>
+							{#if showDates}<span>•</span>{/if}
 						{/if}
 						{#if showDates}
 							<span class="whitespace-nowrap">
@@ -171,24 +165,24 @@
 							</span>
 						{/if}
 					</div>
-
-					<!-- Tags -->
-					{#if showTags && document.metaData.tags && document.metaData.tags.length > 0}
-						<div class="flex flex-wrap gap-1">
-							{#each document.metaData.tags.slice(0, 2) as tag (tag)}
-								<Badge variant="secondary" class="h-4 px-1.5 py-0 text-xs">
-									{tag}
-								</Badge>
-							{/each}
-							{#if document.metaData.tags.length > 2}
-								<Badge variant="secondary" class="h-4 px-1.5 py-0 text-xs">
-									+{document.metaData.tags.length - 2}
-								</Badge>
-							{/if}
-						</div>
-					{/if}
-				</div>
+				{/if}
+				
+				<!-- Tags -->
+				{#if showTags && document.metaData.tags && document.metaData.tags.length > 0}
+					<div class="flex flex-wrap gap-1 justify-end">
+						{#each document.metaData.tags.slice(0, 2) as tag (tag)}
+							<Badge variant="secondary" class="h-4 px-1.5 py-0 text-xs">
+								{tag}
+							</Badge>
+						{/each}
+						{#if document.metaData.tags.length > 2}
+							<Badge variant="secondary" class="h-4 px-1.5 py-0 text-xs">
+								+{document.metaData.tags.length - 2}
+							</Badge>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
-	</CardHeader>
+	</div>
 </Card>

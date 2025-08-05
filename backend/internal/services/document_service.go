@@ -40,7 +40,6 @@ func (d *DocumentService) Search(query string) ([]*models.Document, error) {
 		return nil, err
 	}
 
-	// Parse query for text search and tag filters
 	textQuery, tagFilters := d.parseSearchQuery(query)
 
 	var filtered []*models.Document
@@ -51,13 +50,10 @@ func (d *DocumentService) Search(query string) ([]*models.Document, error) {
 			continue
 		}
 
-		// Check text match (if textQuery is not empty)
 		textMatch := textQuery == "" || strings.Contains(strings.ToLower(document.MetaData.Title), lowerTextQuery)
 
-		// Check tag match (if tagFilters are specified)
 		tagMatch := d.matchesTags(document, tagFilters)
 
-		// Include document if both text and tag conditions are met
 		if textMatch && tagMatch {
 			filtered = append(filtered, document)
 		}
@@ -133,12 +129,10 @@ func (d *DocumentService) GetAllTags() (map[string]int, error) {
 	tagCounts := make(map[string]int)
 
 	for _, document := range documents {
-		// Skip ignored documents
 		if d.ignoreService.ShouldIgnore(document.MetaData.Path) {
 			continue
 		}
 
-		// Count each tag
 		if document.MetaData.Tags != nil {
 			for _, tag := range document.MetaData.Tags {
 				// Store tags in original case but allow case-insensitive searching
@@ -167,7 +161,6 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 		return err
 	}
 
-	// Commit to git after successful document creation
 	d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Create document: %s", document.MetaData.Path))
 
 	return nil

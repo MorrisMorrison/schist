@@ -15,17 +15,14 @@ import (
 )
 
 func main() {
-	// Initialize all services with proper dependency injection
 	services, err := services.NewServices()
 	if err != nil {
 		log.Fatalf("Failed to initialize services: %v", err)
 	}
 
-	// dev logging: timestamp + filename:line
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	if !services.Config.IsDevelopment() {
-		// prod logging: timestamp only
 		log.SetFlags(log.LstdFlags)
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -43,7 +40,6 @@ func main() {
 	api := router.Group("/api")
 	apiHandler.SetupAPIRoutes(api)
 
-	// Serve user-uploaded assets from data directory
 	router.Static("/uploads", filepath.Join(services.Config.DataDir, "assets"))
 
 	if !services.Config.IsDevelopment() {
@@ -74,7 +70,6 @@ func setupCORS(router *gin.Engine, config *config.Config) {
 		return
 	}
 
-	// Development: Allow frontend dev server
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{config.FrontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -86,13 +81,11 @@ func setupCORS(router *gin.Engine, config *config.Config) {
 }
 
 func setupMiddleware(router *gin.Engine, config *config.Config) {
-	// Rate limiting middleware
 	if config.RateLimitEnabled {
 		router.Use(middleware.RateLimitMiddleware(config.RateLimitRPM))
 		log.Printf("Rate limiting enabled: %d requests per minute", config.RateLimitRPM)
 	}
 
-	// Basic authentication middleware
 	if config.AuthEnabled {
 		router.Use(middleware.BasicAuthMiddleware(config.AuthUsers, config.AuthRealm))
 		log.Printf("Basic authentication enabled for all endpoints (realm: %s)", config.AuthRealm)

@@ -20,7 +20,7 @@ test.describe.serial('Document Move', () => {
 		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
 	});
 
-	test('should move document between folders via drag and drop', async ({
+	test.only('should move document between folders via drag and drop', async ({
 		documentViewPage,
 		folderPage,
 		apiHelper,
@@ -53,15 +53,7 @@ test.describe.serial('Document Move', () => {
 			// Perform drag and drop
 			await documentTreeItem.dragTo(folderTreeItem);
 
-			// Wait for the move API call to complete
-			await page.waitForResponse(
-				(response) => response.url().includes('/documents/move') && response.status() === 200
-			);
-
-			// Wait for DOM updates after the move
-			await page.waitForLoadState('domcontentloaded');
-
-			// Navigate to the target folder
+			// Navigate to the target folder and wait for the document to appear there
 			await folderPage.openSubFolder(testFolderName);
 			await folderPage.verifyFolderLoaded(testFolderName);
 

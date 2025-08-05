@@ -79,19 +79,24 @@
 		}
 	}}
 >
-	<div class="p-3 h-full flex flex-col">
+	<div class="flex h-full flex-col p-3">
 		<!-- Row 1: Icon + Title -->
-		<div class="flex items-center gap-3 mb-2">
+		<div class="mb-2 flex items-center gap-3">
 			<!-- Icon -->
-			<div class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-2 transition-colors">
+			<div
+				class="bg-primary/90 group-hover:bg-primary/70 flex-shrink-0 rounded-lg p-2 transition-colors"
+			>
 				<FileText class="h-4 w-4 text-white" />
 			</div>
-			
+
 			<!-- Title (truncated with ellipsis) -->
-			<h3 class="text-foreground text-sm font-medium leading-tight truncate flex-1 min-w-0" title={document.metaData.title}>
+			<h3
+				class="text-foreground min-w-0 flex-1 truncate text-sm leading-tight font-medium"
+				title={document.metaData.title}
+			>
 				{document.metaData.title}
 			</h3>
-			
+
 			<!-- Action buttons -->
 			<div class="flex flex-shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
 				{#if onEdit}
@@ -138,7 +143,7 @@
 
 		<!-- Row 2: Content (2-3 lines with ellipsis) -->
 		{#if document.content}
-			<div class="text-muted-foreground/80 text-xs leading-relaxed mb-2 flex-1 overflow-hidden">
+			<div class="text-muted-foreground/80 mb-2 flex-1 overflow-hidden text-xs leading-relaxed">
 				<div class="line-clamp-3">
 					{getExcerpt(document.content, 120)}
 				</div>
@@ -146,13 +151,15 @@
 		{/if}
 
 		<!-- Row 3: Footer (Date + Tags in single row) -->
-		<div class="mt-auto pt-1.5 border-t border-border/50">
+		<div class="border-border/50 mt-auto border-t pt-1.5">
 			<div class="flex items-center justify-between gap-2">
 				<!-- Date and Path -->
 				{#if showDates || showPath}
-					<div class="text-muted-foreground text-xs flex items-center gap-1 min-w-0">
+					<div class="text-muted-foreground flex min-w-0 items-center gap-1 text-xs">
 						{#if showPath}
-							<span class="truncate">{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'}</span>
+							<span class="truncate"
+								>{parentFolderDerived !== 'Root' ? parentFolderDerived : 'Root'}</span
+							>
 							{#if showDates}<span>•</span>{/if}
 						{/if}
 						{#if showDates}
@@ -166,10 +173,10 @@
 						{/if}
 					</div>
 				{/if}
-				
+
 				<!-- Tags -->
 				{#if showTags && document.metaData.tags && document.metaData.tags.length > 0}
-					<div class="flex flex-wrap gap-1 justify-end">
+					<div class="flex flex-wrap justify-end gap-1">
 						{#each document.metaData.tags.slice(0, 2) as tag (tag)}
 							<Badge variant="secondary" class="h-4 px-1.5 py-0 text-xs">
 								{tag}

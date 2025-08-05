@@ -138,7 +138,7 @@
 </script>
 
 <aside class="bg-primary border-border flex h-full w-full flex-col overflow-hidden border-r">
-	<div class="flex-1 overflow-y-auto overflow-x-hidden">
+	<div class="flex-1 overflow-x-hidden overflow-y-auto">
 		<FolderTree
 			{currentPath}
 			showPages={true}

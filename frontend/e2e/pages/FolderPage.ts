@@ -233,11 +233,18 @@ export class FolderPage extends BasePage {
 	 */
 	async verifyContainsDocument(documentName: string) {
 		// Try more robust selectors first, fallback to text
-		const documentByTestId = this.documents.getByTestId('document-item').filter({ hasText: documentName });
+		const documentByTestId = this.documents
+			.getByTestId('document-item')
+			.filter({ hasText: documentName });
 		const documentByText = this.documents.getByText(documentName);
-		
+
 		// Check if we can find it by test ID first
-		if (await documentByTestId.first().isVisible().catch(() => false)) {
+		if (
+			await documentByTestId
+				.first()
+				.isVisible()
+				.catch(() => false)
+		) {
 			await expect(documentByTestId.first()).toBeVisible();
 		} else {
 			// Fallback to text-based search
@@ -249,9 +256,9 @@ export class FolderPage extends BasePage {
 	 * Find document by path attribute (more robust than text)
 	 */
 	async findDocumentByPath(documentPath: string) {
-		return this.documents.locator(`[aria-label*="${documentPath}"]`).or(
-			this.documents.getByTestId('document-item').filter({ hasText: documentPath })
-		);
+		return this.documents
+			.locator(`[aria-label*="${documentPath}"]`)
+			.or(this.documents.getByTestId('document-item').filter({ hasText: documentPath }));
 	}
 
 	/**

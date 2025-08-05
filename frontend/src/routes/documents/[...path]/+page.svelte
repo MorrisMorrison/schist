@@ -8,6 +8,7 @@
 	import type { Document } from '$lib/api/types';
 	import { Button } from '$lib/components/ui/button';
 	import { Home, Plus, RotateCcw, Search } from 'lucide-svelte';
+	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
@@ -41,6 +42,11 @@
 				currentDocument = await documentActions.loadDocumentByPath(fullPath);
 				isFolder = false;
 				isNotFound = false;
+
+				// Track document visit for recent documents
+				if (currentDocument) {
+					addToRecentDocuments(currentDocument.metaData.path);
+				}
 			} catch (documentError) {
 				if (documentError instanceof Error && documentError.message.includes('404')) {
 					isNotFound = true;

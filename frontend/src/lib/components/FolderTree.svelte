@@ -159,7 +159,7 @@
 
 	function filterFoldersAndPages(
 		folders: FolderType[],
-		allPages: Document[],
+		_allPages: Document[],
 		query: string
 	): FolderType[] {
 		const { textQuery, tagFilters } = parseUnifiedQuery(query);

@@ -2,6 +2,7 @@
 	import '../app.css';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 
@@ -11,6 +12,9 @@
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
 
 	let { children } = $props();
+
+	// Quick switcher state
+	let quickSwitcherOpen = $state(false);
 
 	// Always allow sidebar to be shown - let users decide with the toggle
 	const showSidebarComponent = true;
@@ -25,9 +29,30 @@
 		}
 	});
 
+	// Global keyboard shortcuts
+	function handleGlobalKeydown(event: KeyboardEvent) {
+		// Quick switcher: Cmd/Ctrl + K
+		if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+			event.preventDefault();
+			quickSwitcherOpen = true;
+		}
+
+		// Close quick switcher on Escape
+		if (event.key === 'Escape' && quickSwitcherOpen) {
+			quickSwitcherOpen = false;
+		}
+	}
+
 	// Ensure theme is initialized on mount
 	onMount(() => {
 		// Theme initialization is handled in the store
+
+		// Add global keyboard listener
+		document.addEventListener('keydown', handleGlobalKeydown);
+
+		return () => {
+			document.removeEventListener('keydown', handleGlobalKeydown);
+		};
 	});
 
 	// Handle backdrop click on mobile
@@ -70,6 +95,8 @@
 		</main>
 	</div>
 </div>
+
+<QuickSwitcher open={quickSwitcherOpen} onClose={() => (quickSwitcherOpen = false)} />
 
 <style>
 	.app-container {

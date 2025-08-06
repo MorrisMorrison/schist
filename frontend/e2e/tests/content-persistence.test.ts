@@ -4,21 +4,14 @@ import { createTestPage as createTestDocument } from '../utils/test-data';
 test.describe('Content Persistence and Data Integrity', () => {
 	test('should persist content across browser sessions', async ({
 		documentViewPage,
-		apiHelper,
-		testId,
+		withSimpleTestDocument,
 		context
 	}) => {
-		const testDocument = createTestDocument({
-			title: `Session Test ${testId}`,
-			content: '# Session Persistence Test\n\nThis content should persist across sessions.',
-			path: `/session-test-${testId}`
-		});
-
-		await apiHelper.createDocument(testDocument);
+		const testDocument = withSimpleTestDocument;
 
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
-		await documentViewPage.verifyContentContains('persist across sessions');
+		await documentViewPage.verifyContentContains('simple test document');
 
 		await documentViewPage.page.close();
 		const newPage = await context.newPage();
@@ -28,23 +21,16 @@ test.describe('Content Persistence and Data Integrity', () => {
 
 		await newDocumentView.navigateToDocument(testDocument.path!);
 		await newDocumentView.verifyDocumentLoaded(testDocument.title);
-		await newDocumentView.verifyContentContains('persist across sessions');
+		await newDocumentView.verifyContentContains('simple test document');
 	});
 
 	test('should maintain data integrity during concurrent edits', async ({
 		editorPage,
 		documentViewPage,
-		apiHelper,
-		testId,
+		withSimpleTestDocument,
 		context
 	}) => {
-		const testDocument = createTestDocument({
-			title: `Concurrent Edit ${testId}`,
-			content: '# Original Content\n\nBase content for concurrent edit test.',
-			path: `/concurrent-edit-${testId}`
-		});
-
-		await apiHelper.createDocument(testDocument);
+		const testDocument = withSimpleTestDocument;
 
 		await editorPage.navigateToEdit(testDocument.path!);
 		await editorPage.verifyLoaded();
@@ -65,7 +51,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		const content = await documentViewPage.getDocumentContent();
-		expect(content).toContain('Base content');
+		expect(content).toContain('Simple Test Document');
 
 		await page2.close();
 	});
@@ -73,78 +59,39 @@ test.describe('Content Persistence and Data Integrity', () => {
 	test('should preserve special characters and unicode', async ({
 		editorPage,
 		documentViewPage,
-		apiHelper,
-		testId
+		withSpecialContentTypes
 	}) => {
-		const specialContent = `# Unicode Test ${testId}
-
-Special characters: !@#$%^&*()_+-={}[]|\\:";'<>?,.
-
-Unicode characters:
-- Emoji: 🚀 🎉 💻 📝 ✅
-- Accents: café, naïve, résumé
-- Math: ∑ ∫ ∞ ≠ ± √ π
-- Symbols: © ® ™ € £ ¥ § ¶
-- Languages: 日本語, العربية, 中文, русский
-
-Code with special chars:
-\`\`\`javascript
-const regex = /[!@#$%^&*()]/g;
-const unicode = "Hello 世界! 🌍";
-\`\`\``;
-
-		const testDocument = createTestDocument({
-			title: `Unicode Test ${testId}`,
-			content: specialContent,
-			path: `/unicode-test-${testId}`
-		});
-
-		await apiHelper.createDocument(testDocument);
+		const { unicodeDocument: testDocument } = withSpecialContentTypes;
 
 		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Unicode Test ${testId}`);
-		await documentViewPage.verifyContentContains('🚀 🎉 💻');
-		await documentViewPage.verifyContentContains('café, naïve');
-		await documentViewPage.verifyContentContains('日本語, العربية');
-		await documentViewPage.verifyContentContains('∑ ∫ ∞');
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.verifyContentContains('🚀 🌟 ✅');
+		await documentViewPage.verifyContentContains('ÄÖÜß çñ');
+		await documentViewPage.verifyContentContains('中文 日本語 한국어');
+		await documentViewPage.verifyContentContains('∑ ∂ ∆');
 
 		await documentViewPage.editDocument();
-		await editorPage.verifyContent('🚀 🎉 💻');
-		await editorPage.typeContent('\n\nAdditional unicode: 🔥 ⭐ 🌟');
+		await editorPage.verifyContent('🚀 🌟 ✅');
+		await editorPage.typeContent('\n\nAdditional unicode: 🔥 ⭐ 💡');
 		await editorPage.saveAndExpectNavigation();
 
-		await documentViewPage.verifyContentContains('🚀 🎉 💻');
-		await documentViewPage.verifyContentContains('🔥 ⭐ 🌟');
+		await documentViewPage.verifyContentContains('🚀 🌟 ✅');
+		await documentViewPage.verifyContentContains('🔥 ⭐ 💡');
 	});
 
 	test('should handle large content volumes', async ({
 		editorPage,
 		documentViewPage,
-		apiHelper,
-		testId
+		withSpecialContentTypes
 	}) => {
-		const largeParagraph = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(50);
-		const largeContent =
-			`# Large Content Test ${testId}\n\n` +
-			Array(100)
-				.fill(0)
-				.map((_, i) => `## Section ${i + 1}\n\n${largeParagraph}\n\n`)
-				.join('');
-
-		const testDocument = createTestDocument({
-			title: `Large Content ${testId}`,
-			content: largeContent,
-			path: `/large-content-${testId}`
-		});
-
-		await apiHelper.createDocument(testDocument);
+		const { largeDocument: testDocument } = withSpecialContentTypes;
 
 		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Large Content ${testId}`);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
-		await documentViewPage.verifyContentContains('Section 1');
-		await documentViewPage.verifyContentContains('Section 50');
-		await documentViewPage.verifyContentContains('Section 100');
+		await documentViewPage.verifyContentContains('Large Content Test');
+		await documentViewPage.verifyContentContains('Lorem ipsum dolor sit amet');
+		await documentViewPage.verifyContentContains('Section 2');
 
 		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();

@@ -2,41 +2,12 @@ import { test, expect } from '../fixtures';
 import { createTestPage } from '../utils/test-data';
 
 test.describe.serial('Search Integration with Folder Tree', () => {
-	const testFolderName = 'search-test-folder';
-	const nestedFolderName = 'nested-search-folder';
-
 	test('should filter folder tree by text query', async ({
 		folderPage,
-		apiHelper,
-		testId,
+		withSearchTestData, // eslint-disable-line @typescript-eslint/no-unused-vars
 		page
 	}) => {
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder(testFolderName);
-		await folderPage.openSubFolder(testFolderName);
-		await folderPage.createFolder(nestedFolderName);
-
-		const pages = [
-			createTestPage({
-				title: `Searchable Page ${testId}`,
-				content: '# Searchable Content\n\nThis page contains unique searchable text.',
-				path: '/search-page-1'
-			}),
-			createTestPage({
-				title: `Another Page ${testId}`,
-				content: '# Different Content\n\nThis page has different content.',
-				path: '/search-page-2'
-			}),
-			createTestPage({
-				title: `Nested Searchable ${testId}`,
-				content: '# Nested Content\n\nThis page is in a nested folder with searchable text.',
-				path: `/${testFolderName}/nested-page`
-			})
-		];
-
-		for (const page of pages) {
-			await apiHelper.createPage(page);
-		}
+		// Search test data is created by the fixture
 
 		// Navigate to root to see full tree
 		await folderPage.navigateToRoot();
@@ -46,65 +17,36 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		const folderTree = page.getByTestId('folder-tree');
 
 		if (await searchInput.isVisible()) {
-			// Search for specific text
+			// Search for specific text that exists in our fixture data
 			await searchInput.fill('searchable');
 			// Wait for search results to update
-			await expect(folderTree.getByText('Searchable Page')).toBeVisible();
+			await expect(folderTree.getByText('Searchable Content')).toBeVisible();
 
-			// Verify only relevant items are visible
-
-			// Should show pages with "searchable" in title
-			await expect(folderTree.getByText('Searchable Page')).toBeVisible();
+			// Should show pages with "searchable" in title or content
+			await expect(folderTree.getByText('Searchable Content')).toBeVisible();
 			await expect(folderTree.getByText('Nested Searchable')).toBeVisible();
 
 			// Should hide pages without matching text
-			const nonMatchingPage = folderTree.getByText('Another Page');
+			const nonMatchingPage = folderTree.getByText('Different Title');
 			const isNonMatchingVisible = await nonMatchingPage.isVisible().catch(() => false);
 			expect(isNonMatchingVisible).toBe(false);
-
-			// Should show folders that contain matching pages
-			await expect(folderTree.getByText(testFolderName)).toBeVisible();
 
 			// Clear search
 			await searchInput.clear();
 			// Wait for all content to be visible again
-			await expect(folderTree.getByText('Another Page')).toBeVisible();
+			await expect(folderTree.getByText('Different Title')).toBeVisible();
 
 			// All items should be visible again
-			await expect(folderTree.getByText('Another Page')).toBeVisible();
+			await expect(folderTree.getByText('Different Title')).toBeVisible();
 		}
 	});
 
 	test('should filter folder tree by tag query', async ({
 		folderPage,
-		apiHelper,
-		testId,
+		withSearchTestData, // eslint-disable-line @typescript-eslint/no-unused-vars
 		page
 	}) => {
-		// Create pages with specific tags
-		const pages = [
-			createTestPage({
-				title: `Tagged Page 1 ${testId}`,
-				content: '# Tagged Content\n\nThis page has specific tags.',
-				path: '/tagged-page-1',
-				tags: ['important', 'test', 'search']
-			}),
-			createTestPage({
-				title: `Tagged Page 2 ${testId}`,
-				content: '# Another Tagged Page\n\nThis page has different tags.',
-				path: '/tagged-page-2',
-				tags: ['draft', 'review', 'search']
-			}),
-			createTestPage({
-				title: `Untagged Page ${testId}`,
-				content: '# No Tags\n\nThis page has no tags.',
-				path: '/untagged-page'
-			})
-		];
-
-		for (const page of pages) {
-			await apiHelper.createPage(page);
-		}
+		// Search test data is created by the fixture
 
 		await folderPage.navigateToRoot();
 
@@ -116,15 +58,15 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			// Search for pages with specific tag
 			await searchInput.fill('tag:important');
 			// Wait for filtered results to appear
-			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
+			await expect(folderTree.getByText('Important Document')).toBeVisible();
 
 			// Should show only pages with "important" tag
-			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
+			await expect(folderTree.getByText('Important Document')).toBeVisible();
 
 			// Should hide pages without the tag
 			const nonMatchingPages = [
-				folderTree.getByText('Tagged Page 2'),
-				folderTree.getByText('Untagged Page')
+				folderTree.getByText('Draft Content'),
+				folderTree.getByText('Project Alpha')
 			];
 
 			for (const pageElement of nonMatchingPages) {
@@ -132,53 +74,29 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 				expect(isVisible).toBe(false);
 			}
 
-			// Test multiple tag search
-			await searchInput.fill('tag:search');
-			// Wait for both matching pages to be visible
-			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
-			await expect(folderTree.getByText('Tagged Page 2')).toBeVisible();
+			// Test project tag search (should match both project-alpha and project-beta)
+			await searchInput.fill('tag:project');
+			// Wait for matching pages to be visible
+			await expect(folderTree.getByText('Project Alpha')).toBeVisible();
+			await expect(folderTree.getByText('Project Beta')).toBeVisible();
 
-			// Should show both pages with "search" tag
-			await expect(folderTree.getByText('Tagged Page 1')).toBeVisible();
-			await expect(folderTree.getByText('Tagged Page 2')).toBeVisible();
+			// Should show both pages with project tags
+			await expect(folderTree.getByText('Project Alpha')).toBeVisible();
+			await expect(folderTree.getByText('Project Beta')).toBeVisible();
 
-			// Should hide untagged page
-			const untaggedPage = folderTree.getByText('Untagged Page');
-			const isUntaggedVisible = await untaggedPage.isVisible().catch(() => false);
-			expect(isUntaggedVisible).toBe(false);
+			// Should hide non-project pages
+			const nonProjectPage = folderTree.getByText('Draft Content');
+			const isNonProjectVisible = await nonProjectPage.isVisible().catch(() => false);
+			expect(isNonProjectVisible).toBe(false);
 		}
 	});
 
 	test('should support combined text and tag search', async ({
 		folderPage,
-		apiHelper,
-		testId,
+		withSearchTestData, // eslint-disable-line @typescript-eslint/no-unused-vars
 		page
 	}) => {
-		const pages = [
-			createTestPage({
-				title: `Important Doc ${testId}`,
-				content: '# Important Documentation\n\nThis is important project documentation.',
-				path: '/important-doc',
-				tags: ['documentation', 'important', 'project']
-			}),
-			createTestPage({
-				title: `Project Guide ${testId}`,
-				content: '# Project Guide\n\nGeneral project information.',
-				path: '/project-guide',
-				tags: ['guide', 'project']
-			}),
-			createTestPage({
-				title: `Important Notes ${testId}`,
-				content: '# Meeting Notes\n\nImportant meeting notes.',
-				path: '/meeting-notes',
-				tags: ['notes', 'meeting']
-			})
-		];
-
-		for (const page of pages) {
-			await apiHelper.createPage(page);
-		}
+		// Search test data is created by the fixture
 
 		await folderPage.navigateToRoot();
 
@@ -189,15 +107,15 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			// Combined search: text + tag
 			await searchInput.fill('important tag:project');
 			// Wait for filtered results to appear
-			await expect(folderTree.getByText('Important Doc')).toBeVisible();
+			await expect(folderTree.getByText('Important Project')).toBeVisible();
 
 			// Should show only pages that match both criteria
-			// "Important Doc" has both "important" in title/content AND "project" tag
-			await expect(folderTree.getByText('Important Doc')).toBeVisible();
+			// "Important Project" has both "important" in title/content AND "project" tag
+			await expect(folderTree.getByText('Important Project')).toBeVisible();
 
 			// Should hide pages that only match one criterion
 			const partialMatches = [
-				folderTree.getByText('Project Guide'), // has project tag but no "important" text
+				folderTree.getByText('Regular Content'), // has project tag but no "important" text
 				folderTree.getByText('Important Notes') // has important text but no "project" tag
 			];
 

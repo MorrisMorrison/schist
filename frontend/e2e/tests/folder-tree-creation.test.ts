@@ -1,20 +1,11 @@
-import { test, expect } from '../fixtures/test-setup';
+import { test, expect } from '../fixtures';
 
 test.describe.serial('Folder Tree Creation', () => {
 	const testFolderName = 'tree-test-folder';
 	const cleanFolderName = 'tree-test-folder';
 
-	test.beforeEach(async ({ apiHelper }) => {
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-	});
-
-	test.afterEach(async ({ apiHelper }) => {
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-	});
-
 	test('should create folder via FolderTree context menu in nested folder', async ({
 		folderPage,
-		apiHelper,
 		page
 	}) => {
 		await folderPage.navigateToRoot();
@@ -53,8 +44,6 @@ test.describe.serial('Folder Tree Creation', () => {
 		} else {
 			console.log('Nested folder not visible after creation - this may be expected behavior');
 		}
-
-		await apiHelper.deleteFolder('/parent-tree-folder').catch(() => {});
 	});
 
 	test('should show context menu on folder tree items', async ({ folderPage, page }) => {

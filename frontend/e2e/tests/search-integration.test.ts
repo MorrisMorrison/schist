@@ -1,17 +1,9 @@
-import { test, expect } from '../fixtures/test-setup';
+import { test, expect } from '../fixtures';
 import { createTestPage } from '../utils/test-data';
 
 test.describe.serial('Search Integration with Folder Tree', () => {
 	const testFolderName = 'search-test-folder';
 	const nestedFolderName = 'nested-search-folder';
-
-	test.beforeEach(async ({ apiHelper }) => {
-		await apiHelper.cleanupTestData();
-	});
-
-	test.afterEach(async ({ apiHelper }) => {
-		await apiHelper.cleanupTestData();
-	});
 
 	test('should filter folder tree by text query', async ({
 		folderPage,
@@ -266,10 +258,6 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			const isEmptyFolderVisible = await emptyFolder.isVisible().catch(() => false);
 			expect(isEmptyFolderVisible).toBe(false);
 		}
-
-		// Cleanup using ApiHelper
-		await apiHelper.deleteFolder('/folder-with-matches').catch(() => {});
-		await apiHelper.deleteFolder('/empty-folder-no-matches').catch(() => {});
 	});
 
 	test('should handle search with no results gracefully', async ({ folderPage, page }) => {

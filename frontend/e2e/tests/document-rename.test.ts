@@ -1,40 +1,12 @@
-import { test, expect } from '../fixtures/test-setup';
-import { createTestDocument } from '../utils/test-data';
+import { test, expect } from '../fixtures';
 
 test.describe.serial('Document Rename', () => {
-	const testDocumentPath = '/test-document-operations';
-	const renamedDocumentPath = '/renamed-test-document';
-	const testFolderName = 'test-move-folder';
-
-	test.beforeEach(async ({ apiHelper }) => {
-		// Clean up any existing test data
-		await apiHelper.deleteDocument(testDocumentPath).catch(() => {});
-		await apiHelper.deleteDocument(renamedDocumentPath).catch(() => {});
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-	});
-
-	test.afterEach(async ({ apiHelper }) => {
-		// Clean up test data after each test
-		await apiHelper.deleteDocument(testDocumentPath).catch(() => {});
-		await apiHelper.deleteDocument(renamedDocumentPath).catch(() => {});
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-	});
-
 	test('should rename document via context menu', async ({
 		documentViewPage,
-		apiHelper,
+		withSimpleTestDocument: testDocument,
 		testId,
 		page
 	}) => {
-		// Create test document
-		const testDocument = createTestDocument({
-			title: `Test Document ${testId}`,
-			content: '# Test Document\n\nThis document will be renamed.',
-			path: testDocumentPath
-		});
-
-		await apiHelper.createDocument(testDocument);
-
 		// Navigate to root to see document in folder tree
 		await documentViewPage.navigateToDocument('/');
 
@@ -112,19 +84,10 @@ test.describe.serial('Document Rename', () => {
 
 	test('should handle document rename validation', async ({
 		documentViewPage,
-		apiHelper,
-		testId,
+		withSimpleTestDocument: testDocument,
 		page
 	}) => {
-		// Create test document
-		const testDocument = createTestDocument({
-			title: `Validation Test ${testId}`,
-			content: '# Validation Test\n\nTesting rename validation.',
-			path: testDocumentPath
-		});
-
-		await apiHelper.createDocument(testDocument);
-		await documentViewPage.navigateToDocument(testDocumentPath);
+		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		// Try to rename with invalid title
@@ -170,20 +133,11 @@ test.describe.serial('Document Rename', () => {
 
 	test('should preserve document metadata during rename', async ({
 		documentViewPage,
-		apiHelper,
+		withComplexTestDocument: testDocument,
 		testId,
 		page
 	}) => {
-		// Create test document with metadata
-		const testDocument = createTestDocument({
-			title: `Metadata Test ${testId}`,
-			content: '# Metadata Test\n\nTesting metadata preservation.',
-			path: testDocumentPath,
-			tags: ['test', 'metadata', 'preserve']
-		});
-
-		await apiHelper.createDocument(testDocument);
-		await documentViewPage.navigateToDocument(testDocumentPath);
+		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		// Verify original tags are present

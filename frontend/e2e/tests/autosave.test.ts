@@ -1,29 +1,18 @@
-import { test } from '../fixtures/test-setup';
-import { createTestPage } from '../utils/test-data';
+import { test } from '../fixtures';
 
 test.describe('Auto-save Functionality', () => {
 	test('should auto-save content without navigation', async ({
 		editorPage,
 		documentViewPage,
-		apiHelper,
-		testId
+		withSimpleTestPage: testPage
 	}) => {
-		// Create initial page
-		const testPage = createTestPage({
-			title: `Autosave Test ${testId}`,
-			content: '# Initial Content\n\nThis content will be auto-saved.',
-			path: `/autosave-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
 		// Navigate to edit page
 		await editorPage.navigateToEdit(testPage.path!);
 		await editorPage.verifyLoaded();
 
 		// Verify initial content
 		await editorPage.verifyTitle(testPage.title);
-		await editorPage.verifyContent('Initial Content');
+		await editorPage.verifyContent('Simple Test Document');
 
 		// Make changes to trigger auto-save
 		const newContent = '\n\nAdditional content added for auto-save test.';
@@ -43,18 +32,9 @@ test.describe('Auto-save Functionality', () => {
 
 	test('should handle auto-save errors gracefully', async ({
 		editorPage,
-		apiHelper,
-		testId,
+		withSimpleTestPage: testPage,
 		page
 	}) => {
-		const testPage = createTestPage({
-			title: `Error Test ${testId}`,
-			content: '# Error Test',
-			path: `/error-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
 		// Navigate to edit
 		await editorPage.navigateToEdit(testPage.path!);
 		await editorPage.verifyLoaded();

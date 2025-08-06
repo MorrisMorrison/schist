@@ -152,7 +152,14 @@ export const test = base.extend<{
 		// Directory manager already handles API readiness check
 		await use(apiHelper);
 
-		// Directory manager handles cleanup
+		// Ensure cleanup after each test - this is essential for test isolation
+		try {
+			console.log(`[ApiHelper] Starting cleanup for worker ${testInfo.parallelIndex}`);
+			await apiHelper.cleanupTestData();
+			console.log(`[ApiHelper] Cleanup completed for worker ${testInfo.parallelIndex}`);
+		} catch (error) {
+			console.error(`[ApiHelper] Cleanup failed for worker ${testInfo.parallelIndex}:`, error);
+		}
 	},
 
 	// Test ID fixture for unique identifiers

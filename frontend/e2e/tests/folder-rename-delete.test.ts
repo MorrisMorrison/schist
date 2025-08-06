@@ -1,20 +1,8 @@
-import { test, expect } from '../fixtures/test-setup';
+import { test, expect } from '../fixtures';
 
 test.describe.serial('Folder Rename and Delete', () => {
 	const testFolderName = 'rename-delete-test';
 	const renamedFolderName = 'renamed-folder';
-
-	test.beforeEach(async ({ apiHelper }) => {
-		// Clean up any existing test folders
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-		await apiHelper.deleteFolder(`/${renamedFolderName}`).catch(() => {});
-	});
-
-	test.afterEach(async ({ apiHelper }) => {
-		// Clean up test folders after each test
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-		await apiHelper.deleteFolder(`/${renamedFolderName}`).catch(() => {});
-	});
 
 	test('should rename folder via context menu', async ({ folderPage, page }) => {
 		// Create test folder first

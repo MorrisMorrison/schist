@@ -1,24 +1,9 @@
-import { test } from '../fixtures/test-setup';
+import { test } from '../fixtures';
 import { createTestDocument } from '../utils/test-data';
 
 test.describe.serial('Document Move', () => {
 	const testDocumentPath = '/test-document-operations';
-	const renamedDocumentPath = '/renamed-test-document';
 	const testFolderName = 'test-move-folder';
-
-	test.beforeEach(async ({ apiHelper }) => {
-		// Clean up any existing test data
-		await apiHelper.deleteDocument(testDocumentPath).catch(() => {});
-		await apiHelper.deleteDocument(renamedDocumentPath).catch(() => {});
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-	});
-
-	test.afterEach(async ({ apiHelper }) => {
-		// Clean up test data after each test
-		await apiHelper.deleteDocument(testDocumentPath).catch(() => {});
-		await apiHelper.deleteDocument(renamedDocumentPath).catch(() => {});
-		await apiHelper.deleteFolder(`/${testFolderName}`).catch(() => {});
-	});
 
 	test('should move document between folders via drag and drop', async ({
 		documentViewPage,

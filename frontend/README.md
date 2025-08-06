@@ -1,4 +1,4 @@
-# Schist Frontend 
+# Schist Frontend
 
 ## Architecture
 

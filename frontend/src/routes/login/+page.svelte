@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Card,
@@ -7,10 +9,49 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { LogIn } from 'lucide-svelte';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { LogIn, Eye, EyeOff, AlertCircle } from 'lucide-svelte';
+	import { authService } from '$lib/auth/auth-service';
 
-	function handleLogin() {
-		console.log('Login clicked');
+	let username = '';
+	let password = '';
+	let isLoading = false;
+	let showPassword = false;
+	let error = '';
+
+	$: returnUrl = $page.url.searchParams.get('returnUrl') || '/';
+
+	async function handleLogin() {
+		if (!username || !password) {
+			error = 'Please enter both username and password';
+			return;
+		}
+
+		isLoading = true;
+		error = '';
+
+		try {
+			await authService.login(username, password);
+			await goto(returnUrl);
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : 'Login failed';
+			error = errorMessage.includes('Invalid username or password')
+				? 'Invalid username or password'
+				: 'Login failed. Please try again.';
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			handleLogin();
+		}
+	}
+
+	function togglePasswordVisibility() {
+		showPassword = !showPassword;
 	}
 </script>
 
@@ -34,28 +75,77 @@
 		</CardHeader>
 
 		<CardContent class="space-y-6">
-			<Button
-				variant="default"
-				size="lg"
-				class="h-12 w-full text-base font-medium"
-				onclick={handleLogin}
-			>
-				<LogIn class="h-5 w-5" />
-				Login with OAuth Provider
-			</Button>
+			{#if error}
+				<div
+					class="border-destructive/20 bg-destructive/10 text-destructive flex items-center gap-2 rounded-md border p-3 text-sm"
+				>
+					<AlertCircle class="h-4 w-4" />
+					{error}
+				</div>
+			{/if}
 
-			<div class="text-muted-foreground text-center text-sm">
-				<p>
-					By signing in, you agree to our
-					<a href="/terms" class="hover:text-primary underline underline-offset-4"
-						>Terms of Service</a
-					>
-					and
-					<a href="/privacy" class="hover:text-primary underline underline-offset-4"
-						>Privacy Policy</a
-					>
-				</p>
-			</div>
+			<form class="space-y-4" on:submit|preventDefault={handleLogin}>
+				<div class="space-y-2">
+					<Label for="username">Username</Label>
+					<Input
+						id="username"
+						type="text"
+						placeholder="Enter your username"
+						bind:value={username}
+						disabled={isLoading}
+						autocomplete="username"
+						required
+						onkeydown={handleKeydown}
+					/>
+				</div>
+
+				<div class="space-y-2">
+					<Label for="password">Password</Label>
+					<div class="relative">
+						<Input
+							id="password"
+							type={showPassword ? 'text' : 'password'}
+							placeholder="Enter your password"
+							bind:value={password}
+							disabled={isLoading}
+							autocomplete="current-password"
+							required
+							onkeydown={handleKeydown}
+							class="pr-10"
+						/>
+						<button
+							type="button"
+							class="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
+							on:click={togglePasswordVisibility}
+							disabled={isLoading}
+						>
+							{#if showPassword}
+								<EyeOff class="h-4 w-4" />
+							{:else}
+								<Eye class="h-4 w-4" />
+							{/if}
+						</button>
+					</div>
+				</div>
+
+				<Button
+					type="submit"
+					variant="default"
+					size="lg"
+					class="h-12 w-full text-base font-medium"
+					disabled={isLoading || !username || !password}
+				>
+					{#if isLoading}
+						<div
+							class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+						></div>
+						Signing in...
+					{:else}
+						<LogIn class="mr-2 h-5 w-5" />
+						Sign In
+					{/if}
+				</Button>
+			</form>
 		</CardContent>
 	</Card>
 </div>

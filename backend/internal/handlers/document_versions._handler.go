@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// getDocumentVersions returns version history for a document
 func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
@@ -36,7 +35,6 @@ func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 	})
 }
 
-// getDocumentAtVersion returns a document at a specific version
 func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
@@ -73,7 +71,6 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 	})
 }
 
-// compareDocumentVersions compares two versions of a document and returns the diff
 func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
@@ -116,7 +113,6 @@ func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 	})
 }
 
-// restoreDocumentVersion restores a document to a previous version
 func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {

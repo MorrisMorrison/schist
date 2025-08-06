@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,8 @@ type APIHandler struct {
 	AssetService    *services.AssetService
 	LinkService     *services.LinkService
 	GitHubService   *services.GitHubService
+	AuthService     *services.AuthService
+	Config          *config.Config
 }
 
 func NewAPIHandler(services *services.Services) *APIHandler {
@@ -22,11 +25,21 @@ func NewAPIHandler(services *services.Services) *APIHandler {
 		AssetService:    services.AssetService,
 		LinkService:     services.LinkService,
 		GitHubService:   services.GitHubService,
+		AuthService:     services.AuthService,
+		Config:          services.Config,
 	}
 }
 
 func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/health", h.healthCheck)
+	routerGroup.GET("/config", h.getConfig)
+
+	auth := routerGroup.Group("/auth")
+	{
+		auth.POST("/login", h.login)
+		auth.POST("/logout", h.logout)
+		auth.GET("/me", h.getCurrentUser)
+	}
 	documents := routerGroup.Group("/documents")
 	{
 		documents.GET("", h.listDocuments)
@@ -57,8 +70,8 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	linkRoutes := routerGroup.Group("/links")
 	{
 		linkRoutes.GET("/broken", h.getBrokenLinks)
-		linkRoutes.GET("/outgoing/*path", h.getDocumentLinksHandler)
-		linkRoutes.GET("/backlinks/*path", h.getDocumentBacklinksHandler)
+		linkRoutes.GET("/outgoing/*path", h.getDocumentLinks)
+		linkRoutes.GET("/backlinks/*path", h.getDocumentBacklinks)
 	}
 
 	versions := routerGroup.Group("/versions")
@@ -94,6 +107,12 @@ func (h *APIHandler) healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "ok",
 		"service": "schist",
+	})
+}
+
+func (h *APIHandler) getConfig(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"auth_enabled": h.Config.AuthEnabled,
 	})
 }
 
@@ -141,8 +160,7 @@ func (h *APIHandler) getAllTags(c *gin.Context) {
 	})
 }
 
-// getDocumentLinksHandler returns all outgoing links for a specific document (new route structure)
-func (h *APIHandler) getDocumentLinksHandler(c *gin.Context) {
+func (h *APIHandler) getDocumentLinks(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
@@ -163,8 +181,7 @@ func (h *APIHandler) getDocumentLinksHandler(c *gin.Context) {
 	})
 }
 
-// getDocumentBacklinksHandler returns all documents that link to the specified document (new route structure)
-func (h *APIHandler) getDocumentBacklinksHandler(c *gin.Context) {
+func (h *APIHandler) getDocumentBacklinks(c *gin.Context) {
 	path := c.Param("path")
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
@@ -193,7 +210,6 @@ func (h *APIHandler) getDocumentBacklinksHandler(c *gin.Context) {
 	})
 }
 
-// getBrokenLinks returns all broken links across all documents
 func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 	brokenLinks, err := h.LinkService.GetBrokenLinks()
 	if err != nil {
@@ -209,7 +225,6 @@ func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 	})
 }
 
-// importDocuments handles document import requests
 func (h *APIHandler) importDocuments(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -245,4 +260,56 @@ func (h *APIHandler) importDocuments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *APIHandler) login(c *gin.Context) {
+	var req services.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	response, err := h.AuthService.Login(req.Username, req.Password)
+	if err != nil {
+		if err == services.ErrInvalidCredentials {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid username or password",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Login failed",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *APIHandler) logout(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Logged out successfully",
+	})
+}
+
+func (h *APIHandler) getCurrentUser(c *gin.Context) {
+	username, exists := c.Get("authenticated_user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Not authenticated",
+		})
+		return
+	}
+
+	user, err := h.AuthService.GetUser(username.(string))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "User not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }

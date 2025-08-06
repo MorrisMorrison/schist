@@ -36,7 +36,6 @@ type SystemSettings struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// LoadSettings loads settings from JSON file in the specified data directory
 func LoadSettings(dataDir string) (*Settings, error) {
 	schistDir := filepath.Join(dataDir, ".schist")
 	configPath := filepath.Join(schistDir, "config.json")
@@ -66,7 +65,6 @@ func LoadSettings(dataDir string) (*Settings, error) {
 	return &settings, nil
 }
 
-// Save saves settings to JSON file in the specified data directory
 func (s *Settings) Save(dataDir string) error {
 	s.System.UpdatedAt = time.Now()
 
@@ -85,40 +83,26 @@ func (s *Settings) Save(dataDir string) error {
 	return nil
 }
 
-// GetGitHubSettings returns GitHub configuration
 func (s *Settings) GetGitHubSettings() *GitHubSettings {
 	return &s.GitHub
 }
 
-// UpdateGitHubSettings updates GitHub configuration and saves to file
 func (s *Settings) UpdateGitHubSettings(dataDir string, github *GitHubSettings) error {
 	s.GitHub = *github
 	return s.Save(dataDir)
 }
 
-// GetUISettings returns UI configuration
 func (s *Settings) GetUISettings() *UISettings {
 	return &s.UI
 }
 
-// UpdateUISettings updates UI configuration and saves to file
 func (s *Settings) UpdateUISettings(dataDir string, ui *UISettings) error {
 	s.UI = *ui
 	return s.Save(dataDir)
 }
 
-// GetSystemSettings returns system configuration
 func (s *Settings) GetSystemSettings() *SystemSettings {
 	return &s.System
-}
-
-// MigrateFromEnvSettings migrates configuration from environment-based GitHub config
-func (s *Settings) MigrateFromEnvSettings(dataDir string, envSettings *GitHubSettings) error {
-	if !s.GitHub.Enabled && envSettings.Enabled {
-		s.GitHub = *envSettings
-		return s.Save(dataDir)
-	}
-	return nil
 }
 
 func createDefaultSettings() *Settings {

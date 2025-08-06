@@ -6,7 +6,6 @@ import (
 	"github.com/MorrisMorrison/schist/internal/config"
 )
 
-// Services contains all application services with their dependencies properly injected
 type Services struct {
 	Config   *config.Config
 	Settings *config.Settings
@@ -18,10 +17,9 @@ type Services struct {
 	DocumentService *DocumentService
 	LinkService     *LinkService
 	GitHubService   *GitHubService
+	AuthService     *AuthService
 }
 
-// NewServices creates all services with proper dependency injection
-// This eliminates service location anti-patterns and centralizes service creation
 func NewServices() (*Services, error) {
 	appConfig := config.Load()
 	dataDir := appConfig.DataDir
@@ -42,6 +40,7 @@ func NewServices() (*Services, error) {
 	documentService := NewDocumentService(dataDir, gitService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)
 	gitHubService := NewGitHubService(appConfig, gitService, settings)
+	authService := NewAuthService(appConfig)
 
 	return &Services{
 		Config:          appConfig,
@@ -52,5 +51,6 @@ func NewServices() (*Services, error) {
 		DocumentService: documentService,
 		LinkService:     linkService,
 		GitHubService:   gitHubService,
+		AuthService:     authService,
 	}, nil
 }

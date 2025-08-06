@@ -149,3 +149,40 @@ func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
 		"path":    path,
 	})
 }
+
+func (h *APIHandler) moveDocument(c *gin.Context) {
+	type MoveRequest struct {
+		OldPath string `json:"oldPath" binding:"required"`
+		NewPath string `json:"newPath" binding:"required"`
+	}
+
+	var req MoveRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if !strings.HasPrefix(req.OldPath, "/") {
+		req.OldPath = "/" + req.OldPath
+	}
+	if !strings.HasPrefix(req.NewPath, "/") {
+		req.NewPath = "/" + req.NewPath
+	}
+
+	err = h.DocumentService.MoveDocument(req.OldPath, req.NewPath)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Document moved successfully",
+		"oldPath": req.OldPath,
+		"newPath": req.NewPath,
+	})
+}

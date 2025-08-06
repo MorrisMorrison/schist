@@ -13,19 +13,21 @@
 
 	import '$lib/stores/theme.js';
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
+	import { authService } from '$lib/auth/auth-service';
+	import { authStore } from '$lib/stores/auth';
+	import { browser } from '$app/environment';
 
 	let { children } = $props();
 
 	let quickSwitcherOpen = $state(false);
 	let keyboardShortcutsOpen = $state(false);
 
-	// Always allow sidebar to be shown - let users decide with the toggle
-	const showSidebarComponent = true;
+	const isPublicRoute = $derived(page.route.id === '/login' || page.route.id === null);
 
-	// Combined logic: show sidebar if route allows it AND store says it's open
+	const showSidebarComponent = $derived(isPublicRoute || !authService.isAuthEnabled() || ($authStore.token && $authStore.user));
+
 	const sidebarVisible = $derived(showSidebarComponent && $sidebarOpen);
 
-	// Close sidebar on mobile when navigating
 	$effect(() => {
 		if (page.url) {
 			sidebarActions.closeOnMobile();
@@ -45,6 +47,8 @@
 	}
 
 	onMount(() => {
+		authService.initialize();
+
 		document.addEventListener('keydown', handleGlobalKeydown);
 		window.addEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
 
@@ -52,6 +56,12 @@
 			document.removeEventListener('keydown', handleGlobalKeydown);
 			window.removeEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
 		};
+	});
+
+	$effect(() => {
+		if (browser && !isPublicRoute && !$authStore.token && authService.isAuthEnabled()) {
+			authService.requireAuth(page.url.pathname + page.url.search);
+		}
 	});
 
 	function handleBackdropClick() {

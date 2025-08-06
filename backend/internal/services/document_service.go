@@ -62,7 +62,6 @@ func (d *DocumentService) Search(query string) ([]*models.Document, error) {
 	return filtered, nil
 }
 
-// parseSearchQuery extracts text query and tag filters from search string
 // Supports syntax like: "authentication tag:security tag:golang"
 func (d *DocumentService) parseSearchQuery(query string) (string, []string) {
 	var textParts []string
@@ -88,22 +87,19 @@ func (d *DocumentService) parseSearchQuery(query string) (string, []string) {
 	return textQuery, tagFilters
 }
 
-// matchesTags checks if a document has all required tags (case-insensitive, supports partial matching)
 func (d *DocumentService) matchesTags(document *models.Document, requiredTags []string) bool {
 	if len(requiredTags) == 0 {
-		return true // No tag filter specified
+		return true
 	}
 
 	if document.MetaData.Tags == nil {
-		return false // Document has no tags but tags are required
+		return false
 	}
 
-	// Check if all required tags match (partial matching supported)
 	for _, requiredTag := range requiredTags {
 		requiredLower := strings.ToLower(requiredTag)
 		found := false
 
-		// Check if any document tag contains the required tag as substring
 		for _, documentTag := range document.MetaData.Tags {
 			if strings.Contains(strings.ToLower(documentTag), requiredLower) {
 				found = true
@@ -112,14 +108,13 @@ func (d *DocumentService) matchesTags(document *models.Document, requiredTags []
 		}
 
 		if !found {
-			return false // Required tag not found in any document tag
+			return false
 		}
 	}
 
 	return true
 }
 
-// GetAllTags returns all unique tags across all documents with their usage counts
 func (d *DocumentService) GetAllTags() (map[string]int, error) {
 	documents, err := d.ListDocuments()
 	if err != nil {
@@ -135,7 +130,6 @@ func (d *DocumentService) GetAllTags() (map[string]int, error) {
 
 		if document.MetaData.Tags != nil {
 			for _, tag := range document.MetaData.Tags {
-				// Store tags in original case but allow case-insensitive searching
 				tagCounts[tag]++
 			}
 		}
@@ -207,7 +201,6 @@ func (d *DocumentService) DeleteDocument(slug string) error {
 		return fmt.Errorf("failed to delete document file: %w", err)
 	}
 
-	// Convert slug to logical path for git commit
 	documentPath := "/" + strings.TrimSuffix(slug, MARKDOWN_FILE_ENDING)
 	d.commitDocumentChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
 
@@ -343,11 +336,9 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 		return fmt.Errorf("invalid new path: %w", err)
 	}
 
-	// Normalize paths for comparison
 	normalizedOldPath := utils.NormalizePath(oldPath)
 	normalizedNewPath := utils.NormalizePath(newPath)
 
-	// If paths are the same, nothing to do
 	if normalizedOldPath == normalizedNewPath {
 		return nil
 	}
@@ -365,13 +356,11 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 		return fmt.Errorf("could not save document to new path: %w", err)
 	}
 
-	// Remove old file (paths are guaranteed to be different at this point)
 	oldFilePath := d.buildFilePathFromPath(normalizedOldPath)
 	if err := os.Remove(oldFilePath); err != nil {
 		return fmt.Errorf("could not remove old file: %w", err)
 	}
 
-	// Commit to git after successful document move
 	d.commitDocumentChange(normalizedNewPath, fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath))
 
 	return nil
@@ -791,7 +780,7 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 	}
 
 	for _, document := range affectedDocuments {
-		if err := d.updateDocumentPathForMove(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
+		if _, err := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
 			if rollbackErr := os.Rename(newFolderPath, oldFolderPath); rollbackErr != nil {
 				return fmt.Errorf("failed to update document metadata AND failed to rollback: %w (rollback error: %v)",
 					err,
@@ -799,44 +788,6 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (d *DocumentService) updateDocumentPathForMove(
-	document *models.Document,
-	oldPath string,
-	newPath string,
-	oldFolderPath string,
-	newFolderPath string) error {
-
-	oldDocumentPath := document.MetaData.Path
-	newDocumentPath := strings.Replace(oldDocumentPath, oldPath, newPath, 1)
-
-	newFileInNewFolder := strings.Replace(d.buildFilePathFromPath(oldDocumentPath), oldFolderPath, newFolderPath, 1)
-
-	fileContent, err := os.ReadFile(newFileInNewFolder)
-	if err != nil {
-		return fmt.Errorf("failed to read document file at %s: %w", newFileInNewFolder, err)
-	}
-
-	freshDocument, err := serializer.DeserializeDocument(fileContent)
-	if err != nil {
-		return fmt.Errorf("failed to deserialize document: %w", err)
-	}
-
-	freshDocument.MetaData.Path = utils.NormalizePath(newDocumentPath)
-	freshDocument.MetaData.Slug = utils.ExtractSlugFromPath(newDocumentPath)
-	freshDocument.MetaData.Updated = time.Now()
-
-	content, err := serializer.SerializeDocument(freshDocument)
-	if err != nil {
-		return fmt.Errorf("failed to serialize document: %w", err)
-	}
-
-	if err := os.WriteFile(newFileInNewFolder, content, 0644); err != nil {
-		return fmt.Errorf("failed to write updated document file: %w", err)
 	}
 
 	return nil
@@ -907,11 +858,6 @@ func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) erro
 		return fmt.Errorf("failed to restore document: %w", err)
 	}
 
-	// The document is now restored in the file system
-	// Update any cached information or trigger backlink updates if needed
-	// For now, we don't need additional actions since the page service
-	// reads from disk dynamically
-
 	return nil
 }
 
@@ -979,7 +925,7 @@ func (d *DocumentService) importSingleFile(
 		Path:    finalPath,
 		Created: now,
 		Updated: now,
-		Tags:    []string{}, // Start with empty tags
+		Tags:    []string{},
 	}
 
 	document := &models.Document{
@@ -1005,9 +951,6 @@ func (d *DocumentService) processImportedMarkdown(content string) string {
 	frontmatterRegex := regexp.MustCompile(`^---\s*\n.*?\n---\s*\n`)
 	content = frontmatterRegex.ReplaceAllString(content, "")
 
-	// Clean up any Obsidian-specific syntax if needed
-	// For now, we'll keep it simple and just remove frontmatter
-
 	return strings.TrimSpace(content)
 }
 
@@ -1028,7 +971,6 @@ func (d *DocumentService) extractTitleFromContent(content, filename string) stri
 }
 
 func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) string {
-	// Normalize target path
 	if targetPath == "" || targetPath == "/" {
 		targetPath = ""
 	} else {
@@ -1041,7 +983,6 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 	basePath := targetPath + "/" + slug
 	finalPath := basePath
 
-	// Check for conflicts and handle based on overwrite mode
 	counter := 1
 	for {
 		_, err := d.GetDocumentByPath(finalPath)
@@ -1058,7 +999,6 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 			// For now, treat as rename
 			fallthrough
 		default: // "rename" or empty
-			// Generate a new name with a counter
 			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
 			counter++
 			continue

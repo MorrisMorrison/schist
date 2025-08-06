@@ -334,3 +334,29 @@ export function normalizePath(path: string): string {
 
 	return path;
 }
+
+// Authentication
+export interface User {
+	username: string;
+	created_at: string;
+	last_login: string;
+}
+
+export interface LoginRequest {
+	username: string;
+	password: string;
+}
+
+export interface LoginResponse {
+	token: string;
+	user: User;
+}
+
+export interface AuthError {
+	error: string;
+	message?: string;
+}
+
+export interface AppConfig {
+	auth_enabled: boolean;
+}

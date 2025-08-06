@@ -3,7 +3,9 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { BurgerIcon } from './ui/burger-icon';
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
-	import { Settings, Search } from 'lucide-svelte';
+	import { Settings, Search, LogOut, User } from 'lucide-svelte';
+	import { authStore } from '$lib/stores/auth';
+	import { authService } from '$lib/auth/auth-service';
 
 	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();
 
@@ -22,6 +24,11 @@
 	function openQuickSwitcher() {
 		// Dispatch a custom event that the layout can listen to
 		window.dispatchEvent(new CustomEvent('openQuickSwitcher'));
+	}
+
+	function handleLogout() {
+		authService.logout();
+		closeMenu();
 	}
 
 	$effect(() => {
@@ -100,6 +107,24 @@
 						</button>
 					</div>
 
+					{#if $authStore.user}
+						<!-- User info and logout (desktop) -->
+						<div class="hidden md:flex md:items-center md:gap-2">
+							<span class="text-muted-foreground flex items-center gap-1 text-sm">
+								<User class="h-4 w-4" />
+								{$authStore.user.username}
+							</span>
+							<button
+								type="button"
+								onclick={handleLogout}
+								class="border-secondary bg-primary text-primary hover:bg-destructive hover:text-destructive-foreground cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+								title="Logout"
+							>
+								<LogOut class="h-4 w-4" />
+							</button>
+						</div>
+					{/if}
+
 					<a
 						href="/settings"
 						class="border-secondary bg-primary text-primary hover:bg-gray-hover text-sm' cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
@@ -175,6 +200,28 @@
 					<div class="px-4 pb-3">
 						<ThemeToggle />
 					</div>
+
+					{#if $authStore.user}
+						<!-- User info and logout (mobile) -->
+						<div class="border-t border-gray-200 pt-3 pb-3 dark:border-gray-700">
+							<div class="px-4 pb-2">
+								<div class="text-muted-foreground flex items-center gap-2 text-sm">
+									<User class="h-4 w-4" />
+									<span>Signed in as <strong>{$authStore.user.username}</strong></span>
+								</div>
+							</div>
+							<div class="px-4">
+								<button
+									type="button"
+									onclick={handleLogout}
+									class="text-destructive hover:text-destructive/80 flex w-full items-center gap-2 text-sm"
+								>
+									<LogOut class="h-4 w-4" />
+									<span>Sign Out</span>
+								</button>
+							</div>
+						</div>
+					{/if}
 
 					<a
 						href="/"

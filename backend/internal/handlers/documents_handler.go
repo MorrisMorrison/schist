@@ -45,7 +45,6 @@ func (h *APIHandler) createDocument(c *gin.Context) {
 	}
 
 	if err := h.LinkService.UpdateBacklinks(document.MetaData.Path); err != nil {
-		// Log error but don't fail the request
 		fmt.Printf("Warning: failed to update backlinks for new document %s: %v\n", document.MetaData.Path, err)
 	}
 
@@ -110,7 +109,6 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	}
 
 	if err := h.LinkService.UpdateBacklinks(updatedDocument.MetaData.Path); err != nil {
-		// Log error but don't fail the request
 		fmt.Printf("Warning: failed to update backlinks for updated document %s: %v\n", updatedDocument.MetaData.Path, err)
 	}
 

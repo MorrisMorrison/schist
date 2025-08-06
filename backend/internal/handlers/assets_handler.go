@@ -36,7 +36,6 @@ func (h *APIHandler) serveAsset(c *gin.Context) {
 		path = "/" + path
 	}
 
-	// The path comes in as /images/test.png, we need to add /assets prefix
 	assetPath := "/assets" + path
 
 	fullPath, err := h.AssetService.GetAssetPath(assetPath)

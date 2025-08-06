@@ -6,7 +6,7 @@
 		folderActions,
 		documentActions
 	} from '$lib/stores/documents';
-	import DocumentGrid from './DocumentGrid.svelte';
+	import DocumentGrid from './document/DocumentGrid.svelte';
 	import Breadcrumbs from './Breadcrumbs.svelte';
 	import CreateFolderModal from './modal/CreateFolderModal.svelte';
 	import { Plus, FolderPlus, File } from 'lucide-svelte';

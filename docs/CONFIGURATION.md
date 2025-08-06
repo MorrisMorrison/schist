@@ -69,105 +69,6 @@ cd ../backend && go build -o schist ./cmd/schist
 # Access: http://localhost:8080
 ```
 
-## Data Storage Structure
-
-Schist stores all data as plain files in the data directory with hierarchical organization:
-
-```
-data/
-├── documents/                # Markdown files organized hierarchically
-│   ├── welcome.md           # Root-level document (/welcome)
-│   ├── docs/                # Folder-based organization
-│   │   ├── api.md          # Nested document (/docs/api)
-│   │   ├── configuration.md # Nested document (/docs/configuration)
-│   │   └── getting-started/ # Deeper nesting
-│   │       └── index.md    # Document at /docs/getting-started/index
-│   ├── projects/           # Project documentation
-│   │   ├── website/
-│   │   │   ├── overview.md
-│   │   │   └── timeline.md
-│   │   └── mobile-app.md
-│   └── trash/              # Soft-deleted documents
-│       └── deleted-document.md
-├── assets/                 # Uploaded files
-│   ├── images/            # Image uploads (PNG, JPEG, GIF, WebP, SVG)
-│   │   ├── a1b2c3-photo.jpg
-│   │   └── def456-diagram.png
-│   └── documents/         # Other file types
-└── .gitkeep              # Ensures directory exists in git
-```
-
-### Document File Format
-
-Documents are stored as markdown files with YAML front matter:
-
-```markdown
----
-title: Document Title
-path: /hierarchical/path
-created: 2024-01-15T10:30:00Z
-updated: 2024-01-15T10:30:00Z
-tags:
-  - documentation
-  - api
----
-
-# Document Content
-
-Your markdown content here with support for:
-
-- [[Wiki Links]] to other documents
-- ![Images](/assets/images/filename.jpg)
-- Standard markdown formatting
-```
-
-## Asset Management Configuration
-
-### Upload Settings
-
-| Setting | Value | Description |
-|---------|-------|-------------|
-| **Max file size** | 10MB | Maximum upload size per file |
-| **Allowed types** | JPEG, PNG, GIF, WebP, SVG | Supported image formats |
-| **Storage path** | `{DATA_DIR}/assets/images/` | Physical storage location |
-| **URL path** | `/api/assets/images/` | API access path |
-| **Static path** | `/uploads/images/` | Direct static access |
-| **Naming** | MD5 hash + original extension | Auto-generated unique filenames |
-
-### Asset Access Methods
-
-1. **API Route**: `/api/assets/images/filename.jpg` (with security validation)
-2. **Static Route**: `/uploads/images/filename.jpg` (direct file serving)
-
-## Frontend Build Configuration
-
-### Vite Configuration (vite.config.ts)
-
-```typescript
-export default defineConfig({
-  plugins: [sveltekit(), tailwindcss()],
-  test: {
-    // Browser and server-side testing
-    environment: 'jsdom'
-  }
-});
-```
-
-### SvelteKit Configuration (svelte.config.js)
-
-```javascript
-import { sveltekit } from '@sveltejs/kit/vite';
-
-export default {
-  kit: {
-    adapter: adapter({
-      fallback: 'index.html'  // SPA mode
-    }),
-    prerender: { entries: [] }
-  }
-};
-```
-
 ## Security Configuration
 
 ### Rate Limiting
@@ -180,16 +81,6 @@ SCHIST_RATE_LIMIT_ENABLED=true
 # Set requests per minute per IP (default: 100)
 SCHIST_RATE_LIMIT_RPM=60
 ```
-
-**Features:**
-- **IP-based limiting**: Each IP address has independent rate limits
-- **Standard HTTP headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-- **Automatic cleanup**: Old rate limiters removed periodically
-- **429 responses**: Proper "Too Many Requests" status with retry information
-
-**Development vs Production:**
-- **Development**: Rate limiting disabled by default for easier testing
-- **Production**: Recommended to enable with appropriate limits for your use case
 
 ### Basic Authentication
 
@@ -217,67 +108,6 @@ cd backend && go build -o generate-hash ./cmd/generate-hash
 # SCHIST_AUTH_USERS="admin:$2a$10$VPt/2dQPJTfeef0XPrBq8OhcifyVejXctDUSpPdvfQ7kl2BjKLsr6"
 ```
 
-**Authentication Features:**
-- **All endpoints protected**: When enabled, authentication required for all API endpoints
-- **Health endpoint exception**: `/api/health` remains unprotected for monitoring
-- **Multiple users**: Support for multiple username/password combinations
-- **Secure hashing**: bcrypt with configurable cost (default: 10)
-- **Browser compatibility**: Works with browser basic auth prompts and custom forms
-- **Timing attack prevention**: Constant-time password comparison
-
-**Authentication Headers:**
-```http
-# Request
-Authorization: Basic YWRtaW46cGFzc3dvcmQ=
-
-# Response (unauthorized)
-WWW-Authenticate: Basic realm="Schist Wiki"
-```
-
-### Combined Security Example
-
-**Production Security Configuration:**
-```bash
-# Production environment
-ENV=production
-
-# Enable both security features
-SCHIST_RATE_LIMIT_ENABLED=true
-SCHIST_RATE_LIMIT_RPM=60
-SCHIST_AUTH_ENABLED=true
-SCHIST_AUTH_USERS="admin:$2a$10$hash,editor:$2a$10$hash2"
-SCHIST_AUTH_REALM="Company Wiki"
-```
-
-### CORS Policy
-
-**Development Mode:**
-```javascript
-// Gin CORS middleware enabled
-AllowOrigins: [SCHIST_FRONTEND_URL]
-AllowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-AllowHeaders: ["Origin", "Content-Type", "Accept", "Authorization"]
-ExposeHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"]
-AllowCredentials: true
-```
-
-**Production Mode:**
-- No CORS middleware (same-origin only)
-- Static file serving with security headers
-
-### File Security
-
-- **Path validation**: Regex `[a-zA-Z0-9\-_/]+`
-- **Directory traversal protection**: Blocks `..` segments
-- **Maximum depth**: 10 levels in hierarchy
-- **File scoping**: All operations limited to `SCHIST_DATA_DIR`
-
-### Input Validation
-
-- **File uploads**: MIME type and extension validation
-- **Document paths**: Sanitized and normalized
-- **YAML front matter**: Safe parsing with validation
-
 ## Logging Configuration
 
 ### Development Logging
@@ -291,31 +121,6 @@ main.go:45: Server starting in development mode
 ```
 2024-01-15T10:30:00Z Server starting on port 8080
 ```
-
-## Build Commands Configuration
-
-Available make targets and their purposes:
-
-| Command | Purpose | Environment |
-|---------|---------|-------------|
-| `make run-backend` | Start Go backend server | Development |
-| `make run-frontend` | Start Vite dev server | Development |
-| `make run-backend-test` | Run Go tests | Development |
-| `make run-e2e` | Run Playwright tests | Development |
-| `make fmt` | Format frontend and backend code | Both |
-| `make lint` | Lint frontend code | Development |
-| `make run-docker` | Build and start production container | Production |
-| `make run-docker-dev` | Start development containers | Development |
-
-
-### Configuration Validation
-
-To verify your configuration is working:
-
-1. **Health check**: `curl http://localhost:8080/api/health`
-2. **Frontend access**: Open browser to configured port
-3. **File creation**: Try creating a document through the UI
-4. **Asset upload**: Test image upload functionality
 
 ## Advanced Configuration
 

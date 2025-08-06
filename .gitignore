@@ -42,3 +42,4 @@ backend/cmd/schist/test-data-worker-*
 backend/cmd/schist/schist
 project/
 test-token
+docs/features

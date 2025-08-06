@@ -1,4 +1,4 @@
-# Frontend Implementation Overview
+# Schist Frontend 
 
 ## Architecture
 

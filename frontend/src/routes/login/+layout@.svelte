@@ -17,12 +17,10 @@
 
 <style>
 	.login-app {
-		/* Ensure this page is completely isolated */
 		width: 100vw;
 		height: 100vh;
 		margin: 0;
 		padding: 0;
-		/* Reset any inherited styles */
 		position: relative;
 		overflow: hidden;
 	}

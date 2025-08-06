@@ -8,7 +8,7 @@
 	} from '$lib/stores/documents';
 	import DocumentGrid from './DocumentGrid.svelte';
 	import Breadcrumbs from './Breadcrumbs.svelte';
-	import CreateFolderModal from './CreateFolderModal.svelte';
+	import CreateFolderModal from './modal/CreateFolderModal.svelte';
 	import { Plus, FolderPlus, File } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';

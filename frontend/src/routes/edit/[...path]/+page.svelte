@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import Editor from '$lib/components/Editor.svelte';
 	import MetadataEditor from '$lib/components/MetadataEditor.svelte';
-	import DeleteConfirmModal from '$lib/components/DeleteConfirmModal.svelte';
+	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
 	import { generateSlug } from '$lib/utils/path';

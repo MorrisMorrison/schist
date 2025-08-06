@@ -11,7 +11,6 @@
 	import Input from '$lib/components/ui/input/input.svelte';
 	import MarkdownInfoHelp from '$lib/components/MarkdownInfoHelp.svelte';
 
-	// Get initial title from URL params if provided (e.g., from 404 page)
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 
 	let { data }: { data: PageData } = $props();
@@ -32,7 +31,6 @@
 
 	let editorRef: Editor;
 
-	// Update content when title changes
 	$effect(() => {
 		if (title && !content.includes(title)) {
 			content = `# ${title}\n\nWrite your content here...`;
@@ -84,7 +82,6 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		// Ctrl+S or Cmd+S to save
 		if ((event.ctrlKey || event.metaKey) && event.key === 's') {
 			event.preventDefault();
 			handleCreate();
@@ -96,7 +93,6 @@
 		if (!data.path || data.path === '/') {
 			return `/${slug}`;
 		}
-		// Ensure data.path starts with "/" and doesn't end with "/"
 		const cleanPath = data.path.startsWith('/') ? data.path : `/${data.path}`;
 		const trimmedPath = cleanPath.endsWith('/') ? cleanPath.slice(0, -1) : cleanPath;
 		return `${trimmedPath}/${slug}`;

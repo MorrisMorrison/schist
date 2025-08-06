@@ -29,7 +29,6 @@
 		</div>
 	</div>
 {:else}
-	<!-- Recent Documents using FolderView in recent mode -->
 	<FolderView
 		mode="recent"
 		recentLimit={10}

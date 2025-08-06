@@ -2,6 +2,8 @@
  * Main exports for e2e test fixtures
  */
 
+import { ApiHelper } from '../utils/api-helpers';
+
 // Re-export test and expect from our fixtures
 export { test, expect } from './test-data-fixtures';
 
@@ -15,7 +17,6 @@ export { BasePage } from '../pages/BasePage';
 // Export utilities
 export { ApiHelper } from '../utils/api-helpers';
 export * from '../utils/test-data';
-export * from '../utils/assertions';
 
 // Common test patterns and helpers
 export async function setupCleanState(apiHelper: ApiHelper) {

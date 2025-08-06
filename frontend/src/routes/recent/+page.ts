@@ -9,14 +9,12 @@ export const load: PageLoad = async () => {
 			(document) => !document.metaData.path.includes('/trash')
 		);
 
-		// Sort by updated date (most recent first)
 		const sortedDocuments = documentsWithoutTrash.sort((a, b) => {
 			const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
 			const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
 			return dateB - dateA;
 		});
 
-		// Take first 10 documents
 		const recentDocuments = sortedDocuments.slice(0, 10);
 
 		return {

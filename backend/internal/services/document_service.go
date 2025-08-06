@@ -1027,7 +1027,6 @@ func (d *DocumentService) extractTitleFromContent(content, filename string) stri
 	return strings.TrimSuffix(filename, filepath.Ext(filename))
 }
 
-// TODO implement
 func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) string {
 	// Normalize target path
 	if targetPath == "" || targetPath == "/" {

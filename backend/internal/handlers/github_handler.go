@@ -18,7 +18,6 @@ func (h *APIHandler) setupGitHub(c *gin.Context) {
 		return
 	}
 
-	// Validate required fields
 	if strings.TrimSpace(req.Token) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "GitHub token is required",
@@ -129,7 +128,6 @@ func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 		return
 	}
 
-	// Return updated status
 	status, err := h.GitHubService.GetSyncStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -153,7 +151,6 @@ func (h *APIHandler) testGitHubConnection(c *gin.Context) {
 		return
 	}
 
-	// Validate required fields
 	if strings.TrimSpace(req.Token) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "GitHub token is required",
@@ -175,7 +172,6 @@ func (h *APIHandler) testGitHubConnection(c *gin.Context) {
 		return
 	}
 
-	// Test connection without saving settings
 	err := h.GitHubService.TestConnection(req.Token, req.Owner, req.Repo, req.Branch)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

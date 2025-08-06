@@ -48,7 +48,6 @@ func deserializeContent(contentPart []byte) string {
 	return string(contentPart)
 }
 
-// Document -> raw file content
 func SerializeDocument(document *models.Document) ([]byte, error) {
 	metaData, err := serializeMetaData(document.MetaData)
 	if err != nil {

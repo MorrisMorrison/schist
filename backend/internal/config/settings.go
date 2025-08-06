@@ -41,12 +41,10 @@ func LoadSettings(dataDir string) (*Settings, error) {
 	schistDir := filepath.Join(dataDir, ".schist")
 	configPath := filepath.Join(schistDir, "config.json")
 
-	// Ensure .schist directory exists
 	if err := os.MkdirAll(schistDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create .schist directory: %w", err)
 	}
 
-	// If config file doesn't exist, create default
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		settings := createDefaultSettings()
 		if err := settings.Save(dataDir); err != nil {
@@ -55,7 +53,6 @@ func LoadSettings(dataDir string) (*Settings, error) {
 		return settings, nil
 	}
 
-	// Read existing config
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)

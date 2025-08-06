@@ -2,7 +2,7 @@
 	import { ChevronRight, ChevronDown, Folder, MoreVertical } from 'lucide-svelte';
 	import { cn } from '$lib/utils.js';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
-	import DocumentItem from './DocumentItem.svelte';
+	import DocumentItem from './document/DocumentItem.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
 
 	interface Props {

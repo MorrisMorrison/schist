@@ -4,7 +4,7 @@
 	import { documentActions } from '$lib/stores/documents';
 	import { goto } from '$app/navigation';
 	import FolderView from '$lib/components/FolderView.svelte';
-	import DocumentView from '$lib/components/DocumentView.svelte';
+	import DocumentView from '$lib/components/document/DocumentView.svelte';
 	import type { Document } from '$lib/api/types';
 	import { Button } from '$lib/components/ui/button';
 	import { Home, Plus, RotateCcw, Search } from 'lucide-svelte';

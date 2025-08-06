@@ -2,15 +2,15 @@
 	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import Breadcrumbs from './Breadcrumbs.svelte';
-	import DeleteConfirmModal from './modal/DeleteConfirmModal.svelte';
-	import VersionHistoryModal from './VersionHistoryModal.svelte';
+	import Breadcrumbs from '../Breadcrumbs.svelte';
+	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
+	import VersionHistoryModal from '../VersionHistoryModal.svelte';
 	import {
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
 	import type { Document, DocumentVersion } from '$lib/api/types';
-	import ImageLightbox from './ImageLightbox.svelte';
+	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';

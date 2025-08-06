@@ -12,8 +12,8 @@
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import { FileText, Trash2 } from 'lucide-svelte';
 	import DocumentCard from './DocumentCard.svelte';
-	import LoadingSpinner from './LoadingSpinner.svelte';
-	import ErrorAlert from './ErrorAlert.svelte';
+	import LoadingSpinner from '../LoadingSpinner.svelte';
+	import ErrorAlert from '../ErrorAlert.svelte';
 	import type { Document } from '$lib/api/types.js';
 	import { documentActions } from '$lib/stores/documents.js';
 

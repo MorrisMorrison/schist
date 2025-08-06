@@ -1,22 +1,12 @@
-import { test, expect } from '../fixtures/test-setup';
-import { createTestPage } from '../utils/test-data';
+import { test, expect } from '../fixtures';
 
 test.describe('Version History Functionality', () => {
 	test('should display version history and allow comparison', async ({
 		documentViewPage,
 		editorPage,
-		apiHelper,
-		testId,
+		withSimpleTestPage: testPage,
 		page
 	}) => {
-		const testPage = createTestPage({
-			title: `Version Test Page ${testId}`,
-			content: '# Version Test\n\nOriginal content.',
-			path: `/version-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
 		await documentViewPage.navigateToPage(testPage.path!);
 		await documentViewPage.verifyPageLoaded(testPage.title);
 
@@ -62,18 +52,9 @@ test.describe('Version History Functionality', () => {
 	test('should handle version restoration workflow', async ({
 		documentViewPage,
 		editorPage,
-		apiHelper,
-		testId,
+		withSimpleTestPage: testPage,
 		page
 	}) => {
-		const testPage = createTestPage({
-			title: `Restore Test Page ${testId}`,
-			content: '# Restore Test\n\nOriginal content for restoration.',
-			path: `/restore-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
 		await documentViewPage.navigateToPage(testPage.path!);
 		await documentViewPage.verifyPageLoaded(testPage.title);
 
@@ -114,19 +95,9 @@ test.describe('Version History Functionality', () => {
 	test('should handle version comparison workflow', async ({
 		documentViewPage,
 		editorPage,
-		apiHelper,
-		testId,
+		withSimpleTestPage: testPage,
 		page
 	}) => {
-		// Create a test page
-		const testPage = createTestPage({
-			title: `Compare Test Page ${testId}`,
-			content: '# Compare Test\n\nContent for comparison testing.',
-			path: `/compare-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
-
 		// Navigate to the page and create multiple versions
 		await documentViewPage.navigateToPage(testPage.path!);
 		await documentViewPage.verifyPageLoaded(testPage.title);

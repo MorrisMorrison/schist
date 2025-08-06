@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-setup';
+import { test, expect } from '../fixtures';
 import { createTestPage as createTestDocument } from '../utils/test-data';
 
 // serial enforces not running in parallel
@@ -40,18 +40,8 @@ test.describe.serial('Document Lifecycle', () => {
 	test('should edit an existing document', async ({
 		editorPage,
 		documentViewPage,
-		apiHelper,
-		testId
+		withSimpleTestDocument: originalDocument
 	}) => {
-		// Create a document via API first
-		const originalDocument = createTestDocument({
-			title: `Original Document ${testId}`,
-			content: '# Original Content\n\nThis content will be edited.',
-			path: `/test-edit-${testId}`
-		});
-
-		await apiHelper.createDocument(originalDocument);
-
 		// Navigate to the document
 		await documentViewPage.navigateToDocument(originalDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(originalDocument.title);
@@ -62,7 +52,7 @@ test.describe.serial('Document Lifecycle', () => {
 		// Verify editor loaded with existing content
 		await editorPage.verifyLoaded();
 		await editorPage.verifyTitle(originalDocument.title);
-		await editorPage.verifyContent('Original Content');
+		await editorPage.verifyContent('Simple Test Document');
 
 		// Modify the content
 		const updatedContent = '# Updated Content\n\nThis content has been edited via e2e test.';
@@ -77,16 +67,10 @@ test.describe.serial('Document Lifecycle', () => {
 		await documentViewPage.verifyContentContains('edited via e2e test');
 	});
 
-	test('should delete a document', async ({ documentViewPage, apiHelper, testId }) => {
-		// Create a document to delete
-		const documentToDelete = createTestDocument({
-			title: `Delete Me ${testId}`,
-			content: '# Document to Delete\n\nThis document will be deleted.',
-			path: `/delete-test-${testId}`
-		});
-
-		await apiHelper.createDocument(documentToDelete);
-
+	test('should delete a document', async ({
+		documentViewPage,
+		withSimpleTestDocument: documentToDelete
+	}) => {
 		// Navigate to the document
 		await documentViewPage.navigateToDocument(documentToDelete.path!);
 		await documentViewPage.verifyDocumentLoaded(documentToDelete.title);
@@ -114,18 +98,8 @@ test.describe.serial('Document Lifecycle', () => {
 	test('should preserve content when navigating away and back', async ({
 		editorPage,
 		documentViewPage,
-		apiHelper,
-		testId
+		withSimpleTestDocument: testDocument
 	}) => {
-		// Create a document via API
-		const testDocument = createTestDocument({
-			title: `Navigation Test ${testId}`,
-			content: '# Navigation Test\n\nContent to preserve.',
-			path: `/navigation-test-${testId}`
-		});
-
-		await apiHelper.createDocument(testDocument);
-
 		// Navigate to document view
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
@@ -133,30 +107,20 @@ test.describe.serial('Document Lifecycle', () => {
 		// Navigate to edit
 		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();
-		await editorPage.verifyContent('Navigation Test');
+		await editorPage.verifyContent('Simple Test Document');
 
 		// Navigate back to view without saving
 		await editorPage.cancel();
 
 		// Verify we're back on document view with original content
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
-		await documentViewPage.verifyContentContains('Content to preserve');
+		await documentViewPage.verifyContentContains('minimal content');
 	});
 
 	test('should display document metadata correctly', async ({
 		documentViewPage,
-		apiHelper,
-		testId
+		withComplexTestDocument: testDocument
 	}) => {
-		const testDocument = createTestDocument({
-			title: `Metadata Test ${testId}`,
-			content: '# Metadata Test\n\nTesting metadata display.',
-			path: `/metadata-test-${testId}`,
-			tags: ['metadata', 'test', 'e2e']
-		});
-
-		await apiHelper.createDocument(testDocument);
-
 		// Navigate to document
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
@@ -168,41 +132,16 @@ test.describe.serial('Document Lifecycle', () => {
 
 	test('should render markdown content correctly', async ({
 		documentViewPage,
-		apiHelper,
-		testId
+		withComplexTestDocument: testDocument
 	}) => {
-		const markdownContent = `# Main Heading
-
-## Subheading
-
-This is **bold text** and this is *italic text*.
-
-\`\`\`javascript
-console.log('Hello, World!');
-\`\`\`
-
-- List item 1
-- List item 2
-- List item 3
-
-[Link to home](/)`;
-
-		const testDocument = createTestDocument({
-			title: `Markdown Test ${testId}`,
-			content: markdownContent,
-			path: `/markdown-test-${testId}`
-		});
-
-		await apiHelper.createDocument(testDocument);
-
 		// Navigate to document
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		// Verify markdown has been rendered to HTML
 		await documentViewPage.verifyMarkdownRendering();
-		await documentViewPage.verifyHeading('Main Heading', 1);
-		await documentViewPage.verifyHeading('Subheading', 2);
+		await documentViewPage.verifyHeading('Complex Test Document', 1);
+		await documentViewPage.verifyHeading('Table of Contents', 2);
 
 		// Verify we have expected number of elements
 		const headingCount = await documentViewPage.getHeadingCount();

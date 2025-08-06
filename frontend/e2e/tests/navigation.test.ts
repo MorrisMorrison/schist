@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-setup';
+import { test, expect } from '../fixtures';
 import { createTestPage } from '../utils/test-data';
 
 test.describe('Navigation and Routing', () => {
@@ -7,6 +7,7 @@ test.describe('Navigation and Routing', () => {
 		apiHelper,
 		testId
 	}) => {
+		// Create nested pages manually for this complex navigation test
 		const parentPage = createTestPage({
 			title: `Parent ${testId}`,
 			content: '# Parent Page\n\nThis is a parent page.',
@@ -57,16 +58,9 @@ test.describe('Navigation and Routing', () => {
 	test('should handle URL changes correctly', async ({
 		documentViewPage,
 		editorPage,
-		apiHelper,
-		testId
+		withSimpleTestPage
 	}) => {
-		const testPage = createTestPage({
-			title: `URL Test ${testId}`,
-			content: '# URL Test\n\nTesting URL changes.',
-			path: `/url-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
+		const testPage = withSimpleTestPage;
 
 		await documentViewPage.navigateToPage(testPage.path!);
 		await documentViewPage.verifyPageLoaded(testPage.title);
@@ -84,17 +78,10 @@ test.describe('Navigation and Routing', () => {
 		homePage,
 		documentViewPage,
 		editorPage,
-		apiHelper,
-		testId,
+		withSimpleTestPage,
 		page
 	}) => {
-		const testPage = createTestPage({
-			title: `History Test ${testId}`,
-			content: '# History Test\n\nTesting browser history.',
-			path: `/history-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
+		const testPage = withSimpleTestPage;
 
 		await homePage.navigate();
 		await homePage.verifyLoaded();
@@ -118,17 +105,10 @@ test.describe('Navigation and Routing', () => {
 
 	test('should maintain navigation state across page refreshes', async ({
 		documentViewPage,
-		apiHelper,
-		testId,
+		withSimpleTestPage,
 		page
 	}) => {
-		const testPage = createTestPage({
-			title: `Refresh Test ${testId}`,
-			content: '# Refresh Test\n\nTesting page refresh.',
-			path: `/refresh-test-${testId}`
-		});
-
-		await apiHelper.createPage(testPage);
+		const testPage = withSimpleTestPage;
 
 		await documentViewPage.navigateToPage(testPage.path!);
 		await documentViewPage.verifyPageLoaded(testPage.title);
@@ -145,6 +125,7 @@ test.describe('Navigation and Routing', () => {
 		apiHelper,
 		testId
 	}) => {
+		// Create a searchable page manually for this search-specific test
 		const searchablePage = createTestPage({
 			title: `Searchable ${testId}`,
 			content: `# Searchable Content ${testId}\n\nThis page contains unique searchable content for testing.`,
@@ -170,6 +151,7 @@ test.describe('Navigation and Routing', () => {
 		apiHelper,
 		testId
 	}) => {
+		// Create two pages manually for this concurrent navigation test
 		const page1 = createTestPage({
 			title: `Concurrent 1 ${testId}`,
 			content: '# Concurrent Page 1',
@@ -199,6 +181,7 @@ test.describe('Navigation and Routing', () => {
 		apiHelper,
 		testId
 	}) => {
+		// Create a long page manually for this scroll position test
 		const longContent = Array(50)
 			.fill(0)
 			.map((_, i) => `## Section ${i + 1}\n\nThis is section ${i + 1} with some content.\n\n`)

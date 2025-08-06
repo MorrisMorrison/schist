@@ -34,7 +34,10 @@ export const test = base.extend<{
 
 	// Setup fixtures that create data in the backend
 	withTestDocument: TestDocumentData;
+	withSimpleTestDocument: TestDocumentData;
+	withComplexTestDocument: TestDocumentData;
 	withTestPage: TestPageData;
+	withSimpleTestPage: TestPageData;
 	withTestFolder: TestFolderData;
 	withMultipleDocuments: TestDocumentData[];
 	withMultiplePages: TestPageData[];
@@ -123,6 +126,30 @@ export const test = base.extend<{
 		// Cleanup is handled by apiHelper fixture
 	},
 
+	withSimpleTestDocument: async ({ apiHelper, simpleTestDocument }, use) => {
+		// Create the simple document in the backend
+		const result = await apiHelper.createDocument(simpleTestDocument);
+		if (result.status !== 201) {
+			throw new Error(`Failed to create simple test document: ${result.error}`);
+		}
+
+		await use(simpleTestDocument);
+
+		// Cleanup is handled by apiHelper fixture
+	},
+
+	withComplexTestDocument: async ({ apiHelper, complexTestDocument }, use) => {
+		// Create the complex document in the backend
+		const result = await apiHelper.createDocument(complexTestDocument);
+		if (result.status !== 201) {
+			throw new Error(`Failed to create complex test document: ${result.error}`);
+		}
+
+		await use(complexTestDocument);
+
+		// Cleanup is handled by apiHelper fixture
+	},
+
 	withTestPage: async ({ apiHelper, testPage }, use) => {
 		// Create the page in the backend
 		const result = await apiHelper.createPage(testPage);
@@ -131,6 +158,18 @@ export const test = base.extend<{
 		}
 
 		await use(testPage);
+
+		// Cleanup is handled by apiHelper fixture
+	},
+
+	withSimpleTestPage: async ({ apiHelper, simpleTestPage }, use) => {
+		// Create the simple page in the backend
+		const result = await apiHelper.createPage(simpleTestPage);
+		if (result.status !== 201) {
+			throw new Error(`Failed to create simple test page: ${result.error}`);
+		}
+
+		await use(simpleTestPage);
 
 		// Cleanup is handled by apiHelper fixture
 	},

@@ -421,20 +421,6 @@ func (gs *GitHubService) ShouldAutoSync() bool {
 	return githubSettings.Enabled && githubSettings.AutoSync
 }
 
-func (gs *GitHubService) TriggerSync(documentPath string) error {
-	if !gs.ShouldSyncOnSave() {
-		return nil
-	}
-
-	// In a full implementation, you might:
-	// 1. Queue the sync operation
-	// 2. Batch multiple saves together
-	// 3. Use channels to coordinate sync operations
-	// For now, we'll just validate we can sync
-
-	return gs.ValidateAccess()
-}
-
 func (gs *GitHubService) setupGitRemote() error {
 	if gs.gitService == nil || gs.gitService.repository == nil {
 		return fmt.Errorf("git service or repository not available")
@@ -442,30 +428,25 @@ func (gs *GitHubService) setupGitRemote() error {
 
 	githubSettings := gs.settings.GetGitHubSettings()
 
-	// Use HTTPS URL without token for better security
 	remoteURL := fmt.Sprintf("https://github.com/%s/%s.git",
 		githubSettings.Owner,
 		githubSettings.Repository)
 
-	// Get current repository configuration
 	cfg, err := gs.gitService.repository.Config()
 	if err != nil {
 		return fmt.Errorf("failed to get repository config: %w", err)
 	}
 
-	// Create or update the origin remote
 	cfg.Remotes["origin"] = &config.RemoteConfig{
 		Name: "origin",
 		URLs: []string{remoteURL},
 	}
 
-	// Persist configuration to the repository
 	err = gs.gitService.repository.Storer.SetConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to persist git config: %w", err)
 	}
 
-	// Verify the remote was set correctly
 	verifyConfig, err := gs.gitService.repository.Config()
 	if err != nil {
 		return fmt.Errorf("failed to verify git config: %w", err)
@@ -565,7 +546,7 @@ func (gs *GitHubService) pushToGitHub() error {
 	err := gs.gitService.repository.Push(pushOptions)
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
-			return nil // Already up to date is not an error
+			return nil
 		}
 		return fmt.Errorf("failed to push to GitHub: %w", err)
 	}

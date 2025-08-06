@@ -29,26 +29,23 @@ type DocumentVersion struct {
 	FilePath  string    `json:"file_path"`
 }
 
-// ChangeType represents the type of change in a diff line
-type ChangeType string
+type DiffLineChangeType string
 
 const (
-	ChangeTypeAddition     ChangeType = "addition"
-	ChangeTypeDeletion     ChangeType = "deletion"
-	ChangeTypeModification ChangeType = "modification"
-	ChangeTypeContext      ChangeType = "context"
+	ChangeTypeAddition     DiffLineChangeType = "addition"
+	ChangeTypeDeletion     DiffLineChangeType = "deletion"
+	ChangeTypeModification DiffLineChangeType = "modification"
+	ChangeTypeContext      DiffLineChangeType = "context"
 )
 
-// DiffLine represents a single line change in a document diff
 type DiffLine struct {
-	Type       ChangeType `json:"type"`
-	LineNumber int        `json:"line_number"`
-	Content    string     `json:"content"`
-	OldLine    int        `json:"old_line,omitempty"`
-	NewLine    int        `json:"new_line,omitempty"`
+	Type       DiffLineChangeType `json:"type"`
+	LineNumber int                `json:"line_number"`
+	Content    string             `json:"content"`
+	OldLine    int                `json:"old_line,omitempty"`
+	NewLine    int                `json:"new_line,omitempty"`
 }
 
-// DiffResult represents the result of comparing two versions of a document
 type DiffResult struct {
 	DocumentPath string      `json:"document_path"`
 	Hash1        string      `json:"hash1"`
@@ -57,7 +54,6 @@ type DiffResult struct {
 	Summary      DiffSummary `json:"summary"`
 }
 
-// DiffSummary provides statistics about the diff
 type DiffSummary struct {
 	Additions     int `json:"additions"`
 	Deletions     int `json:"deletions"`
@@ -79,9 +75,7 @@ func NewGitService(dataDir string) (*GitService, error) {
 func (gs *GitService) initializeRepository() error {
 	gitDir := filepath.Join(gs.dataDir, ".git")
 
-	// Check if git repository already exists
 	if _, err := os.Stat(gitDir); err == nil {
-		// Repository exists, open it
 		repo, err := git.PlainOpen(gs.dataDir)
 		if err != nil {
 			return fmt.Errorf("failed to open existing repository: %w", err)
@@ -90,7 +84,6 @@ func (gs *GitService) initializeRepository() error {
 		return nil
 	}
 
-	// Initialize new repository
 	repo, err := git.PlainInit(gs.dataDir, false)
 	if err != nil {
 		return fmt.Errorf("failed to initialize git repository: %w", err)
@@ -98,7 +91,6 @@ func (gs *GitService) initializeRepository() error {
 
 	gs.repository = repo
 
-	// Create initial commit if repository is empty
 	if err := gs.createInitialCommit(); err != nil {
 		return fmt.Errorf("failed to create initial commit: %w", err)
 	}
@@ -112,7 +104,6 @@ func (gs *GitService) createInitialCommit() error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Create .gitignore if it doesn't exist
 	gitignorePath := filepath.Join(gs.dataDir, ".gitignore")
 	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
 		gitignoreContent := `# Schist auto-generated files
@@ -126,12 +117,10 @@ Thumbs.db
 		}
 	}
 
-	// Add .gitignore to staging
 	if _, err := worktree.Add(".gitignore"); err != nil {
 		return fmt.Errorf("failed to add .gitignore: %w", err)
 	}
 
-	// Create initial commit
 	signature := &object.Signature{
 		Name:  "Schist System",
 		Email: "system@schist.local",
@@ -158,15 +147,12 @@ func (gs *GitService) CommitDocument(documentPath string, message string) error 
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Convert logical path to file path
 	filePath := gs.getRelativeFilePath(documentPath)
 
-	// Add file to staging area
 	if _, err := worktree.Add(filePath); err != nil {
 		return fmt.Errorf("failed to add file to staging: %w", err)
 	}
 
-	// Create commit
 	signature := &object.Signature{
 		Name:  "Schist User",
 		Email: "user@schist.local",
@@ -194,7 +180,6 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 
 	filePath := gs.getRelativeFilePath(documentPath)
 
-	// Get commit history for the specific file
 	logOptions := &git.LogOptions{
 		FileName: &filePath,
 	}
@@ -207,7 +192,6 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 
 	var versions []*DocumentVersion
 	err = commitIter.ForEach(func(commit *object.Commit) error {
-		// Verify the file actually exists in this commit
 		tree, err := commit.Tree()
 		if err != nil {
 			return err
@@ -215,7 +199,6 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 
 		_, err = tree.File(filePath)
 		if err != nil {
-			// File doesn't exist in this commit, skip it
 			return nil
 		}
 
@@ -242,14 +225,12 @@ func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash strin
 		return nil, fmt.Errorf("git repository not initialized")
 	}
 
-	// Parse commit hash
 	hash := plumbing.NewHash(commitHash)
 	commit, err := gs.repository.CommitObject(hash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit object: %w", err)
 	}
 
-	// Get file tree from commit
 	tree, err := commit.Tree()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit tree: %w", err)
@@ -257,19 +238,16 @@ func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash strin
 
 	filePath := gs.getRelativeFilePath(documentPath)
 
-	// Get file from tree
 	file, err := tree.File(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get file from tree: %w", err)
 	}
 
-	// Read file content
 	content, err := file.Contents()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file content: %w", err)
 	}
 
-	// Deserialize document from content using the existing serializer
 	document, err := serializer.DeserializeDocument([]byte(content))
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize document: %w", err)
@@ -279,7 +257,6 @@ func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash strin
 }
 
 func (gs *GitService) getRelativeFilePath(documentPath string) string {
-	// Convert logical path like "/folder/document" to file path "folder/document.md"
 	cleanPath := strings.TrimPrefix(documentPath, "/")
 	if cleanPath == "" {
 		cleanPath = "index"
@@ -294,10 +271,10 @@ func (gs *GitService) CompareVersions(documentPath, hash1, hash2 string) (*DiffR
 	}
 
 	// Validate that both commit hashes exist before attempting comparison
-	if err := gs.validateCommitHash(hash1); err != nil {
+	if err := gs.validateCommitHashEsists(hash1); err != nil {
 		return nil, fmt.Errorf("invalid hash1 %s: %w", hash1, err)
 	}
-	if err := gs.validateCommitHash(hash2); err != nil {
+	if err := gs.validateCommitHashEsists(hash2); err != nil {
 		return nil, fmt.Errorf("invalid hash2 %s: %w", hash2, err)
 	}
 
@@ -341,8 +318,7 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	return content, nil
 }
 
-// validateCommitHash checks if a commit hash exists in the repository
-func (gs *GitService) validateCommitHash(commitHash string) error {
+func (gs *GitService) validateCommitHashEsists(commitHash string) error {
 	hash := plumbing.NewHash(commitHash)
 	_, err := gs.repository.CommitObject(hash)
 	if err != nil {
@@ -351,7 +327,6 @@ func (gs *GitService) validateCommitHash(commitHash string) error {
 	return nil
 }
 
-// computeDiff computes the line-by-line diff between two document contents
 func (gs *GitService) computeDiff(documentPath, hash1, hash2, content1, content2 string) *DiffResult {
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(content1, content2, false)
@@ -374,7 +349,7 @@ func (gs *GitService) computeDiff(documentPath, hash1, hash2, content1, content2
 		case diffmatchpatch.DiffDelete:
 			for i, line := range diffLines {
 				if i == len(diffLines)-1 && line == "" {
-					continue // Skip final empty line
+					continue
 				}
 				lines = append(lines, DiffLine{
 					Type:       ChangeTypeDeletion,
@@ -389,7 +364,7 @@ func (gs *GitService) computeDiff(documentPath, hash1, hash2, content1, content2
 		case diffmatchpatch.DiffInsert:
 			for i, line := range diffLines {
 				if i == len(diffLines)-1 && line == "" {
-					continue // Skip final empty line
+					continue
 				}
 				lines = append(lines, DiffLine{
 					Type:       ChangeTypeAddition,
@@ -404,7 +379,7 @@ func (gs *GitService) computeDiff(documentPath, hash1, hash2, content1, content2
 		case diffmatchpatch.DiffEqual:
 			for i, line := range diffLines {
 				if i == len(diffLines)-1 && line == "" {
-					continue // Skip final empty line
+					continue
 				}
 				lines = append(lines, DiffLine{
 					Type:       ChangeTypeContext,
@@ -429,41 +404,34 @@ func (gs *GitService) computeDiff(documentPath, hash1, hash2, content1, content2
 	}
 }
 
-// RestoreDocument restores a document to a previous version and creates a new commit
 func (gs *GitService) RestoreDocument(documentPath, commitHash string) error {
 	if gs.repository == nil {
 		return fmt.Errorf("git repository not initialized")
 	}
 
-	// Get the content from the specified commit
 	content, err := gs.getDocumentContent(documentPath, commitHash)
 	if err != nil {
 		return fmt.Errorf("failed to get document content from commit %s: %w", commitHash, err)
 	}
 
-	// Get commit info for meaningful commit message
 	hash := plumbing.NewHash(commitHash)
 	commit, err := gs.repository.CommitObject(hash)
 	if err != nil {
 		return fmt.Errorf("failed to get commit object for message: %w", err)
 	}
 
-	// Write content to current file system
 	filePath := gs.getRelativeFilePath(documentPath)
 	fullPath := filepath.Join(gs.dataDir, filePath)
 
-	// Create directory if needed
 	dir := filepath.Dir(fullPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Write the restored content
 	if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write restored content: %w", err)
 	}
 
-	// Create commit with meaningful message
 	shortHash := commitHash
 	if len(shortHash) > 7 {
 		shortHash = shortHash[:7]
@@ -472,7 +440,6 @@ func (gs *GitService) RestoreDocument(documentPath, commitHash string) error {
 	originalMessage := strings.TrimSpace(commit.Message)
 	restoreMessage := fmt.Sprintf("Restore document to version %s: %s", shortHash, originalMessage)
 
-	// Commit the restoration
 	if err := gs.CommitDocument(documentPath, restoreMessage); err != nil {
 		return fmt.Errorf("failed to commit restored document: %w", err)
 	}

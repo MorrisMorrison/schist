@@ -22,7 +22,6 @@
 	}
 
 	function openQuickSwitcher() {
-		// Dispatch a custom event that the layout can listen to
 		window.dispatchEvent(new CustomEvent('openQuickSwitcher'));
 	}
 
@@ -72,6 +71,7 @@
 								.url.pathname === '/' || page.url.pathname.startsWith('/folders')
 								? 'text-primary border-blue-500'
 								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"
+							data-testid="nav-home"
 						>
 							Home
 						</a>
@@ -110,7 +110,10 @@
 					{#if $authStore.user}
 						<!-- User info and logout (desktop) -->
 						<div class="hidden md:flex md:items-center md:gap-2">
-							<span class="text-muted-foreground flex items-center gap-1 text-sm">
+							<span
+								class="text-muted-foreground flex items-center gap-1 text-sm"
+								data-testid="user-info"
+							>
 								<User class="h-4 w-4" />
 								{$authStore.user.username}
 							</span>
@@ -119,6 +122,7 @@
 								onclick={handleLogout}
 								class="border-secondary bg-primary text-primary hover:bg-destructive hover:text-destructive-foreground cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 								title="Logout"
+								data-testid="logout-button"
 							>
 								<LogOut class="h-4 w-4" />
 							</button>
@@ -205,7 +209,10 @@
 						<!-- User info and logout (mobile) -->
 						<div class="border-t border-gray-200 pt-3 pb-3 dark:border-gray-700">
 							<div class="px-4 pb-2">
-								<div class="text-muted-foreground flex items-center gap-2 text-sm">
+								<div
+									class="text-muted-foreground flex items-center gap-2 text-sm"
+									data-testid="user-info-mobile"
+								>
 									<User class="h-4 w-4" />
 									<span>Signed in as <strong>{$authStore.user.username}</strong></span>
 								</div>
@@ -215,6 +222,7 @@
 									type="button"
 									onclick={handleLogout}
 									class="text-destructive hover:text-destructive/80 flex w-full items-center gap-2 text-sm"
+									data-testid="logout-button-mobile"
 								>
 									<LogOut class="h-4 w-4" />
 									<span>Sign Out</span>

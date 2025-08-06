@@ -6,7 +6,6 @@ import (
 )
 
 // IgnoreService manages simple hardcoded patterns for files and folders that should be excluded
-// from document and folder API endpoints
 type IgnoreService struct {
 	dataDir string
 }

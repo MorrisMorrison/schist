@@ -24,7 +24,9 @@
 
 	const isPublicRoute = $derived(page.route.id === '/login' || page.route.id === null);
 
-	const showSidebarComponent = $derived(isPublicRoute || !authService.isAuthEnabled() || ($authStore.token && $authStore.user));
+	const showSidebarComponent = $derived(
+		isPublicRoute || !authService.isAuthEnabled() || ($authStore.token && $authStore.user)
+	);
 
 	const sidebarVisible = $derived(showSidebarComponent && $sidebarOpen);
 

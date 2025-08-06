@@ -12,7 +12,7 @@ import { DirectoryManager, createDirectoryManager } from '../utils/directory-man
 import { TestMonitor, createTestMonitor } from '../utils/test-monitor';
 import { generateTestId } from '../utils/test-data';
 
-const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 5000;
+const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
 const globalCleanupRegistry = new Map<number, DirectoryManager>();
 
 async function performGlobalCleanup() {

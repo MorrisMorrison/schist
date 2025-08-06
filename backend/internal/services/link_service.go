@@ -30,7 +30,6 @@ func NewLinkService(documentService *DocumentService, ignoreService *IgnoreServi
 	}
 }
 
-// wikiLinkRegex matches [[Document Name]] and [[Document Name|Display Text]] patterns
 var wikiLinkRegex = regexp.MustCompile(`\[\[([^\]|]+)(?:\|([^\]]+))?\]\]`)
 
 func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {

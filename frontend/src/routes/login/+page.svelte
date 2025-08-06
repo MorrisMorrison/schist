@@ -64,10 +64,11 @@
 	<Card class="w-full max-w-md shadow-lg">
 		<CardHeader class="space-y-4 pb-8 text-center">
 			<div class="mx-auto flex h-16 w-16 items-center justify-center">
-				<img src="/icon-128x128.png" alt="Schist Logo" class="h-16 w-16" />
+				<img src="/icon-128x128.png" alt="Schist Logo" class="h-16 w-16" data-testid="login-logo" />
 			</div>
 			<div class="space-y-2">
-				<CardTitle class="text-2xl font-bold">Welcome to Schist</CardTitle>
+				<CardTitle class="text-2xl font-bold" data-testid="login-title">Welcome to Schist</CardTitle
+				>
 				<CardDescription class="text-muted-foreground">
 					Sign in to access your documentation workspace
 				</CardDescription>
@@ -78,6 +79,7 @@
 			{#if error}
 				<div
 					class="border-destructive/20 bg-destructive/10 text-destructive flex items-center gap-2 rounded-md border p-3 text-sm"
+					data-testid="login-error"
 				>
 					<AlertCircle class="h-4 w-4" />
 					{error}
@@ -96,6 +98,7 @@
 						autocomplete="username"
 						required
 						onkeydown={handleKeydown}
+						data-testid="username-input"
 					/>
 				</div>
 
@@ -112,12 +115,14 @@
 							required
 							onkeydown={handleKeydown}
 							class="pr-10"
+							data-testid="password-input"
 						/>
 						<button
 							type="button"
 							class="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
 							on:click={togglePasswordVisibility}
 							disabled={isLoading}
+							data-testid="password-toggle"
 						>
 							{#if showPassword}
 								<EyeOff class="h-4 w-4" />
@@ -134,6 +139,7 @@
 					size="lg"
 					class="h-12 w-full text-base font-medium"
 					disabled={isLoading || !username || !password}
+					data-testid="login-submit"
 				>
 					{#if isLoading}
 						<div

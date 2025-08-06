@@ -16,6 +16,7 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 - 🎨 **Clean interface** - Responsive design with dark/light themes
 - 🐳 **Docker ready** - Easy deployment with Docker
 - ⚡ **Fast** - Built with Go backend and Svelte frontend
+- 🔐 **Secure authentication** - Optional JWT-based login with modern UI
 - ⌨️ **Keyboard shortcuts** - Navigate efficiently with global hotkeys
 
 ## Installation
@@ -54,9 +55,11 @@ services:
       - ENV=production
       - SCHIST_PORT=8080
       - SCHIST_DATA_DIR=/app/data
-      # Optional: Enable authentication
+      # Optional: Enable JWT authentication
       # - SCHIST_AUTH_ENABLED=true
       # - SCHIST_AUTH_USERS=admin:$2a$10$your_bcrypt_hash_here
+      # - SCHIST_JWT_SECRET=your-secret-key-here
+      # - SCHIST_JWT_EXPIRY_HOURS=24
       # Optional: Enable rate limiting
       # - SCHIST_RATE_LIMIT_ENABLED=true
       # - SCHIST_RATE_LIMIT_RPM=100
@@ -72,6 +75,33 @@ Your wiki will be available at http://localhost:8080 (or your server's address)
 ### Configuration
 
 Schist works out of the box with minimal configuration. For advanced setup including authentication, rate limiting, and security options, see the [Configuration Guide](docs/CONFIGURATION.md).
+
+#### Quick Authentication Setup
+
+To enable authentication for your wiki:
+
+1. **Generate a password hash:**
+   ```bash
+   cd backend && go run cmd/generate-hash/main.go your-password
+   ```
+
+2. **Set environment variables:**
+   ```bash
+   export SCHIST_AUTH_ENABLED=true
+   export SCHIST_AUTH_USERS="admin:$2a$10$your_generated_hash_here"
+   export SCHIST_JWT_SECRET="your-secret-key-minimum-32-characters"
+   ```
+
+3. **Start Schist:**
+   ```bash
+   docker-compose up -d
+   # or
+   make run
+   ```
+
+4. **Access your wiki:** Navigate to your wiki URL and you'll be redirected to a login page.
+
+**Default behavior:** Authentication is **disabled** by default. All users can access the wiki without any login.
 
 ## Keyboard Shortcuts
 

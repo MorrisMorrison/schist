@@ -421,6 +421,97 @@ export class ApiHelper {
 	async searchPages(query: string): Promise<ApiResponse> {
 		return this.searchDocuments(query);
 	}
+
+	/**
+	 * Authentication methods
+	 */
+
+	/**
+	 * Get application configuration (including auth status)
+	 */
+	async getConfig(): Promise<{ auth_enabled: boolean }> {
+		try {
+			const response = await this.apiContext.get(`${this.baseURL}/config`);
+
+			if (!response.ok()) {
+				throw new Error(`Config request failed: ${response.status()}`);
+			}
+
+			const data = await response.json();
+			return data as { auth_enabled: boolean };
+		} catch (error) {
+			throw new Error(
+				`Failed to get config: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Make a direct API request (useful for testing auth)
+	 */
+	async request(method: string, endpoint: string, data?: any): Promise<ApiResponse> {
+		try {
+			const url = endpoint.startsWith('/')
+				? `${this.baseURL}${endpoint}`
+				: `${this.baseURL}/${endpoint}`;
+
+			let response;
+			switch (method.toUpperCase()) {
+				case 'GET':
+					response = await this.apiContext.get(url);
+					break;
+				case 'POST':
+					response = await this.apiContext.post(url, { data });
+					break;
+				case 'PUT':
+					response = await this.apiContext.put(url, { data });
+					break;
+				case 'DELETE':
+					response = await this.apiContext.delete(url);
+					break;
+				default:
+					throw new Error(`Unsupported method: ${method}`);
+			}
+
+			let responseData;
+			try {
+				responseData = await response.json();
+			} catch {
+				responseData = null;
+			}
+
+			return {
+				status: response.status(),
+				data: responseData
+			};
+		} catch (error) {
+			return {
+				status: 500,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
+	 * Login with username and password (when auth is enabled)
+	 */
+	async login(username: string, password: string): Promise<ApiResponse> {
+		return this.request('POST', '/auth/login', { username, password });
+	}
+
+	/**
+	 * Logout (when auth is enabled)
+	 */
+	async logout(): Promise<ApiResponse> {
+		return this.request('POST', '/auth/logout');
+	}
+
+	/**
+	 * Get current user info (when auth is enabled)
+	 */
+	async getCurrentUser(): Promise<ApiResponse> {
+		return this.request('GET', '/auth/me');
+	}
 }
 
 export async function createTestDocuments(

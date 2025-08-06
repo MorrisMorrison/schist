@@ -15,9 +15,10 @@ Schist is designed with minimal configuration using environment variables and se
 | `ENV` | `development` | Environment mode (development/production) |
 | `SCHIST_RATE_LIMIT_ENABLED` | `false` | Enable/disable rate limiting |
 | `SCHIST_RATE_LIMIT_RPM` | `100` | Rate limit: requests per minute per IP |
-| `SCHIST_AUTH_ENABLED` | `false` | Enable/disable basic authentication |
-| `SCHIST_AUTH_USERS` | `""` | Basic auth users (format: `user1:hash1,user2:hash2`) |
-| `SCHIST_AUTH_REALM` | `"Schist Wiki"` | Authentication realm name |
+| `SCHIST_AUTH_ENABLED` | `false` | Enable/disable JWT authentication |
+| `SCHIST_AUTH_USERS` | `""` | User credentials (format: `user1:hash1,user2:hash2`) |
+| `SCHIST_JWT_SECRET` | `""` | JWT signing secret (required when auth is enabled) |
+| `SCHIST_JWT_EXPIRY_HOURS` | `24` | JWT token expiry time in hours |
 
 ### Frontend Configuration
 
@@ -82,19 +83,27 @@ SCHIST_RATE_LIMIT_ENABLED=true
 SCHIST_RATE_LIMIT_RPM=60
 ```
 
-### Basic Authentication
+### JWT Authentication
 
 **Configuration:**
 ```bash
-# Enable authentication for all endpoints
+# Enable JWT authentication for all endpoints
 SCHIST_AUTH_ENABLED=true
 
 # Set username:password_hash pairs
 SCHIST_AUTH_USERS="admin:$2a$10$hash1,editor:$2a$10$hash2"
 
-# Set authentication realm (optional)
-SCHIST_AUTH_REALM="My Private Wiki"
+# JWT secret key (REQUIRED when auth is enabled)
+SCHIST_JWT_SECRET="your-secret-key-here"
+
+# JWT token expiry time in hours (default: 24)
+SCHIST_JWT_EXPIRY_HOURS=24
 ```
+
+**Security Requirements:**
+- `SCHIST_JWT_SECRET` must be set when authentication is enabled
+- Use a strong, randomly generated secret (minimum 32 characters)
+- Keep the JWT secret secure and never commit it to version control
 
 **Password Hash Generation:**
 ```bash

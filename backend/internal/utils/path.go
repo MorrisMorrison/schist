@@ -46,10 +46,8 @@ func ValidatePath(path string) error {
 		return ErrPathMustStartWithSlash
 	}
 
-	// Split path into segments and validate each
 	segments := strings.Split(strings.Trim(path, PathSeparator), PathSeparator)
 
-	// Remove empty segments from consecutive slashes
 	var cleanSegments []string
 	for _, segment := range segments {
 		if segment != "" {
@@ -57,19 +55,16 @@ func ValidatePath(path string) error {
 		}
 	}
 
-	// Check for invalid segments first (. and ..)
 	for _, segment := range cleanSegments {
 		if segment == "." || segment == ".." {
 			return ErrPathContainsInvalidSegments
 		}
 	}
 
-	// Check for invalid characters
 	if !validPathRegex.MatchString(path) {
 		return ErrPathContainsInvalidCharacters
 	}
 
-	// Check depth
 	if len(cleanSegments) > MaxPathDepth {
 		return ErrPathTooDeep
 	}
@@ -77,9 +72,6 @@ func ValidatePath(path string) error {
 	return nil
 }
 
-// SanitizePath cleans up a path to make it safe.
-// It removes invalid characters, converts to lowercase, replaces spaces with hyphens,
-// and ensures proper format.
 func SanitizePath(path string) string {
 	if path == "" {
 		return PathSeparator
@@ -103,12 +95,10 @@ func SanitizePath(path string) string {
 		path = PathSeparator + path
 	}
 
-	// Remove trailing slashes (except for root)
 	if len(path) > 1 {
 		path = strings.TrimSuffix(path, PathSeparator)
 	}
 
-	// Remove leading and trailing hyphens from segments
 	segments := strings.Split(strings.Trim(path, PathSeparator), PathSeparator)
 	var cleanSegments []string
 	for _, segment := range segments {
@@ -127,17 +117,13 @@ func SanitizePath(path string) string {
 	return PathSeparator + strings.Join(cleanSegments, PathSeparator)
 }
 
-// NormalizePath normalizes path format by removing trailing slashes
-// and cleaning up multiple consecutive slashes.
 func NormalizePath(path string) string {
 	if path == "" {
 		return PathSeparator
 	}
 
-	// Clean up multiple consecutive slashes
 	path = regexp.MustCompile(`/+`).ReplaceAllString(path, PathSeparator)
 
-	// Remove trailing slashes (except for root)
 	if len(path) > 1 {
 		path = strings.TrimSuffix(path, PathSeparator)
 	}
@@ -162,7 +148,6 @@ func BuildFilePath(dataDir, path string) string {
 
 	relativePath := strings.TrimPrefix(normalizedPath, PathSeparator)
 
-	// Convert forward slashes to OS-specific separators
 	osPath := filepath.FromSlash(relativePath)
 
 	return filepath.Join(dataDir, osPath)
@@ -177,7 +162,6 @@ func ExtractSlugFromPath(path string) string {
 
 	segments := strings.Split(strings.Trim(normalizedPath, PathSeparator), PathSeparator)
 
-	// Get the last non-empty segment
 	for i := len(segments) - 1; i >= 0; i-- {
 		if segments[i] != "" {
 			return segments[i]
@@ -198,10 +182,8 @@ func ValidateAssetPath(path string) error {
 		return ErrPathMustStartWithSlash
 	}
 
-	// Split path into segments and validate each
 	segments := strings.Split(strings.Trim(path, PathSeparator), PathSeparator)
 
-	// Remove empty segments from consecutive slashes
 	var cleanSegments []string
 	for _, segment := range segments {
 		if segment != "" {
@@ -209,14 +191,12 @@ func ValidateAssetPath(path string) error {
 		}
 	}
 
-	// Check for invalid segments first (. and ..)
 	for _, segment := range cleanSegments {
 		if segment == "." || segment == ".." {
 			return ErrPathContainsInvalidSegments
 		}
 	}
 
-	// Check for invalid characters using asset-specific regex (allows dots)
 	if !validAssetPathRegex.MatchString(path) {
 		return ErrPathContainsInvalidCharacters
 	}
@@ -233,18 +213,14 @@ func ValidateAssetPath(path string) error {
 // This function prevents directory traversal attacks by ensuring the resolved path
 // stays within the data directory.
 func SafeFilePath(dataDir, path string) (string, error) {
-	// First validate the path format
 	if err := ValidateAssetPath(path); err != nil {
 		return "", err
 	}
 
-	// Clean the path and remove leading slash for joining
 	cleanPath := strings.TrimPrefix(path, PathSeparator)
 
-	// Join with data directory
 	fullPath := filepath.Join(dataDir, cleanPath)
 
-	// Resolve absolute paths to prevent directory traversal
 	absDataDir, err := filepath.Abs(dataDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve data directory: %w", err)
@@ -255,7 +231,6 @@ func SafeFilePath(dataDir, path string) (string, error) {
 		return "", fmt.Errorf("failed to resolve asset path: %w", err)
 	}
 
-	// Ensure the resolved path is within the data directory
 	if !strings.HasPrefix(absFullPath, absDataDir) {
 		return "", fmt.Errorf("invalid asset path: outside data directory")
 	}
@@ -263,8 +238,6 @@ func SafeFilePath(dataDir, path string) (string, error) {
 	return fullPath, nil
 }
 
-// EnsureLeadingSlash ensures a path starts with "/" by adding it if missing.
-// This is commonly needed in HTTP handlers when processing path parameters.
 func EnsureLeadingSlash(path string) string {
 	if !strings.HasPrefix(path, PathSeparator) {
 		return PathSeparator + path

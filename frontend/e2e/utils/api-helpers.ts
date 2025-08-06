@@ -449,7 +449,11 @@ export class ApiHelper {
 	/**
 	 * Make a direct API request (useful for testing auth)
 	 */
-	async request(method: string, endpoint: string, data?: any): Promise<ApiResponse> {
+	async request(
+		method: string,
+		endpoint: string,
+		data?: { username; password }
+	): Promise<ApiResponse> {
 		try {
 			const url = endpoint.startsWith('/')
 				? `${this.baseURL}${endpoint}`
@@ -633,14 +637,5 @@ export class MockApiHelper extends ApiHelper {
 			return { status: this.failureStatus, error: this.failureMessage };
 		}
 		return { status: 200, data: {} };
-	}
-
-	// Legacy aliases for backwards compatibility
-	async createPage(pageData?: TestPageData): Promise<ApiResponse> {
-		return this.createDocument(pageData);
-	}
-
-	async getPage(path?: string): Promise<ApiResponse> {
-		return this.getDocument(path);
 	}
 }

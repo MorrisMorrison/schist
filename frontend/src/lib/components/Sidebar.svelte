@@ -2,11 +2,11 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import FolderTree from './FolderTree.svelte';
-	import CreateFolderModal from './CreateFolderModal.svelte';
-	import RenameFolderModal from './RenameFolderModal.svelte';
-	import RenameDocumentModal from './RenameDocumentModal.svelte';
-	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
-	import ImportDocumentsModal from './ImportDocumentsModal.svelte';
+	import CreateFolderModal from './modal/CreateFolderModal.svelte';
+	import RenameFolderModal from './modal/RenameFolderModal.svelte';
+	import RenameDocumentModal from './modal/RenameDocumentModal.svelte';
+	import DeleteConfirmModal from './modal/DeleteConfirmModal.svelte';
+	import ImportDocumentsModal from './modal/ImportDocumentsModal.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types';
 	import { folderActions, documentActions, folders } from '$lib/stores/documents';
 	import { apiClient } from '$lib/api/client';

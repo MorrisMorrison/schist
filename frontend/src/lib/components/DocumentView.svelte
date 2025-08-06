@@ -3,7 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from './Breadcrumbs.svelte';
-	import DeleteConfirmModal from './DeleteConfirmModal.svelte';
+	import DeleteConfirmModal from './modal/DeleteConfirmModal.svelte';
 	import VersionHistoryModal from './VersionHistoryModal.svelte';
 	import {
 		parseMarkdownWithCopyButtons,

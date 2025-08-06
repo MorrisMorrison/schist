@@ -3,7 +3,7 @@
 	import Navigation from '$lib/components/Navigation.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
-	import KeyboardShortcutsModal from '$lib/components/KeyboardShortcutsModal.svelte';
+	import KeyboardShortcutsModal from '$lib/components/modal/KeyboardShortcutsModal.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import {

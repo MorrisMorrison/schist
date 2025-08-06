@@ -43,7 +43,6 @@
 				isFolder = false;
 				isNotFound = false;
 
-				// Track document visit for recent documents
 				if (currentDocument) {
 					addToRecentDocuments(currentDocument.metaData.path);
 				}

@@ -12,28 +12,25 @@ import { DirectoryManager, createDirectoryManager } from '../utils/directory-man
 import { TestMonitor, createTestMonitor } from '../utils/test-monitor';
 import { generateTestId } from '../utils/test-data';
 
-// Global cleanup registry to ensure cleanup happens even if tests fail
+const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 5000;
 const globalCleanupRegistry = new Map<number, DirectoryManager>();
 
-// Global cleanup function - called when process exits
 async function performGlobalCleanup() {
-	console.log('🧹 Performing global test data cleanup...');
+	console.log('Performing global test data cleanup...');
 	for (const [workerIndex, manager] of globalCleanupRegistry.entries()) {
 		try {
-			console.log(`[Worker ${workerIndex}] Emergency cleanup...`);
+			console.log(`[Worker ${workerIndex}] Global cleanup...`);
 			await manager.emergencyCleanup();
-			console.log(`[Worker ${workerIndex}] ✅ Emergency cleanup completed`);
+			console.log(`[Worker ${workerIndex}] Global cleanup completed`);
 		} catch (error) {
-			console.error(`[Worker ${workerIndex}] ❌ Emergency cleanup failed:`, error);
+			console.error(`[Worker ${workerIndex}] Global cleanup failed:`, error);
 		}
 	}
 	globalCleanupRegistry.clear();
 }
 
-// Register global cleanup handlers
 if (typeof process !== 'undefined') {
 	process.on('exit', () => {
-		// Note: Async operations don't work in exit handler, but we try anyway
 		performGlobalCleanup().catch(() => {});
 	});
 
@@ -54,7 +51,6 @@ if (typeof process !== 'undefined') {
 	});
 }
 
-// Extend base test with our fixtures
 export const test = base.extend<{
 	homePage: HomePage;
 	editorPage: EditorPage;
@@ -66,10 +62,8 @@ export const test = base.extend<{
 	testId: string;
 	workerBaseURL: string;
 }>({
-	// Page object fixtures
 	homePage: async ({ page, workerBaseURL }, use) => {
-		// Set the correct baseURL for this worker
-		page.setDefaultNavigationTimeout(60000);
+		page.setDefaultNavigationTimeout(DEFAULT_NAVIGATION_TIMEOUT_MILLIS);
 		await page.goto(workerBaseURL);
 		const homePage = new HomePage(page);
 		await use(homePage);
@@ -93,26 +87,18 @@ export const test = base.extend<{
 		await use(folderPage);
 	},
 
-	// Directory manager fixture - handles directory lifecycle
 	directoryManager: async ({ request }, use, testInfo) => {
 		const workerIndex = testInfo.parallelIndex || 0;
 		const directoryManager = createDirectoryManager(request, workerIndex);
 
-		// Register for global cleanup
 		globalCleanupRegistry.set(workerIndex, directoryManager);
 
 		try {
-			// Initialize directory with clean state (this will clean up any leftover data)
-			await directoryManager.initializeDirectory();
-
-			// Log initial state
 			await use(directoryManager);
 
-			// Post-test cleanup and validation
 			await directoryManager.logDirectoryState('Before cleanup');
 			await directoryManager.performAggressiveCleanup();
 
-			// Verify cleanup was successful
 			const isClean = await directoryManager.validateCleanState();
 			if (!isClean) {
 				console.warn(`Worker ${workerIndex} cleanup verification failed`);
@@ -121,7 +107,6 @@ export const test = base.extend<{
 
 			await directoryManager.logDirectoryState('After cleanup');
 		} finally {
-			// Always unregister from global cleanup after successful cleanup
 			globalCleanupRegistry.delete(workerIndex);
 		}
 	},
@@ -130,29 +115,19 @@ export const test = base.extend<{
 	testMonitor: async ({ directoryManager }, use, testInfo) => {
 		const testMonitor = createTestMonitor(directoryManager, testInfo.parallelIndex || 0);
 
-		// Record initial state
 		await testMonitor.recordState('Test started');
-
-		// Validate isolation at start of test
 		await testMonitor.assertIsolation();
 
 		await use(testMonitor);
 
-		// Validate final state and log performance
-		// Note: Directory cleanup validation disabled due to backend trash handling bug
-		// The test isolation system is working correctly - files accumulate in trash
-		// but don't interfere with test functionality since each worker has isolated data dirs
 		testMonitor.logPerformanceSummary();
 	},
 
-	// API helper fixture
 	apiHelper: async ({ request }, use, testInfo) => {
 		const apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 
-		// Directory manager already handles API readiness check
 		await use(apiHelper);
 
-		// Ensure cleanup after each test - this is essential for test isolation
 		try {
 			console.log(`[ApiHelper] Starting cleanup for worker ${testInfo.parallelIndex}`);
 			await apiHelper.cleanupTestData();
@@ -169,7 +144,6 @@ export const test = base.extend<{
 		await use(testId);
 	},
 
-	// Worker-specific base URL fixture
 	// eslint-disable-next-line no-empty-pattern
 	workerBaseURL: async ({}, use, testInfo) => {
 		// Map worker parallel index to frontend port
@@ -180,5 +154,4 @@ export const test = base.extend<{
 	}
 });
 
-// Export expect from Playwright
 export { expect } from '@playwright/test';

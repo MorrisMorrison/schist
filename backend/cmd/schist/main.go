@@ -32,7 +32,7 @@ func main() {
 	router := gin.Default()
 
 	setupCORS(router, services.Config)
-	setupMiddleware(router, services.Config)
+	setupMiddleware(router, services)
 
 	apiHandler := handlers.NewAPIHandler(services)
 	staticHandler := handlers.NewStaticHandler(services.Config.StaticDir)
@@ -80,14 +80,17 @@ func setupCORS(router *gin.Engine, config *config.Config) {
 	log.Printf("CORS enabled for development: %s", config.FrontendURL)
 }
 
-func setupMiddleware(router *gin.Engine, config *config.Config) {
-	if config.RateLimitEnabled {
-		router.Use(middleware.RateLimitMiddleware(config.RateLimitRPM))
-		log.Printf("Rate limiting enabled: %d requests per minute", config.RateLimitRPM)
+func setupMiddleware(router *gin.Engine, services *services.Services) {
+	if services.Config.RateLimitEnabled {
+		router.Use(middleware.RateLimitMiddleware(services.Config.RateLimitRPM))
+		log.Printf("Rate limiting enabled: %d requests per minute", services.Config.RateLimitRPM)
 	}
 
-	if config.AuthEnabled {
-		router.Use(middleware.BasicAuthMiddleware(config.AuthUsers, config.AuthRealm))
-		log.Printf("Basic authentication enabled for all endpoints (realm: %s)", config.AuthRealm)
+	// Always add auth middleware - it handles both enabled/disabled cases
+	router.Use(middleware.JWTMiddleware(services.AuthService, services.Config))
+	if services.Config.AuthEnabled {
+		log.Printf("JWT authentication enabled for all endpoints")
+	} else {
+		log.Printf("Authentication disabled - all endpoints accessible")
 	}
 }

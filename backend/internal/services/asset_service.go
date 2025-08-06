@@ -96,13 +96,11 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 }
 
 func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
-	// Use centralized path validation and security checks
 	fullPath, err := utils.SafeFilePath(s.dataDir, relativePath)
 	if err != nil {
 		return "", err
 	}
 
-	// Check if file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return "", fmt.Errorf("asset not found: %s", relativePath)
 	}

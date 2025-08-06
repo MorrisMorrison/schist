@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// Config handles environment variable configuration for infrastructure settings
 type Config struct {
 	Port        string
 	DataDir     string
@@ -17,12 +16,12 @@ type Config struct {
 	RateLimitEnabled bool
 	RateLimitRPM     int
 
-	AuthEnabled bool
-	AuthUsers   map[string]string // username -> bcrypt hash
-	AuthRealm   string
+	AuthEnabled    bool
+	AuthUsers      map[string]string // username -> bcrypt hash
+	JWTSecret      string
+	JWTExpiryHours int
 }
 
-// Load creates Config from environment variables
 func Load() *Config {
 	return &Config{
 		Port:        getEnv("SCHIST_PORT", "8080"),
@@ -34,18 +33,17 @@ func Load() *Config {
 		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
 		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),
 
-		AuthEnabled: getEnvBool("SCHIST_AUTH_ENABLED", false),
-		AuthUsers:   parseAuthUsers(getEnv("SCHIST_AUTH_USERS", "")),
-		AuthRealm:   getEnv("SCHIST_AUTH_REALM", "Schist Wiki"),
+		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", false),
+		AuthUsers:      parseAuthUsers(getEnv("SCHIST_AUTH_USERS", "")),
+		JWTSecret:      getEnv("SCHIST_JWT_SECRET", ""),
+		JWTExpiryHours: getEnvInt("SCHIST_JWT_EXPIRY_HOURS", 24),
 	}
 }
 
-// IsDevelopment returns true if running in development mode
 func (c *Config) IsDevelopment() bool {
 	return c.Environment == "development"
 }
 
-// GetPort returns port as integer with fallback
 func (c *Config) GetPort() int {
 	port, err := strconv.Atoi(c.Port)
 	if err != nil {

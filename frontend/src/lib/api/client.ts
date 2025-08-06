@@ -25,15 +25,24 @@ import type {
 	GitHubSetupRequest,
 	GitHubConfigRequest,
 	GitHubSetupResponse,
-	GitHubConnectionTest
+	GitHubConnectionTest,
+	User,
+	LoginRequest,
+	LoginResponse,
+	AppConfig
 } from './types.js';
 import { normalizePath } from './types.js';
 
 class SchістApiClient {
 	private baseUrl: string;
+	private authToken: string | null = null;
 
 	constructor() {
 		this.baseUrl = this.determineApiUrl();
+	}
+
+	setAuthToken(token: string | null) {
+		this.authToken = token;
 	}
 
 	private determineApiUrl(): string {
@@ -61,10 +70,14 @@ class SchістApiClient {
 	private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
 		const url = `${this.getApiUrl()}${endpoint}`;
 
-		const defaultHeaders = {
+		const defaultHeaders: Record<string, string> = {
 			'Content-Type': 'application/json',
 			Accept: 'application/json'
 		};
+
+		if (this.authToken) {
+			defaultHeaders.Authorization = `Bearer ${this.authToken}`;
+		}
 
 		const config: RequestInit = {
 			...options,
@@ -102,6 +115,35 @@ class SchістApiClient {
 
 	async health(): Promise<HealthResponse> {
 		return this.request<HealthResponse>('/health');
+	}
+
+	async getConfig(): Promise<AppConfig> {
+		return this.request<AppConfig>('/config');
+	}
+
+	async login(credentials: LoginRequest): Promise<LoginResponse> {
+		const response = await this.request<LoginResponse>('/auth/login', {
+			method: 'POST',
+			body: JSON.stringify(credentials)
+		});
+
+		this.setAuthToken(response.token);
+
+		return response;
+	}
+
+	async logout(): Promise<{ message: string }> {
+		const response = await this.request<{ message: string }>('/auth/logout', {
+			method: 'POST'
+		});
+
+		this.setAuthToken(null);
+
+		return response;
+	}
+
+	async getCurrentUser(): Promise<User> {
+		return this.request<User>('/auth/me');
 	}
 
 	async getDocuments(): Promise<Document[]> {

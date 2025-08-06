@@ -5,7 +5,7 @@
 	import UnifiedSidebarSearch from './UnifiedSidebarSearch.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
 	import FolderContextMenu from './FolderContextMenu.svelte';
-	import DocumentContextMenu from './DocumentContextMenu.svelte';
+	import DocumentContextMenu from './document/DocumentContextMenu.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
 	import {
 		folders,

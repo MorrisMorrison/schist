@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FolderView from '$lib/components/FolderView.svelte';
-	import DocumentView from '$lib/components/DocumentView.svelte';
+	import DocumentView from '$lib/components/document/DocumentView.svelte';
 	import type { PageData } from './$types';
 
 	interface Props {

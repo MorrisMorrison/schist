@@ -4,7 +4,7 @@
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
-	import ImageLightbox from './ImageLightbox.svelte';
+	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 
 	let { content, theme = 'light', className = '' }: PreviewProps = $props();

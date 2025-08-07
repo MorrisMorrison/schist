@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import Editor from '$lib/components/Editor.svelte';
-	import MetadataEditor from '$lib/components/MetadataEditor.svelte';
+	import Editor from '$lib/components/editor/Editor.svelte';
+	import MetadataEditor from '$lib/components/editor/MetadataEditor.svelte';
 	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
 	import { generateSlug } from '$lib/utils/path';
 	import { Check, Trash2, RotateCcw, CircleX } from 'lucide-svelte';
 	import type { PageData } from './$types';
-	import MarkdownInfoHelp from '$lib/components/MarkdownInfoHelp.svelte';
+	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 
 	let { data }: { data: PageData } = $props();
 

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Folder, FolderOpen, Plus } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import ErrorAlert from './ErrorAlert.svelte';
-	import UnifiedSidebarSearch from './UnifiedSidebarSearch.svelte';
+	import ErrorAlert from '../ErrorAlert.svelte';
+	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
 	import FolderContextMenu from './FolderContextMenu.svelte';
-	import DocumentContextMenu from './document/DocumentContextMenu.svelte';
+	import DocumentContextMenu from '../document/DocumentContextMenu.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
 	import {
 		folders,
@@ -540,7 +540,7 @@
 				dataTestId="sidebar-search"
 				value={unifiedSearchQuery}
 				placeholder="Filter folders, pages... (try 'tag:name')"
-				onSearch={(query) => {
+				onSearch={(query: string) => {
 					unifiedSearchQuery = query;
 				}}
 			/>

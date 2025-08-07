@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import FolderTree from './FolderTree.svelte';
+	import FolderTree from './folder/FolderTree.svelte';
 	import CreateFolderModal from './modal/CreateFolderModal.svelte';
 	import RenameFolderModal from './modal/RenameFolderModal.svelte';
 	import RenameDocumentModal from './modal/RenameDocumentModal.svelte';

@@ -58,7 +58,6 @@
 		error = '';
 
 		try {
-			// Generate new slug and path from the new title
 			const slug = generateSlug(documentTitle.trim());
 			const pathParts = currentPath.split('/');
 			pathParts[pathParts.length - 1] = slug;

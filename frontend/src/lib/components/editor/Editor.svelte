@@ -36,7 +36,6 @@
 
 	const currentTheme = $derived($theme);
 
-	// Custom light theme
 	const lightTheme = EditorView.theme({
 		'&': {
 			backgroundColor: '#ffffff', // pure white
@@ -74,7 +73,6 @@
 		}
 	});
 
-	// Custom dark theme
 	const darkTheme = EditorView.theme({
 		'&': {
 			backgroundColor: '#0f172a', // --gray-900
@@ -126,15 +124,12 @@
 	let uploadMessage = $state<string | null>(null);
 	let uploadError = $state<string | null>(null);
 
-	// Update content and trigger change event
 	function updateContent(content: string) {
-		// Avoid unnecessary updates
 		if (content === currentContent) return;
 
 		currentContent = content;
 		isDirty = true;
 
-		// Call external change handler
 		if (onContentChange) {
 			onContentChange(content);
 		}
@@ -231,8 +226,6 @@
 		editorView.focus();
 	}
 
-	// Theme toggle is handled by the global theme store now
-
 	function togglePreview() {
 		isPreviewVisible = !isPreviewVisible;
 	}
@@ -258,7 +251,6 @@
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						const newContent = update.state.doc.toString();
-						// Only update if content actually changed to avoid loops
 						if (newContent !== currentContent) {
 							updateContent(newContent);
 						}
@@ -322,7 +314,6 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		// F11 for fullscreen toggle
 		if (event.key === 'F11') {
 			event.preventDefault();
 			toggleFullscreen();
@@ -355,10 +346,8 @@
 			case 'k':
 				event.preventDefault();
 				if (event.shiftKey) {
-					// Shift+Ctrl+K for wiki links
 					formatText('wikiLink');
 				} else {
-					// Ctrl+K for regular links
 					formatText('link');
 				}
 				break;
@@ -425,7 +414,6 @@
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						const newContent = update.state.doc.toString();
-						// Only update if content actually changed to avoid loops
 						if (newContent !== currentContent) {
 							updateContent(newContent);
 						}
@@ -481,20 +469,17 @@
 				})
 			];
 
-			// Reconfigure the editor with new extensions instead of recreating
 			editorView.dispatch({
 				effects: StateEffect.reconfigure.of(extensions)
 			});
 		}
 	});
 
-	// Update editor content when initialContent prop changes
 	$effect(() => {
 		if (editorView && initialContent !== currentContent) {
 			const newContent = initialContent || '';
 			currentContent = newContent;
 
-			// Update the editor view with new content
 			editorView.dispatch({
 				changes: {
 					from: 0,
@@ -505,7 +490,6 @@
 		}
 	});
 
-	// Theme classes
 	const themeClasses = $derived(
 		currentTheme === 'dark' ? 'bg-gray-900 text-gray-50' : 'bg-gray-50 text-gray-900'
 	);

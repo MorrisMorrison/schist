@@ -57,7 +57,6 @@
 	let selectedDocuments = $state<Set<string>>(new Set());
 	let isDeletingBulk = $state(false);
 
-	// Notify parent of selection changes
 	$effect(() => {
 		if (actualMultiSelectMode && onSelectionChange) {
 			onSelectionChange([...selectedDocuments]);

@@ -79,7 +79,6 @@
 	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let unifiedSearchQuery = $state('');
 
-	// Initialize drag and drop composable
 	const dragAndDrop = useDragAndDrop(showPages);
 
 	const documents = $derived($documentsStore.documents || []);
@@ -165,25 +164,18 @@
 		const { textQuery, tagFilters } = parseUnifiedQuery(query);
 
 		function filterFolderRecursive(folder: FolderType): FolderType | null {
-			// Check if folder name matches text query (only when there IS a text query)
 			const folderNameMatches = !textQuery || folder.name.toLowerCase().includes(textQuery);
 
-			// Get pages in this folder that match the filters
 			const folderPages = getPagesForFolder(folder.path);
 			const matchingPages = folderPages.filter((page) =>
 				pageMatchesFilters(page, textQuery, tagFilters)
 			);
 
-			// Recursively filter subfolders
 			const filteredSubFolders =
 				folder.sub_folders
 					?.map(filterFolderRecursive)
 					?.filter((f): f is FolderType => f !== null) || [];
 
-			// Include folder if:
-			// 1. Folder name matches text query (only when text query exists), OR
-			// 2. Has matching pages, OR
-			// 3. Has matching subfolders
 			const shouldInclude =
 				folderNameMatches || matchingPages.length > 0 || filteredSubFolders.length > 0;
 
@@ -205,17 +197,13 @@
 		return documents.filter((page) => {
 			const pagePath = page.metaData?.path || '';
 
-			// Handle root folder case
 			if (folderPath === '' || folderPath === '/') {
-				// Pages in root folder don't have '/' after the first character
-				return pagePath.split('/').length === 2; // ['', 'filename']
+				return pagePath.split('/').length === 2;
 			}
 
-			// For specific folders, check if page is directly in this folder
 			const folderSegments = folderPath.split('/').filter(Boolean);
 			const pageSegments = pagePath.split('/').filter(Boolean);
 
-			// Page must be exactly one level deeper than the folder
 			return (
 				pageSegments.length === folderSegments.length + 1 &&
 				pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
@@ -226,12 +214,10 @@
 	function getFilteredRootPages() {
 		const rootPages = getPagesForFolder('/');
 
-		// If no search query, return all root pages
 		if (!unifiedSearchQuery.trim()) {
 			return rootPages;
 		}
 
-		// Apply the same filtering logic as used in filterFoldersAndPages
 		const { textQuery, tagFilters } = parseUnifiedQuery(unifiedSearchQuery.toLowerCase());
 		return rootPages.filter((page) => pageMatchesFilters(page, textQuery, tagFilters));
 	}
@@ -239,12 +225,10 @@
 	function getFilteredPagesForFolder(folderPath: string) {
 		const folderPages = getPagesForFolder(folderPath);
 
-		// If no search query, return all pages in folder
 		if (!unifiedSearchQuery.trim()) {
 			return folderPages;
 		}
 
-		// Apply the same filtering logic as used in filterFoldersAndPages
 		const { textQuery, tagFilters } = parseUnifiedQuery(unifiedSearchQuery.toLowerCase());
 		return folderPages.filter((page) => pageMatchesFilters(page, textQuery, tagFilters));
 	}
@@ -263,22 +247,19 @@
 		}
 
 		if (currentPath.startsWith('/folders')) {
-			// Remove /folders prefix and return the remaining path
 			const folderPath = currentPath.substring(8); // Remove '/folders'
 			return folderPath || '';
 		}
 
 		if (currentPath.startsWith('/documents')) {
-			// Remove /document prefix and remove the last element (page name)
 			const pagePath = currentPath.substring(6); // Remove '/documents'
 			const pathSegments = pagePath.split('/').filter(Boolean);
 
-			// Remove the last segment (page name) and reconstruct the folder path
 			if (pathSegments.length <= 1) {
 				return '';
 			}
 
-			pathSegments.pop(); // Remove last element (page name)
+			pathSegments.pop(); 
 			return '/' + pathSegments.join('/');
 		}
 
@@ -587,7 +568,6 @@
 				if (!isTreeItem) {
 					e.preventDefault();
 					e.stopPropagation();
-					// Ensure any existing context menu is closed
 					closeContextMenu();
 				}
 			}}

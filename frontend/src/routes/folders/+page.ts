@@ -1,14 +1,19 @@
 import type { PageLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { authService } from '$lib/auth/auth-service';
+import { redirect } from '@sveltejs/kit';
 
-export const load: PageLoad = async () => {
-	const [documents, folders] = await Promise.all([
-		apiClient.getDocuments(),
-		apiClient.getFolderTree()
-	]);
+export const load: PageLoad = async ({ url }) => {
+	// Initialize auth service if not already done
+	await authService.initialize();
 
-	return {
-		documents,
-		folders
-	};
+	// If auth is enabled, check authentication
+	if (authService.isAuthEnabled()) {
+		const isAuthenticated = await authService.requireAuth(url.pathname);
+		if (!isAuthenticated) {
+			throw redirect(303, `/login?returnUrl=${encodeURIComponent(url.pathname)}`);
+		}
+	}
+
+	// Page components will handle their own data loading
+	return {};
 };

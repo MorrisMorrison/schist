@@ -19,6 +19,7 @@
 	import { browser } from '$app/environment';
 	import { cn } from '$lib/utils.js';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
+	import { authService } from '$lib/auth/auth-service';
 
 	interface Props {
 		selectedPath?: string;
@@ -90,10 +91,26 @@
 	);
 
 	$effect(() => {
-		folderActions.loadFolderTree().catch(console.error);
-		if (showPages) {
-			documentActions.loadDocuments().catch(console.error);
-		}
+		// Only load data if auth is disabled OR user is authenticated
+		const loadData = async () => {
+			await authService.initialize();
+
+			// Skip loading if auth is enabled but user is not authenticated
+			if (authService.isAuthEnabled()) {
+				const isAuthenticated = await authService.checkAuthStatus();
+				if (!isAuthenticated) {
+					return;
+				}
+			}
+
+			// Load folder and document data
+			folderActions.loadFolderTree().catch(console.error);
+			if (showPages) {
+				documentActions.loadDocuments().catch(console.error);
+			}
+		};
+
+		loadData();
 	});
 
 	$effect(() => {

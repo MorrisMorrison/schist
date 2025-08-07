@@ -23,19 +23,22 @@ func NewJWTAuth(authService *services.AuthService, config *config.Config) *JWTAu
 
 func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Always allow health and config endpoints
+		// Always allow OPTIONS requests for CORS preflight
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		if c.Request.URL.Path == "/api/health" || c.Request.URL.Path == "/api/config" {
 			c.Next()
 			return
 		}
 
-		// If auth is disabled, allow all requests
 		if !ja.config.AuthEnabled {
 			c.Next()
 			return
 		}
 
-		// Allow auth endpoints when auth is enabled
 		if strings.HasPrefix(c.Request.URL.Path, "/api/auth/") {
 			c.Next()
 			return

@@ -39,7 +39,8 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 			return
 		}
 
-		if strings.HasPrefix(c.Request.URL.Path, "/api/auth/") {
+		// Only allow login and logout endpoints to bypass authentication
+		if c.Request.URL.Path == "/api/auth/login" || c.Request.URL.Path == "/api/auth/logout" {
 			c.Next()
 			return
 		}

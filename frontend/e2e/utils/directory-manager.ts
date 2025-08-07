@@ -84,7 +84,7 @@ export class DirectoryManager {
 				}
 
 				const [pagesResponse, foldersResponse] = await Promise.all([
-					this.apiHelper.listPages(),
+					this.apiHelper.listDocuments(),
 					this.apiHelper.getFolder('')
 				]);
 
@@ -147,13 +147,13 @@ export class DirectoryManager {
 		try {
 			await this.apiHelper.cleanupTestData();
 
-			const pagesResponse = await this.apiHelper.listPages();
+			const pagesResponse = await this.apiHelper.listDocuments();
 			if (pagesResponse.data && Array.isArray((pagesResponse.data as DocumentListData).documents)) {
 				const pages = (pagesResponse.data as DocumentListData).documents;
 				for (const page of pages) {
 					try {
 						if (page.metaData?.path) {
-							await this.apiHelper.deletePage(page.metaData.path);
+							await this.apiHelper.deleteDocument(page.metaData.path);
 							itemsDeleted++;
 						}
 					} catch (error) {
@@ -235,7 +235,7 @@ export class DirectoryManager {
 
 	async verifyIsolation(): Promise<boolean> {
 		try {
-			const pagesResponse = await this.apiHelper.listPages();
+			const pagesResponse = await this.apiHelper.listDocuments();
 			if (pagesResponse.data && Array.isArray((pagesResponse.data as DocumentListData).documents)) {
 				const pages = (pagesResponse.data as DocumentListData).documents;
 

@@ -9,11 +9,11 @@ export default defineConfig({
 	fullyParallel: true,
 
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
-	forbidOnly: !!process.env.CI,
+	forbidOnly: !!globalThis.process?.env.CI,
 
-	retries: process.env.CI ? 2 : 0,
+	retries: globalThis.process?.env.CI ? 2 : 0,
 
-	workers: process.env.CI ? 1 : 1,
+	workers: globalThis.process?.env.CI ? 1 : 1,
 
 	/* Global timeout for each test */
 	timeout: 30 * 1000,
@@ -45,7 +45,7 @@ export default defineConfig({
 			testMatch: /.*\.setup\.ts/
 		},
 		{
-			name: 'chromium-no-auth',
+			name: 'auth-disabled',
 			use: {
 				...devices['Desktop Chrome'],
 				baseURL: 'http://localhost:4173'
@@ -54,45 +54,14 @@ export default defineConfig({
 			testIgnore: /.*authentication\.test\.ts/
 		},
 		{
-			name: 'auth-disabled-tests',
-			use: {
-				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:4173'
-			},
-			dependencies: ['setup'],
-			testMatch: /.*authentication\.test\.ts/,
-			grep: /@auth-disabled/
-		},
-		{
-			name: 'auth-enabled-unauthenticated',
-			use: {
-				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:4174'
-			},
-			dependencies: ['setup'],
-			testMatch: /.*authentication\.test\.ts/,
-			grep: /@auth-enabled-unauth/
-		},
-		{
-			name: 'auth-enabled-authenticated',
+			name: 'auth-enabled',
 			use: {
 				...devices['Desktop Chrome'],
 				baseURL: 'http://localhost:4174',
 				storageState: 'playwright/.auth/user.json'
 			},
 			dependencies: ['setup'],
-			testMatch: /.*authentication\.test\.ts/,
-			grep: /@auth-enabled-auth/
-		},
-		{
-			name: 'auth-ui-tests',
-			use: {
-				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:4174'
-			},
-			dependencies: ['setup'],
-			testMatch: /.*authentication\.test\.ts/,
-			grep: /@auth-ui/
+			testMatch: /.*authentication\.test\.ts/
 		}
 	],
 

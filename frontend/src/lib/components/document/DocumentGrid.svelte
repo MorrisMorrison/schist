@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import {
-		Dialog,
-		DialogContent,
-		DialogDescription,
-		DialogFooter,
-		DialogHeader,
-		DialogTitle
-	} from '$lib/components/ui/dialog/index.js';
+	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import { FileText, Trash2 } from 'lucide-svelte';
@@ -50,6 +43,7 @@
 	let deleteDialogOpen = $state(false);
 	let documentToDelete = $state<string | null>(null);
 	let bulkDeleteDialogOpen = $state(false);
+	let isDeleting = $state(false);
 	let internalMultiSelectMode = $state(multiSelectMode);
 	let actualMultiSelectMode = $derived(
 		onMultiSelectModeChange ? multiSelectMode : internalMultiSelectMode
@@ -80,11 +74,14 @@
 		if (!documentToDelete) return;
 
 		try {
+			isDeleting = true;
 			await documentActions.deleteDocument(documentToDelete);
 			deleteDialogOpen = false;
 			documentToDelete = null;
 		} catch (err) {
 			console.error('Failed to delete document:', err);
+		} finally {
+			isDeleting = false;
 		}
 	}
 
@@ -225,41 +222,23 @@
 	{/if}
 </div>
 
-<!-- Delete Confirmation Dialog -->
-<Dialog bind:open={deleteDialogOpen}>
-	<DialogContent>
-		<DialogHeader>
-			<DialogTitle>Delete Document</DialogTitle>
-			<DialogDescription>
-				Are you sure you want to delete this document? This action cannot be undone.
-			</DialogDescription>
-		</DialogHeader>
-		<DialogFooter>
-			<Button variant="outline" onclick={cancelDelete}>Cancel</Button>
-			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
-		</DialogFooter>
-	</DialogContent>
-</Dialog>
+<!-- Delete Confirmation Modals -->
+<DeleteConfirmModal
+	open={deleteDialogOpen}
+	title="Delete Document"
+	description="Are you sure you want to delete this document? This action cannot be undone."
+	confirmText="Delete"
+	{isDeleting}
+	onConfirm={confirmDelete}
+	onCancel={cancelDelete}
+/>
 
-<!-- Bulk Delete Confirmation Dialog -->
-<Dialog bind:open={bulkDeleteDialogOpen}>
-	<DialogContent>
-		<DialogHeader>
-			<DialogTitle>Delete Multiple Documents</DialogTitle>
-			<DialogDescription>
-				Are you sure you want to delete {selectedDocuments.size} document{selectedDocuments.size ===
-				1
-					? ''
-					: 's'}? This action cannot be undone.
-			</DialogDescription>
-		</DialogHeader>
-		<DialogFooter>
-			<Button variant="outline" onclick={cancelBulkDelete} disabled={isDeletingBulk}>Cancel</Button>
-			<Button variant="destructive" onclick={confirmBulkDelete} disabled={isDeletingBulk}>
-				{isDeletingBulk
-					? 'Deleting...'
-					: `Delete ${selectedDocuments.size} document${selectedDocuments.size === 1 ? '' : 's'}`}
-			</Button>
-		</DialogFooter>
-	</DialogContent>
-</Dialog>
+<DeleteConfirmModal
+	open={bulkDeleteDialogOpen}
+	title="Delete Multiple Documents"
+	description={`Are you sure you want to delete ${selectedDocuments.size} document${selectedDocuments.size === 1 ? '' : 's'}? This action cannot be undone.`}
+	confirmText={`Delete ${selectedDocuments.size} document${selectedDocuments.size === 1 ? '' : 's'}`}
+	isDeleting={isDeletingBulk}
+	onConfirm={confirmBulkDelete}
+	onCancel={cancelBulkDelete}
+/>

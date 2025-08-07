@@ -1,8 +1,3 @@
-/**
- * Directory lifecycle management for e2e tests
- * Handles creation, cleanup, monitoring, and validation of worker-specific data directories
- */
-
 import { APIRequestContext } from '@playwright/test';
 import { ApiHelper } from './api-helpers';
 
@@ -51,23 +46,17 @@ export class DirectoryManager {
 		this.dataDirectory = `test-data-worker-${workerIndex + 1}`;
 	}
 
-	/**
-	 * Initialize directory for testing - ensures clean state
-	 */
 	async initializeDirectory(): Promise<DirectoryState> {
 		console.log(`[Worker ${this.workerIndex}] 🚀 Initializing directory: ${this.dataDirectory}`);
 
-		// Wait for backend to be ready first
 		const isReady = await this.apiHelper.waitForApiReady(30000);
 		if (!isReady) {
 			throw new Error(`Backend not ready for worker ${this.workerIndex}`);
 		}
 
-		// Perform aggressive cleanup to ensure clean state (handles any leftover data)
 		console.log(`[Worker ${this.workerIndex}] 🧹 Cleaning up any existing test data...`);
 		await this.performAggressiveCleanup();
 
-		// Double-check cleanup was successful
 		const isClean = await this.validateCleanState();
 		if (!isClean) {
 			console.warn(
@@ -76,7 +65,6 @@ export class DirectoryManager {
 			await this.emergencyCleanup();
 		}
 
-		// Get initial state
 		const initialState = await this.getDirectoryState();
 		console.log(
 			`[Worker ${this.workerIndex}] ✅ Directory initialized - Pages: ${initialState.pageCount}, Folders: ${initialState.folderCount}`
@@ -85,9 +73,6 @@ export class DirectoryManager {
 		return initialState;
 	}
 
-	/**
-	 * Get current directory state with retry logic for better reliability
-	 */
 	async getDirectoryState(): Promise<DirectoryState> {
 		const maxRetries = 3;
 		const retryDelay = 100;
@@ -111,7 +96,6 @@ export class DirectoryManager {
 					? (foldersResponse.data as FolderListData).folders.length
 					: 0;
 
-				// Note: trash count would require additional API endpoint
 				const trashCount = 0;
 
 				return {
@@ -155,19 +139,14 @@ export class DirectoryManager {
 		};
 	}
 
-	/**
-	 * Perform aggressive cleanup of all test data
-	 */
 	async performAggressiveCleanup(): Promise<CleanupMetrics> {
 		const startTime = Date.now();
 		const errors: string[] = [];
 		let itemsDeleted = 0;
 
 		try {
-			// Use ApiHelper's built-in cleanup for test data
 			await this.apiHelper.cleanupTestData();
 
-			// Delete remaining pages
 			const pagesResponse = await this.apiHelper.listPages();
 			if (pagesResponse.data && Array.isArray((pagesResponse.data as DocumentListData).documents)) {
 				const pages = (pagesResponse.data as DocumentListData).documents;
@@ -183,7 +162,6 @@ export class DirectoryManager {
 				}
 			}
 
-			// Delete remaining folders
 			const foldersResponse = await this.apiHelper.getFolder('');
 			if (foldersResponse.data && Array.isArray((foldersResponse.data as FolderListData).folders)) {
 				const folders = (foldersResponse.data as FolderListData).folders;
@@ -226,9 +204,6 @@ export class DirectoryManager {
 		return metrics;
 	}
 
-	/**
-	 * Validate directory state is clean
-	 */
 	async validateCleanState(): Promise<boolean> {
 		const state = await this.getDirectoryState();
 		const isClean = state.pageCount === 0 && state.folderCount === 0;
@@ -243,9 +218,6 @@ export class DirectoryManager {
 		return isClean;
 	}
 
-	/**
-	 * Log directory state for debugging
-	 */
 	async logDirectoryState(context: string): Promise<void> {
 		const state = await this.getDirectoryState();
 		console.log(`[Worker ${state.workerIndex}] ${context}:`, {
@@ -257,16 +229,10 @@ export class DirectoryManager {
 		});
 	}
 
-	/**
-	 * Get cleanup performance metrics
-	 */
 	getCleanupMetrics(): CleanupMetrics[] {
 		return [...this.cleanupMetrics];
 	}
 
-	/**
-	 * Verify directory isolation by checking no cross-worker contamination
-	 */
 	async verifyIsolation(): Promise<boolean> {
 		try {
 			const pagesResponse = await this.apiHelper.listPages();
@@ -311,9 +277,6 @@ export class DirectoryManager {
 	}
 }
 
-/**
- * Create a DirectoryManager for the current test worker
- */
 export function createDirectoryManager(
 	apiContext: APIRequestContext,
 	workerIndex: number

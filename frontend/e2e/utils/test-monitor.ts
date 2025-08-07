@@ -1,8 +1,3 @@
-/**
- * Test monitoring utilities for e2e tests
- * Provides validation, assertion helpers, and test state monitoring
- */
-
 import { DirectoryManager, DirectoryState } from './directory-manager';
 
 export interface TestValidationResult {
@@ -39,9 +34,6 @@ export class TestMonitor {
 		this.workerIndex = workerIndex;
 	}
 
-	/**
-	 * Record current directory state for comparison
-	 */
 	async recordState(context: string): Promise<DirectoryState> {
 		const state = await this.directoryManager.getDirectoryState();
 		state.timestamp = Date.now();
@@ -56,9 +48,6 @@ export class TestMonitor {
 		return state;
 	}
 
-	/**
-	 * Validate that file counts match expected values
-	 */
 	async validateFileCounts(
 		expectedPages: number,
 		expectedFolders: number
@@ -83,9 +72,6 @@ export class TestMonitor {
 		};
 	}
 
-	/**
-	 * Assert that file counts match expected values (throws on failure)
-	 */
 	async assertFileCounts(expectedPages: number, expectedFolders: number): Promise<void> {
 		const result = await this.validateFileCounts(expectedPages, expectedFolders);
 
@@ -97,21 +83,16 @@ export class TestMonitor {
 		console.log(`[Monitor ${this.workerIndex}] ✅ ${result.message}`);
 	}
 
-	/**
-	 * Validate that directory state changed as expected with retry logic
-	 */
 	async validateStateChange(
 		beforeState: DirectoryState,
 		expectedPageDelta: number,
 		expectedFolderDelta: number
 	): Promise<TestValidationResult> {
-		// Retry state validation up to 5 times with increasing delays
 		const maxRetries = 5;
-		const baseDelay = 200; // Start with 200ms delay
+		const baseDelay = 200;
 
 		for (let attempt = 0; attempt <= maxRetries; attempt++) {
 			if (attempt > 0) {
-				// Add progressive delay for retries: 200ms, 400ms, 600ms, 800ms, 1000ms
 				const delay = baseDelay * attempt;
 				await new Promise((resolve) => setTimeout(resolve, delay));
 			}
@@ -143,7 +124,6 @@ export class TestMonitor {
 				};
 			}
 
-			// Log intermediate failures for debugging
 			if (attempt < maxRetries) {
 				console.log(
 					`[Monitor ${this.workerIndex}] State validation attempt ${attempt + 1} failed, retrying... Expected: pages ${expectedPageDelta >= 0 ? '+' : ''}${expectedPageDelta}, folders ${expectedFolderDelta >= 0 ? '+' : ''}${expectedFolderDelta}. Actual: pages ${actualPageDelta >= 0 ? '+' : ''}${actualPageDelta}, folders ${actualFolderDelta >= 0 ? '+' : ''}${actualFolderDelta}`
@@ -151,7 +131,6 @@ export class TestMonitor {
 			}
 		}
 
-		// Final attempt - get state one more time for error reporting
 		const finalState = await this.directoryManager.getDirectoryState();
 		const finalPageDelta = finalState.pageCount - beforeState.pageCount;
 		const finalFolderDelta = finalState.folderCount - beforeState.folderCount;
@@ -169,9 +148,6 @@ export class TestMonitor {
 		};
 	}
 
-	/**
-	 * Assert that directory state changed as expected (throws on failure)
-	 */
 	async assertStateChange(
 		beforeState: DirectoryState,
 		expectedPageDelta: number,
@@ -191,9 +167,6 @@ export class TestMonitor {
 		console.log(`[Monitor ${this.workerIndex}] ✅ ${result.message}`);
 	}
 
-	/**
-	 * Validate that the directory is completely clean
-	 */
 	async validateCleanDirectory(): Promise<TestValidationResult> {
 		const state = await this.directoryManager.getDirectoryState();
 
@@ -212,9 +185,6 @@ export class TestMonitor {
 		};
 	}
 
-	/**
-	 * Assert that the directory is completely clean (throws on failure)
-	 */
 	async assertCleanDirectory(): Promise<void> {
 		const result = await this.validateCleanDirectory();
 
@@ -226,9 +196,6 @@ export class TestMonitor {
 		console.log(`[Monitor ${this.workerIndex}] ✅ ${result.message}`);
 	}
 
-	/**
-	 * Monitor a test operation and validate the expected state change
-	 */
 	async monitorOperation<T>(
 		operationName: string,
 		operation: () => Promise<T>,
@@ -255,9 +222,6 @@ export class TestMonitor {
 		}
 	}
 
-	/**
-	 * Validate test isolation - ensure no cross-worker contamination
-	 */
 	async validateIsolation(): Promise<TestValidationResult> {
 		const isIsolated = await this.directoryManager.verifyIsolation();
 
@@ -274,9 +238,6 @@ export class TestMonitor {
 		};
 	}
 
-	/**
-	 * Assert test isolation (throws on failure)
-	 */
 	async assertIsolation(): Promise<void> {
 		const result = await this.validateIsolation();
 
@@ -288,16 +249,10 @@ export class TestMonitor {
 		console.log(`[Monitor ${this.workerIndex}] ✅ ${result.message}`);
 	}
 
-	/**
-	 * Get state history for debugging
-	 */
 	getStateHistory(): DirectoryState[] {
 		return [...this.stateHistory];
 	}
 
-	/**
-	 * Get performance summary
-	 */
 	getPerformanceSummary(): {
 		workerIndex: number;
 		stateRecords: number;
@@ -323,18 +278,12 @@ export class TestMonitor {
 		};
 	}
 
-	/**
-	 * Log performance summary
-	 */
 	logPerformanceSummary(): void {
 		const summary = this.getPerformanceSummary();
 		console.log(`[Monitor ${this.workerIndex}] Performance Summary:`, summary);
 	}
 }
 
-/**
- * Create a TestMonitor for the given DirectoryManager
- */
 export function createTestMonitor(
 	directoryManager: DirectoryManager,
 	workerIndex: number

@@ -29,7 +29,7 @@ async function performGlobalCleanup() {
 	globalCleanupRegistry.clear();
 }
 
-if (typeof process !== 'undefined') {
+if (typeof globalThis.process !== 'undefined') {
 	process.on('exit', () => {
 		performGlobalCleanup().catch(() => {});
 	});
@@ -111,7 +111,6 @@ export const test = base.extend<{
 		}
 	},
 
-	// Test monitor fixture - provides monitoring and validation
 	testMonitor: async ({ directoryManager }, use, testInfo) => {
 		const testMonitor = createTestMonitor(directoryManager, testInfo.parallelIndex || 0);
 
@@ -124,20 +123,32 @@ export const test = base.extend<{
 	},
 
 	apiHelper: async ({ request }, use, testInfo) => {
-		const apiHelper = new ApiHelper(request, testInfo.parallelIndex);
+		let apiHelper: ApiHelper;
+
+		// Determine which server to use based on project name
+		const projectName = testInfo.project.name;
+		if (projectName.includes('auth-disabled') || projectName === 'chromium-no-auth') {
+			// Use auth-disabled server (port 8081)
+			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
+		} else if (projectName.includes('auth-enabled') || projectName.includes('auth-ui')) {
+			// Use auth-enabled server (port 8082)
+			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
+		} else {
+			// Default behavior for other tests
+			apiHelper = new ApiHelper(request, testInfo.parallelIndex);
+		}
 
 		await use(apiHelper);
 
 		try {
-			console.log(`[ApiHelper] Starting cleanup for worker ${testInfo.parallelIndex}`);
+			console.log(`[ApiHelper] Starting cleanup for project ${projectName}`);
 			await apiHelper.cleanupTestData();
-			console.log(`[ApiHelper] Cleanup completed for worker ${testInfo.parallelIndex}`);
+			console.log(`[ApiHelper] Cleanup completed for project ${projectName}`);
 		} catch (error) {
-			console.error(`[ApiHelper] Cleanup failed for worker ${testInfo.parallelIndex}:`, error);
+			console.error(`[ApiHelper] Cleanup failed for project ${projectName}:`, error);
 		}
 	},
 
-	// Test ID fixture for unique identifiers
 	// eslint-disable-next-line no-empty-pattern
 	testId: async ({}, use) => {
 		const testId = generateTestId();
@@ -146,7 +157,6 @@ export const test = base.extend<{
 
 	// eslint-disable-next-line no-empty-pattern
 	workerBaseURL: async ({}, use, testInfo) => {
-		// Map worker parallel index to frontend port
 		// parallelIndex: 0 -> port 4173, 1 -> port 4174, etc.
 		const port = 4173 + (testInfo.parallelIndex || 0);
 		const baseURL = `http://localhost:${port}`;

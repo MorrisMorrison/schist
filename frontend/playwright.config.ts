@@ -41,67 +41,87 @@ export default defineConfig({
 
 	projects: [
 		{
-			name: 'chromium',
-			use: { ...devices['Desktop Chrome'] }
+			name: 'setup',
+			testMatch: /.*\.setup\.ts/
+		},
+		{
+			name: 'chromium-no-auth',
+			use: {
+				...devices['Desktop Chrome'],
+				baseURL: 'http://localhost:4173'
+			},
+			dependencies: ['setup'],
+			testIgnore: /.*authentication\.test\.ts/
+		},
+		{
+			name: 'auth-disabled-tests',
+			use: {
+				...devices['Desktop Chrome'],
+				baseURL: 'http://localhost:4173'
+			},
+			dependencies: ['setup'],
+			testMatch: /.*authentication\.test\.ts/,
+			grep: /@auth-disabled/
+		},
+		{
+			name: 'auth-enabled-unauthenticated',
+			use: {
+				...devices['Desktop Chrome'],
+				baseURL: 'http://localhost:4174'
+			},
+			dependencies: ['setup'],
+			testMatch: /.*authentication\.test\.ts/,
+			grep: /@auth-enabled-unauth/
+		},
+		{
+			name: 'auth-enabled-authenticated',
+			use: {
+				...devices['Desktop Chrome'],
+				baseURL: 'http://localhost:4174',
+				storageState: 'playwright/.auth/user.json'
+			},
+			dependencies: ['setup'],
+			testMatch: /.*authentication\.test\.ts/,
+			grep: /@auth-enabled-auth/
+		},
+		{
+			name: 'auth-ui-tests',
+			use: {
+				...devices['Desktop Chrome'],
+				baseURL: 'http://localhost:4174'
+			},
+			dependencies: ['setup'],
+			testMatch: /.*authentication\.test\.ts/,
+			grep: /@auth-ui/
 		}
-
-		// {
-		// 	name: 'firefox',
-		// 	use: { ...devices['Desktop Firefox'] }
-		// },
-
-		// {
-		// 	name: 'webkit',
-		// 	use: { ...devices['Desktop Safari'] }
-		// },
-
-		/* Test against mobile viewports. */
-		// {
-		// 	name: 'Mobile Chrome',
-		// 	use: { ...devices['Pixel 5'] }
-		// }
-		// {
-		// 	name: 'Mobile Safari',
-		// 	use: { ...devices['iPhone 12'] }
-		// }
-
-		/* Test against branded browsers. */
-		// {
-		//   name: 'Microsoft Edge',
-		//   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-		// },
-		// {
-		//   name: 'Google Chrome',
-		//   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-		// },
 	],
 
 	webServer: [
 		{
 			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8081 SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data-worker-1 go run main.go',
+				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8081 SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data-auth-disabled go run main.go',
 			port: 8081,
 			reuseExistingServer: true,
 			timeout: 60 * 1000
 		},
-		// {
-		// 	command:
-		// 		'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-worker-2 go run main.go',
-		// 	port: 8082,
-		// 	reuseExistingServer: true,
-		// 	timeout: 60 * 1000
-		// },
+		{
+			command:
+				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_AUTH_USERS="testuser:$2a$10$4g1x0g52pZ1EtekJO8C2YuLrKWMVOi97lBpI0yOo/nXGs5iNywrHe" SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
+			port: 8082,
+			reuseExistingServer: true,
+			timeout: 60 * 1000
+		},
 		{
 			command: 'PUBLIC_API_URL=http://localhost:8081/api npm run preview -- --port 4173',
 			port: 4173,
 			reuseExistingServer: false,
 			timeout: 60 * 1000
+		},
+		{
+			command: 'PUBLIC_API_URL=http://localhost:8082/api npm run preview -- --port 4174',
+			port: 4174,
+			reuseExistingServer: true,
+			timeout: 60 * 1000
 		}
-		// {
-		// 	command: 'PUBLIC_API_URL=http://localhost:8082/api npm run preview -- --port 4174',
-		// 	port: 4174,
-		// 	reuseExistingServer: false,
-		// 	timeout: 60 * 1000
-		// }
 	]
 });

@@ -1,7 +1,3 @@
-/**
- * Test data utilities for generating consistent test content
- */
-
 export interface TestDocumentData {
 	title: string;
 	content: string;
@@ -16,9 +12,6 @@ export interface TestFolderData {
 	description?: string;
 }
 
-/**
- * Generate unique test identifiers
- */
 export function generateTestId(): string {
 	return `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
@@ -32,9 +25,6 @@ function generateSlug(title: string): string {
 			.replace(/^-|-$/g, '') || ''
 	);
 }
-/**
- * Generate test document data
- */
 export function createTestDocument(overrides: Partial<TestDocumentData> = {}): TestDocumentData {
 	const testId = generateTestId();
 	const slug = generateSlug(overrides.title!);
@@ -48,9 +38,6 @@ export function createTestDocument(overrides: Partial<TestDocumentData> = {}): T
 	};
 }
 
-/**
- * Generate simple test document
- */
 export function createSimpleTestDocument(
 	overrides: Partial<TestDocumentData> = {}
 ): TestDocumentData {
@@ -63,9 +50,6 @@ export function createSimpleTestDocument(
 	};
 }
 
-/**
- * Generate complex test document with various markdown elements
- */
 export function createComplexTestDocument(
 	overrides: Partial<TestDocumentData> = {}
 ): TestDocumentData {
@@ -158,9 +142,6 @@ Test ID: ${testId}`,
 	};
 }
 
-/**
- * Generate test folder data
- */
 export function createTestFolder(overrides: Partial<TestFolderData> = {}): TestFolderData {
 	const testId = generateTestId();
 	return {
@@ -171,9 +152,6 @@ export function createTestFolder(overrides: Partial<TestFolderData> = {}): TestF
 	};
 }
 
-/**
- * Generate nested folder structure
- */
 export function createNestedFolders(depth: number = 3): TestFolderData[] {
 	const folders: TestFolderData[] = [];
 	const baseId = generateTestId();
@@ -193,9 +171,6 @@ export function createNestedFolders(depth: number = 3): TestFolderData[] {
 	return folders;
 }
 
-/**
- * Generate test documents for a folder
- */
 export function createDocumentsForFolder(
 	folderPath: string,
 	count: number = 3
@@ -215,20 +190,13 @@ export function createDocumentsForFolder(
 	return documents;
 }
 
-/**
- * Sample content types for different test scenarios
- */
 export const testContent = {
-	// Empty content
 	empty: '',
 
-	// Minimal content
 	minimal: '# Test\n\nMinimal content.',
 
-	// Only title
 	titleOnly: '# Just a Title',
 
-	// Large content
 	large: `# Large Test Document
 
 ${Array.from(
@@ -237,7 +205,6 @@ ${Array.from(
 		`## Section ${i + 1}\n\nThis is section ${i + 1} with some content that makes the page quite long. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\n`
 ).join('')}`,
 
-	// Special characters
 	specialChars: `# Special Characters Test
 
 This page tests various special characters:
@@ -259,7 +226,6 @@ const special = {
 };
 \`\`\``,
 
-	// Invalid markdown
 	invalidMarkdown: `# Broken Markdown
 
 This has **unclosed bold
@@ -277,7 +243,6 @@ without proper formatting
 ### headers
 `,
 
-	// Wiki links
 	wikiLinks: `# Wiki Links Test
 
 Internal links:
@@ -292,9 +257,6 @@ Mixed links:
 - [[Another/Internal/Page]]`
 };
 
-/**
- * Common test tags
- */
 export const commonTags = {
 	test: ['test', 'e2e', 'automation'],
 	docs: ['documentation', 'guide', 'reference'],
@@ -304,9 +266,6 @@ export const commonTags = {
 	performance: ['performance', 'optimization', 'speed']
 };
 
-/**
- * Generate random content for stress testing
- */
 export function generateRandomContent(paragraphs: number = 5): string {
 	const sentences = [
 		'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
@@ -336,9 +295,6 @@ export function generateRandomContent(paragraphs: number = 5): string {
 	return content.join('');
 }
 
-/**
- * Legacy aliases for backwards compatibility
- */
 export type TestPageData = TestDocumentData;
 export const createTestPage = createTestDocument;
 export const createSimpleTestPage = createSimpleTestDocument;
@@ -346,9 +302,6 @@ export const createComplexTestPage = createComplexTestDocument;
 export const createPagesForFolder = createDocumentsForFolder;
 export const validateTestPage = validateTestDocument;
 
-/**
- * Validate test data
- */
 export function validateTestDocument(document: TestDocumentData): boolean {
 	return !!(document.title && document.content);
 }

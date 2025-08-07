@@ -40,7 +40,7 @@ export class FolderPage extends BasePage {
 
 		this.folderTitle = page.locator('h1').first();
 		this.folderPath = page.getByTestId('folder-path');
-		this.subFolders = page.getByTestId('folder-tree'); // Folders are now in sidebar tree only
+		this.subFolders = page.getByTestId('folder-tree');
 		this.documents = page.getByTestId('documents-section');
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
@@ -76,124 +76,79 @@ export class FolderPage extends BasePage {
 		this.filterInput = page.getByPlaceholder(/filter|search/i);
 	}
 
-	/**
-	 * Navigate to a specific folder
-	 */
 	async navigateToFolder(folderPath: string = '') {
 		await this.goto(`/folders${folderPath}`);
 		await this.waitForLoad();
 	}
 
-	/**
-	 * Navigate to root folders page
-	 */
 	async navigateToRoot() {
 		await this.navigateToFolder('');
 	}
 
-	/**
-	 * Verify folder page is loaded
-	 */
 	async verifyFolderLoaded(expectedFolderName?: string) {
 		await this.waitForVisible(this.folderTitle);
 
 		if (expectedFolderName) {
-			// Transform folder name to match UI display format (capitalize + replace hyphens with spaces)
 			const displayName =
 				expectedFolderName.charAt(0).toUpperCase() + expectedFolderName.slice(1).replace(/-/g, ' ');
 			await expect(this.folderTitle).toContainText(displayName);
 		}
 	}
 
-	/**
-	 * Create a new folder
-	 */
 	async createFolder(folderName: string) {
-		// Click create folder button
 		await this.createFolderButton.click();
 
-		// Wait for modal to be visible
 		await this.waitForVisible(this.createFolderModal);
 
-		// Wait for input field to be ready
 		await this.waitForVisible(this.folderNameInput);
 
-		// Fill the folder name
 		await this.fillInput(this.folderNameInput, folderName);
 
-		// Click create button
 		await this.confirmCreateFolder.click();
 
-		// Wait for modal to close
 		await expect(this.createFolderModal).toBeHidden();
 
-		// Wait for network requests to complete
 		await this.page.waitForLoadState('networkidle');
 
-		// Add additional wait to ensure backend processing completes
-		// This helps with parallel test execution timing issues
 		await this.page.waitForTimeout(200);
 	}
 
-	/**
-	 * Cancel folder creation
-	 */
 	async cancelFolderCreation() {
 		await this.createFolderButton.click();
 		await this.waitForVisible(this.createFolderModal);
 		await this.cancelCreateFolder.click();
 	}
 
-	/**
-	 * Create a new document in current folder
-	 */
 	async createDocumentInFolder() {
 		await this.createDocumentButton.click();
 		await this.page.waitForURL(/\/new/);
 	}
 
-	/**
-	 * Navigate to a subfolder - now uses sidebar navigation only
-	 */
 	async openSubFolder(folderName: string) {
 		const folderButton = this.folderTree.getByRole('button', { name: `Open folder ${folderName}` });
 		await folderButton.click();
 		await this.waitForLoad();
 	}
 
-	/**
-	 * Navigate to a document in the folder
-	 */
 	async openDocument(documentName: string) {
 		const documentLink = this.documents.getByRole('link', { name: documentName });
 		await documentLink.click();
 		await this.waitForLoad();
 	}
 
-	/**
-	 * Get list of subfolder names - now from sidebar only
-	 */
 	async getSubFolderNames(): Promise<string[]> {
-		// Get folder names from sidebar tree by looking for "Open folder" buttons
 		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
 		const ariaLabels = await folderButtons.evaluateAll((elements) =>
 			elements.map((el) => el.getAttribute('aria-label') || '')
 		);
-		// Extract just the folder name from "Open folder [name]" aria-label
 		return ariaLabels.map((label) => label.replace('Open folder ', ''));
 	}
 
-	/**
-	 * Get list of document names in folder
-	 */
 	async getDocumentNames(): Promise<string[]> {
 		const documentLinks = this.documents.locator('a');
 		return await documentLinks.allTextContents();
 	}
 
-	/**
-	 * Verify folder contains specific subfolder - now checks sidebar only
-	 */
 	async verifyContainsFolder(folderName: string) {
 		const expandButtons = this.folderTree.getByRole('button').filter({ hasText: /expand folder/i });
 		const expandCount = await expandButtons.count();
@@ -202,7 +157,7 @@ export class FolderPage extends BasePage {
 			const expandButton = expandButtons.nth(i);
 			if (await expandButton.isVisible()) {
 				await expandButton.click();
-				await this.page.waitForTimeout(300); // Wait for expansion
+				await this.page.waitForTimeout(300);
 			}
 		}
 
@@ -214,9 +169,6 @@ export class FolderPage extends BasePage {
 		await expect(folderButton.first()).toBeVisible({ timeout: 10000 });
 	}
 
-	/**
-	 * Check if folder exists in sidebar (returns boolean)
-	 */
 	async folderExistsInSidebar(folderName: string): Promise<boolean> {
 		try {
 			const folderButton = this.folderTree.getByRole('button', {
@@ -228,17 +180,12 @@ export class FolderPage extends BasePage {
 		}
 	}
 
-	/**
-	 * Verify folder contains specific document
-	 */
 	async verifyContainsDocument(documentName: string) {
-		// Try more robust selectors first, fallback to text
 		const documentByTestId = this.documents
 			.getByTestId('document-item')
 			.filter({ hasText: documentName });
 		const documentByText = this.documents.getByText(documentName);
 
-		// Check if we can find it by test ID first
 		if (
 			await documentByTestId
 				.first()
@@ -247,47 +194,31 @@ export class FolderPage extends BasePage {
 		) {
 			await expect(documentByTestId.first()).toBeVisible();
 		} else {
-			// Fallback to text-based search
 			await expect(documentByText).toBeVisible();
 		}
 	}
 
-	/**
-	 * Find document by path attribute (more robust than text)
-	 */
 	async findDocumentByPath(documentPath: string) {
 		return this.documents
 			.locator(`[aria-label*="${documentPath}"]`)
 			.or(this.documents.getByTestId('document-item').filter({ hasText: documentPath }));
 	}
 
-	/**
-	 * Verify folder is empty
-	 */
 	async verifyEmptyFolder() {
 		await expect(this.emptyFolderMessage).toBeVisible();
 	}
 
-	/**
-	 * Navigate using breadcrumbs
-	 */
 	async clickBreadcrumb(breadcrumbText: string) {
 		const breadcrumb = this.breadcrumbs.getByRole('link', { name: breadcrumbText });
 		await breadcrumb.click();
 		await this.waitForLoad();
 	}
 
-	/**
-	 * Get breadcrumb path
-	 */
 	async getBreadcrumbPath(): Promise<string[]> {
 		const breadcrumbLinks = this.breadcrumbs.locator('a');
 		return await breadcrumbLinks.allTextContents();
 	}
 
-	/**
-	 * Expand folder tree node
-	 */
 	async expandTreeNode(folderName: string) {
 		const node = this.folderTree.getByTestId('folder-tree-item').filter({ hasText: folderName });
 		const expandButton = node
@@ -299,9 +230,6 @@ export class FolderPage extends BasePage {
 		}
 	}
 
-	/**
-	 * Collapse folder tree node
-	 */
 	async collapseTreeNode(folderName: string) {
 		const node = this.folderTree.getByTestId('folder-tree-item').filter({ hasText: folderName });
 		const collapseButton = node
@@ -313,36 +241,22 @@ export class FolderPage extends BasePage {
 		}
 	}
 
-	/**
-	 * Navigate via folder tree
-	 */
 	async clickTreeFolder(folderPath: string) {
 		const treeLink = this.folderTree.getByRole('link', { name: folderPath });
 		await treeLink.click();
 		await this.waitForLoad();
 	}
 
-	/**
-	 * Filter folder contents
-	 */
 	async filterContents(searchTerm: string) {
 		await this.filterInput.fill(searchTerm);
-		// Wait for filter to apply - check that filter value is set
 		await expect(this.filterInput).toHaveValue(searchTerm);
-		// Allow brief moment for filtering to complete
 		await this.page.waitForLoadState('networkidle');
 	}
 
-	/**
-	 * Clear filter
-	 */
 	async clearFilter() {
 		await this.filterInput.clear();
 	}
 
-	/**
-	 * Sort folder contents
-	 */
 	async sortBy(sortOption: string) {
 		if (await this.sortOptions.isVisible()) {
 			await this.sortOptions.selectOption(sortOption);
@@ -350,50 +264,32 @@ export class FolderPage extends BasePage {
 		}
 	}
 
-	/**
-	 * Count total items in folder
-	 */
 	async getTotalItemCount(): Promise<number> {
 		const folderCount = await this.folderItems.count();
 		const documentCount = await this.documentItems.count();
 		return folderCount + documentCount;
 	}
 
-	/**
-	 * Count subfolders - now from sidebar only
-	 */
 	async getSubFolderCount(): Promise<number> {
-		// Count folders in sidebar tree by looking for buttons with "Open folder" aria-label
-		// These are the buttons that open folders, not documents
 		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
 		return await folderButtons.count();
 	}
 
-	/**
-	 * Count documents in folder
-	 */
 	async getDocumentCount(): Promise<number> {
 		return await this.documentItems.count();
 	}
 
-	/**
-	 * Verify folder structure depth
-	 */
 	async verifyFolderDepth(expectedDepth: number) {
 		const breadcrumbs = await this.getBreadcrumbPath();
-		expect(breadcrumbs.length).toBe(expectedDepth + 1); // +1 for root
+		expect(breadcrumbs.length).toBe(expectedDepth + 1);
 	}
 
-	/**
-	 * Navigate back to parent folder
-	 */
 	async goBack() {
 		if (await this.backButton.isVisible()) {
 			await this.backButton.click();
 		} else {
-			// Fallback: use breadcrumbs
 			const breadcrumbs = this.breadcrumbs.locator('a');
-			const parentBreadcrumb = breadcrumbs.nth(-2); // Second to last
+			const parentBreadcrumb = breadcrumbs.nth(-2);
 			if (await parentBreadcrumb.isVisible()) {
 				await parentBreadcrumb.click();
 			}
@@ -401,30 +297,18 @@ export class FolderPage extends BasePage {
 		await this.waitForLoad();
 	}
 
-	/**
-	 * Verify folder URL matches expected path
-	 */
 	async verifyFolderUrl(expectedPath: string) {
 		await this.expectUrl(`/folders${expectedPath}`);
 	}
 
-	/**
-	 * Check if folder creation is allowed
-	 */
 	async canCreateFolder(): Promise<boolean> {
 		return await this.createFolderButton.isVisible();
 	}
 
-	/**
-	 * Check if document creation is allowed
-	 */
 	async canCreateDocument(): Promise<boolean> {
 		return await this.createDocumentButton.isVisible();
 	}
 
-	/**
-	 * Legacy aliases for backwards compatibility
-	 */
 	async canCreatePage(): Promise<boolean> {
 		return await this.canCreateDocument();
 	}
@@ -449,7 +333,6 @@ export class FolderPage extends BasePage {
 		return await this.getDocumentCount();
 	}
 
-	// Legacy property aliases
 	get pages() {
 		return this.documents;
 	}

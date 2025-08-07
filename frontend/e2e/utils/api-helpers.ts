@@ -1,7 +1,3 @@
-/**
- * API helper utilities for e2e test setup and cleanup
- */
-
 import { APIRequestContext, expect } from '@playwright/test';
 import { TestDocumentData, TestPageData, TestFolderData } from './test-data';
 
@@ -33,16 +29,24 @@ interface DocumentData {
 	};
 	content?: string;
 }
-
 export class ApiHelper {
 	private apiContext: APIRequestContext;
 	private baseURL: string;
 	private workerIndex: number;
+	private authToken?: string;
 
-	constructor(apiContext: APIRequestContext, workerIndex?: number, baseURL?: string) {
+	constructor(apiContext: APIRequestContext, _workerIndex?: number, baseURL?: string) {
 		this.apiContext = apiContext;
-		this.workerIndex = workerIndex ?? 0;
-		this.baseURL = baseURL || this.getWorkerSpecificBaseURL(workerIndex);
+		this.workerIndex = _workerIndex ?? 0;
+		this.baseURL = baseURL || this.getWorkerSpecificBaseURL(_workerIndex);
+	}
+
+	setAuthToken(token: string) {
+		this.authToken = token;
+	}
+
+	private getAuthHeaders(): { [key: string]: string } {
+		return this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {};
 	}
 
 	private getWorkerSpecificBaseURL(workerIndex?: number): string {
@@ -51,9 +55,6 @@ export class ApiHelper {
 		return `http://localhost:${port}/api`;
 	}
 
-	/**
-	 * Health check
-	 */
 	async healthCheck(): Promise<boolean> {
 		try {
 			const response = await this.apiContext.get(`${this.baseURL}/health`);
@@ -64,9 +65,6 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Create a document via API
-	 */
 	async createDocument(documentData: TestDocumentData): Promise<ApiResponse> {
 		try {
 			const response = await this.apiContext.post(`${this.baseURL}/documents`, {
@@ -77,7 +75,8 @@ export class ApiHelper {
 						tags: documentData.tags || []
 					},
 					content: documentData.content
-				}
+				},
+				headers: this.getAuthHeaders()
 			});
 
 			const data = await response.json();
@@ -86,7 +85,6 @@ export class ApiHelper {
 				data: data
 			};
 
-			// Simple wait after document creation to avoid race conditions
 			if (response.status() === 201) {
 				await new Promise((resolve) => setTimeout(resolve, 300));
 			}
@@ -100,12 +98,11 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Get a document by path
-	 */
 	async getDocument(path: string): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.get(`${this.baseURL}/documents${path}`);
+			const response = await this.apiContext.get(`${this.baseURL}/documents${path}`, {
+				headers: this.getAuthHeaders()
+			});
 
 			if (!response.ok()) {
 				return { status: response.status(), error: 'Document not found' };
@@ -124,9 +121,6 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Update a document via API
-	 */
 	async updateDocument(
 		path: string,
 		documentData: Partial<TestDocumentData>
@@ -140,7 +134,8 @@ export class ApiHelper {
 						tags: documentData.tags || []
 					},
 					content: documentData.content
-				}
+				},
+				headers: this.getAuthHeaders()
 			});
 
 			const data = await response.json();
@@ -156,12 +151,11 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Delete a document via API
-	 */
 	async deleteDocument(path: string): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.delete(`${this.baseURL}/documents${path}`);
+			const response = await this.apiContext.delete(`${this.baseURL}/documents${path}`, {
+				headers: this.getAuthHeaders()
+			});
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -175,12 +169,11 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * List all documents
-	 */
 	async listDocuments(): Promise<ApiResponse<DocumentListData>> {
 		try {
-			const response = await this.apiContext.get(`${this.baseURL}/documents`);
+			const response = await this.apiContext.get(`${this.baseURL}/documents`, {
+				headers: this.getAuthHeaders()
+			});
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -194,12 +187,11 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Create a folder via API
-	 */
 	async createFolder(folderData: TestFolderData): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.post(`${this.baseURL}/folders${folderData.path}`);
+			const response = await this.apiContext.post(`${this.baseURL}/folders${folderData.path}`, {
+				headers: this.getAuthHeaders()
+			});
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -213,12 +205,11 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Get folder contents
-	 */
 	async getFolder(path: string): Promise<ApiResponse<FolderListData>> {
 		try {
-			const response = await this.apiContext.get(`${this.baseURL}/folders${path}`);
+			const response = await this.apiContext.get(`${this.baseURL}/folders${path}`, {
+				headers: this.getAuthHeaders()
+			});
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -232,12 +223,11 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Delete a folder via API
-	 */
 	async deleteFolder(path: string): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.delete(`${this.baseURL}/folders${path}`);
+			const response = await this.apiContext.delete(`${this.baseURL}/folders${path}`, {
+				headers: this.getAuthHeaders()
+			});
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -251,13 +241,13 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Search for documents
-	 */
 	async searchDocuments(query: string): Promise<ApiResponse> {
 		try {
 			const response = await this.apiContext.get(
-				`${this.baseURL}/search?q=${encodeURIComponent(query)}`
+				`${this.baseURL}/search?q=${encodeURIComponent(query)}`,
+				{
+					headers: this.getAuthHeaders()
+				}
 			);
 			const data = await response.json();
 			return {
@@ -272,9 +262,6 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Upload an asset
-	 */
 	async uploadAsset(_filePath: string, fileName: string = 'test-image.png'): Promise<ApiResponse> {
 		try {
 			const response = await this.apiContext.post(`${this.baseURL}/assets/upload`, {
@@ -284,7 +271,8 @@ export class ApiHelper {
 						mimeType: 'image/png',
 						buffer: new TextEncoder().encode('fake-image-data') // For testing
 					}
-				}
+				},
+				headers: this.getAuthHeaders()
 			});
 
 			const data = await response.json();
@@ -300,12 +288,11 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Delete an asset
-	 */
 	async deleteAsset(assetPath: string): Promise<ApiResponse> {
 		try {
-			const response = await this.apiContext.delete(`${this.baseURL}/assets${assetPath}`);
+			const response = await this.apiContext.delete(`${this.baseURL}/assets${assetPath}`, {
+				headers: this.getAuthHeaders()
+			});
 			const data = await response.json();
 			return {
 				status: response.status(),
@@ -319,9 +306,6 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Wait for API to be ready
-	 */
 	async waitForApiReady(timeoutMs: number = 30000): Promise<boolean> {
 		const startTime = Date.now();
 
@@ -365,36 +349,6 @@ export class ApiHelper {
 		}
 	}
 
-	private async waitForDocumentAvailable(path: string, maxAttempts: number = 15): Promise<void> {
-		const delay = 150;
-
-		for (let attempt = 0; attempt < maxAttempts; attempt++) {
-			try {
-				const result = await this.getDocument(path);
-				if (result.status === 200) {
-					if (attempt > 0) {
-						console.log(
-							`[ApiHelper] Document ${path} became available after ${attempt + 1} attempts (worker ${this.workerIndex})`
-						);
-					}
-					return;
-				}
-			} catch (error) {
-				// Continue trying
-				console.error(error);
-			}
-
-			if (attempt < maxAttempts - 1) {
-				// Progressive backoff: 150ms, 300ms, 450ms, etc.
-				await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)));
-			}
-		}
-
-		console.warn(
-			`[ApiHelper] Document ${path} may not be fully available after ${maxAttempts} attempts (worker ${this.workerIndex})`
-		);
-	}
-
 	/**
 	 * Legacy aliases for backwards compatibility
 	 */
@@ -422,13 +376,6 @@ export class ApiHelper {
 		return this.searchDocuments(query);
 	}
 
-	/**
-	 * Authentication methods
-	 */
-
-	/**
-	 * Get application configuration (including auth status)
-	 */
 	async getConfig(): Promise<{ auth_enabled: boolean }> {
 		try {
 			const response = await this.apiContext.get(`${this.baseURL}/config`);
@@ -446,38 +393,37 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Make a direct API request (useful for testing auth)
-	 */
 	async request(
 		method: string,
 		endpoint: string,
-		data?: { username; password }
+		data?: { username: string; password: string }
 	): Promise<ApiResponse> {
 		try {
 			const url = endpoint.startsWith('/')
 				? `${this.baseURL}${endpoint}`
 				: `${this.baseURL}/${endpoint}`;
 
-			let response;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			let response: any;
+			const headers = this.getAuthHeaders();
 			switch (method.toUpperCase()) {
 				case 'GET':
-					response = await this.apiContext.get(url);
+					response = await this.apiContext.get(url, { headers });
 					break;
 				case 'POST':
-					response = await this.apiContext.post(url, { data });
+					response = await this.apiContext.post(url, { data, headers });
 					break;
 				case 'PUT':
-					response = await this.apiContext.put(url, { data });
+					response = await this.apiContext.put(url, { data, headers });
 					break;
 				case 'DELETE':
-					response = await this.apiContext.delete(url);
+					response = await this.apiContext.delete(url, { headers });
 					break;
 				default:
 					throw new Error(`Unsupported method: ${method}`);
 			}
 
-			let responseData;
+			let responseData: unknown;
 			try {
 				responseData = await response.json();
 			} catch {
@@ -496,23 +442,14 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Login with username and password (when auth is enabled)
-	 */
 	async login(username: string, password: string): Promise<ApiResponse> {
 		return this.request('POST', '/auth/login', { username, password });
 	}
 
-	/**
-	 * Logout (when auth is enabled)
-	 */
 	async logout(): Promise<ApiResponse> {
 		return this.request('POST', '/auth/logout');
 	}
 
-	/**
-	 * Get current user info (when auth is enabled)
-	 */
 	async getCurrentUser(): Promise<ApiResponse> {
 		return this.request('GET', '/auth/me');
 	}
@@ -538,9 +475,6 @@ export async function createTestFolders(
 	}
 }
 
-/**
- * Verify document exists via API
- */
 export async function verifyDocumentExists(
 	apiHelper: ApiHelper,
 	path: string,
@@ -555,17 +489,11 @@ export async function verifyDocumentExists(
 	}
 }
 
-/**
- * Verify folder exists via API
- */
 export async function verifyFolderExists(apiHelper: ApiHelper, path: string): Promise<void> {
 	const result = await apiHelper.getFolder(path);
 	expect(result.status).toBe(200);
 }
 
-/**
- * Wait for document to be created/updated
- */
 export async function waitForDocumentUpdate(
 	apiHelper: ApiHelper,
 	path: string,
@@ -588,18 +516,12 @@ export async function waitForDocumentUpdate(
 	return false;
 }
 
-/**
- * Get the worker-specific API base URL for direct page.request calls
- */
 export function getWorkerApiURL(workerIndex?: number): string {
 	const index = workerIndex ?? 0;
 	const port = 8081 + index;
 	return `http://localhost:${port}/api`;
 }
 
-/**
- * Get the worker-specific base URL (without /api) for direct requests
- */
 export function getWorkerBaseURL(workerIndex?: number): string {
 	const index = workerIndex ?? 0;
 	const port = 8081 + index;
@@ -611,9 +533,6 @@ export const createTestPages = createTestDocuments;
 export const verifyPageExists = verifyDocumentExists;
 export const waitForPageUpdate = waitForDocumentUpdate;
 
-/**
- * Mock API responses for testing error scenarios
- */
 export class MockApiHelper extends ApiHelper {
 	private shouldFail = false;
 	private failureStatus = 500;

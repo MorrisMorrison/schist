@@ -61,6 +61,8 @@ class AuthService {
 
 		try {
 			const response = await apiClient.login({ username, password });
+			// Set the token in the API client immediately after successful login
+			apiClient.setAuthToken(response.token);
 			authActions.setAuth(response.token, response.user);
 			return response;
 		} catch (error) {

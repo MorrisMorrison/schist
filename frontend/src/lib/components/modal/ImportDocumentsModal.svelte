@@ -77,16 +77,14 @@
 			const result = await apiClient.importDocuments(selectedFiles, options);
 			importResult = result;
 
-			// Refresh data if any files were imported successfully
 			if (result.imported_count > 0) {
 				await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
 			}
 
 			if (result.failed_count === 0) {
-				// All files imported successfully
 				setTimeout(() => {
 					onSuccess();
-				}, 2000); // Show success message for 2 seconds
+				}, 2000); 
 			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to import documents';
@@ -95,7 +93,6 @@
 		}
 	}
 
-	// Generate folder options for select
 	function generateFolderOptions(
 		folders: Folder[],
 		prefix = ''

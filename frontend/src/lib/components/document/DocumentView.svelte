@@ -19,13 +19,12 @@
 		document: Document;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void | Promise<void>;
-		// onMove?: (document: Document) => void; // TODO: implement move functionality
 	}
 
 	let {
 		document,
 		onEdit = () => {},
-		onDelete = () => {} /* onMove = () => {} */
+		onDelete = () => {} 
 	}: Props = $props();
 
 	let showDeleteModal = $state(false);
@@ -358,7 +357,6 @@
 	{/if}
 </div>
 
-<!-- Delete Confirmation Modal -->
 <DeleteConfirmModal
 	open={showDeleteModal}
 	{isDeleting}
@@ -366,7 +364,6 @@
 	onCancel={handleCancelDelete}
 />
 
-<!-- Image Lightbox Modal -->
 <ImageLightbox
 	src={$imageLightbox.src}
 	alt={$imageLightbox.alt}
@@ -374,7 +371,6 @@
 	onClose={imageLightboxActions.close}
 />
 
-<!-- Version History Modal -->
 <VersionHistoryModal
 	open={showVersionHistory}
 	path={documentPath}

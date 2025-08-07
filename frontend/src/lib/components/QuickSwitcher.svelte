@@ -25,7 +25,6 @@
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let inputElement = $state<HTMLInputElement>();
 
-	// Derived state - automatically computed, no infinite loops
 	const displayResults = $derived(
 		query.trim() === '' ? recentDocuments.slice(0, 8) : results.slice(0, 10)
 	);
@@ -35,7 +34,6 @@
 			selectedIndex = 0;
 			query = '';
 			loadInitialData();
-			// Focus input after modal opens
 			setTimeout(() => inputElement?.focus(), 50);
 		}
 	});
@@ -49,7 +47,6 @@
 			selectedIndex = 0;
 		}
 
-		// Cleanup timeout on effect cleanup
 		return () => {
 			clearTimeout(searchTimeout);
 		};
@@ -57,10 +54,8 @@
 
 	async function loadInitialData() {
 		try {
-			// Load all documents for local fuzzy search
 			allDocuments = await apiClient.getDocuments();
 
-			// Load recent documents
 			const recentPaths = getRecentDocumentPaths();
 			recentDocuments = recentPaths
 				.map((path) => allDocuments.find((doc) => doc.metaData.path === path))
@@ -78,7 +73,6 @@
 
 		isSearching = true;
 		try {
-			// Use local fuzzy search instead of API call for better UX
 			const searchResults = fuzzySearchDocuments(allDocuments, query.trim());
 			results = [...searchResults];
 			selectedIndex = 0;
@@ -114,10 +108,8 @@
 	}
 
 	function selectDocument(document: Document) {
-		// Track as recent document
 		addToRecentDocuments(document.metaData.path);
 
-		// Navigate to document
 		goto(`/documents${document.metaData.path}`);
 		onClose();
 	}

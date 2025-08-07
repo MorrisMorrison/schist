@@ -4,7 +4,6 @@
 	export let showTaskExample: boolean = false;
 </script>
 
-<!-- Help Text -->
 <div class="bg-blue-muted rounded-lg p-4">
 	<div class="flex">
 		<div class="flex-shrink-0">

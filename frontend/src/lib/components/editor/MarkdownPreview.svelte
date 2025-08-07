@@ -57,7 +57,6 @@
 
 <style>
 	.markdown-preview {
-		/* Custom scrollbar for preview */
 		scrollbar-width: thin;
 		scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 	}
@@ -79,27 +78,23 @@
 		background-color: rgba(156, 163, 175, 0.7);
 	}
 
-	/* Ensure tables are responsive */
 	:global(.markdown-preview table) {
 		display: block;
 		overflow-x: auto;
 		white-space: nowrap;
 	}
 
-	/* Improve code block styling */
 	:global(.markdown-preview pre) {
 		overflow-x: auto;
 		border-radius: 0.375rem;
 	}
 
-	/* Improve blockquote styling */
 	:global(.markdown-preview blockquote) {
 		border-left: 4px solid;
 		padding-left: 1rem;
 		margin: 1rem 0;
 	}
 
-	/* Task list styling */
 	:global(.markdown-preview ul li input[type='checkbox']) {
 		margin-right: 0.5rem;
 	}

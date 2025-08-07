@@ -259,7 +259,7 @@
 				return '';
 			}
 
-			pathSegments.pop(); 
+			pathSegments.pop();
 			return '/' + pathSegments.join('/');
 		}
 

@@ -11,7 +11,7 @@
 		let rawSegments = path.split('/').filter((segment) => segment !== '');
 		const isDocumentPath = page.url.pathname.includes('documents');
 		if (isDocumentPath && rawSegments.length > 0) {
-			rawSegments = rawSegments.slice(0, -1); 
+			rawSegments = rawSegments.slice(0, -1);
 		}
 		segments = rawSegments.map((segment, index, array) => {
 			const fullPath = '/' + array.slice(0, index + 1).join('/');

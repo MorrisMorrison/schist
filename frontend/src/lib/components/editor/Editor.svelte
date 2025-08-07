@@ -6,7 +6,6 @@
 
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
-	import FullscreenEditor from './FullscreenEditor.svelte';
 	import type { EditorProps, FormattingType } from '$lib/types/editor';
 	import { theme } from '$lib/stores/theme.js';
 	import { imagePasteExtension } from '$lib/utils/image-paste.js';
@@ -18,8 +17,9 @@
 		autoSave = {},
 		onContentChange,
 		onSave,
-		readonly = false
-	}: Omit<EditorProps, 'theme'> = $props();
+		readonly = false,
+		fullscreen = false
+	}: Omit<EditorProps, 'theme'> & { fullscreen?: boolean } = $props();
 
 	let editorElement: HTMLElement;
 	let editorView: EditorView | null = null;
@@ -27,7 +27,7 @@
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
-	let isFullscreen = $state(false);
+	let isFullscreen = $state(fullscreen);
 
 	let editorHeight = $state(700);
 	let isResizing = $state(false);
@@ -314,7 +314,7 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'F11') {
+		if (event.key === 'F11' || (isFullscreen && event.key === 'Escape')) {
 			event.preventDefault();
 			toggleFullscreen();
 			return;
@@ -497,20 +497,26 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="markdown-editor flex flex-col {themeClasses}" style="height: {editorHeight}px;">
+<div
+	class="markdown-editor flex flex-col {themeClasses} {isFullscreen ? 'fixed inset-0 z-50' : ''}"
+	style={isFullscreen ? '' : `height: ${editorHeight}px;`}
+	role={isFullscreen ? 'dialog' : 'region'}
+	aria-modal={isFullscreen}
+	aria-label={isFullscreen ? 'Fullscreen Editor' : 'Markdown Editor'}
+>
 	<!-- Toolbar -->
 	<EditorToolbar
 		onFormat={formatText}
 		theme={currentTheme}
 		disabled={readonly}
 		onFullscreenToggle={toggleFullscreen}
-		isFullscreen={false}
+		{isFullscreen}
 	/>
 
 	<!-- Editor and Preview Container -->
-	<div class="border-primary flex flex-1 overflow-hidden border-r border-l">
+	<div class="flex flex-1 overflow-hidden {isFullscreen ? '' : 'border-primary border-r border-l'}">
 		<!-- Editor Panel -->
-		<div class="border-primary flex flex-1 flex-col border-r">
+		<div class="border-primary flex flex-1 flex-col {isPreviewVisible ? 'border-r' : ''}">
 			<!-- Editor Controls -->
 			<div
 				class="border-primary flex min-h-[3rem] items-center justify-between border-b px-4 py-2 {currentTheme ===
@@ -519,7 +525,7 @@
 					: 'bg-gray-50'}"
 			>
 				<div class="flex items-center gap-4">
-					<span class="text-sm font-medium">Editor</span>
+					<span class="text-sm font-medium">{isFullscreen ? 'Fullscreen Editor' : 'Editor'}</span>
 					{#if isDirty}
 						<span
 							class="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200"
@@ -537,13 +543,18 @@
 						</span>
 					{/if}
 				</div>
-				<button
-					class="border-secondary rounded border px-3 py-1 text-sm transition-colors
-						{currentTheme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}"
-					onclick={togglePreview}
-				>
-					{isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
-				</button>
+				<div class="flex items-center gap-2">
+					<button
+						class="border-secondary rounded border px-3 py-1 text-sm transition-colors
+							{currentTheme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}"
+						onclick={togglePreview}
+					>
+						{isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
+					</button>
+					{#if isFullscreen}
+						<span class="text-xs text-gray-500">Press F11 or Escape to exit</span>
+					{/if}
+				</div>
 			</div>
 
 			<!-- CodeMirror Editor -->
@@ -561,10 +572,7 @@
 						? 'bg-gray-800'
 						: 'bg-gray-50'}"
 				>
-					<div class="flex items-center gap-4">
-						<span class="text-sm font-medium">Preview</span>
-					</div>
-					<div></div>
+					<span class="text-sm font-medium">Preview</span>
 				</div>
 				<div class="flex-1 overflow-hidden">
 					<MarkdownPreview content={currentContent} theme={currentTheme} />
@@ -627,31 +635,25 @@
 				<span>Auto-save enabled</span>
 			{/if}
 			<span>Theme: {currentTheme}</span>
+			{#if isFullscreen}
+				<span>Fullscreen Mode</span>
+			{/if}
 		</div>
 	</div>
 
-	<!-- Resize Handle -->
-	<div
-		class="border-primary flex h-4 cursor-ns-resize items-center justify-center border-t bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
-		onmousedown={handleResizeStart}
-		role="button"
-		tabindex="0"
-		aria-label="Resize editor height"
-	>
-		<div class="h-1 w-8 rounded-full bg-gray-400"></div>
-	</div>
+	{#if !isFullscreen}
+		<!-- Resize Handle -->
+		<div
+			class="border-primary flex h-4 cursor-ns-resize items-center justify-center border-t bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+			onmousedown={handleResizeStart}
+			role="button"
+			tabindex="0"
+			aria-label="Resize editor height"
+		>
+			<div class="h-1 w-8 rounded-full bg-gray-400"></div>
+		</div>
+	{/if}
 </div>
-
-<!-- Fullscreen Editor Modal -->
-<FullscreenEditor
-	open={isFullscreen}
-	onClose={() => (isFullscreen = false)}
-	{initialContent}
-	{autoSave}
-	{onContentChange}
-	{onSave}
-	{readonly}
-/>
 
 <style>
 	.markdown-editor {

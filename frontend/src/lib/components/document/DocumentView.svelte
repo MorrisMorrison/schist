@@ -21,11 +21,7 @@
 		onDelete?: (slug: string) => void | Promise<void>;
 	}
 
-	let {
-		document,
-		onEdit = () => {},
-		onDelete = () => {} 
-	}: Props = $props();
+	let { document, onEdit = () => {}, onDelete = () => {} }: Props = $props();
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);

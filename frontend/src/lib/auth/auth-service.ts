@@ -7,10 +7,21 @@ import { get } from 'svelte/store';
 class AuthService {
 	private initialized = false;
 	private authEnabled: boolean | null = null;
+	private initPromise: Promise<void> | null = null;
+	private authCheckPromise: Promise<boolean> | null = null;
 
 	async initialize() {
 		if (this.initialized || !browser) return;
 
+		if (this.initPromise) {
+			return this.initPromise;
+		}
+
+		this.initPromise = this.doInitialize();
+		return this.initPromise;
+	}
+
+	private async doInitialize() {
 		try {
 			const config = await apiClient.getConfig();
 			this.authEnabled = config.auth_enabled;
@@ -80,6 +91,22 @@ class AuthService {
 	}
 
 	async checkAuthStatus(): Promise<boolean> {
+		// Prevent duplicate auth checks
+		if (this.authCheckPromise) {
+			return this.authCheckPromise;
+		}
+
+		this.authCheckPromise = this.doCheckAuthStatus();
+
+		// Clear the promise after completion to allow future checks
+		this.authCheckPromise.finally(() => {
+			this.authCheckPromise = null;
+		});
+
+		return this.authCheckPromise;
+	}
+
+	private async doCheckAuthStatus(): Promise<boolean> {
 		const currentAuth = get(authStore);
 
 		if (!currentAuth.token) {
@@ -108,8 +135,11 @@ class AuthService {
 		const isAuthenticated = await this.checkAuthStatus();
 
 		if (!isAuthenticated) {
-			const loginUrl = returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login';
-			await goto(loginUrl);
+			// In browser environment, redirect using goto
+			if (browser) {
+				const loginUrl = returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login';
+				await goto(loginUrl);
+			}
 			return false;
 		}
 

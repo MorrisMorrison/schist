@@ -1,4 +1,6 @@
 import { env } from '$env/dynamic/public';
+import { browser } from '$app/environment';
+import { goto } from '$app/navigation';
 import type {
 	Document,
 	CreateDocumentRequest,
@@ -96,7 +98,19 @@ class SchістApiClient {
 
 			if (!response.ok) {
 				const errorText = await response.text();
-				throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+				const error = new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+
+				// Handle 401 Unauthorized globally
+				if (response.status === 401 && browser) {
+					this.setAuthToken(null);
+
+					if (window.location.pathname !== '/login') {
+						const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+						await goto(`/login?returnUrl=${returnUrl}`);
+					}
+				}
+
+				throw error;
 			}
 
 			if (response.status === 204 || response.headers.get('content-length') === '0') {

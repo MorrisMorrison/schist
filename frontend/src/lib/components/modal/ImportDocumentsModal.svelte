@@ -84,7 +84,7 @@
 			if (result.failed_count === 0) {
 				setTimeout(() => {
 					onSuccess();
-				}, 2000); 
+				}, 2000);
 			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to import documents';

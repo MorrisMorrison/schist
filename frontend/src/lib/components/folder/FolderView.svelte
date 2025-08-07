@@ -36,8 +36,8 @@
 	let showCreateFolderModal = $state(false);
 	let isLoadingFolderData = $state(false);
 	let multiSelectMode = $state(false);
-	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name'); 
-	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc'); 
+	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name');
+	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc');
 
 	const currentFolderDocuments = $derived(() => {
 		let filteredDocuments;

@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import Editor from '$lib/components/Editor.svelte';
-	import TagInput from '$lib/components/TagInput.svelte';
+	import Editor from '$lib/components/editor/Editor.svelte';
+	import TagInput from '$lib/components/editor/TagInput.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents';
 	import { generateSlug } from '$lib/utils/path';
 	import { Check, CircleX, Loader2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import Input from '$lib/components/ui/input/input.svelte';
-	import MarkdownInfoHelp from '$lib/components/MarkdownInfoHelp.svelte';
+	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 

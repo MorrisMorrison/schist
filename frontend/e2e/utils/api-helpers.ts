@@ -1,5 +1,5 @@
 import { APIRequestContext, expect } from '@playwright/test';
-import { TestDocumentData, TestPageData, TestFolderData } from './test-data';
+import { TestDocumentData, TestFolderData } from './test-data';
 
 export interface ApiResponse<T = unknown> {
 	status: number;
@@ -349,33 +349,6 @@ export class ApiHelper {
 		}
 	}
 
-	/**
-	 * Legacy aliases for backwards compatibility
-	 */
-	async createPage(pageData: TestPageData): Promise<ApiResponse> {
-		return this.createDocument(pageData);
-	}
-
-	async getPage(path: string): Promise<ApiResponse> {
-		return this.getDocument(path);
-	}
-
-	async updatePage(path: string, pageData: Partial<TestPageData>): Promise<ApiResponse> {
-		return this.updateDocument(path, pageData);
-	}
-
-	async deletePage(path: string): Promise<ApiResponse> {
-		return this.deleteDocument(path);
-	}
-
-	async listPages(): Promise<ApiResponse<DocumentListData>> {
-		return this.listDocuments();
-	}
-
-	async searchPages(query: string): Promise<ApiResponse> {
-		return this.searchDocuments(query);
-	}
-
 	async getConfig(): Promise<{ auth_enabled: boolean }> {
 		try {
 			const response = await this.apiContext.get(`${this.baseURL}/config`);
@@ -527,11 +500,6 @@ export function getWorkerBaseURL(workerIndex?: number): string {
 	const port = 8081 + index;
 	return `http://localhost:${port}`;
 }
-
-// Legacy export functions for backwards compatibility
-export const createTestPages = createTestDocuments;
-export const verifyPageExists = verifyDocumentExists;
-export const waitForPageUpdate = waitForDocumentUpdate;
 
 export class MockApiHelper extends ApiHelper {
 	private shouldFail = false;

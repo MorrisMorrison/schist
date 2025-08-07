@@ -13,12 +13,11 @@ import {
 	createSimpleTestPage,
 	createNestedFolders,
 	createDocumentsForFolder,
-	createPagesForFolder,
 	TestDocumentData,
 	TestPageData,
 	TestFolderData
 } from '../utils/test-data';
-import { createTestDocuments, createTestPages, createTestFolders } from '../utils/api-helpers';
+import { createTestDocuments, createTestFolders } from '../utils/api-helpers';
 
 // Extend test with data fixtures
 export const test = base.extend<{
@@ -178,7 +177,7 @@ export const test = base.extend<{
 
 	withTestPage: async ({ apiHelper, testPage }, use) => {
 		// Create the page in the backend
-		const result = await apiHelper.createPage(testPage);
+		const result = await apiHelper.createDocument(testPage);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create test page: ${result.error}`);
 		}
@@ -190,7 +189,7 @@ export const test = base.extend<{
 
 	withSimpleTestPage: async ({ apiHelper, simpleTestPage }, use) => {
 		// Create the simple page in the backend
-		const result = await apiHelper.createPage(simpleTestPage);
+		const result = await apiHelper.createDocument(simpleTestPage);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create simple test page: ${result.error}`);
 		}
@@ -258,7 +257,7 @@ export const test = base.extend<{
 			})
 		];
 
-		await createTestPages(apiHelper, pages);
+		await createTestDocuments(apiHelper, pages);
 		await use(pages);
 
 		// Cleanup is handled by apiHelper fixture
@@ -284,7 +283,7 @@ export const test = base.extend<{
 				title: `${document.title} ${testId}`,
 				path: `${document.path}-${testId}`
 			}));
-			const folderPages = createPagesForFolder(folder.path, 2).map((page) => ({
+			const folderPages = createDocumentsForFolder(folder.path, 2).map((page) => ({
 				...page,
 				title: `${page.title} ${testId}`,
 				path: `${page.path}-${testId}`
@@ -294,7 +293,7 @@ export const test = base.extend<{
 		}
 
 		await createTestDocuments(apiHelper, allDocuments);
-		await createTestPages(apiHelper, allPages);
+		await createTestDocuments(apiHelper, allPages);
 
 		await use({ folders, documents: allDocuments, pages: allPages });
 
@@ -375,7 +374,7 @@ export const test = base.extend<{
 		];
 
 		const allPages = [...textSearchPages, ...tagSearchPages, ...combinedSearchPages];
-		await createTestPages(apiHelper, allPages);
+		await createTestDocuments(apiHelper, allPages);
 
 		await use({
 			textSearchPages,
@@ -566,7 +565,7 @@ function test() {
 		});
 
 		const pages = [parentPage, childPage, grandchildPage, searchablePage, longPage];
-		await createTestPages(apiHelper, pages);
+		await createTestDocuments(apiHelper, pages);
 
 		await use({
 			parentPage,

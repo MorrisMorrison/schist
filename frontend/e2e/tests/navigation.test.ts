@@ -8,31 +8,31 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create nested pages manually for this complex navigation test
-		const parentPage = createTestPage({
+		const parentDocument = createTestPage({
 			title: `Parent ${testId}`,
 			content: '# Parent Page\n\nThis is a parent page.',
 			path: `/parent-${testId}`
 		});
 
-		const childPage = createTestPage({
+		const childDocument = createTestPage({
 			title: `Child ${testId}`,
 			content: '# Child Page\n\nThis is a child page.',
 			path: `/parent-${testId}/child-${testId}`
 		});
 
-		const grandchildPage = createTestPage({
+		const grandchildDocument = createTestPage({
 			title: `Grandchild ${testId}`,
 			content: '# Grandchild Page\n\nThis is a grandchild page.',
 			path: `/parent-${testId}/child-${testId}/grandchild-${testId}`
 		});
 
-		await apiHelper.createPage(parentPage);
-		await apiHelper.createPage(childPage);
-		await apiHelper.createPage(grandchildPage);
+		await apiHelper.createDocument(parentDocument);
+		await apiHelper.createDocument(childDocument);
+		await apiHelper.createDocument(grandchildDocument);
 
-		await documentViewPage.navigateToPage(grandchildPage.path!);
-		await documentViewPage.verifyPageLoaded(grandchildPage.title);
-		await documentViewPage.verifyPageUrl(grandchildPage.path!);
+		await documentViewPage.navigateToPage(grandchildDocument.path!);
+		await documentViewPage.verifyPageLoaded(grandchildDocument.title);
+		await documentViewPage.verifyPageUrl(grandchildDocument.path!);
 
 		const breadcrumbs = await documentViewPage.getBreadcrumbPath();
 		expect(breadcrumbs.length).toBeGreaterThan(0);
@@ -126,24 +126,24 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create a searchable page manually for this search-specific test
-		const searchablePage = createTestPage({
+		const searchableDocument = createTestPage({
 			title: `Searchable ${testId}`,
 			content: `# Searchable Content ${testId}\n\nThis page contains unique searchable content for testing.`,
 			path: `/searchable-${testId}`,
 			tags: ['searchable', 'unique']
 		});
 
-		await apiHelper.createPage(searchablePage);
+		await apiHelper.createDocument(searchableDocument);
 
 		await homePage.navigate();
 		await homePage.verifyLoaded();
 
-		await homePage.search(searchablePage.title);
+		await homePage.search(searchableDocument.title);
 
-		await homePage.clickSearchResult(searchablePage.title);
+		await homePage.clickSearchResult(searchableDocument.title);
 
-		await documentViewPage.verifyPageLoaded(searchablePage.title);
-		await documentViewPage.verifyPageUrl(searchablePage.path!);
+		await documentViewPage.verifyPageLoaded(searchableDocument.title);
+		await documentViewPage.verifyPageUrl(searchableDocument.path!);
 	});
 
 	test('should handle concurrent navigation requests', async ({
@@ -152,28 +152,28 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create two pages manually for this concurrent navigation test
-		const page1 = createTestPage({
+		const document1 = createTestPage({
 			title: `Concurrent 1 ${testId}`,
 			content: '# Concurrent Page 1',
 			path: `/concurrent-1-${testId}`
 		});
 
-		const page2 = createTestPage({
+		const document2 = createTestPage({
 			title: `Concurrent 2 ${testId}`,
 			content: '# Concurrent Page 2',
 			path: `/concurrent-2-${testId}`
 		});
 
-		await apiHelper.createPage(page1);
-		await apiHelper.createPage(page2);
+		await apiHelper.createDocument(document1);
+		await apiHelper.createDocument(document2);
 
-		await documentViewPage.navigateToPage(page1.path!);
-		await documentViewPage.verifyPageLoaded(page1.title);
+		await documentViewPage.navigateToPage(document1.path!);
+		await documentViewPage.verifyPageLoaded(document1.title);
 
-		await documentViewPage.navigateToPage(page2.path!);
-		await documentViewPage.verifyPageLoaded(page2.title);
+		await documentViewPage.navigateToPage(document2.path!);
+		await documentViewPage.verifyPageLoaded(document2.title);
 
-		await documentViewPage.verifyPageUrl(page2.path!);
+		await documentViewPage.verifyPageUrl(document2.path!);
 	});
 
 	test('should preserve scroll position on navigation', async ({
@@ -187,21 +187,21 @@ test.describe('Navigation and Routing', () => {
 			.map((_, i) => `## Section ${i + 1}\n\nThis is section ${i + 1} with some content.\n\n`)
 			.join('');
 
-		const longPage = createTestPage({
+		const longDocument = createTestPage({
 			title: `Long Page ${testId}`,
 			content: `# Long Page\n\n${longContent}`,
 			path: `/long-page-${testId}`
 		});
 
-		await apiHelper.createPage(longPage);
+		await apiHelper.createDocument(longDocument);
 
-		await documentViewPage.navigateToPage(longPage.path!);
-		await documentViewPage.verifyPageLoaded(longPage.title);
+		await documentViewPage.navigateToPage(longDocument.path!);
+		await documentViewPage.verifyPageLoaded(longDocument.title);
 
 		await documentViewPage.page.evaluate(() => window.scrollTo(0, 1000));
 
 		await documentViewPage.goto('/');
-		await documentViewPage.navigateToPage(longPage.path!);
-		await documentViewPage.verifyPageLoaded(longPage.title);
+		await documentViewPage.navigateToPage(longDocument.path!);
+		await documentViewPage.verifyPageLoaded(longDocument.title);
 	});
 });

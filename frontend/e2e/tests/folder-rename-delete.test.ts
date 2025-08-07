@@ -125,12 +125,12 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.verifyFolderLoaded(testFolderName);
 
 		// Create a page inside the folder via API for reliability
-		const testPage = {
+		const testDocument = {
 			title: `Test Page ${testId}`,
 			content: '# Test Page\n\nContent in folder to be deleted.',
 			path: `/${testFolderName}/test-page-${testId}`
 		};
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 
 		// Refresh to see the new page
 		await page.reload();

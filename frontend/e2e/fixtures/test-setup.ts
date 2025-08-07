@@ -30,24 +30,24 @@ async function performGlobalCleanup() {
 }
 
 if (typeof globalThis.process !== 'undefined') {
-	process.on('exit', () => {
+	globalThis.process.on('exit', () => {
 		performGlobalCleanup().catch(() => {});
 	});
 
-	process.on('SIGINT', async () => {
+	globalThis.process.on('SIGINT', async () => {
 		await performGlobalCleanup();
-		process.exit(0);
+		globalThis.process.exit(0);
 	});
 
-	process.on('SIGTERM', async () => {
+	globalThis.process.on('SIGTERM', async () => {
 		await performGlobalCleanup();
-		process.exit(0);
+		globalThis.process.exit(0);
 	});
 
-	process.on('uncaughtException', async (error) => {
+	globalThis.process.on('uncaughtException', async (error: Error) => {
 		console.error('Uncaught exception:', error);
 		await performGlobalCleanup();
-		process.exit(1);
+		globalThis.process.exit(1);
 	});
 }
 
@@ -127,14 +127,14 @@ export const test = base.extend<{
 
 		// Determine which server to use based on project name
 		const projectName = testInfo.project.name;
-		if (projectName.includes('auth-disabled') || projectName === 'chromium-no-auth') {
+		if (projectName === 'auth-disabled') {
 			// Use auth-disabled server (port 8081)
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
-		} else if (projectName.includes('auth-enabled') || projectName.includes('auth-ui')) {
+		} else if (projectName === 'auth-enabled') {
 			// Use auth-enabled server (port 8082)
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 		} else {
-			// Default behavior for other tests
+			// Default behavior for setup and other tests
 			apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 		}
 

@@ -138,14 +138,14 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.createFolder('empty-folder-no-matches');
 
 		// Add matching content to first folder only
-		const matchingPage = createTestPage({
+		const matchingDocument = createTestPage({
 			title: `Unique Content ${testId}`,
 			content: '# Unique Content\n\nThis is unique searchable content.',
 			path: '/folder-with-matches/unique-page',
 			tags: ['unique']
 		});
 
-		await apiHelper.createPage(matchingPage);
+		await apiHelper.createDocument(matchingDocument);
 
 		// Add non-matching content to second folder
 		const nonMatchingPage = createTestPage({
@@ -154,7 +154,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 			path: '/empty-folder-no-matches/different-page'
 		});
 
-		await apiHelper.createPage(nonMatchingPage);
+		await apiHelper.createDocument(nonMatchingPage);
 
 		await folderPage.navigateToRoot();
 
@@ -233,7 +233,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		];
 
 		for (const page of pages) {
-			await apiHelper.createPage(page);
+			await apiHelper.createDocument(page);
 		}
 
 		await folderPage.navigateToRoot();
@@ -265,14 +265,14 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		page
 	}) => {
 		// Create searchable content
-		const testPage = createTestPage({
+		const testDocument = createTestPage({
 			title: `Persistent Search ${testId}`,
 			content: '# Persistent Search\n\nTesting search persistence.',
 			path: '/persistent-search',
 			tags: ['persistent']
 		});
 
-		await apiHelper.createPage(testPage);
+		await apiHelper.createDocument(testDocument);
 		await folderPage.navigateToRoot();
 
 		const searchInput = page.getByTestId('sidebar-search');

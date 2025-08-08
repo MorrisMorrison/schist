@@ -27,7 +27,9 @@ class AuthService {
 			this.authEnabled = config.auth_enabled;
 		} catch (error) {
 			console.warn('Failed to get config:', error);
-			this.authEnabled = false;
+			// If we can't get config, assume auth might be enabled
+			// This prevents the chicken-and-egg problem where auth blocks config
+			this.authEnabled = true;
 		}
 
 		if (!this.authEnabled) {

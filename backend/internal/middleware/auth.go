@@ -23,8 +23,12 @@ func NewJWTAuth(authService *services.AuthService, config *config.Config) *JWTAu
 
 func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Always allow OPTIONS requests for CORS preflight
 		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
+		if !strings.HasPrefix(c.Request.URL.Path, "/api/") {
 			c.Next()
 			return
 		}

@@ -125,13 +125,10 @@ export const test = base.extend<{
 	apiHelper: async ({ request }, use, testInfo) => {
 		let apiHelper: ApiHelper;
 
-		// Determine which server to use based on project name
 		const projectName = testInfo.project.name;
 		if (projectName === 'auth-disabled') {
-			// Use auth-disabled server (port 8081)
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
 		} else if (projectName === 'auth-enabled') {
-			// Use auth-enabled server (port 8082)
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 		} else {
 			// Default behavior for setup and other tests

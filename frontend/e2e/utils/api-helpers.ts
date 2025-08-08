@@ -352,7 +352,6 @@ export class ApiHelper {
 	async getConfig(): Promise<{ auth_enabled: boolean }> {
 		try {
 			const response = await this.apiContext.get(`${this.baseURL}/config`);
-
 			if (!response.ok()) {
 				throw new Error(`Config request failed: ${response.status()}`);
 			}

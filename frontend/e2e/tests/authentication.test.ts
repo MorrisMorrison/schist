@@ -4,14 +4,6 @@ import { ApiHelper } from '../utils/api-helpers';
 test.describe('Authentication System', () => {
 	test.describe('Authentication Enabled - Unauthenticated State', () => {
 		test('should redirect unauthenticated users to login', async ({ page }) => {
-			await page.context().clearCookies();
-			await page.evaluate(() => {
-				try {
-					localStorage.clear();
-				} catch {
-					// localStorage might not be accessible initially
-				}
-			});
 			await page.goto('http://localhost:4174/');
 
 			await expect(page).toHaveURL(/\/login/);

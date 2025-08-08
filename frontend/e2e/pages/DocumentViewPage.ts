@@ -15,6 +15,7 @@ export class DocumentViewPage extends BasePage {
 
 	// Action buttons
 	readonly editButton: Locator;
+	readonly shareButton: Locator;
 	readonly deleteButton: Locator;
 	readonly moveButton: Locator;
 
@@ -48,6 +49,7 @@ export class DocumentViewPage extends BasePage {
 
 		// Action buttons
 		this.editButton = page.getByTestId('edit-document-button');
+		this.shareButton = page.getByTestId('share-document-button');
 		this.deleteButton = page.getByTestId('delete-document-button');
 		this.moveButton = page.getByTestId('move-document-button');
 
@@ -358,6 +360,95 @@ export class DocumentViewPage extends BasePage {
 
 	async verifyPageUrl(expectedPath: string) {
 		return this.verifyDocumentUrl(expectedPath);
+	}
+
+	/**
+	 * Click the share button to open the share modal
+	 */
+	async openShareModal() {
+		await this.shareButton.click();
+
+		// Wait for share modal to appear
+		const shareModal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
+		await expect(shareModal).toBeVisible();
+		return shareModal;
+	}
+
+	/**
+	 * Create a share link with specific expiry
+	 */
+	async createShareLink(expiryDays: number = 7): Promise<string> {
+		const modal = await this.openShareModal();
+
+		// Select expiry option
+		const expirySelect = modal.locator('select');
+		await expirySelect.selectOption(expiryDays.toString());
+
+		// Click create share button
+		const createButton = modal.getByRole('button', { name: /create share link/i });
+		await createButton.click();
+
+		// Wait for share link to be created and extract URL
+		await this.page.waitForTimeout(1000); // Give time for API call
+		const shareInput = modal.locator('input[readonly]').first();
+		await expect(shareInput).toBeVisible();
+
+		return await shareInput.inputValue();
+	}
+
+	/**
+	 * Copy share link to clipboard
+	 */
+	async copyShareLink(): Promise<void> {
+		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
+		const copyButton = modal
+			.getByRole('button')
+			.filter({ has: this.page.locator('svg') })
+			.nth(0);
+		await copyButton.click();
+
+		// Wait for success message
+		await expect(modal.getByText(/copied to clipboard/i)).toBeVisible();
+	}
+
+	/**
+	 * Revoke a share link
+	 */
+	async revokeShareLink(shareIndex: number = 0): Promise<void> {
+		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
+		const revokeButtons = modal
+			.getByRole('button')
+			.filter({ has: this.page.locator('svg[data-lucide="trash-2"]') });
+		await revokeButtons.nth(shareIndex).click();
+
+		// Wait for success message
+		await expect(modal.getByText(/revoked successfully/i)).toBeVisible();
+	}
+
+	/**
+	 * Close the share modal
+	 */
+	async closeShareModal(): Promise<void> {
+		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
+		await this.page.keyboard.press('Escape');
+		await expect(modal).not.toBeVisible();
+	}
+
+	/**
+	 * Get all active share links from the modal
+	 */
+	async getActiveShareLinks(): Promise<string[]> {
+		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
+		const shareInputs = modal.locator('input[readonly]');
+		const count = await shareInputs.count();
+		const links: string[] = [];
+
+		for (let i = 0; i < count; i++) {
+			const value = await shareInputs.nth(i).inputValue();
+			if (value) links.push(value);
+		}
+
+		return links;
 	}
 
 	// Legacy property aliases

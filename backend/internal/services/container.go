@@ -18,6 +18,7 @@ type Services struct {
 	LinkService     *LinkService
 	GitHubService   *GitHubService
 	AuthService     *AuthService
+	ShareService    *ShareService
 }
 
 func NewServices() (*Services, error) {
@@ -41,6 +42,7 @@ func NewServices() (*Services, error) {
 	linkService := NewLinkService(documentService, ignoreService)
 	gitHubService := NewGitHubService(appConfig, gitService, settings)
 	authService := NewAuthService(appConfig)
+	shareService := NewShareService(appConfig, documentService)
 
 	return &Services{
 		Config:          appConfig,
@@ -52,5 +54,6 @@ func NewServices() (*Services, error) {
 		LinkService:     linkService,
 		GitHubService:   gitHubService,
 		AuthService:     authService,
+		ShareService:    shareService,
 	}, nil
 }

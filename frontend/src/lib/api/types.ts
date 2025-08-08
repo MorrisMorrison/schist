@@ -359,4 +359,26 @@ export interface AuthError {
 
 export interface AppConfig {
 	auth_enabled: boolean;
+	sharing_enabled?: boolean;
+}
+
+// Share-related types
+export interface ShareToken {
+	id: string;
+	document_path: string;
+	token: string;
+	share_url: string;
+	created_at: string;
+	expires_at: string;
+	created_by: string;
+}
+
+export interface CreateShareRequest {
+	document_path: string;
+	expiry_days?: number;
+}
+
+export interface ShareListResponse {
+	shares: ShareToken[];
+	total: number;
 }

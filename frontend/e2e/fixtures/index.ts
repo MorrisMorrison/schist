@@ -5,6 +5,7 @@ export { test, expect } from './test-data-fixtures';
 export { HomePage } from '../pages/HomePage';
 export { EditorPage } from '../pages/EditorPage';
 export { DocumentViewPage, PageViewPage } from '../pages/DocumentViewPage';
+export { SharedDocumentPage } from '../pages/SharedDocumentPage';
 export { FolderPage } from '../pages/FolderPage';
 export { BasePage } from '../pages/BasePage';
 

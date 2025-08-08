@@ -187,6 +187,125 @@ export class ApiHelper {
 		}
 	}
 
+	/**
+	 * Share API methods
+	 */
+
+	async createShare(documentPath: string, expiryDays: number = 7): Promise<ApiResponse> {
+		try {
+			const response = await this.apiContext.post(`${this.baseURL}/shares`, {
+				headers: {
+					...this.getAuthHeaders(),
+					'Content-Type': 'application/json'
+				},
+				data: {
+					document_path: documentPath,
+					expiry_days: expiryDays
+				}
+			});
+			const data = await response.json();
+			return {
+				status: response.status(),
+				data: data
+			};
+		} catch (error) {
+			return {
+				status: 500,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	async listShares(): Promise<ApiResponse> {
+		try {
+			const response = await this.apiContext.get(`${this.baseURL}/shares`, {
+				headers: this.getAuthHeaders()
+			});
+			const data = await response.json();
+			return {
+				status: response.status(),
+				data: data
+			};
+		} catch (error) {
+			return {
+				status: 500,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	async getSharedDocument(token: string): Promise<ApiResponse> {
+		try {
+			// This endpoint doesn't require authentication
+			const response = await this.apiContext.get(`${this.baseURL}/shares/${token}`);
+			const data = await response.json();
+			return {
+				status: response.status(),
+				data: data
+			};
+		} catch (error) {
+			return {
+				status: 500,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	async revokeShare(shareId: string): Promise<ApiResponse> {
+		try {
+			const response = await this.apiContext.delete(`${this.baseURL}/shares/${shareId}`, {
+				headers: this.getAuthHeaders()
+			});
+			const data = await response.json();
+			return {
+				status: response.status(),
+				data: data
+			};
+		} catch (error) {
+			return {
+				status: 500,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	async cleanupExpiredShares(): Promise<ApiResponse> {
+		try {
+			const response = await this.apiContext.post(`${this.baseURL}/shares/cleanup`, {
+				headers: this.getAuthHeaders()
+			});
+			const data = await response.json();
+			return {
+				status: response.status(),
+				data: data
+			};
+		} catch (error) {
+			return {
+				status: 500,
+				error: error instanceof Error ? error.message : 'Unknown error'
+			};
+		}
+	}
+
+	/**
+	 * Cleanup all shares for the authenticated user
+	 */
+	async cleanupUserShares(): Promise<void> {
+		try {
+			const sharesResponse = await this.listShares();
+			if (sharesResponse.status === 200 && sharesResponse.data) {
+				const sharesData = sharesResponse.data as { shares: Array<{ id: string }> };
+				if (sharesData.shares) {
+					for (const share of sharesData.shares) {
+						await this.revokeShare(share.id);
+					}
+				}
+			}
+		} catch (error) {
+			console.warn('Failed to cleanup user shares:', error);
+		}
+	}
+
 	async createFolder(folderData: TestFolderData): Promise<ApiResponse> {
 		try {
 			const response = await this.apiContext.post(`${this.baseURL}/folders${folderData.path}`, {
@@ -321,6 +440,9 @@ export class ApiHelper {
 
 	async cleanupTestData(): Promise<void> {
 		try {
+			// Cleanup shares first (before deleting documents they reference)
+			await this.cleanupUserShares();
+
 			const documentsResponse = await this.listDocuments();
 			const documentData = documentsResponse.data as DocumentListData;
 

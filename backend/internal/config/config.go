@@ -20,6 +20,10 @@ type Config struct {
 	AuthUsers      map[string]string // username -> bcrypt hash
 	JWTSecret      string
 	JWTExpiryHours int
+
+	SharingEnabled         bool
+	ShareMaxExpiryDays     int
+	ShareDefaultExpiryDays int
 }
 
 func Load() *Config {
@@ -37,6 +41,10 @@ func Load() *Config {
 		AuthUsers:      parseAuthUsers(getEnv("SCHIST_AUTH_USERS", "")),
 		JWTSecret:      getEnv("SCHIST_JWT_SECRET", ""),
 		JWTExpiryHours: getEnvInt("SCHIST_JWT_EXPIRY_HOURS", 24),
+
+		SharingEnabled:         getEnvBool("SCHIST_SHARING_ENABLED", true),
+		ShareMaxExpiryDays:     getEnvInt("SCHIST_SHARE_MAX_EXPIRY_DAYS", 90),
+		ShareDefaultExpiryDays: getEnvInt("SCHIST_SHARE_DEFAULT_EXPIRY_DAYS", 7),
 	}
 }
 

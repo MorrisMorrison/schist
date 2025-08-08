@@ -16,6 +16,7 @@ type APIHandler struct {
 	LinkService     *services.LinkService
 	GitHubService   *services.GitHubService
 	AuthService     *services.AuthService
+	ShareService    *services.ShareService
 	Config          *config.Config
 }
 
@@ -26,6 +27,7 @@ func NewAPIHandler(services *services.Services) *APIHandler {
 		LinkService:     services.LinkService,
 		GitHubService:   services.GitHubService,
 		AuthService:     services.AuthService,
+		ShareService:    services.ShareService,
 		Config:          services.Config,
 	}
 }
@@ -96,6 +98,15 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		exportRoutes.GET("/document/*path", h.exportDocument)
 		exportRoutes.GET("/folder/*path", h.exportFolder)
 		exportRoutes.GET("/all", h.exportAll)
+	}
+
+	shares := routerGroup.Group("/shares")
+	{
+		shares.POST("", h.createShare)                  // Create share token
+		shares.GET("/:token", h.getSharedDocument)      // Access via token (no auth required)
+		shares.GET("", h.listShares)                    // List user's shares
+		shares.DELETE("/:id", h.revokeShare)            // Revoke token
+		shares.POST("/cleanup", h.cleanupExpiredShares) // Admin cleanup
 	}
 
 	routerGroup.POST("/import/documents", h.importDocuments)

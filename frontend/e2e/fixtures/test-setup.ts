@@ -3,6 +3,7 @@
  */
 
 import { test as base } from '@playwright/test';
+import { readFileSync } from 'fs';
 import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
@@ -130,6 +131,19 @@ export const test = base.extend<{
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
 		} else if (projectName === 'auth-enabled') {
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
+
+			// Read auth token from storage state for auth-enabled project
+			try {
+				const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
+				const token = authData.origins?.[0]?.localStorage?.find(
+					(item: { name: string; value: string }) => item.name === 'schist_auth_token'
+				)?.value;
+				if (token) {
+					apiHelper.setAuthToken(token);
+				}
+			} catch (error) {
+				console.warn('Failed to load auth token for API helper:', error);
+			}
 		} else {
 			// Default behavior for setup and other tests
 			apiHelper = new ApiHelper(request, testInfo.parallelIndex);

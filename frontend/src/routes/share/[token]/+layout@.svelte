@@ -11,18 +11,17 @@
 	<title>Shared Document</title>
 </svelte:head>
 
-<div class="share-app">
+<div class="share-app bg-background text-foreground">
 	{@render children()}
 </div>
 
 <style>
 	.share-app {
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
 		width: 100vw;
-		height: 100vh;
 		margin: 0;
-		padding: 2rem;
-		background: #0a0a0a;
-		color: #fafafa;
-		overflow: auto;
+		padding: 0;
 	}
 </style>

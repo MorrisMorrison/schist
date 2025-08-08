@@ -23,6 +23,9 @@ export default defineConfig({
 		timeout: 5 * 1000
 	},
 
+	/* Global teardown script to clean up auth files */
+	globalTeardown: './e2e/global-teardown.ts',
+
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: [
 		['html', { outputFolder: 'playwright-report' }],
@@ -54,6 +57,17 @@ export default defineConfig({
 			testIgnore: /.*authentication\.test\.ts/
 		},
 		{
+			name: 'auth-enabled-unauthenticated',
+			use: {
+				...devices['Desktop Chrome'],
+				baseURL: 'http://localhost:4174'
+				// No storageState - start fresh for unauthenticated tests
+			},
+			dependencies: ['setup'],
+			testMatch: [/.*authentication\.test\.ts/],
+			grep: /Unauthenticated State/
+		},
+		{
 			name: 'auth-enabled',
 			use: {
 				...devices['Desktop Chrome'],
@@ -61,7 +75,8 @@ export default defineConfig({
 				storageState: 'playwright/.auth/user.json'
 			},
 			dependencies: ['setup'],
-			testMatch: /.*authentication\.test\.ts/
+			testMatch: [/.*authentication\.test\.ts/],
+			grepInvert: /Unauthenticated State/
 		}
 	],
 
@@ -75,7 +90,7 @@ export default defineConfig({
 		},
 		{
 			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_AUTH_USERS="testuser:$2a$10$4g1x0g52pZ1EtekJO8C2YuLrKWMVOi97lBpI0yOo/nXGs5iNywrHe" SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
+				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_AUTH_USERS="testuser:\\$2a\\$10\\$4g1x0g52pZ1EtekJO8C2YuLrKWMVOi97lBpI0yOo/nXGs5iNywrHe" SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
 			port: 8082,
 			reuseExistingServer: true,
 			timeout: 60 * 1000

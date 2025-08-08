@@ -5,14 +5,20 @@ test.describe('Authentication System', () => {
 	test.describe('Authentication Enabled - Unauthenticated State', () => {
 		test('should redirect unauthenticated users to login', async ({ page }) => {
 			await page.context().clearCookies();
-			await page.evaluate(() => localStorage.clear());
+			await page.evaluate(() => {
+				try {
+					localStorage.clear();
+				} catch {
+					// localStorage might not be accessible initially
+				}
+			});
 			await page.goto('http://localhost:4174/');
 
 			await expect(page).toHaveURL(/\/login/);
 
-			await expect(page.locator('input[type="text"]')).toBeVisible();
-			await expect(page.locator('input[type="password"]')).toBeVisible();
-			await expect(page.locator('button[type="submit"]')).toBeVisible();
+			await expect(page.getByTestId('username-input')).toBeVisible();
+			await expect(page.getByTestId('password-input')).toBeVisible();
+			await expect(page.getByTestId('login-submit')).toBeVisible();
 		});
 
 		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
@@ -36,25 +42,6 @@ test.describe('Authentication System', () => {
 	});
 
 	test.describe('Authentication Enabled', () => {
-		test('should redirect unauthenticated users to login', async ({ page }) => {
-			await page.context().clearCookies();
-			await page.evaluate(() => {
-				try {
-					localStorage.clear();
-				} catch {
-					// localStorage might not be accessible initially
-				}
-			});
-
-			await page.goto('http://localhost:4174/');
-
-			await expect(page).toHaveURL(/\/login/);
-
-			await expect(page.getByTestId('username-input')).toBeVisible();
-			await expect(page.getByTestId('password-input')).toBeVisible();
-			await expect(page.getByTestId('login-submit')).toBeVisible();
-		});
-
 		test('should allow login with valid credentials', async ({ page }) => {
 			// Clear any existing auth state
 			await page.context().clearCookies();
@@ -180,14 +167,13 @@ test.describe('Authentication System', () => {
 	});
 
 	test.describe('Authentication Configuration', () => {
-		test('should return correct config when auth is disabled', async ({ apiHelper }) => {
+		test('should return correct config when auth is enabled', async ({ apiHelper }) => {
 			const config = await apiHelper.getConfig();
 			expect(config).toHaveProperty('auth_enabled');
-			expect(config.auth_enabled).toBe(false);
+			expect(config.auth_enabled).toBe(true);
 		});
 
 		test('config endpoint should be accessible without authentication', async ({ apiHelper }) => {
-			// Config endpoint should always be accessible
 			const response = await apiHelper.request('GET', '/config');
 			expect(response.status).toBe(200);
 			expect(response.data).toHaveProperty('auth_enabled');

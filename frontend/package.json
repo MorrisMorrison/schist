@@ -14,9 +14,10 @@
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit",
-		"test:e2e": "npm run build && npx playwright test",
+		"test:e2e": "npm run build && npx playwright test && npm run cleanup-e2e",
 		"test:e2e-ui": "npm run build && npx playwright test --ui",
-		"cleanup-test-data": "node scripts/cleanup-test-data.js"
+		"cleanup-test-data": "node scripts/cleanup-test-data.js",
+		"cleanup-e2e": "rm -f playwright/.auth/user.json && npm run cleanup-test-data"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
@@ -29,7 +30,7 @@
 		"@sveltejs/vite-plugin-svelte": "^6.0.0",
 		"@tailwindcss/typography": "^0.5.16",
 		"@tailwindcss/vite": "^4.0.0",
-		"@types/node": "^24.1.0",
+		"@types/node": "^24.2.0",
 		"@vitest/browser": "^3.2.3",
 		"bits-ui": "^2.8.11",
 		"clsx": "^2.1.1",

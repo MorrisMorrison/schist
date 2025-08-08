@@ -7,9 +7,30 @@ setup('authenticate', async ({ page, request }) => {
 	const apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 
 	try {
+		// Wait for the auth-enabled server to be ready
+		console.log('[Auth Setup] Waiting for auth server to be ready...');
+		const isReady = await apiHelper.waitForApiReady(30000);
+		if (!isReady) {
+			throw new Error('Auth server not ready after 30 seconds');
+		}
+		console.log('[Auth Setup] Auth server is ready');
+
+		// Check server config to ensure auth is enabled
+		const config = await apiHelper.getConfig();
+		console.log(`[Auth Setup] Server auth_enabled: ${config.auth_enabled}`);
+		if (!config.auth_enabled) {
+			throw new Error('Server does not have authentication enabled');
+		}
+
 		const loginResponse = await apiHelper.login('testuser', 'testpass123');
 		console.log(`[Auth Setup] Login response status: ${loginResponse.status}`);
-		console.log(`[Auth Setup] Login token present: ${loginResponse.data?.token ? 'yes' : 'no'}`);
+
+		if (loginResponse.error) {
+			console.error(`[Auth Setup] Login error: ${loginResponse.error}`);
+		}
+		if (loginResponse.data) {
+			console.log(`[Auth Setup] Login response data:`, JSON.stringify(loginResponse.data, null, 2));
+		}
 
 		if (
 			loginResponse.status === 200 &&
@@ -17,16 +38,19 @@ setup('authenticate', async ({ page, request }) => {
 			typeof loginResponse.data === 'object' &&
 			'token' in loginResponse.data
 		) {
-			await page.goto('http://localhost:4174');
+			console.log(`[Auth Setup] Login token present: ${loginResponse.data.token ? 'yes' : 'no'}`);
 
 			const token = (loginResponse.data as { token: string }).token;
+			apiHelper.setAuthToken(token);
+
+			await page.goto('http://localhost:4174/');
 			await page.evaluate((token) => {
 				localStorage.setItem('schist_auth_token', token);
 			}, token);
+
 			console.log(`[Auth Setup] Token saved to localStorage`);
 
-			await page.reload();
-
+			await page.goto('http://localhost:4174/');
 			await expect(page).toHaveURL('http://localhost:4174/');
 			await expect(page.getByTestId('nav-home')).toBeVisible();
 

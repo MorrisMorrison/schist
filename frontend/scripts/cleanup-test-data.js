@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-
-/**
- * Manual test data cleanup script
- *
- * This script can be run manually to clean up accumulated test data directories.
- * Usage: npm run cleanup-test-data
- */
-
 import { existsSync } from 'fs';
 import { rm } from 'fs/promises';
 import { resolve, dirname } from 'path';
@@ -15,7 +7,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Test data directories to clean up
 const TEST_DATA_DIRS = [
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-1'),
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-2'),
@@ -23,7 +14,6 @@ const TEST_DATA_DIRS = [
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-4')
 ];
 
-// Test result directories
 const TEST_RESULT_DIRS = [
 	resolve(__dirname, '../test-results'),
 	resolve(__dirname, '../playwright-report')
@@ -31,40 +21,34 @@ const TEST_RESULT_DIRS = [
 
 async function cleanupDirectory(dirPath) {
 	if (existsSync(dirPath)) {
-		console.log(`🧹 Cleaning up: ${dirPath}`);
+		console.log(`Cleaning up: ${dirPath}`);
 		try {
 			await rm(dirPath, { recursive: true, force: true });
-			console.log(`✅ Cleaned: ${dirPath}`);
+			console.log(`Cleaned: ${dirPath}`);
 		} catch (error) {
-			console.error(`❌ Failed to clean ${dirPath}:`, error.message);
+			console.error(`Failed to clean ${dirPath}:`, error.message);
 		}
 	} else {
-		console.log(`⏭️  Skipping (not found): ${dirPath}`);
+		console.log(`Skipping (not found): ${dirPath}`);
 	}
 }
 
 async function main() {
-	console.log('🚀 Starting test data cleanup...\n');
-
-	// Clean up test data directories
-	console.log('📁 Cleaning test data directories:');
+	console.log('Starting test data cleanup...\n');
+	console.log('Cleaning test data directories:');
 	for (const dir of TEST_DATA_DIRS) {
 		await cleanupDirectory(dir);
 	}
 
-	console.log('\n📊 Cleaning test result directories:');
+	console.log('\nCleaning test result directories:');
 	for (const dir of TEST_RESULT_DIRS) {
 		await cleanupDirectory(dir);
 	}
 
-	console.log('\n✨ Test data cleanup completed!');
-	console.log('\n💡 To prevent this issue in the future:');
-	console.log('   - Make sure tests complete successfully');
-	console.log('   - Avoid interrupting test runs with Ctrl+C');
-	console.log('   - Run this cleanup script if test data accumulates');
+	console.log('\n Test data cleanup completed!');
 }
 
 main().catch((error) => {
-	console.error('💥 Cleanup script failed:', error);
+	console.error('Cleanup script failed:', error);
 	process.exit(1);
 });

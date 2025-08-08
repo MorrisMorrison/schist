@@ -5,7 +5,8 @@ import type { LayoutLoad } from './$types';
 export const load: LayoutLoad = async ({ url }) => {
 	await authService.initialize();
 
-	if (url.pathname === '/login') {
+	// Skip authentication for public routes
+	if (url.pathname === '/login' || url.pathname.startsWith('/share/')) {
 		return {};
 	}
 

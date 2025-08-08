@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History } from 'lucide-svelte';
+	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History, Share } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
 	import VersionHistoryModal from '../VersionHistoryModal.svelte';
+	import ShareDocumentModal from '../modal/ShareDocumentModal.svelte';
 	import {
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
@@ -25,6 +26,7 @@
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
+	let showShareModal = $state(false);
 
 	const documentPath = $derived(document.metaData?.path || `/${document.metaData?.slug}`);
 	const documentTitle = $derived(document.metaData?.title || 'Untitled');
@@ -264,6 +266,17 @@
 			</Button>
 
 			<Button
+				variant="outline"
+				size="sm"
+				onclick={() => (showShareModal = true)}
+				title="Share document"
+				data-testid="share-document-button"
+			>
+				<Share class="h-4 w-4" />
+				Share
+			</Button>
+
+			<Button
 				variant="destructive"
 				size="sm"
 				onclick={handleDeleteClick}
@@ -358,6 +371,13 @@
 	{isDeleting}
 	onConfirm={handleConfirmDelete}
 	onCancel={handleCancelDelete}
+/>
+
+<ShareDocumentModal
+	open={showShareModal}
+	{documentPath}
+	{documentTitle}
+	onclose={() => (showShareModal = false)}
 />
 
 <ImageLightbox

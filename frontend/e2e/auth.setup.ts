@@ -52,7 +52,7 @@ setup('authenticate', async ({ page, request }) => {
 
 			await page.goto('http://localhost:4174/');
 			await expect(page).toHaveURL('http://localhost:4174/');
-			await expect(page.getByTestId('nav-home')).toBeVisible();
+			await expect(page.getByTestId('nav-home').first()).toBeVisible();
 
 			await page.context().storageState({ path: authFile });
 			console.log(`[Auth Setup] Authentication state saved to ${authFile}`);

@@ -83,7 +83,7 @@ export default defineConfig({
 	webServer: [
 		{
 			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8081 SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data-auth-disabled go run main.go',
+				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8081 SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data-auth-disabled SCHIST_AUTH_ENABLED=false go run main.go',
 			port: 8081,
 			reuseExistingServer: true,
 			timeout: 60 * 1000

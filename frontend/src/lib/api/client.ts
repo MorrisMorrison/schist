@@ -31,13 +31,17 @@ import type {
 	User,
 	LoginRequest,
 	LoginResponse,
-	AppConfig
+	AppConfig,
+	ShareToken,
+	CreateShareRequest,
+	ShareListResponse
 } from './types.js';
 import { normalizePath } from './types.js';
 
 class SchістApiClient {
 	private baseUrl: string;
 	private authToken: string | null = null;
+	private configCache: AppConfig | null = null;
 
 	constructor() {
 		this.baseUrl = this.determineApiUrl();
@@ -100,13 +104,34 @@ class SchістApiClient {
 				const errorText = await response.text();
 				const error = new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
 
-				// Handle 401 Unauthorized globally
 				if (response.status === 401 && browser) {
 					this.setAuthToken(null);
 
-					if (window.location.pathname !== '/login') {
-						const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-						await goto(`/login?returnUrl=${returnUrl}`);
+					const isPublicRoute =
+						window.location.pathname === '/login' || window.location.pathname.startsWith('/share/');
+
+					if (!isPublicRoute) {
+						if (url.endsWith('/config')) {
+							const returnUrl = encodeURIComponent(
+								window.location.pathname + window.location.search
+							);
+							await goto(`/login?returnUrl=${returnUrl}`);
+						} else {
+							try {
+								const config = await this.getConfig();
+								if (config.auth_enabled) {
+									const returnUrl = encodeURIComponent(
+										window.location.pathname + window.location.search
+									);
+									await goto(`/login?returnUrl=${returnUrl}`);
+								}
+							} catch {
+								const returnUrl = encodeURIComponent(
+									window.location.pathname + window.location.search
+								);
+								await goto(`/login?returnUrl=${returnUrl}`);
+							}
+						}
 					}
 				}
 
@@ -132,7 +157,12 @@ class SchістApiClient {
 	}
 
 	async getConfig(): Promise<AppConfig> {
-		return this.request<AppConfig>('/config');
+		if (this.configCache) {
+			return this.configCache;
+		}
+		const config = await this.request<AppConfig>('/config');
+		this.configCache = config;
+		return config;
 	}
 
 	async login(credentials: LoginRequest): Promise<LoginResponse> {
@@ -467,6 +497,32 @@ class SchістApiClient {
 	async syncToGitHub(): Promise<GitHubSyncResult> {
 		return this.request<GitHubSyncResult>('/github/sync', {
 			method: 'POST'
+		});
+	}
+
+	// Share management
+	async createShare(request: CreateShareRequest): Promise<ShareToken> {
+		return this.request<ShareToken>('/shares', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async getSharedDocument(token: string): Promise<Document> {
+		return this.request<Document>(`/shares/${token}`, {
+			method: 'GET'
+		});
+	}
+
+	async listShares(): Promise<ShareListResponse> {
+		return this.request<ShareListResponse>('/shares', {
+			method: 'GET'
+		});
+	}
+
+	async revokeShare(shareId: string): Promise<{ message: string }> {
+		return this.request<{ message: string }>(`/shares/${shareId}`, {
+			method: 'DELETE'
 		});
 	}
 }

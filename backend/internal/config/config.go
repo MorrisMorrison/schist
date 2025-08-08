@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -90,11 +91,14 @@ func getEnvInt(key string, defaultValue int) int {
 
 func parseAuthUsers(userStr string) map[string]string {
 	users := make(map[string]string)
+	fmt.Printf("DEBUG: Parsing auth users from: %s\n", userStr)
 	if userStr == "" {
+		fmt.Printf("DEBUG: Empty user string\n")
 		return users
 	}
 
 	pairs := strings.Split(userStr, ",")
+	fmt.Printf("DEBUG: Found %d user pairs\n", len(pairs))
 	for _, pair := range pairs {
 		parts := strings.SplitN(strings.TrimSpace(pair), ":", 2)
 		if len(parts) == 2 {
@@ -102,7 +106,10 @@ func parseAuthUsers(userStr string) map[string]string {
 			hash := strings.TrimSpace(parts[1])
 			if username != "" && hash != "" {
 				users[username] = hash
+				fmt.Printf("DEBUG: Added user: %s with hash: %s\n", username, hash)
 			}
+		} else {
+			fmt.Printf("DEBUG: Invalid pair format: %s\n", pair)
 		}
 	}
 	return users

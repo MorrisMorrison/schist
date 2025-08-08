@@ -80,7 +80,7 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mx-auto max-w-7xl space-y-8 flex-1 p-12 w-full">
+<div class="mx-auto max-w-5xl space-y-8 flex-1 p-12 w-full">
 	<!-- Page Header -->
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"

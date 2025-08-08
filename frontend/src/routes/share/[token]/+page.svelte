@@ -80,7 +80,7 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mx-auto max-w-none space-y-8 flex-1 p-12">
+<div class="mx-auto max-w-7xl space-y-8 flex-1 p-12 w-full">
 	<!-- Page Header -->
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
@@ -131,7 +131,7 @@
 	<!-- Document Content -->
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if renderedMarkdown}
-			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
+			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert !max-w-none w-full">
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html renderedMarkdown}
 			</div>

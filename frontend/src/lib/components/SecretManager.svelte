@@ -31,13 +31,22 @@
 	let deletingSecret = $state<string | null>(null);
 	let reloadingAfterUnlock = $state(false);
 
-	onMount(() => {
-		secretStore.loadStatus();
+	onMount(async () => {
+		await secretStore.loadStatus();
+		// If secrets are already unlocked but we don't have the list, load it
+		if ($secretsUnlocked && $secretList.length === 0) {
+			await secretStore.loadSecrets();
+		}
 	});
 
 	$effect(() => {
 		if ($authStore.token && $authStore.user) {
-			secretStore.loadStatus();
+			secretStore.loadStatus().then(() => {
+				// If secrets are already unlocked but we don't have the list, load it
+				if ($secretsUnlocked && $secretList.length === 0) {
+					secretStore.loadSecrets();
+				}
+			});
 		}
 	});
 
@@ -48,7 +57,8 @@
 	async function handleLock() {
 		try {
 			await secretStore.lock();
-		} catch {
+		} catch (error) {
+			console.error('Failed to lock secrets:', error);
 		}
 	}
 
@@ -99,7 +109,8 @@
 
 		try {
 			await secretStore.deleteSecret(secretKey);
-		} catch {
+		} catch (error) {
+			console.error('Failed to delete secret:', error);
 		} finally {
 			deletingSecret = null;
 		}
@@ -149,9 +160,9 @@
 				{#if $secretsUnlocked}
 					<Button size="sm" variant="outline" onclick={handleLock}>Lock</Button>
 					<Button size="sm" onclick={() => (showCreateModal = true)}>
-					<Plus class="mr-1 h-3 w-3" />
-					Add Secret
-				</Button>
+						<Plus class="mr-1 h-3 w-3" />
+						Add Secret
+					</Button>
 				{:else}
 					<Button size="sm" onclick={handleUnlock}>Unlock to Manage</Button>
 				{/if}
@@ -244,9 +255,9 @@
 					</div>
 				{/if}
 
-				<InfoBox 
-					title="Usage" 
-					description="Reference secrets in your documents using the placeholder syntax. When viewing documents with unlocked secrets, the placeholders will be replaced with the actual values." 
+				<InfoBox
+					title="Usage"
+					description="Reference secrets in your documents using the placeholder syntax. When viewing documents with unlocked secrets, the placeholders will be replaced with the actual values."
 				/>
 			</div>
 

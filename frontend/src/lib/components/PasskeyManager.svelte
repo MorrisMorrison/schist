@@ -137,9 +137,9 @@
 					</div>
 				{/if}
 
-				<InfoBox 
-					title="Security Note" 
-					description="Each passkey provides unique device-based encryption. Only devices with registered passkeys can unlock your secrets." 
+				<InfoBox
+					title="Security Note"
+					description="Each passkey provides unique device-based encryption. Only devices with registered passkeys can unlock your secrets."
 				/>
 			</div>
 		{/if}

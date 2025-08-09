@@ -3,13 +3,17 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { BurgerIcon } from './ui/burger-icon';
 	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
-	import { Settings, Search, LogOut, User } from 'lucide-svelte';
+	import { onMount } from 'svelte';
+	import { Settings, Search, LogOut, User, Lock, Unlock } from 'lucide-svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { authService } from '$lib/auth/auth-service';
+	import { secretsUnlocked, secretStore, secretList } from '$lib/stores/secrets';
+	import { passkeyStore } from '$lib/stores/passkeys';
 
 	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();
 
 	let isMenuOpen = $state(false);
+	let isUnlocking = $state(false);
 
 	const showSidebarToggle = true;
 
@@ -30,9 +34,46 @@
 		closeMenu();
 	}
 
+	async function handleQuickUnlock() {
+		if (isUnlocking) return;
+
+		isUnlocking = true;
+		try {
+			// Use passkey authentication to unlock secrets
+			await passkeyStore.authenticateWithPasskey();
+
+			// Reload secrets status and secrets after unlock (same as SecretManager does)
+			await secretStore.loadStatus();
+			if ($secretsUnlocked && $secretList.length === 0) {
+				await secretStore.loadSecrets();
+			}
+
+			// Reactive stores will handle document updates automatically
+		} catch (error) {
+			console.error('Quick unlock failed:', error);
+			// Could show a toast error here
+		} finally {
+			isUnlocking = false;
+		}
+	}
+
 	$effect(() => {
 		if (page.url) {
 			isMenuOpen = false;
+		}
+	});
+
+	// Load secrets status on component mount if user is authenticated
+	onMount(() => {
+		if ($authStore.user) {
+			secretStore.loadStatus();
+		}
+	});
+
+	// Also load secrets status when auth state changes
+	$effect(() => {
+		if ($authStore.user) {
+			secretStore.loadStatus();
 		}
 	});
 </script>
@@ -129,6 +170,35 @@
 						</div>
 					{/if}
 
+					<!-- Quick unlock button for secrets -->
+					{#if $authStore.user && !$secretsUnlocked}
+						<button
+							type="button"
+							onclick={handleQuickUnlock}
+							class="border-secondary bg-primary text-primary hover:bg-accent cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+							title="Quick unlock secrets"
+							disabled={isUnlocking}
+							data-testid="quick-unlock-button"
+						>
+							{#if isUnlocking}
+								<div
+									class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+								></div>
+							{:else}
+								<Lock class="h-4 w-4" />
+							{/if}
+						</button>
+					{:else if $authStore.user && $secretsUnlocked}
+						<!-- Show unlocked indicator -->
+						<div
+							class="border-secondary bg-success text-success-foreground rounded-md border p-2"
+							title="Secrets unlocked"
+							data-testid="secrets-unlocked-indicator"
+						>
+							<Unlock class="h-4 w-4" />
+						</div>
+					{/if}
+
 					<a
 						href="/settings"
 						class="border-secondary bg-primary text-primary hover:bg-gray-hover text-sm' cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
@@ -189,6 +259,38 @@
 							>
 						</button>
 					</div>
+
+					<!-- Quick unlock button for mobile -->
+					{#if $authStore.user && !$secretsUnlocked}
+						<div class="px-4 pb-3">
+							<button
+								type="button"
+								onclick={() => {
+									handleQuickUnlock();
+									closeMenu();
+								}}
+								class="text-secondary hover:text-primary flex w-full items-center space-x-2 text-left"
+								disabled={isUnlocking}
+								data-testid="quick-unlock-button-mobile"
+							>
+								{#if isUnlocking}
+									<div
+										class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+									></div>
+								{:else}
+									<Lock class="h-4 w-4" />
+								{/if}
+								<span class="text-sm">Unlock Secrets</span>
+							</button>
+						</div>
+					{:else if $authStore.user && $secretsUnlocked}
+						<div class="px-4 pb-3">
+							<div class="text-success flex items-center space-x-2">
+								<Unlock class="h-4 w-4" />
+								<span class="text-sm">Secrets Unlocked</span>
+							</div>
+						</div>
+					{/if}
 
 					<div class="px-4 pb-3">
 						<a

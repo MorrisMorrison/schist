@@ -51,7 +51,9 @@ async function documentExists(documentName: string): Promise<boolean> {
 
 	try {
 		const documents = await getDocuments();
-		const exists = documents.some((document) => document.metaData.title.toLowerCase() === cacheKey);
+		const exists = documents.some(
+			(document) => document.metaData?.title?.toLowerCase() === cacheKey
+		);
 
 		existsCache.set(cacheKey, { exists, time: now });
 
@@ -65,10 +67,10 @@ async function documentExists(documentName: string): Promise<boolean> {
 async function resolveDocumentPath(documentName: string): Promise<string> {
 	const documents = await getDocuments();
 	const matchingDocument = documents.find(
-		(document) => document.metaData.title.toLowerCase() === documentName.toLowerCase()
+		(document) => document.metaData?.title?.toLowerCase() === documentName.toLowerCase()
 	);
 
-	if (matchingDocument) {
+	if (matchingDocument && matchingDocument.metaData?.path) {
 		return matchingDocument.metaData.path;
 	}
 
@@ -239,12 +241,14 @@ async function wikiLinkCompletion(context: CompletionContext): Promise<Completio
 
 	const documents = await getDocuments();
 	const options = documents
-		.filter((document) => document.metaData.title.toLowerCase().includes(searchTerm.toLowerCase()))
+		.filter((document) =>
+			document.metaData?.title?.toLowerCase().includes(searchTerm.toLowerCase())
+		)
 		.slice(0, 10)
 		.map((document) => ({
-			label: document.metaData.title,
+			label: document.metaData?.title || 'Untitled',
 			type: 'variable',
-			detail: document.metaData.path,
+			detail: document.metaData?.path || '',
 			info: document.content ? document.content.slice(0, 100) + '...' : undefined
 		}));
 

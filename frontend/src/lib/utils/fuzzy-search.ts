@@ -71,24 +71,26 @@ export function fuzzySearchDocuments(documents: Document[], query: string): Docu
 			tags: false
 		};
 
+		const metaData = document.metaData || {};
+
 		// Search in title (highest weight)
-		const titleScore = calculateFuzzyScore(queryLower, document.metaData.title);
+		const titleScore = calculateFuzzyScore(queryLower, metaData.title || '');
 		if (titleScore > 0) {
 			totalScore += titleScore * 3;
 			matches.title = true;
 		}
 
 		// Search in path (medium weight)
-		const pathScore = calculateFuzzyScore(queryLower, document.metaData.path || '');
+		const pathScore = calculateFuzzyScore(queryLower, metaData.path || '');
 		if (pathScore > 0) {
 			totalScore += pathScore * 2;
 			matches.path = true;
 		}
 
 		// Search in tags (medium weight)
-		if (document.metaData.tags) {
+		if (metaData.tags) {
 			let tagScore = 0;
-			for (const tag of document.metaData.tags) {
+			for (const tag of metaData.tags) {
 				tagScore = Math.max(tagScore, calculateFuzzyScore(queryLower, tag));
 			}
 			if (tagScore > 0) {

@@ -62,7 +62,7 @@
 
 			const recentPaths = getRecentDocumentPaths();
 			recentDocuments = recentPaths
-				.map((path) => allDocuments.find((doc) => doc.metaData.path === path))
+				.map((path) => allDocuments.find((doc) => doc.metaData?.path === path))
 				.filter((doc): doc is Document => doc !== undefined)
 				.slice(0, 8);
 		} catch (error) {

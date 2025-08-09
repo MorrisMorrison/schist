@@ -7,13 +7,13 @@ test.describe('Sidebar Functionality', () => {
 
 	test('should open document creation when clicking + button', async ({ page }) => {
 		await page.click('[title="Create new document"]');
-		
+
 		await expect(page).toHaveURL(/\/new/);
 	});
 
 	test('should show tooltip on + button hover', async ({ page }) => {
 		const plusButton = page.locator('[title="Create new document"]');
-		
+
 		await expect(plusButton).toBeVisible();
 		await expect(plusButton).toHaveAttribute('title', 'Create new document');
 	});

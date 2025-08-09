@@ -462,8 +462,8 @@
 
 			<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<h3 class="text-lg font-medium">Manual Sync</h3>
-				<Button 
-					onclick={syncNow} 
+				<Button
+					onclick={syncNow}
 					disabled={!isConnected || $isGitHubSyncing}
 					title={!isConnected ? 'Configure GitHub connection first' : 'Sync documents to GitHub'}
 				>

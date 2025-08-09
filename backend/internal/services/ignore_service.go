@@ -25,6 +25,7 @@ func (i *IgnoreService) ShouldIgnore(path string) bool {
 		"trash/",
 		"uploads/",
 		"assets/",
+		"invites/",
 	}
 
 	for _, pattern := range patterns {

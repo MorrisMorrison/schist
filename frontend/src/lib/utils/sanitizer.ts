@@ -150,11 +150,26 @@ function sanitizeClasses(element: Element): void {
 	}
 }
 
-DOMPurify.addHook('afterSanitizeAttributes', function (node: Node) {
-	if (node.nodeType === 1) {
-		sanitizeClasses(node as Element);
-	}
-});
+function sanitizeClassesInHtml(html: string): string {
+	// Simple regex-based class sanitization for SSR
+	return html.replace(/class="([^"]*)"/g, (match, classes) => {
+		const cleanClasses = classes
+			.split(' ')
+			.filter((cls: string) => cls.trim() && isClassAllowed(cls.trim()))
+			.join(' ');
+		
+		return cleanClasses ? `class="${cleanClasses}"` : '';
+	});
+}
+
+// Initialize DOMPurify hooks safely for SSR
+if (typeof window !== 'undefined' && DOMPurify.addHook) {
+	DOMPurify.addHook('afterSanitizeAttributes', function (node: Node) {
+		if (node.nodeType === 1) {
+			sanitizeClasses(node as Element);
+		}
+	});
+}
 
 export function sanitizeHtml(dirty: string): string {
 	if (!dirty || typeof dirty !== 'string') {
@@ -162,7 +177,14 @@ export function sanitizeHtml(dirty: string): string {
 	}
 
 	try {
-		return DOMPurify.sanitize(dirty, sanitizerConfig);
+		const result = DOMPurify.sanitize(dirty, sanitizerConfig);
+		
+		// If hooks aren't available (SSR), manually sanitize classes
+		if (typeof window === 'undefined' || !DOMPurify.addHook) {
+			return sanitizeClassesInHtml(result);
+		}
+		
+		return result;
 	} catch (error) {
 		console.error('HTML sanitization failed:', error);
 		return '';
@@ -177,7 +199,14 @@ export function sanitizeMarkdownHtml(html: string): string {
 	};
 
 	try {
-		return DOMPurify.sanitize(html, config);
+		const result = DOMPurify.sanitize(html, config);
+		
+		// If hooks aren't available (SSR), manually sanitize classes
+		if (typeof window === 'undefined' || !DOMPurify.addHook) {
+			return sanitizeClassesInHtml(result);
+		}
+		
+		return result;
 	} catch (error) {
 		console.error('Markdown HTML sanitization failed:', error);
 		return '';

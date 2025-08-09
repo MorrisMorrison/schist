@@ -21,6 +21,8 @@
 	} from '$lib/components/ui/card';
 	import PasskeyUnlockModal from './modal/PasskeyUnlockModal.svelte';
 	import SecretEditModal from './modal/SecretEditModal.svelte';
+	import InfoBox from '$lib/components/ui/info-box.svelte';
+	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from 'lucide-svelte';
 
 	let showUnlockModal = $state(false);
 	let showCreateModal = $state(false);
@@ -30,11 +32,9 @@
 	let reloadingAfterUnlock = $state(false);
 
 	onMount(() => {
-		// Only load status on mount, let other effects handle loading secrets
 		secretStore.loadStatus();
 	});
 
-	// React to authentication changes - only reload status, not secrets
 	$effect(() => {
 		if ($authStore.token && $authStore.user) {
 			secretStore.loadStatus();
@@ -49,20 +49,17 @@
 		try {
 			await secretStore.lock();
 		} catch {
-			// Error handled by store
 		}
 	}
 
 	async function handleUnlockSuccess() {
 		showUnlockModal = false;
 
-		// Prevent multiple simultaneous reloads
 		if (reloadingAfterUnlock) return;
 		reloadingAfterUnlock = true;
 
 		try {
 			await secretStore.loadStatus();
-			// Only load secrets if status confirms unlocked and we don't have them yet
 			if ($secretsUnlocked && $secretList.length === 0) {
 				await secretStore.loadSecrets();
 			}
@@ -72,7 +69,6 @@
 			reloadingAfterUnlock = false;
 		}
 
-		// If this was first-time setup, automatically open create modal
 		if (!$hasSecrets) {
 			setTimeout(() => {
 				showCreateModal = true;
@@ -104,7 +100,6 @@
 		try {
 			await secretStore.deleteSecret(secretKey);
 		} catch {
-			// Error handled by store
 		} finally {
 			deletingSecret = null;
 		}
@@ -153,7 +148,10 @@
 			<div class="flex items-center space-x-2">
 				{#if $secretsUnlocked}
 					<Button size="sm" variant="outline" onclick={handleLock}>Lock</Button>
-					<Button size="sm" onclick={() => (showCreateModal = true)}>Add Secret</Button>
+					<Button size="sm" onclick={() => (showCreateModal = true)}>
+					<Plus class="mr-1 h-3 w-3" />
+					Add Secret
+				</Button>
 				{:else}
 					<Button size="sm" onclick={handleUnlock}>Unlock to Manage</Button>
 				{/if}
@@ -164,19 +162,7 @@
 		{#if !$hasSecrets && !$requiresPassword && !$secretsUnlocked}
 			<div class="space-y-4 py-8 text-center">
 				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-					<svg
-						class="text-muted-foreground h-8 w-8"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 15v2m-2 0h2m0 0h2m-2 0v2m-2-2h2m-2-4h2m0 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v2h2"
-						/>
-					</svg>
+					<Key class="text-muted-foreground h-8 w-8" />
 				</div>
 				<div>
 					<h3 class="text-lg font-medium">Secure Your API Keys & Secrets</h3>
@@ -187,6 +173,7 @@
 				</div>
 				<div class="space-y-2">
 					<Button onclick={handleUnlock} class="bg-primary">
+						<Plus class="mr-2 h-4 w-4" />
 						Set Up Passkey & Create First Secret
 					</Button>
 					<p class="text-muted-foreground text-xs">
@@ -213,19 +200,7 @@
 							<div class="flex items-center justify-between rounded-lg border p-3">
 								<div class="flex-1">
 									<div class="flex items-center space-x-2">
-										<svg
-											class="text-primary h-4 w-4"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-										>
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-3a1 1 0 011-1h2.586l6.414-6.414z"
-											/>
-										</svg>
+										<Key class="text-primary h-4 w-4" />
 										<code class="font-mono text-sm font-medium">{secret.key}</code>
 									</div>
 									<p class="text-muted-foreground mt-1 font-mono text-xs">
@@ -239,14 +214,7 @@
 										onclick={() => copySecretReference(secret.key)}
 										title="Copy reference"
 									>
-										<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-											/>
-										</svg>
+										<Copy class="h-3 w-3" />
 									</Button>
 									<Button
 										size="sm"
@@ -254,6 +222,7 @@
 										onclick={() => startEdit(secret.key)}
 										disabled={deletingSecret === secret.key}
 									>
+										<Edit class="mr-1 h-3 w-3" />
 										Edit
 									</Button>
 									<Button
@@ -263,10 +232,11 @@
 										onclick={() => handleDeleteSecret(secret.key)}
 									>
 										{#if deletingSecret === secret.key}
-											<div class="h-3 w-3 animate-spin rounded-full border-b border-current"></div>
+											<Loader2 class="mr-1 h-3 w-3 animate-spin" />
 										{:else}
-											Delete
+											<Trash2 class="mr-1 h-3 w-3" />
 										{/if}
+										Delete
 									</Button>
 								</div>
 							</div>
@@ -274,34 +244,10 @@
 					</div>
 				{/if}
 
-				<!-- Usage Info -->
-				<div
-					class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/50"
-				>
-					<div class="flex">
-						<svg
-							class="mt-0.5 mr-2 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-							/>
-						</svg>
-						<div>
-							<p class="text-sm font-medium text-blue-900 dark:text-blue-200">Usage</p>
-							<p class="mt-1 text-xs text-blue-700 dark:text-blue-300">
-								Reference secrets in your documents using the placeholder syntax. When viewing
-								documents with unlocked secrets, the placeholders will be replaced with the actual
-								values.
-							</p>
-						</div>
-					</div>
-				</div>
+				<InfoBox 
+					title="Usage" 
+					description="Reference secrets in your documents using the placeholder syntax. When viewing documents with unlocked secrets, the placeholders will be replaced with the actual values." 
+				/>
 			</div>
 
 			<!-- Locked State -->
@@ -310,19 +256,7 @@
 				<div
 					class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900"
 				>
-					<svg
-						class="h-8 w-8 text-amber-600 dark:text-amber-400"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 15v2m-2 0h2m0 0h2m-2 0v2m-2-2h2m-2-4h2m0 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v2h2"
-						/>
-					</svg>
+					<Lock class="h-8 w-8 text-amber-600 dark:text-amber-400" />
 				</div>
 				<div>
 					<h3 class="text-lg font-medium">Secrets Locked</h3>

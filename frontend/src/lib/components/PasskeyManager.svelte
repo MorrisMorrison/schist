@@ -6,7 +6,6 @@
 		passkeyError,
 		passkeyLoading,
 		hasPasskeys,
-		isUnlocked,
 		requiresSetup
 	} from '$lib/stores/passkeys';
 	import { Button } from '$lib/components/ui/button';
@@ -19,10 +18,8 @@
 		CardTitle
 	} from '$lib/components/ui/card';
 	import PasskeySetupModal from './modal/PasskeySetupModal.svelte';
-	import PasskeyUnlockModal from './modal/PasskeyUnlockModal.svelte';
 
 	let showSetupModal = false;
-	let showUnlockModal = false;
 	let deletingPasskey: string | null = null;
 
 	onMount(() => {
@@ -63,17 +60,13 @@
 		passkeyStore.loadStatus();
 		passkeyStore.loadPasskeys();
 	}
-
-	function handleUnlockSuccess() {
-		showUnlockModal = false;
-	}
 </script>
 
 <Card>
 	<CardHeader>
 		<CardTitle>Passkey Security</CardTitle>
 		<CardDescription>
-			Manage your passkeys for secure access to secrets and API tokens.
+			Manage your authentication passkeys.
 		</CardDescription>
 	</CardHeader>
 
@@ -83,30 +76,6 @@
 				<AlertDescription>{$passkeyError}</AlertDescription>
 			</Alert>
 		{/if}
-
-		<!-- Status Section -->
-		<div class="bg-muted/50 flex items-center justify-between rounded-lg p-3">
-			<div class="flex items-center space-x-2">
-				{#if $isUnlocked}
-					<div class="h-2 w-2 rounded-full bg-green-500"></div>
-					<span class="text-sm font-medium text-green-700 dark:text-green-400">
-						Passkeys Ready
-					</span>
-				{:else if $hasPasskeys}
-					<div class="h-2 w-2 rounded-full bg-amber-500"></div>
-					<span class="text-sm font-medium text-amber-700 dark:text-amber-400">
-						Passkeys Locked
-					</span>
-				{:else}
-					<div class="h-2 w-2 rounded-full bg-gray-400"></div>
-					<span class="text-muted-foreground text-sm font-medium"> No Passkeys Set Up </span>
-				{/if}
-			</div>
-
-			{#if $hasPasskeys && !$isUnlocked}
-				<Button size="sm" onclick={() => (showUnlockModal = true)}>Unlock Passkeys</Button>
-			{/if}
-		</div>
 
 		<!-- Setup Section -->
 		{#if $requiresSetup}
@@ -233,8 +202,3 @@
 	oncancel={() => (showSetupModal = false)}
 />
 
-<PasskeyUnlockModal
-	bind:open={showUnlockModal}
-	onsuccess={handleUnlockSuccess}
-	oncancel={() => (showUnlockModal = false)}
-/>

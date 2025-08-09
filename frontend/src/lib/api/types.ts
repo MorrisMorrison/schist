@@ -458,7 +458,9 @@ export interface WebAuthnBeginRegistrationRequest {
 }
 
 export interface WebAuthnBeginRegistrationResponse {
-	options: PublicKeyCredentialCreationOptions;
+	options: {
+		publicKey: PublicKeyCredentialCreationOptions;
+	};
 	sessionId: string;
 }
 
@@ -474,7 +476,9 @@ export interface WebAuthnFinishRegistrationResponse {
 }
 
 export interface WebAuthnBeginAuthenticationResponse {
-	options: PublicKeyCredentialRequestOptions;
+	options: {
+		publicKey: PublicKeyCredentialRequestOptions;
+	};
 	sessionId: string;
 }
 

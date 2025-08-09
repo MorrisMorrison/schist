@@ -231,7 +231,7 @@ export async function authenticateWithPasskey(): Promise<string> {
 		// Step 1: Begin authentication
 		const beginResponse = await apiClient.beginPasskeyAuthentication();
 		// The Go WebAuthn library returns options with publicKey nested
-		const requestOptions = prepareRequestOptions(beginResponse.options as PublicKeyCredentialRequestOptions);
+		const requestOptions = prepareRequestOptions(beginResponse.options.publicKey);
 
 		// Step 2: Get assertion using browser API
 		const credential = (await navigator.credentials.get({

@@ -184,6 +184,9 @@ export const requiresSetup = derived(
 	($store) => $store.status?.requires_setup ?? false
 );
 
+// Note: Removed automatic cross-store auth sync to prevent infinite loading loops
+// The SecretManager component now handles unlock state properly
+
 // Helper function to process secret placeholders in text
 export function parseSecretPlaceholders(text: string): { placeholder: string; key: string }[] {
 	const placeholderRegex = /\{\{secret:([^}]+)\}\}/g;

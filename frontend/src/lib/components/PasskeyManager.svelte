@@ -23,7 +23,6 @@
 	let deletingPasskey: string | null = null;
 
 	onMount(() => {
-		// Load passkey status and list on mount
 		passkeyStore.loadStatus();
 		passkeyStore.loadPasskeys();
 	});
@@ -56,7 +55,7 @@
 
 	function handleSetupSuccess() {
 		showSetupModal = false;
-		// Reload passkey status after successful setup
+
 		passkeyStore.loadStatus();
 		passkeyStore.loadPasskeys();
 	}
@@ -65,9 +64,7 @@
 <Card>
 	<CardHeader>
 		<CardTitle>Passkey Security</CardTitle>
-		<CardDescription>
-			Manage your authentication passkeys.
-		</CardDescription>
+		<CardDescription>Manage your authentication passkeys.</CardDescription>
 	</CardHeader>
 
 	<CardContent class="space-y-4">
@@ -201,4 +198,3 @@
 	onsuccess={handleSetupSuccess}
 	oncancel={() => (showSetupModal = false)}
 />
-

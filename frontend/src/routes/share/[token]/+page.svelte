@@ -80,7 +80,7 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mx-auto max-w-5xl space-y-8 flex-1 p-12 w-full">
+<div class="mx-auto w-full max-w-5xl flex-1 space-y-8 p-12">
 	<!-- Page Header -->
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
@@ -121,7 +121,9 @@
 
 		<!-- Shared Document Indicator -->
 		<div class="text-muted-foreground flex items-center gap-2 text-sm">
-			<div class="rounded bg-blue-100 px-3 py-2 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 flex items-center gap-2">
+			<div
+				class="flex items-center gap-2 rounded bg-blue-100 px-3 py-2 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+			>
 				<Eye class="h-4 w-4" />
 				Shared Document (Read-only)
 			</div>
@@ -131,7 +133,10 @@
 	<!-- Document Content -->
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if renderedMarkdown}
-			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert !max-w-none w-full">
+			<div
+				bind:this={contentContainer}
+				class="prose prose-slate dark:prose-invert w-full !max-w-none"
+			>
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html renderedMarkdown}
 			</div>
@@ -148,7 +153,7 @@
 
 	<!-- Footer Info -->
 	{#if document?.metaData?.path}
-		<div class="text-muted-foreground text-center text-xs mb-8">
+		<div class="text-muted-foreground mb-8 text-center text-xs">
 			Original document path: <code class="bg-muted rounded px-1 py-0.5"
 				>{document.metaData.path}</code
 			>
@@ -157,15 +162,15 @@
 </div>
 
 <!-- Powered by Footer -->
-<footer class="mt-auto border-t bg-background py-6">
+<footer class="bg-background mt-auto border-t py-6">
 	<div class="mx-auto flex max-w-7xl items-center justify-between px-12">
 		<div class="flex items-center gap-2">
 			<span class="text-muted-foreground text-sm">Powered by</span>
-			<a 
-				href="https://github.com/MorrisMorrison/schist" 
-				target="_blank" 
+			<a
+				href="https://github.com/MorrisMorrison/schist"
+				target="_blank"
 				rel="noopener noreferrer"
-				class="flex items-center text-sm font-medium text-primary hover:underline"
+				class="text-primary flex items-center text-sm font-medium hover:underline"
 			>
 				<img src="/icon-32x32.png" alt="Schist" class="h-8 w-8" />
 				Schist

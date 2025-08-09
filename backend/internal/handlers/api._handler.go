@@ -102,11 +102,11 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 
 	shares := routerGroup.Group("/shares")
 	{
-		shares.POST("", h.createShare)                  // Create share token
-		shares.GET("/:token", h.getSharedDocument)      // Access via token (no auth required)
-		shares.GET("", h.listShares)                    // List user's shares
-		shares.DELETE("/:id", h.revokeShare)            // Revoke token
-		shares.POST("/cleanup", h.cleanupExpiredShares) // Admin cleanup
+		shares.POST("", h.createShare)
+		shares.GET("/:token", h.getSharedDocument)
+		shares.GET("", h.listShares)
+		shares.DELETE("/:id", h.revokeShare)
+		shares.POST("/cleanup", h.cleanupExpiredShares)
 	}
 
 	routerGroup.POST("/import/documents", h.importDocuments)

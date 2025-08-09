@@ -223,6 +223,7 @@
 										</span>
 									</div>
 									<Button
+										data-testId="revoke-share-btn"
 										variant="ghost"
 										size="sm"
 										onclick={() => revokeShare(share.id)}

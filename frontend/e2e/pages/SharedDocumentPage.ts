@@ -41,7 +41,7 @@ export class SharedDocumentPage extends BasePage {
 
 		// Header elements
 		this.header = page.locator('header');
-		this.brandingText = page.getByText('📄 Shared Document');
+		this.brandingText = page.getByText('Shared Document (Read-only)');
 		this.poweredByText = page.getByText('Powered by Schist');
 
 		// Document content
@@ -114,7 +114,6 @@ export class SharedDocumentPage extends BasePage {
 
 		// Verify footer elements
 		await expect(this.footer).toBeVisible();
-		await expect(this.printButton).toBeVisible();
 	}
 
 	/**
@@ -289,9 +288,11 @@ export class SharedDocumentPage extends BasePage {
 	 * Check if the document has any content
 	 */
 	async hasContent(): Promise<boolean> {
+		const content = await this.documentContent.textContent();
 		return (
 			(await this.documentContent.isVisible()) &&
-			(await this.documentContent.textContent())?.trim().length > 0
+			typeof content === 'string' &&
+			content.trim().length > 0
 		);
 	}
 

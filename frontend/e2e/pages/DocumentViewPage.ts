@@ -380,16 +380,13 @@ export class DocumentViewPage extends BasePage {
 	async createShareLink(expiryDays: number = 7): Promise<string> {
 		const modal = await this.openShareModal();
 
-		// Select expiry option
 		const expirySelect = modal.locator('select');
 		await expirySelect.selectOption(expiryDays.toString());
 
-		// Click create share button
 		const createButton = modal.getByRole('button', { name: /create share link/i });
 		await createButton.click();
 
-		// Wait for share link to be created and extract URL
-		await this.page.waitForTimeout(1000); // Give time for API call
+		await this.page.waitForTimeout(1000);
 		const shareInput = modal.locator('input[readonly]').first();
 		await expect(shareInput).toBeVisible();
 
@@ -414,11 +411,9 @@ export class DocumentViewPage extends BasePage {
 	/**
 	 * Revoke a share link
 	 */
-	async revokeShareLink(shareIndex: number = 0): Promise<void> {
+	async revokeShareLink(shareIndex = 0): Promise<void> {
 		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
-		const revokeButtons = modal
-			.getByRole('button')
-			.filter({ has: this.page.locator('svg[data-lucide="trash-2"]') });
+		const revokeButtons = modal.getByTestId('revoke-share-btn');
 		await revokeButtons.nth(shareIndex).click();
 
 		// Wait for success message

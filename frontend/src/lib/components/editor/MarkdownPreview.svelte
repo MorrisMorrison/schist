@@ -4,6 +4,7 @@
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
+	import { sanitizeMarkdownHtml } from '$lib/utils/sanitizer';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import {
@@ -18,6 +19,8 @@
 	let containerRef: HTMLDivElement;
 
 	let htmlContent = $state('');
+
+	const sanitizedContent = $derived(htmlContent ? sanitizeMarkdownHtml(htmlContent) : '');
 
 	// Helper function for adding secret placeholder indicators
 	function addSecretPlaceholderIndicators(text: string): string {
@@ -73,8 +76,7 @@
 	aria-label="Markdown preview"
 >
 	<div class="p-4 {proseClasses}">
-		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-		{@html htmlContent}
+		{@html sanitizedContent}
 	</div>
 </div>
 

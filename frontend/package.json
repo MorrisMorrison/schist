@@ -30,6 +30,7 @@
 		"@sveltejs/vite-plugin-svelte": "^6.0.0",
 		"@tailwindcss/typography": "^0.5.16",
 		"@tailwindcss/vite": "^4.0.0",
+		"@types/dompurify": "^3.0.5",
 		"@types/node": "^24.2.0",
 		"@vitest/browser": "^3.2.3",
 		"bits-ui": "^2.8.11",
@@ -65,7 +66,8 @@
 		"codemirror": "^6.0.2",
 		"highlight.js": "^11.10.0",
 		"lucide-svelte": "^0.525.0",
-		"marked": "^16.0.0"
+		"marked": "^16.0.0",
+		"dompurify": "^3.1.7"
 	},
 	"lint-staged": {
 		"*.{js,ts,svelte}": [

@@ -201,9 +201,19 @@ renderer.image = function ({ href, title, text }: Tokens.Image): string {
 		src = apiClient.getAssetUrl(href);
 	}
 
-	const titleAttr = actualTitle ? ` title="${actualTitle}"` : '';
+	function escapeHtml(text: string): string {
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
+	}
 
-	return `<img src="${src}" alt="${alt}"${titleAttr} class="${sizeClass} h-auto rounded-lg shadow-sm cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" data-lightbox="true" data-original-src="${src}" onclick="window.openImageLightbox('${src}', '${alt}')" onerror="this.style.display='none'; this.parentNode.innerHTML='<div class=\\'text-red-500 text-sm\\'>Image not found: ${alt || href}</div>'" />`;
+	const escapedSrc = escapeHtml(src);
+	const escapedAlt = escapeHtml(alt);
+	const escapedTitle = actualTitle ? ` title="${escapeHtml(actualTitle)}"` : '';
+	const escapedOriginalSrc = escapeHtml(src);
+	const escapedFallbackText = escapeHtml(alt || href);
+
+	return `<img src="${escapedSrc}" alt="${escapedAlt}"${escapedTitle} class="${sizeClass} h-auto rounded-lg shadow-sm cursor-pointer hover:opacity-90 transition-opacity" loading="lazy" data-lightbox="true" data-original-src="${escapedOriginalSrc}" data-fallback-text="${escapedFallbackText}" />`;
 };
 
 renderer.code = function ({ text, lang }: Tokens.Code): string {
@@ -289,10 +299,52 @@ export async function parseMarkdownWithCopyButtons(content: string): Promise<str
 
 		const finalHtml = await postprocessWikiLinks(htmlString);
 
+		setTimeout(() => {
+			setupImageLightboxHandlers();
+		}, 0);
+
 		return finalHtml;
 	} catch (error) {
 		console.error('Markdown parsing error:', error);
 		return '<p class="text-red-500">Error parsing markdown content</p>';
+	}
+}
+
+function setupImageLightboxHandlers(): void {
+	if (typeof document !== 'undefined') {
+		document.removeEventListener('click', handleImageClick);
+		document.removeEventListener('error', handleImageError, true);
+		document.addEventListener('click', handleImageClick, { passive: false });
+		document.addEventListener('error', handleImageError, true);
+	}
+}
+
+function handleImageClick(event: Event): void {
+	const target = event.target as HTMLElement;
+	if (target.tagName === 'IMG' && target.hasAttribute('data-lightbox')) {
+		event.preventDefault();
+		const src = target.getAttribute('data-original-src') || target.getAttribute('src');
+		const alt = target.getAttribute('alt') || '';
+
+		if (src && typeof window !== 'undefined' && 'openImageLightbox' in window) {
+			(window as { openImageLightbox: (src: string, alt: string) => void }).openImageLightbox(
+				src,
+				alt
+			);
+		}
+	}
+}
+
+function handleImageError(event: Event): void {
+	const target = event.target as HTMLImageElement;
+	if (target.tagName === 'IMG' && target.hasAttribute('data-fallback-text')) {
+		const fallbackText = target.getAttribute('data-fallback-text') || 'Image not found';
+		const fallbackDiv = document.createElement('div');
+		fallbackDiv.className = 'text-red-500 text-sm';
+		fallbackDiv.textContent = `Image not found: ${fallbackText}`;
+
+		target.style.display = 'none';
+		target.parentNode?.insertBefore(fallbackDiv, target.nextSibling);
 	}
 }
 
@@ -363,28 +415,55 @@ async function handleCopyClick(event: Event): Promise<void> {
 }
 
 function showCopyFeedback(button: HTMLElement, success: boolean): void {
-	const originalHTML = button.innerHTML;
+	const originalContent = button.cloneNode(true) as HTMLElement;
+
+	button.innerHTML = '';
+
+	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+	svg.setAttribute('class', `copy-icon ${success ? 'text-green-600' : 'text-red-600'}`);
+	svg.setAttribute('width', '16');
+	svg.setAttribute('height', '16');
+	svg.setAttribute('viewBox', '0 0 24 24');
+	svg.setAttribute('fill', 'none');
+	svg.setAttribute('stroke', 'currentColor');
+	svg.setAttribute('stroke-width', '2');
+	svg.setAttribute('stroke-linecap', 'round');
+	svg.setAttribute('stroke-linejoin', 'round');
 
 	if (success) {
-		button.innerHTML = `
-			<svg class="copy-icon text-green-600" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<polyline points="20,6 9,17 4,12"></polyline>
-			</svg>
-		`;
+		const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+		polyline.setAttribute('points', '20,6 9,17 4,12');
+		svg.appendChild(polyline);
 		button.setAttribute('title', 'Copied!');
 	} else {
-		button.innerHTML = `
-			<svg class="copy-icon text-red-600" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="12" cy="12" r="10"></circle>
-				<line x1="12" y1="8" x2="12" y2="12"></line>
-				<line x1="12" y1="16" x2="12.01" y2="16"></line>
-			</svg>
-		`;
+		const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+		circle.setAttribute('cx', '12');
+		circle.setAttribute('cy', '12');
+		circle.setAttribute('r', '10');
+		svg.appendChild(circle);
+
+		const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+		line1.setAttribute('x1', '12');
+		line1.setAttribute('y1', '8');
+		line1.setAttribute('x2', '12');
+		line1.setAttribute('y2', '12');
+		svg.appendChild(line1);
+
+		const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+		line2.setAttribute('x1', '12');
+		line2.setAttribute('y1', '16');
+		line2.setAttribute('x2', '12.01');
+		line2.setAttribute('y2', '16');
+		svg.appendChild(line2);
+
 		button.setAttribute('title', 'Copy failed');
 	}
 
+	button.appendChild(svg);
+
 	setTimeout(() => {
-		button.innerHTML = originalHTML;
+		button.innerHTML = '';
+		button.appendChild(originalContent);
 		button.setAttribute('title', 'Copy code');
 	}, 2000);
 }

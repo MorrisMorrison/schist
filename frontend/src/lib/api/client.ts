@@ -77,6 +77,14 @@ class SchістApiClient {
 			return env.PUBLIC_API_URL;
 		}
 
+		if (typeof window !== 'undefined') {
+			console.debug('API Client: Using relative API path /api (PUBLIC_API_URL not set)', {
+				hostname: window.location.hostname,
+				protocol: window.location.protocol,
+				port: window.location.port
+			});
+		}
+
 		return '/api';
 	}
 
@@ -125,6 +133,16 @@ class SchістApiClient {
 				const errorText = await response.text();
 				const error = new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
 
+				if (browser) {
+					console.error('API Request failed', {
+						url,
+						status: response.status,
+						statusText: response.statusText,
+						errorText,
+						headers: Object.fromEntries(response.headers.entries())
+					});
+				}
+
 				if (response.status === 401 && browser) {
 					this.setAuthToken(null);
 
@@ -166,6 +184,14 @@ class SchістApiClient {
 			const data = await response.json();
 			return data;
 		} catch (error) {
+			if (browser) {
+				console.error('API Request error', {
+					url,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					stack: error instanceof Error ? error.stack : undefined
+				});
+			}
+
 			if (error instanceof Error) {
 				throw error;
 			}

@@ -61,7 +61,7 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build -t schist:latest .
+          docker build --build-arg PUBLIC_API_URL=/api -t schist:latest .
           
       - name: Test Docker image
         run: |

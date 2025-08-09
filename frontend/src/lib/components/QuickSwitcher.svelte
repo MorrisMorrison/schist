@@ -56,13 +56,19 @@
 		try {
 			allDocuments = await apiClient.getDocuments();
 
+			if (!allDocuments || allDocuments.length === 0) {
+				console.warn('QuickSwitcher: No documents returned from API');
+			}
+
 			const recentPaths = getRecentDocumentPaths();
 			recentDocuments = recentPaths
 				.map((path) => allDocuments.find((doc) => doc.metaData.path === path))
 				.filter((doc): doc is Document => doc !== undefined)
 				.slice(0, 8);
 		} catch (error) {
-			console.error('Failed to load documents:', error);
+			console.error('QuickSwitcher: Failed to load documents for search', {
+				error
+			});
 			allDocuments = [];
 			recentDocuments = [];
 		}

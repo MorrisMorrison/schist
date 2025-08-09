@@ -1,12 +1,11 @@
 import { authService } from '$lib/auth/auth-service';
+import { apiClient } from '$lib/api/client';
 import { redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ url }) => {
-	// Initialize auth service if not already done
 	await authService.initialize();
 
-	// If auth is enabled, check authentication
 	if (authService.isAuthEnabled()) {
 		const isAuthenticated = await authService.requireAuth(url.pathname);
 		if (!isAuthenticated) {
@@ -14,6 +13,22 @@ export const load: PageLoad = async ({ url }) => {
 		}
 	}
 
-	// Page components will handle their own data loading
-	return {};
+	try {
+		const [documents, folders] = await Promise.all([
+			apiClient.getDocuments(),
+			apiClient.getFolderTree()
+		]);
+
+		return {
+			documents: documents || [],
+			folders: folders || []
+		};
+	} catch (error) {
+		console.error('Failed to load recent page data:', error);
+		return {
+			documents: [],
+			folders: [],
+			loadError: 'Failed to load documents. Please refresh the page.'
+		};
+	}
 };

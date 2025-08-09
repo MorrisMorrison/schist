@@ -157,7 +157,7 @@ function sanitizeClassesInHtml(html: string): string {
 			.split(' ')
 			.filter((cls: string) => cls.trim() && isClassAllowed(cls.trim()))
 			.join(' ');
-		
+
 		return cleanClasses ? `class="${cleanClasses}"` : '';
 	});
 }
@@ -178,12 +178,12 @@ export function sanitizeHtml(dirty: string): string {
 
 	try {
 		const result = DOMPurify.sanitize(dirty, sanitizerConfig);
-		
+
 		// If hooks aren't available (SSR), manually sanitize classes
 		if (typeof window === 'undefined' || !DOMPurify.addHook) {
 			return sanitizeClassesInHtml(result);
 		}
-		
+
 		return result;
 	} catch (error) {
 		console.error('HTML sanitization failed:', error);
@@ -200,12 +200,12 @@ export function sanitizeMarkdownHtml(html: string): string {
 
 	try {
 		const result = DOMPurify.sanitize(html, config);
-		
+
 		// If hooks aren't available (SSR), manually sanitize classes
 		if (typeof window === 'undefined' || !DOMPurify.addHook) {
 			return sanitizeClassesInHtml(result);
 		}
-		
+
 		return result;
 	} catch (error) {
 		console.error('Markdown HTML sanitization failed:', error);

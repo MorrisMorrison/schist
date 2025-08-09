@@ -17,7 +17,9 @@ type APIHandler struct {
 	GitHubService   *services.GitHubService
 	AuthService     *services.AuthService
 	ShareService    *services.ShareService
+	SecretManager   *services.SecretManager
 	Config          *config.Config
+	Services        *services.Services
 }
 
 func NewAPIHandler(services *services.Services) *APIHandler {
@@ -28,7 +30,9 @@ func NewAPIHandler(services *services.Services) *APIHandler {
 		GitHubService:   services.GitHubService,
 		AuthService:     services.AuthService,
 		ShareService:    services.ShareService,
+		SecretManager:   services.SecretManager,
 		Config:          services.Config,
+		Services:        services,
 	}
 }
 
@@ -38,9 +42,14 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 
 	auth := routerGroup.Group("/auth")
 	{
-		auth.POST("/login", h.login)
+		auth.GET("/setup/required", h.checkSetupRequired)
+		auth.POST("/setup/first-user", h.createFirstUser)
+		auth.POST("/login/passkey", h.loginWithPasskey)
 		auth.POST("/logout", h.logout)
 		auth.GET("/me", h.getCurrentUser)
+		auth.POST("/users", h.createUser)             // Admin only
+		auth.GET("/users", h.listUsers)               // Admin only
+		auth.DELETE("/users/:username", h.deleteUser) // Admin only
 	}
 	documents := routerGroup.Group("/documents")
 	{
@@ -107,6 +116,34 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		shares.GET("", h.listShares)
 		shares.DELETE("/:id", h.revokeShare)
 		shares.POST("/cleanup", h.cleanupExpiredShares)
+	}
+
+	secrets := routerGroup.Group("/secrets")
+	{
+		// Password-based unlock removed - secrets are unlocked via passkey authentication
+		secrets.POST("/lock", LockSecretsHandler(h.Services))
+		secrets.GET("/status", SecretsStatusHandler(h.Services))
+		secrets.GET("", ListSecretsHandler(h.Services))
+		secrets.POST("", CreateSecretHandler(h.Services))
+		secrets.GET("/:key", GetSecretHandler(h.Services))
+		secrets.PUT("/:key", UpdateSecretHandler(h.Services))
+		secrets.DELETE("/:key", DeleteSecretHandler(h.Services))
+	}
+
+	passkeys := routerGroup.Group("/passkeys")
+	{
+		// WebAuthn endpoints
+		passkeys.POST("/register/begin", BeginPasskeyRegistrationHandler(h.Services))
+		passkeys.POST("/register/finish", FinishPasskeyRegistrationHandler(h.Services))
+		passkeys.POST("/authenticate/begin", BeginPasskeyAuthenticationHandler(h.Services))
+		passkeys.POST("/authenticate/finish", FinishPasskeyAuthenticationHandler(h.Services))
+
+		// Legacy/management endpoints
+		passkeys.POST("", CreatePasskeyHandler(h.Services))
+		passkeys.GET("", ListPasskeysHandler(h.Services))
+		passkeys.POST("/unlock", UnlockWithPasskeyHandler(h.Services))
+		passkeys.DELETE("/:id", DeletePasskeyHandler(h.Services))
+		passkeys.GET("/status", PasskeyStatusHandler(h.Services))
 	}
 
 	routerGroup.POST("/import/documents", h.importDocuments)
@@ -273,8 +310,12 @@ func (h *APIHandler) importDocuments(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *APIHandler) login(c *gin.Context) {
-	var req services.LoginRequest
+type PasskeyLoginRequest struct {
+	CredentialID string `json:"credentialId"`
+}
+
+func (h *APIHandler) loginWithPasskey(c *gin.Context) {
+	var req PasskeyLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request body",
@@ -282,16 +323,10 @@ func (h *APIHandler) login(c *gin.Context) {
 		return
 	}
 
-	response, err := h.AuthService.Login(req.Username, req.Password)
+	response, err := h.AuthService.LoginWithPasskey(req.CredentialID)
 	if err != nil {
-		if err == services.ErrInvalidCredentials {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid username or password",
-			})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Login failed",
+			"error": "Authentication failed",
 		})
 		return
 	}
@@ -323,4 +358,127 @@ func (h *APIHandler) getCurrentUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+// Setup and user management handlers
+
+type SetupStatusResponse struct {
+	RequiresSetup bool `json:"requires_setup"`
+}
+
+func (h *APIHandler) checkSetupRequired(c *gin.Context) {
+	isFirstSetup, err := h.AuthService.IsFirstSetup()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to check setup status",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, SetupStatusResponse{
+		RequiresSetup: isFirstSetup,
+	})
+}
+
+type CreateFirstUserRequest struct {
+	Username     string `json:"username"`
+	CredentialID string `json:"credential_id"`
+}
+
+func (h *APIHandler) createFirstUser(c *gin.Context) {
+	var req CreateFirstUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	if req.Username == "" || req.CredentialID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Username and credential ID are required",
+		})
+		return
+	}
+
+	err := h.AuthService.CreateFirstUser(req.Username, req.CredentialID)
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "Failed to create first user: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":  "First user created successfully",
+		"username": req.Username,
+	})
+}
+
+type CreateUserRequest struct {
+	Username     string `json:"username"`
+	IsAdmin      bool   `json:"is_admin"`
+	CredentialID string `json:"credential_id"`
+}
+
+func (h *APIHandler) createUser(c *gin.Context) {
+	// TODO: Add admin authentication middleware
+	var req CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	err := h.Services.UserService.CreateUser(req.Username, req.IsAdmin, req.CredentialID)
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":  "User created successfully",
+		"username": req.Username,
+	})
+}
+
+func (h *APIHandler) listUsers(c *gin.Context) {
+	// TODO: Add admin authentication middleware
+	users, err := h.Services.UserService.ListUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"users": users,
+	})
+}
+
+func (h *APIHandler) deleteUser(c *gin.Context) {
+	// TODO: Add admin authentication middleware
+	username := c.Param("username")
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Username is required",
+		})
+		return
+	}
+
+	err := h.Services.UserService.DeleteUser(username)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User deleted successfully",
+	})
 }

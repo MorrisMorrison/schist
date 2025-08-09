@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -18,7 +17,6 @@ type Config struct {
 	RateLimitRPM     int
 
 	AuthEnabled    bool
-	AuthUsers      map[string]string // username -> bcrypt hash
 	JWTSecret      string
 	JWTExpiryHours int
 
@@ -38,9 +36,8 @@ func Load() *Config {
 		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
 		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),
 
-		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", false),
-		AuthUsers:      parseAuthUsers(getEnv("SCHIST_AUTH_USERS", "")),
-		JWTSecret:      getEnv("SCHIST_JWT_SECRET", ""),
+		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", true),
+		JWTSecret:      getEnv("SCHIST_JWT_SECRET", "secret"),
 		JWTExpiryHours: getEnvInt("SCHIST_JWT_EXPIRY_HOURS", 24),
 
 		SharingEnabled:         getEnvBool("SCHIST_SHARING_ENABLED", true),
@@ -87,30 +84,4 @@ func getEnvInt(key string, defaultValue int) int {
 		}
 	}
 	return defaultValue
-}
-
-func parseAuthUsers(userStr string) map[string]string {
-	users := make(map[string]string)
-	fmt.Printf("DEBUG: Parsing auth users from: %s\n", userStr)
-	if userStr == "" {
-		fmt.Printf("DEBUG: Empty user string\n")
-		return users
-	}
-
-	pairs := strings.Split(userStr, ",")
-	fmt.Printf("DEBUG: Found %d user pairs\n", len(pairs))
-	for _, pair := range pairs {
-		parts := strings.SplitN(strings.TrimSpace(pair), ":", 2)
-		if len(parts) == 2 {
-			username := strings.TrimSpace(parts[0])
-			hash := strings.TrimSpace(parts[1])
-			if username != "" && hash != "" {
-				users[username] = hash
-				fmt.Printf("DEBUG: Added user: %s with hash: %s\n", username, hash)
-			}
-		} else {
-			fmt.Printf("DEBUG: Invalid pair format: %s\n", pair)
-		}
-	}
-	return users
 }

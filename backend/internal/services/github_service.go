@@ -13,15 +13,17 @@ import (
 	"golang.org/x/oauth2"
 
 	appconfig "github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/crypto"
 )
 
 type GitHubService struct {
-	config     *appconfig.Config
-	settings   *appconfig.Settings
-	client     *github.Client
-	gitService *GitService
-	ctx        context.Context
-	dataDir    string
+	config        *appconfig.Config
+	settings      *appconfig.Settings
+	client        *github.Client
+	gitService    *GitService
+	secretManager *SecretManager
+	ctx           context.Context
+	dataDir       string
 }
 
 type GitHubSyncStatus struct {
@@ -77,17 +79,19 @@ type GitHubRepoInfo struct {
 func NewGitHubService(
 	config *appconfig.Config,
 	gitService *GitService,
-	settings *appconfig.Settings) *GitHubService {
+	settings *appconfig.Settings,
+	secretManager *SecretManager) *GitHubService {
 	service := &GitHubService{
-		config:     config,
-		settings:   settings,
-		gitService: gitService,
-		ctx:        context.Background(),
-		dataDir:    config.DataDir,
+		config:        config,
+		settings:      settings,
+		gitService:    gitService,
+		secretManager: secretManager,
+		ctx:           context.Background(),
+		dataDir:       config.DataDir,
 	}
 
 	githubSettings := settings.GetGitHubSettings()
-	if githubSettings.Enabled && githubSettings.Token != "" {
+	if githubSettings.Enabled && service.hasToken() {
 		if err := service.initializeClient(); err != nil {
 			fmt.Printf("Warning: failed to initialize GitHub client: %v\n", err)
 		}
@@ -96,14 +100,36 @@ func NewGitHubService(
 	return service
 }
 
-func (gs *GitHubService) initializeClient() error {
+func (gs *GitHubService) hasToken() bool {
 	githubSettings := gs.settings.GetGitHubSettings()
-	if githubSettings.Token == "" {
-		return fmt.Errorf("github token not configured")
+	return githubSettings.Token != nil && (crypto.IsPlaintext(githubSettings.Token) || gs.secretManager.IsUnlocked())
+}
+
+func (gs *GitHubService) getToken() (string, error) {
+	githubSettings := gs.settings.GetGitHubSettings()
+	if githubSettings.Token == nil {
+		return "", fmt.Errorf("github token not configured")
+	}
+
+	if crypto.IsPlaintext(githubSettings.Token) {
+		return githubSettings.Token.Value, nil
+	}
+
+	if !gs.secretManager.IsUnlocked() {
+		return "", fmt.Errorf("secret store is locked, please unlock first")
+	}
+
+	return gs.secretManager.GetGitHubToken()
+}
+
+func (gs *GitHubService) initializeClient() error {
+	token, err := gs.getToken()
+	if err != nil {
+		return err
 	}
 
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: githubSettings.Token},
+		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(gs.ctx, ts)
 	gs.client = github.NewClient(tc)
@@ -148,14 +174,21 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, fmt.Errorf("branch %s not found in repository %s/%s: %w", branch, req.Owner, req.Repo, err)
 	}
 
+	if !gs.secretManager.IsUnlocked() {
+		return nil, fmt.Errorf("secret store must be unlocked to save GitHub token")
+	}
+
 	githubSettings := &appconfig.GitHubSettings{
 		Enabled:    true,
-		Token:      req.Token,
 		Owner:      req.Owner,
 		Repository: req.Repo,
 		Branch:     branch,
 		AutoSync:   req.AutoSync,
 		SyncOnSave: req.SyncOnSave,
+	}
+
+	if err := gs.secretManager.SetGitHubToken(req.Token); err != nil {
+		return nil, fmt.Errorf("failed to encrypt GitHub token: %w", err)
 	}
 
 	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
@@ -529,9 +562,14 @@ func (gs *GitHubService) pushToGitHub() error {
 
 	githubSettings := gs.settings.GetGitHubSettings()
 
+	token, err := gs.getToken()
+	if err != nil {
+		return fmt.Errorf("failed to get GitHub token: %w", err)
+	}
+
 	auth := &http.BasicAuth{
 		Username: githubSettings.Owner,
-		Password: githubSettings.Token,
+		Password: token,
 	}
 
 	pushOptions := &git.PushOptions{
@@ -543,7 +581,7 @@ func (gs *GitHubService) pushToGitHub() error {
 		Force: true,
 	}
 
-	err := gs.gitService.repository.Push(pushOptions)
+	err = gs.gitService.repository.Push(pushOptions)
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
 			return nil

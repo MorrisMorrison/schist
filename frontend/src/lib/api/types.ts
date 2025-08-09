@@ -342,9 +342,8 @@ export interface User {
 	last_login: string;
 }
 
-export interface LoginRequest {
-	username: string;
-	password: string;
+export interface PasskeyLoginRequest {
+	credentialId: string;
 }
 
 export interface LoginResponse {
@@ -381,4 +380,164 @@ export interface CreateShareRequest {
 export interface ShareListResponse {
 	shares: ShareToken[];
 	total: number;
+}
+
+// User management types
+export interface UserInfo {
+	username: string;
+	passkey_ids: string[];
+	is_admin: boolean;
+	created_at: string;
+	last_login: string;
+}
+
+// Setup types
+export interface SetupStatusResponse {
+	requires_setup: boolean;
+}
+
+export interface CreateFirstUserRequest {
+	username: string;
+	credential_id: string;
+}
+
+export interface CreateUserRequest {
+	username: string;
+	is_admin: boolean;
+	credential_id: string;
+}
+
+export interface UserListResponse {
+	users: User[];
+}
+
+// Passkey types
+export interface PasskeyInfo {
+	id: string;
+	name: string;
+	createdAt: string;
+}
+
+export interface PasskeyStatus {
+	hasPasskeys: boolean;
+	isUnlocked: boolean;
+	requiresPassword: boolean;
+}
+
+export interface PasskeyCreateRequest {
+	name: string;
+}
+
+export interface PasskeyCreateResponse {
+	credentialId: string;
+	message: string;
+}
+
+export interface PasskeyUnlockRequest {
+	credentialId: string;
+}
+
+export interface PasskeyListResponse {
+	passkeys: PasskeyInfo[];
+}
+
+// WebAuthn types
+export interface WebAuthnBeginRegistrationRequest {
+	name: string;
+}
+
+export interface WebAuthnBeginRegistrationResponse {
+	options: PublicKeyCredentialCreationOptions;
+	sessionId: string;
+}
+
+export interface WebAuthnFinishRegistrationRequest {
+	name: string;
+	sessionId: string;
+	response: RegistrationResponseJSON;
+}
+
+export interface WebAuthnFinishRegistrationResponse {
+	credentialId: string;
+	message: string;
+}
+
+export interface WebAuthnBeginAuthenticationResponse {
+	options: PublicKeyCredentialRequestOptions;
+	sessionId: string;
+}
+
+export interface WebAuthnFinishAuthenticationRequest {
+	sessionId: string;
+	response: AuthenticationResponseJSON;
+}
+
+export interface WebAuthnFinishAuthenticationResponse {
+	credentialId: string;
+	message: string;
+}
+
+// WebAuthn credential types from @simplewebauthn/types
+export interface RegistrationResponseJSON {
+	id: string;
+	rawId: string;
+	response: AuthenticatorAttestationResponseJSON;
+	authenticatorAttachment?: AuthenticatorAttachment;
+	clientExtensionResults: AuthenticationExtensionsClientOutputs;
+	type: PublicKeyCredentialType;
+}
+
+export interface AuthenticationResponseJSON {
+	id: string;
+	rawId: string;
+	response: AuthenticatorAssertionResponseJSON;
+	authenticatorAttachment?: AuthenticatorAttachment;
+	clientExtensionResults: AuthenticationExtensionsClientOutputs;
+	type: PublicKeyCredentialType;
+}
+
+export interface AuthenticatorAttestationResponseJSON {
+	clientDataJSON: string;
+	attestationObject: string;
+	authenticatorData?: string;
+	transports?: AuthenticatorTransport[];
+	publicKeyAlgorithm?: COSEAlgorithmIdentifier;
+	publicKey?: string;
+}
+
+export interface AuthenticatorAssertionResponseJSON {
+	clientDataJSON: string;
+	authenticatorData: string;
+	signature: string;
+	userHandle?: string;
+}
+
+type COSEAlgorithmIdentifier = number;
+
+// Secret management types
+export interface SecretsStatus {
+	unlocked: boolean;
+	has_secrets: boolean;
+	requires_password: boolean;
+	has_passkeys: boolean;
+	requires_setup: boolean;
+}
+
+// UnlockSecretsRequest removed - using passkey-only authentication
+
+export interface CreateSecretRequest {
+	key: string;
+	value: string;
+}
+
+export interface UpdateSecretRequest {
+	value: string;
+}
+
+export interface SecretListResponse {
+	secrets: string[];
+}
+
+export interface SecretValueResponse {
+	value: string;
 }

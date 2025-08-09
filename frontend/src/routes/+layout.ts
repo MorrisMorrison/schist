@@ -6,7 +6,7 @@ export const load: LayoutLoad = async ({ url }) => {
 	await authService.initialize();
 
 	// Skip authentication for public routes
-	if (url.pathname === '/login' || url.pathname.startsWith('/share/')) {
+	if (url.pathname === '/login' || url.pathname === '/setup' || url.pathname.startsWith('/share/')) {
 		return {};
 	}
 

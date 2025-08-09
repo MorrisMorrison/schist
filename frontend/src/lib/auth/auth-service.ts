@@ -57,21 +57,18 @@ class AuthService {
 		this.initialized = true;
 	}
 
-	async login(username: string, password: string) {
+	async loginWithPasskey(credentialId: string) {
 		authActions.setLoading(true);
 		authActions.clearError();
 
 		try {
-			const response = await apiClient.login({ username, password });
+			const response = await apiClient.loginWithPasskey(credentialId);
 			// Set the token in the API client immediately after successful login
 			apiClient.setAuthToken(response.token);
 			authActions.setAuth(response.token, response.user);
 			return response;
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Login failed';
-			const friendlyError = errorMessage.includes('Invalid username or password')
-				? 'Invalid username or password'
-				: 'Login failed. Please try again.';
+			const friendlyError = 'Passkey authentication failed. Please try again.';
 			authActions.setError(friendlyError);
 			throw error;
 		} finally {

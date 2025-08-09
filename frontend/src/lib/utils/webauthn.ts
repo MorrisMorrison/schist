@@ -114,17 +114,10 @@ function credentialRequestResponseToJSON(
 function prepareCreationOptions(
 	options: PublicKeyCredentialCreationOptions
 ): PublicKeyCredentialCreationOptions {
-	console.log('Original options:', options);
-	console.log('Challenge type:', typeof options.challenge, options.challenge);
-	console.log('User ID type:', typeof options.user.id, options.user.id);
-	
 	try {
 		const challengeBuffer = base64UrlToArrayBuffer(options.challenge as unknown as string);
-		console.log('Converted challenge:', challengeBuffer);
-		
 		const userIdBuffer = base64UrlToArrayBuffer(options.user.id as unknown as string);
-		console.log('Converted user ID:', userIdBuffer);
-		
+
 		return {
 			...options,
 			challenge: challengeBuffer,
@@ -169,20 +162,15 @@ export async function registerPasskey(name: string): Promise<string> {
 
 	try {
 		// Step 1: Begin registration
-		console.log('Beginning passkey registration for:', name);
 		const beginResponse = await apiClient.beginPasskeyRegistration({ name });
-		console.log('Begin response:', beginResponse);
-		
+
 		// The Go WebAuthn library returns options with publicKey nested
 		const creationOptions = prepareCreationOptions(beginResponse.options.publicKey);
-		console.log('Prepared creation options:', creationOptions);
 
 		// Step 2: Create credential using browser API
-		console.log('Calling navigator.credentials.create...');
 		const credential = (await navigator.credentials.create({
 			publicKey: creationOptions
 		})) as PublicKeyCredential;
-		console.log('Created credential:', credential);
 
 		if (!credential) {
 			throw new WebAuthnError('Failed to create credential', 'CREATION_FAILED');
@@ -241,12 +229,9 @@ export async function authenticateWithPasskey(): Promise<string> {
 
 	try {
 		// Step 1: Begin authentication
-		console.log('Beginning authentication...');
 		const beginResponse = await apiClient.beginPasskeyAuthentication();
-		console.log('Authentication begin response:', beginResponse);
-		// The Go WebAuthn library returns options with publicKey nested  
+		// The Go WebAuthn library returns options with publicKey nested
 		const requestOptions = prepareRequestOptions(beginResponse.options.publicKey as any);
-		console.log('Prepared request options:', requestOptions);
 
 		// Step 2: Get assertion using browser API
 		const credential = (await navigator.credentials.get({

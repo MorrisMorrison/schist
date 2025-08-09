@@ -396,6 +396,17 @@ export interface SetupStatusResponse {
 	requires_setup: boolean;
 }
 
+export interface GenerateInviteTokenResponse {
+	token: string;
+	invite_url: string;
+}
+
+export interface CreateUserFromInviteRequest {
+	token: string;
+	username: string;
+	credential_id: string;
+}
+
 export interface CreateFirstUserRequest {
 	username: string;
 	credential_id: string;

@@ -213,7 +213,6 @@ func (us *UserService) DeleteUser(username string) error {
 	return fmt.Errorf("user not found")
 }
 
-// ListUsers returns all users (admin only)
 func (us *UserService) ListUsers() ([]models.User, error) {
 	storage, err := us.loadUsers()
 	if err != nil {
@@ -222,11 +221,93 @@ func (us *UserService) ListUsers() ([]models.User, error) {
 	return storage.Users, nil
 }
 
-// GenerateInviteToken generates a secure invite token
-func (us *UserService) GenerateInviteToken() (string, error) {
+type Invite struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedBy string    `json:"created_by"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (us *UserService) GenerateInviteToken(createdBy string) (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", fmt.Errorf("failed to generate invite token: %w", err)
 	}
-	return hex.EncodeToString(bytes), nil
+
+	token := hex.EncodeToString(bytes)
+	invite := Invite{
+		Token:     token,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour), // 7 days
+		CreatedBy: createdBy,
+		CreatedAt: time.Now(),
+	}
+
+	if err := us.saveInvite(invite); err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (us *UserService) ValidateInviteToken(token string) (*Invite, error) {
+	invite, err := us.loadInvite(token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid invite token")
+	}
+
+	if time.Now().After(invite.ExpiresAt) {
+		_ = us.deleteInvite(token)
+		return nil, fmt.Errorf("invite token expired")
+	}
+
+	return invite, nil
+}
+
+func (us *UserService) ConsumeInviteToken(token string) error {
+	_, err := us.ValidateInviteToken(token)
+	if err != nil {
+		return err
+	}
+
+	return us.deleteInvite(token)
+}
+
+func (us *UserService) getInvitesDir() string {
+	return filepath.Join(us.dataDir, "invites")
+}
+
+func (us *UserService) saveInvite(invite Invite) error {
+	invitesDir := us.getInvitesDir()
+	if err := os.MkdirAll(invitesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create invites directory: %w", err)
+	}
+
+	filePath := filepath.Join(invitesDir, invite.Token+".json")
+	data, err := json.MarshalIndent(invite, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal invite: %w", err)
+	}
+
+	return os.WriteFile(filePath, data, 0600)
+}
+
+func (us *UserService) loadInvite(token string) (*Invite, error) {
+	filePath := filepath.Join(us.getInvitesDir(), token+".json")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var invite Invite
+	if err := json.Unmarshal(data, &invite); err != nil {
+		return nil, err
+	}
+
+	return &invite, nil
+}
+
+// deleteInvite removes an invite file
+func (us *UserService) deleteInvite(token string) error {
+	filePath := filepath.Join(us.getInvitesDir(), token+".json")
+	return os.Remove(filePath)
 }

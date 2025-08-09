@@ -11,18 +11,16 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Users, Plus, Trash2, Shield, User, Fingerprint } from 'lucide-svelte';
+	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from 'lucide-svelte';
 	import { apiClient } from '$lib/api/client';
-	import { registerPasskey } from '$lib/utils/webauthn';
 	import type { UserInfo } from '$lib/api/types';
 
 	let users: UserInfo[] = [];
 	let loading = true;
 	let error = '';
-	let showAddUser = false;
-	let newUsername = '';
-	let newUserIsAdmin = false;
-	let addingUser = false;
+	let showInviteDialog = false;
+	let inviteURL = '';
+	let generatingInvite = false;
 
 	onMount(() => {
 		loadUsers();
@@ -41,42 +39,37 @@
 		}
 	}
 
-	async function addUser() {
-		if (!newUsername.trim()) {
-			error = 'Username is required';
-			return;
-		}
-
-		addingUser = true;
+	async function generateInvite() {
+		generatingInvite = true;
 		error = '';
 
 		try {
-			// Register passkey for new user
-			const credentialId = await registerPasskey(newUsername);
-
-			// Create user
-			await apiClient.createUser({
-				username: newUsername.trim(),
-				is_admin: newUserIsAdmin,
-				credential_id: credentialId
-			});
-
-			// Reset form
-			newUsername = '';
-			newUserIsAdmin = false;
-			showAddUser = false;
-
-			// Reload users list
-			await loadUsers();
+			const response = await apiClient.generateInviteToken();
+			inviteURL = response.invite_url;
+			showInviteDialog = true;
 		} catch (err) {
-			console.error('Failed to add user:', err);
-			error = err instanceof Error ? err.message : 'Failed to add user';
+			console.error('Failed to generate invite:', err);
+			error = err instanceof Error ? err.message : 'Failed to generate invite';
 		} finally {
-			addingUser = false;
+			generatingInvite = false;
 		}
 	}
 
-	async function deleteUser(username: string) {
+	async function copyInviteURL() {
+		try {
+			await navigator.clipboard.writeText(inviteURL);
+			// Could add a toast notification here
+		} catch (err) {
+			console.error('Failed to copy invite URL:', err);
+		}
+	}
+
+	async function deleteUser(username: string, isAdmin: boolean) {
+		if (isAdmin) {
+			error = 'Cannot delete the admin user';
+			return;
+		}
+
 		if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
 			return;
 		}
@@ -104,7 +97,8 @@
 			User Management
 		</CardTitle>
 		<CardDescription>
-			Manage user accounts and permissions. All users authenticate with passkeys only.
+			Invite users to the shared workspace. All users have equal access and authenticate with
+			passkeys.
 		</CardDescription>
 	</CardHeader>
 
@@ -132,71 +126,58 @@
 						variant="outline"
 						size="sm"
 						class="flex items-center gap-2"
-						onclick={() => (showAddUser = !showAddUser)}
-						disabled={addingUser}
+						onclick={generateInvite}
+						disabled={generatingInvite}
 					>
 						<Plus class="h-4 w-4" />
-						Add User
+						{generatingInvite ? 'Generating...' : 'Invite User'}
 					</Button>
 				</div>
 
-				{#if showAddUser}
+				{#if showInviteDialog}
 					<Card>
 						<CardHeader>
-							<CardTitle class="text-base">Add New User</CardTitle>
+							<CardTitle class="text-base">Invite User</CardTitle>
 							<CardDescription>
-								Create a new user account with passkey authentication
+								Share this invitation link with the person you want to invite. The link expires in 7
+								days.
 							</CardDescription>
 						</CardHeader>
 						<CardContent class="space-y-4">
 							<div class="space-y-2">
-								<Label for="new-username">Username</Label>
-								<Input
-									id="new-username"
-									type="text"
-									placeholder="Enter username"
-									bind:value={newUsername}
-									disabled={addingUser}
-								/>
-							</div>
-
-							<div class="flex items-center space-x-2">
-								<input
-									id="admin-checkbox"
-									type="checkbox"
-									bind:checked={newUserIsAdmin}
-									disabled={addingUser}
-								/>
-								<Label for="admin-checkbox" class="text-sm font-normal">
-									Administrator privileges
-								</Label>
+								<Label for="invite-url">Invitation Link</Label>
+								<div class="flex gap-2">
+									<Input
+										id="invite-url"
+										type="text"
+										value={inviteURL}
+										readonly
+										class="font-mono text-sm"
+									/>
+									<Button
+										variant="outline"
+										size="sm"
+										onclick={copyInviteURL}
+										class="flex items-center gap-1"
+									>
+										<Copy class="h-4 w-4" />
+										Copy
+									</Button>
+								</div>
 							</div>
 
 							<div class="flex gap-2">
 								<Button
 									variant="default"
 									size="sm"
-									onclick={addUser}
-									disabled={addingUser || !newUsername.trim()}
+									onclick={() => window.open(inviteURL, '_blank')}
 									class="flex items-center gap-2"
 								>
-									{#if addingUser}
-										<div
-											class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-										></div>
-										Creating...
-									{:else}
-										<Fingerprint class="h-4 w-4" />
-										Create with Passkey
-									{/if}
+									<ExternalLink class="h-4 w-4" />
+									Open Link
 								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									onclick={() => (showAddUser = false)}
-									disabled={addingUser}
-								>
-									Cancel
+								<Button variant="outline" size="sm" onclick={() => (showInviteDialog = false)}>
+									Close
 								</Button>
 							</div>
 						</CardContent>
@@ -234,11 +215,12 @@
 							<Button
 								variant="outline"
 								size="sm"
-								onclick={() => deleteUser(user.username)}
-								class="text-destructive hover:text-destructive flex items-center gap-2"
+								onclick={() => deleteUser(user.username, user.is_admin)}
+								disabled={user.is_admin}
+								class="text-destructive hover:text-destructive flex items-center gap-2 disabled:opacity-50"
 							>
 								<Trash2 class="h-4 w-4" />
-								Delete
+								{user.is_admin ? 'Protected' : 'Delete'}
 							</Button>
 						</div>
 					{:else}

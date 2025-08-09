@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -44,12 +45,14 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	{
 		auth.GET("/setup/required", h.checkSetupRequired)
 		auth.POST("/setup/first-user", h.createFirstUser)
+		auth.POST("/setup/invite-user", h.createUserFromInvite)
 		auth.POST("/login/passkey", h.loginWithPasskey)
 		auth.POST("/logout", h.logout)
 		auth.GET("/me", h.getCurrentUser)
-		auth.POST("/users", h.createUser)             // Admin only
-		auth.GET("/users", h.listUsers)               // Admin only
-		auth.DELETE("/users/:username", h.deleteUser) // Admin only
+		auth.POST("/invite", h.generateInviteToken)
+		auth.POST("/users", h.createUser)
+		auth.GET("/users", h.listUsers)
+		auth.DELETE("/users/:username", h.deleteUser)
 	}
 	documents := routerGroup.Group("/documents")
 	{
@@ -411,6 +414,75 @@ func (h *APIHandler) createFirstUser(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":  "First user created successfully",
+		"username": req.Username,
+	})
+}
+
+type GenerateInviteTokenRequest struct {
+}
+
+type GenerateInviteTokenResponse struct {
+	Token     string `json:"token"`
+	InviteURL string `json:"invite_url"`
+}
+
+func (h *APIHandler) generateInviteToken(c *gin.Context) {
+	username, exists := c.Get("authenticated_user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Authentication required",
+		})
+		return
+	}
+
+	token, err := h.AuthService.GenerateInviteToken(username.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate invite token: " + err.Error(),
+		})
+		return
+	}
+
+	inviteURL := fmt.Sprintf("%s/setup?invite=%s", h.Config.FrontendURL, token)
+
+	c.JSON(http.StatusCreated, GenerateInviteTokenResponse{
+		Token:     token,
+		InviteURL: inviteURL,
+	})
+}
+
+type CreateUserFromInviteRequest struct {
+	Token        string `json:"token" binding:"required"`
+	Username     string `json:"username" binding:"required"`
+	CredentialID string `json:"credential_id" binding:"required"`
+}
+
+func (h *APIHandler) createUserFromInvite(c *gin.Context) {
+	var req CreateUserFromInviteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	if req.Username == "" || req.CredentialID == "" || req.Token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Username, credential ID, and token are required",
+		})
+		return
+	}
+
+	err := h.AuthService.CreateUserFromInvite(req.Token, req.Username, req.CredentialID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Failed to create user from invite: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":  "User created successfully from invitation",
 		"username": req.Username,
 	})
 }

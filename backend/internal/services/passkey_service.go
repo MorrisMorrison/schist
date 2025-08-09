@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -83,10 +85,38 @@ type PasskeyService struct {
 
 // NewPasskeyService creates a new passkey service with proper WebAuthn configuration
 func NewPasskeyService(config *config.Config) (*PasskeyService, error) {
+	// Parse frontend URL to extract host for RP configuration
+	frontendURL, err := url.Parse(config.FrontendURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse frontend URL: %w", err)
+	}
+
+	// Extract hostname without port for RPID (WebAuthn requirement)
+	rpID := frontendURL.Hostname()
+	
+	// Create list of allowed origins (include both with and without port for flexibility)
+	rpOrigins := []string{config.FrontendURL}
+	
+	// Add development origins if we're in development mode
+	if config.Environment == "development" {
+		rpOrigins = append(rpOrigins, 
+			"http://localhost:5173", 
+			"http://localhost:4173", 
+			"http://localhost:4174",
+		)
+		// For localhost development, use "localhost" as RPID
+		if rpID == "localhost" || rpID == "127.0.0.1" {
+			rpID = "localhost"
+		}
+	}
+
+	// Log WebAuthn configuration for debugging
+	log.Printf("WebAuthn Configuration: RPID=%s, RPOrigins=%v", rpID, rpOrigins)
+
 	wconfig := &webauthn.Config{
 		RPDisplayName: "Schist",
-		RPID:          "localhost",                                                // TODO: Make configurable
-		RPOrigins:     []string{"http://localhost:5173", "http://localhost:4173"}, // TODO: Make configurable
+		RPID:          rpID,
+		RPOrigins:     rpOrigins,
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			RequireResidentKey: protocol.ResidentKeyRequired(),
 			ResidentKey:        protocol.ResidentKeyRequirementRequired,

@@ -523,8 +523,8 @@
 					variant="ghost"
 					size="icon"
 					class="h-6 w-6"
-					onclick={() => oncreate?.({ parentPath: getCurrentFolderPath() })}
-					title="Create new folder"
+					onclick={() => ondocumentcreate?.({ parentPath: getCurrentFolderPath() })}
+					title="Create new document"
 				>
 					<Plus class="h-4 w-4" />
 				</Button>

@@ -8,25 +8,25 @@ test.describe('Recent Page', () => {
 
 	test('should navigate to recent page from navbar', async ({ page }) => {
 		await page.click('a[href="/recent"]');
-		
+
 		await expect(page).toHaveURL('/recent');
-		
+
 		await expect(page.locator('h1')).toContainText('Recent Documents');
 	});
 
 	test('should handle empty state gracefully', async ({ page }) => {
 		await page.click('a[href="/recent"]');
-		
+
 		await expect(page).toHaveURL('/recent');
 		await expect(page.locator('h1')).toContainText('Recent Documents');
-		
+
 		await expect(page.locator('text=No documents found')).toBeVisible();
 		await expect(page.locator('text=Loading...')).not.toBeVisible();
 	});
 
 	test('should work with direct URL access', async ({ page }) => {
 		await page.goto('/recent');
-		
+
 		await expect(page.locator('h1')).toContainText('Recent Documents');
 	});
 
@@ -40,28 +40,35 @@ test.describe('Recent Page', () => {
 		});
 
 		await page.goto('/recent');
-		
+
 		await expect(page.locator('text=Error loading documents')).toBeVisible();
-		await expect(page.locator('text=Failed to load documents. Please refresh the page.')).toBeVisible();
+		await expect(
+			page.locator('text=Failed to load documents. Please refresh the page.')
+		).toBeVisible();
 	});
 });
 
 fixtureTest.describe('Recent Page with Data', () => {
 	fixtureTest('should display recent documents after navigation', async ({ page }) => {
 		await page.click('a[href="/recent"]');
-		
+
 		await expect(page.locator('h1')).toContainText('Recent Documents');
-		
+
 		await expect(page.locator('[data-testid="document-card"]').first()).toBeVisible();
-		
+
 		await expect(page.locator('text=No documents found')).not.toBeVisible();
 		await expect(page.locator('text=Loading...')).not.toBeVisible();
 	});
 
-	fixtureTest('should display multiple documents in recent view', async ({ page, withMultipleDocuments }) => {
-		await page.goto('/recent');
-		
-		await expect(page.locator('h1')).toContainText('Recent Documents');
-		await expect(page.locator('[data-testid="document-card"]')).toHaveCount(withMultipleDocuments.length);
-	});
+	fixtureTest(
+		'should display multiple documents in recent view',
+		async ({ page, withMultipleDocuments }) => {
+			await page.goto('/recent');
+
+			await expect(page.locator('h1')).toContainText('Recent Documents');
+			await expect(page.locator('[data-testid="document-card"]')).toHaveCount(
+				withMultipleDocuments.length
+			);
+		}
+	);
 });

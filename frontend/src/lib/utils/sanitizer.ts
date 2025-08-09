@@ -152,7 +152,7 @@ function sanitizeClasses(element: Element): void {
 
 function sanitizeClassesInHtml(html: string): string {
 	// Simple regex-based class sanitization for SSR
-	return html.replace(/class="([^"]*)"/g, (match, classes) => {
+	return html.replace(/class="([^"]*)"/g, (_, classes) => {
 		const cleanClasses = classes
 			.split(' ')
 			.filter((cls: string) => cls.trim() && isClassAllowed(cls.trim()))

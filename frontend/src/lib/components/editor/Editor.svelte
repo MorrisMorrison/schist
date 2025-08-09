@@ -18,8 +18,12 @@
 		onContentChange,
 		onSave,
 		readonly = false,
-		fullscreen = false
+		fullscreen = false,
+		...rest
 	}: Omit<EditorProps, 'theme'> & { fullscreen?: boolean } = $props();
+
+	// Explicitly mark as used to avoid linting errors
+	void rest;
 
 	let editorElement: HTMLElement;
 	let editorView: EditorView | null = null;

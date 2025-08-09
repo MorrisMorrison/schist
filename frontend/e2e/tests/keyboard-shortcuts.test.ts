@@ -5,20 +5,20 @@ test.describe('Keyboard Shortcuts', () => {
 		await page.goto('/');
 	});
 
-	test('should use Ctrl+Shift+T for theme toggle', async ({ page }) => {
-		await page.keyboard.press('Control+Shift+t');
+	test('should use Ctrl+Alt+T for theme toggle', async ({ page }) => {
+		await page.keyboard.press('Control+Alt+t');
 
 		await expect(page.locator('html')).toHaveAttribute('class', /dark|light/);
 	});
 
-	test('should create new document with Ctrl+N', async ({ page }) => {
-		await page.keyboard.press('Control+n');
+	test('should create new document with Ctrl+Shift+Y', async ({ page }) => {
+		await page.keyboard.press('Control+Shift+y');
 
 		await expect(page).toHaveURL(/\/new/);
 	});
 
-	test('should create new folder with Ctrl+Shift+N', async ({ page }) => {
-		await page.keyboard.press('Control+Shift+n');
+	test('should create new folder with Ctrl+Shift+U', async ({ page }) => {
+		await page.keyboard.press('Control+Shift+u');
 
 		await expect(page.locator('[data-testid="create-folder-modal"]')).toBeVisible();
 	});
@@ -43,5 +43,28 @@ test.describe('Keyboard Shortcuts', () => {
 		await page.keyboard.press('Control+,');
 
 		await expect(page).toHaveURL('/settings');
+	});
+});
+
+test.describe('Document Keyboard Shortcuts', () => {
+	test.beforeEach(async ({ page }) => {
+		// Need to be on a document page to test document shortcuts
+		await page.goto('/documents/test-doc');
+	});
+
+	test('should download document with Ctrl+J', async ({ page }) => {
+		// Start listening for download before triggering
+		const downloadPromise = page.waitForEvent('download');
+
+		await page.keyboard.press('Control+j');
+
+		// Wait for download to start
+		await downloadPromise;
+	});
+
+	test('should navigate to edit with Ctrl+E', async ({ page }) => {
+		await page.keyboard.press('Control+e');
+
+		await expect(page).toHaveURL(/\/edit\/test-doc/);
 	});
 });

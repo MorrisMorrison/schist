@@ -487,11 +487,8 @@ export class ApiHelper {
 		}
 	}
 
-	async request(
-		method: string,
-		endpoint: string,
-		data?: { username: string; password: string }
-	): Promise<ApiResponse> {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	async request(method: string, endpoint: string, data?: any): Promise<ApiResponse> {
 		try {
 			const url = endpoint.startsWith('/')
 				? `${this.baseURL}${endpoint}`
@@ -536,6 +533,7 @@ export class ApiHelper {
 		}
 	}
 
+	// Legacy password-based login (for backward compatibility during migration)
 	async login(username: string, password: string): Promise<ApiResponse> {
 		return this.request('POST', '/auth/login', { username, password });
 	}
@@ -546,6 +544,68 @@ export class ApiHelper {
 
 	async getCurrentUser(): Promise<ApiResponse> {
 		return this.request('GET', '/auth/me');
+	}
+
+	// New passkey-based authentication methods
+	async checkSetupRequired(): Promise<ApiResponse<{ requires_setup: boolean }>> {
+		return this.request('GET', '/auth/setup/required');
+	}
+
+	async createFirstUser(userData: {
+		username: string;
+		credential_id: string;
+	}): Promise<ApiResponse> {
+		return this.request('POST', '/auth/setup/first-user', userData);
+	}
+
+	async createUserFromInvite(inviteData: {
+		token: string;
+		username: string;
+		credential_id: string;
+	}): Promise<ApiResponse> {
+		return this.request('POST', '/auth/setup/invite-user', inviteData);
+	}
+
+	async generateInviteToken(): Promise<ApiResponse<{ invite_url: string; token: string }>> {
+		return this.request('POST', '/auth/invite');
+	}
+
+	async beginPasskeyRegistration(data: {
+		name: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	}): Promise<ApiResponse<{ sessionId: string; options: any }>> {
+		return this.request('POST', '/passkeys/register/begin', data);
+	}
+
+	async finishPasskeyRegistration(data: {
+		name: string;
+		sessionId: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		response: any;
+	}): Promise<ApiResponse<{ credentialId: string }>> {
+		return this.request('POST', '/passkeys/register/finish', data);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	async beginPasskeyAuthentication(): Promise<ApiResponse<{ sessionId: string; options: any }>> {
+		return this.request('POST', '/passkeys/authenticate/begin');
+	}
+
+	async finishPasskeyAuthentication(data: {
+		sessionId: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		response: any;
+	}): Promise<ApiResponse<{ credentialId: string }>> {
+		return this.request('POST', '/passkeys/authenticate/finish', data);
+	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	async listUsers(): Promise<ApiResponse<{ users: any[] }>> {
+		return this.request('GET', '/users');
+	}
+
+	async deleteUser(username: string): Promise<ApiResponse> {
+		return this.request('DELETE', `/users/${username}`);
 	}
 }
 

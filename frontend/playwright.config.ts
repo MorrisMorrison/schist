@@ -90,7 +90,7 @@ export default defineConfig({
 		},
 		{
 			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_AUTH_USERS="testuser:\\$2a\\$10\\$4g1x0g52pZ1EtekJO8C2YuLrKWMVOi97lBpI0yOo/nXGs5iNywrHe" SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
+				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
 			port: 8082,
 			reuseExistingServer: true,
 			timeout: 60 * 1000

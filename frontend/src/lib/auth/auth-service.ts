@@ -66,6 +66,19 @@ class AuthService {
 			// Set the token in the API client immediately after successful login
 			apiClient.setAuthToken(response.token);
 			authActions.setAuth(response.token, response.user);
+
+			// Trigger secrets store sync after successful auth
+			try {
+				const { secretStore } = await import('../stores/secrets');
+				await secretStore.loadStatus();
+				const secretsState = get(secretStore);
+				if (secretsState.status?.unlocked) {
+					await secretStore.loadSecrets();
+				}
+			} catch (error) {
+				console.warn('Failed to sync secrets after login:', error);
+			}
+
 			return response;
 		} catch (error) {
 			const friendlyError = 'Passkey authentication failed. Please try again.';

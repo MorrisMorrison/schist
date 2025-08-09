@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import { browser } from '$app/environment';
+import { apiClient } from '$lib/api/client';
 
 interface User {
 	username: string;
@@ -56,6 +57,17 @@ function saveToken(token: string | null): void {
 }
 
 export const authStore = writable<AuthState>(loadAuthState());
+
+// Sync API client token whenever auth state changes
+if (browser) {
+	authStore.subscribe((state) => {
+		if (state.token) {
+			apiClient.setAuthToken(state.token);
+		} else {
+			apiClient.setAuthToken(null);
+		}
+	});
+}
 
 export const isAuthenticated = derived(authStore, ($auth) => !!$auth.token && !!$auth.user);
 export const currentUser = derived(authStore, ($auth) => $auth.user);

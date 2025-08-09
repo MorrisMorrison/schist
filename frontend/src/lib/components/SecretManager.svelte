@@ -9,6 +9,7 @@
 		hasSecrets,
 		requiresPassword
 	} from '$lib/stores/secrets';
+	import { authStore } from '$lib/stores/auth';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import {
@@ -26,13 +27,17 @@
 	let showEditModal = $state(false);
 	let editingSecretKey = $state<string | null>(null);
 	let deletingSecret = $state<string | null>(null);
+	let reloadingAfterUnlock = $state(false);
 
 	onMount(() => {
-		// Load secrets status on mount
+		// Only load status on mount, let other effects handle loading secrets
 		secretStore.loadStatus();
-		// Try to load secrets if already unlocked
-		if ($secretsUnlocked) {
-			secretStore.loadSecrets();
+	});
+
+	// React to authentication changes - only reload status, not secrets
+	$effect(() => {
+		if ($authStore.token && $authStore.user) {
+			secretStore.loadStatus();
 		}
 	});
 
@@ -48,15 +53,31 @@
 		}
 	}
 
-	function handleUnlockSuccess() {
+	async function handleUnlockSuccess() {
 		showUnlockModal = false;
+
+		// Prevent multiple simultaneous reloads
+		if (reloadingAfterUnlock) return;
+		reloadingAfterUnlock = true;
+
+		try {
+			await secretStore.loadStatus();
+			// Only load secrets if status confirms unlocked and we don't have them yet
+			if ($secretsUnlocked && $secretList.length === 0) {
+				await secretStore.loadSecrets();
+			}
+		} catch (error) {
+			console.warn('Failed to reload secrets after unlock:', error);
+		} finally {
+			reloadingAfterUnlock = false;
+		}
+
 		// If this was first-time setup, automatically open create modal
 		if (!$hasSecrets) {
 			setTimeout(() => {
 				showCreateModal = true;
-			}, 300); // Small delay for better UX
+			}, 300);
 		}
-		// Secrets will be loaded automatically by the unlock process
 	}
 
 	function handleCreateSuccess() {
@@ -92,7 +113,6 @@
 	async function copySecretReference(secretKey: string) {
 		const reference = `{{secret:${secretKey}}}`;
 		await navigator.clipboard.writeText(reference);
-		// Could add a toast notification here
 	}
 </script>
 

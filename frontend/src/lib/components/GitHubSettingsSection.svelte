@@ -207,7 +207,9 @@
 			onclick={() => (activeTab = 'sync')}
 			class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'sync'
 				? 'border-blue-500 text-blue-600 dark:text-blue-400'
-				: 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
+				: 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'} {!isConnected
+				? 'cursor-not-allowed opacity-50'
+				: 'cursor-pointer'}"
 			disabled={!isConnected}
 		>
 			<RefreshCw class="mr-1 inline h-4 w-4" />
@@ -449,9 +451,22 @@
 	<!-- Sync Tab -->
 	{#if activeTab === 'sync'}
 		<div class="space-y-4">
+			{#if !isConnected}
+				<div
+					class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
+				>
+					<AlertCircle class="h-4 w-4 flex-shrink-0" />
+					GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.
+				</div>
+			{/if}
+
 			<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<h3 class="text-lg font-medium">Manual Sync</h3>
-				<Button onclick={syncNow} disabled={!isConnected || $isGitHubSyncing}>
+				<Button 
+					onclick={syncNow} 
+					disabled={!isConnected || $isGitHubSyncing}
+					title={!isConnected ? 'Configure GitHub connection first' : 'Sync documents to GitHub'}
+				>
 					{#if $isGitHubSyncing}
 						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 						Syncing...
@@ -500,12 +515,19 @@
 			{/if}
 
 			<div class="text-sm text-gray-600 dark:text-gray-400">
-				<p>
-					Manual sync will immediately push all your documents to the configured GitHub repository.
-				</p>
-				<p class="mt-2">
-					This operation may take a few moments depending on the number of documents.
-				</p>
+				{#if isConnected}
+					<p>
+						Manual sync will immediately push all your documents to the configured GitHub
+						repository.
+					</p>
+					<p class="mt-2">
+						This operation may take a few moments depending on the number of documents.
+					</p>
+				{:else}
+					<p>
+						Configure your GitHub connection in the "Setup" tab to enable manual sync functionality.
+					</p>
+				{/if}
 			</div>
 		</div>
 	{/if}

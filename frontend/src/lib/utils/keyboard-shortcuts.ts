@@ -101,8 +101,8 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 
 		// UI toggles
 		if (isCmdOrCtrl) {
-			// Cmd/Ctrl + T: Toggle theme
-			if (event.key === 't') {
+			// Cmd/Ctrl + Shift + T: Toggle theme (avoid browser New Tab conflict)
+			if (event.key === 't' && event.shiftKey) {
 				event.preventDefault();
 				themeActions.toggleTheme();
 				return;
@@ -172,7 +172,7 @@ export const KEYBOARD_SHORTCUTS = {
 		'Cmd/Ctrl + S': 'Download current document'
 	},
 	ui: {
-		'Cmd/Ctrl + T': 'Toggle theme',
+		'Cmd/Ctrl + Shift + T': 'Toggle theme',
 		'Cmd/Ctrl + B': 'Toggle sidebar',
 		Escape: 'Close Quick Switcher'
 	}

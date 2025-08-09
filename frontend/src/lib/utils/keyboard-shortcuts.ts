@@ -44,15 +44,17 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 		if (isTyping || handlers.isQuickSwitcherOpen()) return;
 
 		// Document creation shortcuts
-		if (isCmdOrCtrl && event.key === 'n') {
+		if (isCmdOrCtrl && event.key === 'y' && event.shiftKey) {
+			// Cmd/Ctrl + Shift + Y: Create new document (truly safe alternative)
 			event.preventDefault();
-			if (event.shiftKey) {
-				// Cmd/Ctrl + Shift + N: Create folder
-				handleCreateFolder(currentPath);
-			} else {
-				// Cmd/Ctrl + N: Create new document
-				handleCreateDocument(currentPath);
-			}
+			handleCreateDocument(currentPath);
+			return;
+		}
+
+		if (isCmdOrCtrl && event.key === 'u' && event.shiftKey) {
+			// Cmd/Ctrl + Shift + U: Create folder (truly safe alternative)
+			event.preventDefault();
+			handleCreateFolder(currentPath);
 			return;
 		}
 
@@ -67,15 +69,15 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 				return;
 			}
 
-			// Cmd/Ctrl + D: Delete current document
-			if (isCmdOrCtrl && event.key === 'd') {
+			// Delete: Delete current document (safe, rarely used by browsers)
+			if (event.key === 'Delete' && !event.ctrlKey && !event.metaKey) {
 				event.preventDefault();
 				handleDeleteDocument(documentPath);
 				return;
 			}
 
-			// Cmd/Ctrl + S: Download/Save current document
-			if (isCmdOrCtrl && event.key === 's') {
+			// Ctrl/Cmd + J: Download current document (safe alternative)
+			if (isCmdOrCtrl && event.key === 'j') {
 				event.preventDefault();
 				handleDownloadDocument(documentPath);
 				return;
@@ -101,8 +103,8 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 
 		// UI toggles
 		if (isCmdOrCtrl) {
-			// Cmd/Ctrl + Shift + T: Toggle theme (avoid browser New Tab conflict)
-			if (event.key === 't' && event.shiftKey) {
+			// Cmd/Ctrl + Alt + T: Toggle theme (safe alternative)
+			if (event.key === 't' && event.altKey) {
 				event.preventDefault();
 				themeActions.toggleTheme();
 				return;
@@ -163,16 +165,16 @@ export const KEYBOARD_SHORTCUTS = {
 		'Cmd/Ctrl + ,': 'Go to Settings'
 	},
 	creation: {
-		'Cmd/Ctrl + N': 'Create new document',
-		'Cmd/Ctrl + Shift + N': 'Create new folder'
+		'Cmd/Ctrl + Shift + Y': 'Create new document',
+		'Cmd/Ctrl + Shift + U': 'Create new folder'
 	},
 	document: {
 		'Cmd/Ctrl + E': 'Edit current document',
-		'Cmd/Ctrl + D': 'Delete current document',
-		'Cmd/Ctrl + S': 'Download current document'
+		Delete: 'Delete current document',
+		'Cmd/Ctrl + J': 'Download current document'
 	},
 	ui: {
-		'Cmd/Ctrl + Shift + T': 'Toggle theme',
+		'Cmd/Ctrl + Alt + T': 'Toggle theme',
 		'Cmd/Ctrl + B': 'Toggle sidebar',
 		Escape: 'Close Quick Switcher'
 	}

@@ -19,9 +19,23 @@
 	let isLoading = false;
 	let error = '';
 	let currentStep = 1;
+	let inviteToken = '';
+	let isInviteFlow = false;
 
 	onMount(async () => {
-		// Check if setup is actually required
+		// Check if there's an invite token in the URL
+		const urlParams = new URLSearchParams(window.location.search);
+		const token = urlParams.get('invite');
+
+		if (token) {
+			// This is an invite flow
+			inviteToken = token;
+			isInviteFlow = true;
+			// Don't check setup status for invite flow
+			return;
+		}
+
+		// Regular setup flow - check if setup is required
 		try {
 			const response = await apiClient.checkSetupRequired();
 			if (!response.requires_setup) {
@@ -50,11 +64,20 @@
 			// Register passkey
 			const credentialId = await registerPasskey(username);
 
-			// Create first user
-			await apiClient.createFirstUser({
-				username: username.trim(),
-				credential_id: credentialId
-			});
+			if (isInviteFlow) {
+				// Create user from invite
+				await apiClient.createUserFromInvite({
+					token: inviteToken,
+					username: username.trim(),
+					credential_id: credentialId
+				});
+			} else {
+				// Create first user
+				await apiClient.createFirstUser({
+					username: username.trim(),
+					credential_id: credentialId
+				});
+			}
 
 			currentStep = 3;
 		} catch (err) {
@@ -89,9 +112,13 @@
 				<img src="/icon-128x128.png" alt="Schist Logo" class="h-16 w-16" />
 			</div>
 			<div class="space-y-2">
-				<CardTitle class="text-2xl font-bold">Welcome to Schist</CardTitle>
+				<CardTitle class="text-2xl font-bold">
+					{isInviteFlow ? 'Join Schist Wiki' : 'Welcome to Schist'}
+				</CardTitle>
 				<CardDescription class="text-muted-foreground">
-					Let's set up your passkey-native personal wiki
+					{isInviteFlow
+						? 'Complete your account setup with passkey authentication'
+						: "Let's set up your passkey-native personal wiki"}
 				</CardDescription>
 			</div>
 		</CardHeader>
@@ -110,9 +137,13 @@
 				<!-- Step 1: Username Input -->
 				<div class="space-y-4">
 					<div class="text-center">
-						<h3 class="text-lg font-semibold">Create Admin Account</h3>
+						<h3 class="text-lg font-semibold">
+							{isInviteFlow ? 'Create Your Account' : 'Create Admin Account'}
+						</h3>
 						<p class="text-muted-foreground text-sm">
-							This will be your administrator account with full access
+							{isInviteFlow
+								? 'Choose a username and set up your passkey'
+								: 'This will be your administrator account with full access'}
 						</p>
 					</div>
 

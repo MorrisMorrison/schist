@@ -52,6 +52,8 @@ import type {
 	SecretListResponse,
 	SecretValueResponse,
 	SetupStatusResponse,
+	GenerateInviteTokenResponse,
+	CreateUserFromInviteRequest,
 	CreateFirstUserRequest,
 	UserInfo
 } from './types.js';
@@ -658,6 +660,21 @@ class SchістApiClient {
 		request: CreateFirstUserRequest
 	): Promise<{ message: string; username: string }> {
 		return this.request<{ message: string; username: string }>('/auth/setup/first-user', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async generateInviteToken(): Promise<GenerateInviteTokenResponse> {
+		return this.request<GenerateInviteTokenResponse>('/auth/invite', {
+			method: 'POST'
+		});
+	}
+
+	async createUserFromInvite(
+		request: CreateUserFromInviteRequest
+	): Promise<{ message: string; username: string }> {
+		return this.request<{ message: string; username: string }>('/auth/setup/invite-user', {
 			method: 'POST',
 			body: JSON.stringify(request)
 		});

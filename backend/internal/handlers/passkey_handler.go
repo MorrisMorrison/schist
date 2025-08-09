@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 
@@ -215,23 +217,40 @@ func CreatePasskeyHandler(services *services.Services) gin.HandlerFunc {
 
 func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		username, exists := c.Get("authenticated_user")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			return
+		}
+
+		user, err := services.UserService.GetUserByUsername(username.(string))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+
 		credentials, err := services.PasskeyService.ListCredentials()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		passkeys := make([]PasskeyInfo, len(credentials))
-		for i, cred := range credentials {
-			passkeys[i] = PasskeyInfo{
-				ID:        cred.ID,
-				Name:      cred.Name,
-				CreatedAt: cred.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		var userPasskeys []PasskeyInfo
+		for _, cred := range credentials {
+			for _, userPasskeyID := range user.PasskeyIDs {
+				if cred.ID == userPasskeyID {
+					userPasskeys = append(userPasskeys, PasskeyInfo{
+						ID:        cred.ID,
+						Name:      cred.Name,
+						CreatedAt: cred.CreatedAt.Format("2006-01-02T15:04:05Z"),
+					})
+					break
+				}
 			}
 		}
 
 		response := PasskeyListResponse{
-			Passkeys: passkeys,
+			Passkeys: userPasskeys,
 		}
 
 		c.JSON(http.StatusOK, response)
@@ -264,7 +283,32 @@ func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 			return
 		}
 
-		err := services.PasskeyService.DeleteCredential(credentialID)
+		username, exists := c.Get("authenticated_user")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			return
+		}
+
+		user, err := services.UserService.GetUserByUsername(username.(string))
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+
+		ownsPasskey := false
+		for _, userPasskeyID := range user.PasskeyIDs {
+			if userPasskeyID == credentialID {
+				ownsPasskey = true
+				break
+			}
+		}
+
+		if !ownsPasskey {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You can only delete your own passkeys"})
+			return
+		}
+
+		err = services.PasskeyService.DeleteCredential(credentialID)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Passkey not found"})
 			return
@@ -292,9 +336,13 @@ func PasskeyStatusHandler(services *services.Services) gin.HandlerFunc {
 	}
 }
 
-// generateSessionID generates a simple session ID
-// TODO: Use crypto/rand for production
+// generateSessionID generates a cryptographically secure session ID
 func generateSessionID() string {
-	challenge, _ := protocol.CreateChallenge()
-	return "session_" + challenge.String()
+	bytes := make([]byte, 32) // 32 bytes = 256 bits of entropy
+	if _, err := rand.Read(bytes); err != nil {
+		// Fallback to WebAuthn challenge if crypto/rand fails
+		challenge, _ := protocol.CreateChallenge()
+		return "session_" + challenge.String()
+	}
+	return "session_" + base64.RawURLEncoding.EncodeToString(bytes)
 }

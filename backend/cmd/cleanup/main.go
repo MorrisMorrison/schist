@@ -19,10 +19,10 @@ type CleanupConfig struct {
 }
 
 type CleanupStats struct {
-	FilesDeleted      int
+	FilesDeleted       int
 	DirectoriesDeleted int
-	BytesFreed        int64
-	Errors           []string
+	BytesFreed         int64
+	Errors             []string
 }
 
 func main() {
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	stats := CleanupStats{}
-	
+
 	if *dryRun {
 		fmt.Println("🔍 DRY RUN MODE - No files will be deleted")
 	}
@@ -195,7 +195,7 @@ func autoDiscoverTargets(rootDir string) CleanupConfig {
 	}
 
 	// Walk the directory tree to find cleanup targets
-	filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -205,7 +205,7 @@ func autoDiscoverTargets(rootDir string) CleanupConfig {
 		}
 
 		name := info.Name()
-		
+
 		// Data directories
 		if name == "data" || name == "test-data" || name == "e2e-data" || strings.HasPrefix(name, "schist-data") {
 			config.DataDirectories = append(config.DataDirectories, path)
@@ -224,7 +224,7 @@ func autoDiscoverTargets(rootDir string) CleanupConfig {
 		"**/test-results/**",
 		"**/playwright-report/**",
 	}
-	
+
 	config.LogFiles = []string{
 		"*.log",
 		"**/logs/**",
@@ -346,7 +346,7 @@ func cleanupSingleFile(filePath string, dryRun, verbose bool, stats *CleanupStat
 
 func getDirSize(dirPath string) int64 {
 	var size int64
-	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -360,7 +360,7 @@ func getDirSize(dirPath string) int64 {
 
 func getFileCount(dirPath string) int {
 	var count int
-	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -388,17 +388,17 @@ func formatBytes(bytes int64) string {
 func printSummary(stats CleanupStats, dryRun bool) {
 	fmt.Println("\n📊 Cleanup Summary")
 	fmt.Println("==================")
-	
+
 	if dryRun {
 		fmt.Println("🔍 DRY RUN RESULTS:")
 	} else {
 		fmt.Println("✅ CLEANUP COMPLETED:")
 	}
-	
+
 	fmt.Printf("📁 Directories: %d\n", stats.DirectoriesDeleted)
 	fmt.Printf("📄 Files: %d\n", stats.FilesDeleted)
 	fmt.Printf("💾 Space freed: %s\n", formatBytes(stats.BytesFreed))
-	
+
 	if len(stats.Errors) > 0 {
 		fmt.Printf("\n⚠️  Errors encountered: %d\n", len(stats.Errors))
 		for _, err := range stats.Errors {

@@ -109,14 +109,24 @@ func (s *AuthService) GetUser(username string) (*User, error) {
 	}, nil
 }
 
-// IsFirstSetup checks if this is the first time the system is being set up
 func (s *AuthService) IsFirstSetup() (bool, error) {
 	return s.userService.IsFirstSetup()
 }
 
-// CreateFirstUser creates the first admin user during setup
 func (s *AuthService) CreateFirstUser(username, credentialId string) error {
 	return s.userService.CreateFirstUser(username, credentialId)
+}
+
+func (s *AuthService) GenerateInviteToken(createdBy string) (string, error) {
+	return s.userService.GenerateInviteToken(createdBy)
+}
+
+func (s *AuthService) CreateUserFromInvite(token, username, credentialId string) error {
+	if err := s.userService.ConsumeInviteToken(token); err != nil {
+		return err
+	}
+
+	return s.userService.CreateUser(username, false, credentialId)
 }
 
 func (s *AuthService) generateJWT(username string) (string, error) {

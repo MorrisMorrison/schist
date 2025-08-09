@@ -223,9 +223,11 @@ export interface ImportError {
 export interface ImportResult {
 	success: ImportedDocument[];
 	failed: ImportError[];
+	skipped: ImportedDocument[];
 	total_files: number;
 	imported_count: number;
 	failed_count: number;
+	skipped_count: number;
 }
 
 // Export-related types

@@ -25,6 +25,7 @@ func (i *IgnoreService) ShouldIgnore(path string) bool {
 		"trash/",
 		"uploads/",
 		"assets/",
+		"invites/",
 	}
 
 	for _, pattern := range patterns {
@@ -44,7 +45,33 @@ func (i *IgnoreService) ShouldIgnoreFile(filePath string) bool {
 
 	relPath = filepath.ToSlash(relPath)
 
-	return i.ShouldIgnore(relPath)
+	if i.ShouldIgnore(relPath) {
+		return true
+	}
+
+	return i.shouldIgnoreFilePattern(relPath)
+}
+
+func (i *IgnoreService) shouldIgnoreFilePattern(filePath string) bool {
+	fileName := filepath.Base(filePath)
+	lowerFileName := strings.ToLower(fileName)
+
+	systemPatterns := []string{
+		".log",
+		".tmp",
+		".temp",
+		".github",
+		".gitignore",
+		".gitattributes",
+	}
+
+	for _, pattern := range systemPatterns {
+		if strings.Contains(lowerFileName, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (i *IgnoreService) matchesPattern(path, pattern string) bool {

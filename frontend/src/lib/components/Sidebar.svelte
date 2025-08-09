@@ -11,6 +11,7 @@
 	import { folderActions, documentActions, folders } from '$lib/stores/documents';
 	import { apiClient } from '$lib/api/client';
 	import { Button } from './ui/button';
+	import { onMount } from 'svelte';
 
 	let showCreateFolderModal = $state(false);
 	let parentPathForModal = $state('');
@@ -135,6 +136,20 @@
 	function handleExportAll() {
 		apiClient.exportAll();
 	}
+
+	onMount(() => {
+		function handleGlobalCreateFolder() {
+			handleCreateFolder({
+				parentPath: currentPath.startsWith('/folders') ? currentPath.replace('/folders', '') : '/'
+			});
+		}
+
+		window.addEventListener('openCreateFolderModal', handleGlobalCreateFolder);
+
+		return () => {
+			window.removeEventListener('openCreateFolderModal', handleGlobalCreateFolder);
+		};
+	});
 </script>
 
 <aside class="bg-primary border-border flex h-full w-full flex-col overflow-hidden border-r">

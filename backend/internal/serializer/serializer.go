@@ -11,7 +11,7 @@ import (
 // raw file content -> Document
 func DeserializeDocument(fileContent []byte) (*models.Document, error) {
 	if !bytes.HasPrefix(fileContent, []byte("---\n")) {
-		return &models.Document{Content: string(fileContent)}, nil
+		return nil, fmt.Errorf("invalid document format: missing YAML frontmatter")
 	}
 
 	// split into into metadata and content parts

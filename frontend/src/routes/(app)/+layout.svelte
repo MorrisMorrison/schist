@@ -16,6 +16,8 @@
 	import { authService } from '$lib/auth/auth-service';
 	import { authStore } from '$lib/stores/auth';
 	import { browser } from '$app/environment';
+	import { apiClient } from '$lib/api/client';
+	import { goto } from '$app/navigation';
 
 	let { children } = $props();
 
@@ -50,15 +52,45 @@
 		quickSwitcherOpen = true;
 	}
 
+	function handleCreateFolder() {
+		window.dispatchEvent(new CustomEvent('openCreateFolderModal'));
+	}
+
+	function handleDeleteDocument(event: Event) {
+		const customEvent = event as CustomEvent<{ path: string }>;
+		if (confirm(`Are you sure you want to delete this document?`)) {
+			apiClient
+				.deleteDocumentByPath(customEvent.detail.path)
+				.then(() => {
+					goto('/');
+				})
+				.catch((error) => {
+					console.error('Failed to delete document:', error);
+					alert('Failed to delete document. Please try again.');
+				});
+		}
+	}
+
+	function handleDownloadDocument(event: Event) {
+		const customEvent = event as CustomEvent<{ path: string }>;
+		apiClient.exportDocument(customEvent.detail.path);
+	}
+
 	onMount(() => {
 		authService.initialize();
 
 		document.addEventListener('keydown', handleGlobalKeydown);
 		window.addEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
+		window.addEventListener('createFolder', handleCreateFolder);
+		window.addEventListener('deleteDocument', handleDeleteDocument);
+		window.addEventListener('downloadDocument', handleDownloadDocument);
 
 		return () => {
 			document.removeEventListener('keydown', handleGlobalKeydown);
 			window.removeEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
+			window.removeEventListener('createFolder', handleCreateFolder);
+			window.removeEventListener('deleteDocument', handleDeleteDocument);
+			window.removeEventListener('downloadDocument', handleDownloadDocument);
 		};
 	});
 

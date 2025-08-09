@@ -77,6 +77,14 @@ class SchістApiClient {
 			return env.PUBLIC_API_URL;
 		}
 
+		if (typeof window !== 'undefined') {
+			console.debug('API Client: Using relative API path /api (PUBLIC_API_URL not set)', {
+				hostname: window.location.hostname,
+				protocol: window.location.protocol,
+				port: window.location.port
+			});
+		}
+
 		return '/api';
 	}
 
@@ -125,6 +133,16 @@ class SchістApiClient {
 				const errorText = await response.text();
 				const error = new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
 
+				if (browser) {
+					console.error('API Request failed', {
+						url,
+						status: response.status,
+						statusText: response.statusText,
+						errorText,
+						headers: Object.fromEntries(response.headers.entries())
+					});
+				}
+
 				if (response.status === 401 && browser) {
 					this.setAuthToken(null);
 
@@ -166,6 +184,14 @@ class SchістApiClient {
 			const data = await response.json();
 			return data;
 		} catch (error) {
+			if (browser) {
+				console.error('API Request error', {
+					url,
+					error: error instanceof Error ? error.message : 'Unknown error',
+					stack: error instanceof Error ? error.stack : undefined
+				});
+			}
+
 			if (error instanceof Error) {
 				throw error;
 			}
@@ -470,7 +496,43 @@ class SchістApiClient {
 		const encodedPath = this.encodePath(path);
 		const url = `${this.getApiUrl()}/export/document${encodedPath}`;
 
-		window.open(url, '_blank');
+		try {
+			const headers: Record<string, string> = {};
+			if (this.authToken) {
+				headers.Authorization = `Bearer ${this.authToken}`;
+			}
+
+			const response = await fetch(url, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				throw new Error(`Export failed: ${response.statusText}`);
+			}
+
+			const contentDisposition = response.headers.get('content-disposition');
+			let filename = 'document.md';
+			if (contentDisposition) {
+				const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+				if (matches != null && matches[1]) {
+					filename = matches[1].replace(/['"]/g, '');
+				}
+			}
+
+			const blob = await response.blob();
+			const downloadUrl = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = downloadUrl;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(downloadUrl);
+		} catch (error) {
+			console.error('Export failed:', error);
+			throw error;
+		}
 	}
 
 	async exportFolder(path: string): Promise<void> {

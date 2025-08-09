@@ -6,6 +6,7 @@
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
+	import { sanitizeMarkdownHtml } from '$lib/utils/sanitizer';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -19,6 +20,10 @@
 
 	let contentContainer = $state<HTMLElement>();
 	let renderedMarkdown = $state('');
+
+	const sanitizedMarkdown = $derived(
+		renderedMarkdown ? sanitizeMarkdownHtml(renderedMarkdown) : ''
+	);
 
 	function formatDate(dateString?: string): string {
 		if (!dateString) return '';
@@ -137,8 +142,7 @@
 				bind:this={contentContainer}
 				class="prose prose-slate dark:prose-invert w-full !max-w-none"
 			>
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				{@html renderedMarkdown}
+				{@html sanitizedMarkdown}
 			</div>
 		{:else if document?.content}
 			<div class="flex items-center justify-center py-8">

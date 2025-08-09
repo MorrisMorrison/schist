@@ -36,5 +36,15 @@ export default ts.config(
 				svelteConfig
 			}
 		}
+	},
+	{
+		files: [
+			'src/lib/components/document/DocumentView.svelte',
+			'src/lib/components/editor/MarkdownPreview.svelte',
+			'src/routes/share/*/+page.svelte'
+		],
+		rules: {
+			'svelte/no-at-html-tags': 'off'
+		}
 	}
 );

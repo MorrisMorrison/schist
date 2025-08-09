@@ -10,6 +10,7 @@
 		parseMarkdownWithCopyButtons,
 		initializeMarkdownInteractions
 	} from '$lib/utils/markdown';
+	import { sanitizeMarkdownHtml } from '$lib/utils/sanitizer';
 	import type { Document, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
@@ -54,6 +55,10 @@
 	}
 
 	let renderedMarkdown = $state('');
+
+	const sanitizedMarkdown = $derived(
+		renderedMarkdown ? sanitizeMarkdownHtml(renderedMarkdown) : ''
+	);
 
 	let backlinks = $state<Document[]>([]);
 	let backlinkLoading = $state(false);
@@ -331,8 +336,7 @@
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
 			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				{@html renderedMarkdown}
+				{@html sanitizedMarkdown}
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">

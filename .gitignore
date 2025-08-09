@@ -38,8 +38,9 @@ backend/schist
 wiki-data/
 frontend/playwright-report
 frontend/test-results
-backend/cmd/schist/test-data-worker-*
+backend/cmd/schist/test-data-*
 backend/cmd/schist/schist
 project/
 test-token
 docs/features
+frontend/playwright

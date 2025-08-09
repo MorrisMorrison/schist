@@ -48,25 +48,13 @@ func NewAuthService(config *config.Config) *AuthService {
 }
 
 func (s *AuthService) Login(username, password string) (*LoginResponse, error) {
-	fmt.Printf("DEBUG: Login attempt for username: %s\n", username)
-	fmt.Printf("DEBUG: Available users: %v\n", func() []string {
-		var users []string
-		for user := range s.config.AuthUsers {
-			users = append(users, user)
-		}
-		return users
-	}())
-	
 	hashedPassword, exists := s.config.AuthUsers[username]
 	if !exists {
-		fmt.Printf("DEBUG: User %s not found in config\n", username)
 		return nil, ErrInvalidCredentials
 	}
 
-	fmt.Printf("DEBUG: Hash from config: %s\n", hashedPassword)
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {
-		fmt.Printf("DEBUG: Password comparison failed: %v\n", err)
 		return nil, ErrInvalidCredentials
 	}
 
@@ -124,10 +112,8 @@ func (s *AuthService) GetUser(username string) (*User, error) {
 
 func (s *AuthService) generateJWT(username string) (string, error) {
 	if s.config.JWTSecret == "" {
-		fmt.Printf("DEBUG: JWT secret is empty\n")
 		return "", ErrMissingJWTSecret
 	}
-	fmt.Printf("DEBUG: Generating JWT for user: %s with secret length: %d\n", username, len(s.config.JWTSecret))
 
 	claims := Claims{
 		Username: username,

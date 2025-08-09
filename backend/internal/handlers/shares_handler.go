@@ -96,16 +96,20 @@ func (h *APIHandler) getSharedDocument(c *gin.Context) {
 }
 
 func (h *APIHandler) listShares(c *gin.Context) {
-	// Get authenticated user
-	username, exists := c.Get("authenticated_user")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Authentication required",
-		})
-		return
+	username := "anonymous"
+	if h.Config.AuthEnabled {
+		var exists bool
+		userVal, exists := c.Get("authenticated_user")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Authentication required",
+			})
+			return
+		}
+		username, _ = userVal.(string)
 	}
 
-	shares, err := h.ShareService.ListShares(username.(string))
+	shares, err := h.ShareService.ListShares(username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to list shares: " + err.Error(),
@@ -145,16 +149,20 @@ func (h *APIHandler) revokeShare(c *gin.Context) {
 		return
 	}
 
-	// Get authenticated user
-	username, exists := c.Get("authenticated_user")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Authentication required",
-		})
-		return
+	username := "anonymous"
+	if h.Config.AuthEnabled {
+		var exists bool
+		userVal, exists := c.Get("authenticated_user")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Authentication required",
+			})
+			return
+		}
+		username, _ = userVal.(string)
 	}
 
-	err := h.ShareService.RevokeShare(shareID, username.(string))
+	err := h.ShareService.RevokeShare(shareID, username)
 	if err != nil {
 		if err.Error() == "share not found or not owned by user" {
 			c.JSON(http.StatusNotFound, gin.H{

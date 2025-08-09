@@ -65,17 +65,19 @@
 		}
 
 		return filteredDocuments.sort((a, b) => {
+			const metaA = a.metaData || {};
+			const metaB = b.metaData || {};
 			let comparison = 0;
 
 			if (sortBy === 'name') {
-				comparison = a.metaData.title.localeCompare(b.metaData.title);
+				comparison = (metaA.title || '').localeCompare(metaB.title || '');
 			} else if (sortBy === 'created') {
-				const dateA = new Date(a.metaData.created || '').getTime();
-				const dateB = new Date(b.metaData.created || '').getTime();
+				const dateA = new Date(metaA.created || '').getTime();
+				const dateB = new Date(metaB.created || '').getTime();
 				comparison = dateA - dateB;
 			} else if (sortBy === 'modified') {
-				const dateA = new Date(a.metaData.updated || a.metaData.created || '').getTime();
-				const dateB = new Date(b.metaData.updated || b.metaData.created || '').getTime();
+				const dateA = new Date(metaA.updated || metaA.created || '').getTime();
+				const dateB = new Date(metaB.updated || metaB.created || '').getTime();
 				comparison = dateA - dateB;
 			}
 

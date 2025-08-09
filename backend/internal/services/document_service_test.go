@@ -137,20 +137,17 @@ func TestDocumentService_ReadDocument(t *testing.T) {
 		assert.Contains(t, err.Error(), "could not read file")
 	})
 
-	t.Run("handles page without front matter", func(t *testing.T) {
-		// Create a simple markdown file without front matter
+	t.Run("rejects page without front matter", func(t *testing.T) {
 		simplePage := "# Simple Page\n\nJust content, no metadata."
 		filePath := filepath.Join(testDir, "simple.md")
 		err := os.WriteFile(filePath, []byte(simplePage), 0600)
 		require.NoError(t, err)
 
-		// Read the page without front matter
 		page, err := documentService.ReadDocument("simple")
 
-		assert.NoError(t, err)
-		assert.NotNil(t, page)
-		assert.Equal(t, simplePage, page.Content)
-		// Page without front matter should have nil or empty metadata
+		assert.Error(t, err)
+		assert.Nil(t, page)
+		assert.Contains(t, err.Error(), "could not deserialize document")
 	})
 }
 

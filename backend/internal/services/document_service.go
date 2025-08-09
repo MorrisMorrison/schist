@@ -241,7 +241,8 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 
 		document, err := d.GetDocumentByPath(logicalPath)
 		if err != nil {
-			return err
+			log.Printf("Skipping file %s: %v", logicalPath, err)
+			return nil
 		}
 
 		documents = append(documents, document)
@@ -993,7 +994,7 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 		switch overwriteMode {
 		case "overwrite":
 			// Use the path as-is, will overwrite
-			break
+			// No action needed, exit the loop
 		case "skip":
 			// This would require different handling in the calling function
 			// For now, treat as rename

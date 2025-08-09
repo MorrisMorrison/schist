@@ -66,11 +66,11 @@ async function resolveWikiLink(target: string): Promise<WikiLink> {
 		const documents = await apiClient.getDocuments();
 
 		const matchingDocument = documents.find(
-			(document: { metaData: { title: string; path: string } }) =>
-				document.metaData.title.toLowerCase() === target.toLowerCase()
+			(document: { metaData?: { title?: string; path?: string } }) =>
+				document.metaData?.title?.toLowerCase() === target.toLowerCase()
 		);
 
-		if (matchingDocument) {
+		if (matchingDocument && matchingDocument.metaData?.path) {
 			return {
 				target,
 				displayText: target,

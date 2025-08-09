@@ -15,6 +15,12 @@
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';
+	import {
+		secretStore,
+		secretsUnlocked,
+		replaceSecretPlaceholders,
+		parseSecretPlaceholders
+	} from '$lib/stores/secrets';
 
 	interface Props {
 		document: Document;
@@ -58,28 +64,59 @@
 	let showVersionHistory = $state(false);
 	let versions = $state<DocumentVersion[]>([]);
 
-	$effect(() => {
-		const content = document.content;
+	// Helper function for adding secret placeholder indicators
+	function addSecretPlaceholderIndicators(text: string): string {
+		const placeholders = parseSecretPlaceholders(text);
 
-		if (content) {
-			parseMarkdownWithCopyButtons(content)
-				.then((html) => {
-					renderedMarkdown = html;
-				})
-				.catch((error) => {
-					console.error('Failed to parse markdown:', error);
-					renderedMarkdown = `<div class="text-red-500 p-4 border border-red-200 rounded">
-						<p><strong>Error parsing content:</strong></p>
-						<p>${error.message}</p>
-						<details class="mt-2">
-							<summary class="cursor-pointer">Raw content</summary>
-							<pre class="mt-2 p-2 bg-gray-100 rounded overflow-x-auto">${content}</pre>
-						</details>
-					</div>`;
-				});
-		} else {
-			renderedMarkdown = '';
+		let processedText = text;
+		for (const { placeholder, key } of placeholders) {
+			const indicator = `<span class="secret-placeholder bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md font-mono text-sm border border-amber-200 dark:border-amber-700" title="Secret '${key}' is locked. Unlock secrets to view the value.">${placeholder} 🔒</span>`;
+			processedText = processedText.replace(placeholder, indicator);
 		}
+
+		return processedText;
+	}
+
+	$effect(() => {
+		async function processContent() {
+			const content = document.content;
+
+			if (!content) {
+				renderedMarkdown = '';
+				return;
+			}
+
+			try {
+				// Process secret placeholders
+				let processedContent = content;
+				if ($secretsUnlocked) {
+					// Replace placeholders with actual values when unlocked
+					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
+						return await secretStore.getSecret(key);
+					});
+				} else {
+					// Add visual indicators for locked placeholders
+					processedContent = addSecretPlaceholderIndicators(content);
+				}
+
+				// Parse markdown with processed content
+				const html = await parseMarkdownWithCopyButtons(processedContent);
+				renderedMarkdown = html;
+			} catch (error) {
+				console.error('Failed to process document content:', error);
+				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+				renderedMarkdown = `<div class="text-red-500 p-4 border border-red-200 rounded">
+					<p><strong>Error processing content:</strong></p>
+					<p>${errorMessage}</p>
+					<details class="mt-2">
+						<summary class="cursor-pointer">Raw content</summary>
+						<pre class="mt-2 p-2 bg-gray-100 rounded overflow-x-auto">${content}</pre>
+					</details>
+				</div>`;
+			}
+		}
+
+		processContent();
 	});
 
 	$effect(() => {

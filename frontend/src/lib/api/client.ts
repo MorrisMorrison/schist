@@ -29,12 +29,31 @@ import type {
 	GitHubSetupResponse,
 	GitHubConnectionTest,
 	User,
-	LoginRequest,
 	LoginResponse,
 	AppConfig,
 	ShareToken,
 	CreateShareRequest,
-	ShareListResponse
+	ShareListResponse,
+	PasskeyStatus,
+	PasskeyCreateRequest,
+	PasskeyCreateResponse,
+	PasskeyUnlockRequest,
+	PasskeyListResponse,
+	WebAuthnBeginRegistrationRequest,
+	WebAuthnBeginRegistrationResponse,
+	WebAuthnFinishRegistrationRequest,
+	WebAuthnFinishRegistrationResponse,
+	WebAuthnBeginAuthenticationResponse,
+	WebAuthnFinishAuthenticationRequest,
+	WebAuthnFinishAuthenticationResponse,
+	SecretsStatus,
+	CreateSecretRequest,
+	UpdateSecretRequest,
+	SecretListResponse,
+	SecretValueResponse,
+	SetupStatusResponse,
+	CreateFirstUserRequest,
+	UserInfo
 } from './types.js';
 import { normalizePath } from './types.js';
 
@@ -165,10 +184,10 @@ class SchістApiClient {
 		return config;
 	}
 
-	async login(credentials: LoginRequest): Promise<LoginResponse> {
-		const response = await this.request<LoginResponse>('/auth/login', {
+	async loginWithPasskey(credentialId: string): Promise<LoginResponse> {
+		const response = await this.request<LoginResponse>('/auth/login/passkey', {
 			method: 'POST',
-			body: JSON.stringify(credentials)
+			body: JSON.stringify({ credentialId })
 		});
 
 		this.setAuthToken(response.token);
@@ -522,6 +541,146 @@ class SchістApiClient {
 
 	async revokeShare(shareId: string): Promise<{ message: string }> {
 		return this.request<{ message: string }>(`/shares/${shareId}`, {
+			method: 'DELETE'
+		});
+	}
+
+	// Passkey management methods
+	async getPasskeyStatus(): Promise<PasskeyStatus> {
+		return this.request<PasskeyStatus>('/passkeys/status');
+	}
+
+	async listPasskeys(): Promise<PasskeyListResponse> {
+		return this.request<PasskeyListResponse>('/passkeys');
+	}
+
+	async createPasskey(request: PasskeyCreateRequest): Promise<PasskeyCreateResponse> {
+		return this.request<PasskeyCreateResponse>('/passkeys', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async deletePasskey(credentialId: string): Promise<{ message: string }> {
+		return this.request<{ message: string }>(`/passkeys/${credentialId}`, {
+			method: 'DELETE'
+		});
+	}
+
+	async unlockWithPasskey(request: PasskeyUnlockRequest): Promise<{ message: string }> {
+		return this.request<{ message: string }>('/passkeys/unlock', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	// WebAuthn passkey methods
+	async beginPasskeyRegistration(
+		request: WebAuthnBeginRegistrationRequest
+	): Promise<WebAuthnBeginRegistrationResponse> {
+		return this.request<WebAuthnBeginRegistrationResponse>('/passkeys/register/begin', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async finishPasskeyRegistration(
+		request: WebAuthnFinishRegistrationRequest
+	): Promise<WebAuthnFinishRegistrationResponse> {
+		return this.request<WebAuthnFinishRegistrationResponse>('/passkeys/register/finish', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async beginPasskeyAuthentication(): Promise<WebAuthnBeginAuthenticationResponse> {
+		return this.request<WebAuthnBeginAuthenticationResponse>('/passkeys/authenticate/begin', {
+			method: 'POST'
+		});
+	}
+
+	async finishPasskeyAuthentication(
+		request: WebAuthnFinishAuthenticationRequest
+	): Promise<WebAuthnFinishAuthenticationResponse> {
+		return this.request<WebAuthnFinishAuthenticationResponse>('/passkeys/authenticate/finish', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	// Secret management methods
+	async getSecretsStatus(): Promise<SecretsStatus> {
+		return this.request<SecretsStatus>('/secrets/status');
+	}
+
+	// Password-based unlock removed - secrets unlocked via passkey authentication
+
+	async lockSecrets(): Promise<{ message: string }> {
+		return this.request<{ message: string }>('/secrets/lock', {
+			method: 'POST'
+		});
+	}
+
+	async listSecrets(): Promise<SecretListResponse> {
+		return this.request<SecretListResponse>('/secrets');
+	}
+
+	async createSecret(request: CreateSecretRequest): Promise<{ message: string }> {
+		return this.request<{ message: string }>('/secrets', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async getSecret(key: string): Promise<SecretValueResponse> {
+		return this.request<SecretValueResponse>(`/secrets/${encodeURIComponent(key)}`);
+	}
+
+	async updateSecret(key: string, request: UpdateSecretRequest): Promise<{ message: string }> {
+		return this.request<{ message: string }>(`/secrets/${encodeURIComponent(key)}`, {
+			method: 'PUT',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async deleteSecret(key: string): Promise<{ message: string }> {
+		return this.request<{ message: string }>(`/secrets/${encodeURIComponent(key)}`, {
+			method: 'DELETE'
+		});
+	}
+
+	// Setup and user management methods
+	async checkSetupRequired(): Promise<SetupStatusResponse> {
+		return this.request<SetupStatusResponse>('/auth/setup/required');
+	}
+
+	async createFirstUser(
+		request: CreateFirstUserRequest
+	): Promise<{ message: string; username: string }> {
+		return this.request<{ message: string; username: string }>('/auth/setup/first-user', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	// User management methods
+	async listUsers(): Promise<{ users: UserInfo[] }> {
+		return this.request<{ users: UserInfo[] }>('/auth/users');
+	}
+
+	async createUser(request: {
+		username: string;
+		is_admin: boolean;
+		credential_id: string;
+	}): Promise<{ message: string; username: string }> {
+		return this.request<{ message: string; username: string }>('/auth/users', {
+			method: 'POST',
+			body: JSON.stringify(request)
+		});
+	}
+
+	async deleteUser(username: string): Promise<{ message: string }> {
+		return this.request<{ message: string }>(`/auth/users/${encodeURIComponent(username)}`, {
 			method: 'DELETE'
 		});
 	}

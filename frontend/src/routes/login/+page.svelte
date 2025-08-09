@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
@@ -9,55 +10,62 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { LogIn, Eye, EyeOff, AlertCircle } from 'lucide-svelte';
+	import { Fingerprint, AlertCircle } from 'lucide-svelte';
+	import { apiClient } from '$lib/api/client';
+	import { authenticateWithPasskey } from '$lib/utils/webauthn';
 	import { authService } from '$lib/auth/auth-service';
 
-	let username = '';
-	let password = '';
 	let isLoading = false;
-	let showPassword = false;
 	let error = '';
+	let checkingSetup = true;
 
 	$: returnUrl = $page.url.searchParams.get('returnUrl') || '/';
 
-	async function handleLogin() {
-		if (!username || !password) {
-			error = 'Please enter both username and password';
-			return;
+	onMount(async () => {
+		// Check if setup is required first
+		try {
+			console.log('Checking setup status...');
+			const response = await apiClient.checkSetupRequired();
+			console.log('Setup response:', response);
+			if (response.requires_setup) {
+				// Setup required, redirect to setup page
+				console.log('Setup required, redirecting to /setup');
+				await goto('/setup');
+				return;
+			}
+			console.log('Setup not required, showing login');
+		} catch (err) {
+			console.error('Failed to check setup status:', err);
 		}
+		checkingSetup = false;
+	});
 
+	async function handlePasskeyLogin() {
 		isLoading = true;
 		error = '';
 
 		try {
-			await authService.login(username, password);
+			// Authenticate with passkey
+			const credentialId = await authenticateWithPasskey();
+
+			// Login with the credential ID
+			await authService.loginWithPasskey(credentialId);
+
+			// Navigate to return URL
 			await goto(returnUrl);
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Login failed';
-			error = errorMessage.includes('Invalid username or password')
-				? 'Invalid username or password'
-				: 'Login failed. Please try again.';
+			console.error('Passkey login failed:', err);
+			error =
+				err instanceof Error ? err.message : 'Passkey authentication failed. Please try again.';
 		} finally {
 			isLoading = false;
 		}
 	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter') {
-			handleLogin();
-		}
-	}
-
-	function togglePasswordVisibility() {
-		showPassword = !showPassword;
-	}
 </script>
 
 <svelte:head>
-	<title>Login - Schist Wiki</title>
-	<meta name="description" content="Login to Schist Wiki" />
+	<title>Sign In - Schist Wiki</title>
+	<meta name="description" content="Sign in to Schist Wiki with your passkey" />
 </svelte:head>
 
 <div class="login-page bg-background flex min-h-screen items-center justify-center p-4">
@@ -67,10 +75,9 @@
 				<img src="/icon-128x128.png" alt="Schist Logo" class="h-16 w-16" data-testid="login-logo" />
 			</div>
 			<div class="space-y-2">
-				<CardTitle class="text-2xl font-bold" data-testid="login-title">Welcome to Schist</CardTitle
-				>
+				<CardTitle class="text-2xl font-bold" data-testid="login-title">Welcome Back</CardTitle>
 				<CardDescription class="text-muted-foreground">
-					Sign in to access your documentation workspace
+					Sign in securely with your passkey
 				</CardDescription>
 			</div>
 		</CardHeader>
@@ -86,72 +93,54 @@
 				</div>
 			{/if}
 
-			<form class="space-y-4" on:submit|preventDefault={handleLogin}>
-				<div class="space-y-2">
-					<Label for="username">Username</Label>
-					<Input
-						id="username"
-						type="text"
-						placeholder="Enter your username"
-						bind:value={username}
-						disabled={isLoading}
-						autocomplete="username"
-						required
-						onkeydown={handleKeydown}
-						data-testid="username-input"
-					/>
+			{#if checkingSetup}
+				<div class="space-y-4 text-center">
+					<div class="mx-auto flex h-12 w-12 items-center justify-center">
+						<div
+							class="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+						></div>
+					</div>
+					<p class="text-muted-foreground text-sm">Checking system status...</p>
 				</div>
-
-				<div class="space-y-2">
-					<Label for="password">Password</Label>
-					<div class="relative">
-						<Input
-							id="password"
-							type={showPassword ? 'text' : 'password'}
-							placeholder="Enter your password"
-							bind:value={password}
-							disabled={isLoading}
-							autocomplete="current-password"
-							required
-							onkeydown={handleKeydown}
-							class="pr-10"
-							data-testid="password-input"
-						/>
-						<button
-							type="button"
-							class="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
-							on:click={togglePasswordVisibility}
-							disabled={isLoading}
-							data-testid="password-toggle"
+			{:else}
+				<div class="space-y-6">
+					<div class="space-y-2 text-center">
+						<div
+							class="bg-primary/10 mx-auto flex h-16 w-16 items-center justify-center rounded-full"
 						>
-							{#if showPassword}
-								<EyeOff class="h-4 w-4" />
-							{:else}
-								<Eye class="h-4 w-4" />
-							{/if}
-						</button>
+							<Fingerprint class="text-primary h-8 w-8" />
+						</div>
+						<h3 class="text-lg font-semibold">Passkey Authentication</h3>
+						<p class="text-muted-foreground text-sm">
+							Use your device's built-in security to sign in
+						</p>
+					</div>
+
+					<Button
+						type="button"
+						variant="default"
+						size="lg"
+						class="h-12 w-full text-base font-medium"
+						disabled={isLoading}
+						onclick={handlePasskeyLogin}
+						data-testid="passkey-login-button"
+					>
+						{#if isLoading}
+							<div
+								class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+							></div>
+							Authenticating...
+						{:else}
+							<Fingerprint class="mr-2 h-5 w-5" />
+							Sign In with Passkey
+						{/if}
+					</Button>
+
+					<div class="text-center">
+						<p class="text-muted-foreground text-xs">Secure • Passwordless • Privacy-First</p>
 					</div>
 				</div>
-
-				<Button
-					type="submit"
-					variant="default"
-					size="lg"
-					class="h-12 w-full text-base font-medium"
-					disabled={isLoading || !username || !password}
-					data-testid="login-submit"
-				>
-					{#if isLoading}
-						<div
-							class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-						></div>
-						Signing in...
-					{:else}
-						<LogIn class="mr-2 h-5 w-5" />
-						Sign In
-					{/if}
-				</Button>
-			</form>
+			{/if}
 		</CardContent>
 	</Card>
 </div>

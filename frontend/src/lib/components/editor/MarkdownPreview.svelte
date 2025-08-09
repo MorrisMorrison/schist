@@ -6,6 +6,12 @@
 	} from '$lib/utils/markdown';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import {
+		secretStore,
+		secretsUnlocked,
+		replaceSecretPlaceholders,
+		parseSecretPlaceholders
+	} from '$lib/stores/secrets';
 
 	let { content, theme = 'light', className = '' }: PreviewProps = $props();
 
@@ -13,10 +19,35 @@
 
 	let htmlContent = $state('');
 
+	// Helper function for adding secret placeholder indicators
+	function addSecretPlaceholderIndicators(text: string): string {
+		const placeholders = parseSecretPlaceholders(text);
+
+		let processedText = text;
+		for (const { placeholder, key } of placeholders) {
+			const indicator = `<span class="secret-placeholder bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md font-mono text-sm border border-amber-200 dark:border-amber-700" title="Secret '${key}' is locked. Unlock secrets to view the value.">${placeholder} 🔒</span>`;
+			processedText = processedText.replace(placeholder, indicator);
+		}
+
+		return processedText;
+	}
+
 	$effect(() => {
 		const updateContent = async () => {
 			try {
-				htmlContent = await parseMarkdownWithCopyButtons(content);
+				// Process secret placeholders
+				let processedContent = content;
+				if ($secretsUnlocked && content) {
+					// Replace placeholders with actual values when unlocked
+					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
+						return await secretStore.getSecret(key);
+					});
+				} else if (content) {
+					// Add visual indicators for locked placeholders
+					processedContent = addSecretPlaceholderIndicators(content);
+				}
+
+				htmlContent = await parseMarkdownWithCopyButtons(processedContent || '');
 				if (containerRef) {
 					initializeMarkdownInteractions(containerRef);
 				}

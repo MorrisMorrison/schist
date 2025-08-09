@@ -7,11 +7,11 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
-	config *config.Config
+	config      *config.Config
+	userService *UserService
 }
 
 type User struct {
@@ -25,11 +25,6 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 type LoginResponse struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
@@ -41,37 +36,40 @@ var (
 	ErrInvalidToken       = errors.New("invalid token")
 )
 
-func NewAuthService(config *config.Config) *AuthService {
+func NewAuthService(config *config.Config, userService *UserService) *AuthService {
 	return &AuthService{
-		config: config,
+		config:      config,
+		userService: userService,
 	}
 }
 
-func (s *AuthService) Login(username, password string) (*LoginResponse, error) {
-	hashedPassword, exists := s.config.AuthUsers[username]
-	if !exists {
-		return nil, ErrInvalidCredentials
-	}
-
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+func (s *AuthService) LoginWithPasskey(credentialId string) (*LoginResponse, error) {
+	// Find user by credential ID
+	user, err := s.userService.GetUserByCredentialID(credentialId)
 	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
 
-	token, err := s.generateJWT(username)
+	// Update last login time
+	if err := s.userService.UpdateLastLogin(user.Username); err != nil {
+		// Log error but don't fail login
+		fmt.Printf("Warning: failed to update last login for user %s: %v\n", user.Username, err)
+	}
+
+	token, err := s.generateJWT(user.Username)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	user := User{
-		Username:  username,
-		CreatedAt: time.Now(),
+	authUser := User{
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
 		LastLogin: time.Now(),
 	}
 
 	return &LoginResponse{
 		Token: token,
-		User:  user,
+		User:  authUser,
 	}, nil
 }
 
@@ -99,15 +97,26 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
 }
 
 func (s *AuthService) GetUser(username string) (*User, error) {
-	if _, exists := s.config.AuthUsers[username]; !exists {
+	user, err := s.userService.GetUserByUsername(username)
+	if err != nil {
 		return nil, errors.New("user not found")
 	}
 
 	return &User{
-		Username:  username,
-		CreatedAt: time.Now(),
-		LastLogin: time.Now(),
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt,
+		LastLogin: user.LastLogin,
 	}, nil
+}
+
+// IsFirstSetup checks if this is the first time the system is being set up
+func (s *AuthService) IsFirstSetup() (bool, error) {
+	return s.userService.IsFirstSetup()
+}
+
+// CreateFirstUser creates the first admin user during setup
+func (s *AuthService) CreateFirstUser(username, credentialId string) error {
+	return s.userService.CreateFirstUser(username, credentialId)
 }
 
 func (s *AuthService) generateJWT(username string) (string, error) {

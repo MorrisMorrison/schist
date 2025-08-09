@@ -51,7 +51,11 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 			}
 		}
 
-		if c.Request.URL.Path == "/api/auth/login" || c.Request.URL.Path == "/api/auth/logout" {
+		if c.Request.URL.Path == "/api/auth/login" || c.Request.URL.Path == "/api/auth/logout" ||
+			c.Request.URL.Path == "/api/auth/login/passkey" ||
+			c.Request.URL.Path == "/api/auth/setup/required" || c.Request.URL.Path == "/api/auth/setup/first-user" ||
+			c.Request.URL.Path == "/api/passkeys/register/begin" || c.Request.URL.Path == "/api/passkeys/register/finish" ||
+			c.Request.URL.Path == "/api/passkeys/authenticate/begin" || c.Request.URL.Path == "/api/passkeys/authenticate/finish" {
 			c.Next()
 			return
 		}

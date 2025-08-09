@@ -6,24 +6,27 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/MorrisMorrison/schist/internal/crypto"
 )
 
 // Settings handles JSON-based configuration stored in data/.schist/config.json
 type Settings struct {
-	GitHub GitHubSettings `json:"github"`
-	UI     UISettings     `json:"ui"`
-	System SystemSettings `json:"system"`
+	GitHub  GitHubSettings `json:"github"`
+	UI      UISettings     `json:"ui"`
+	System  SystemSettings `json:"system"`
+	Secrets *SecretsConfig `json:"secrets,omitempty"`
 }
 
 type GitHubSettings struct {
-	Enabled    bool      `json:"enabled"`
-	Token      string    `json:"token,omitempty"` // TODO: Consider encryption
-	Owner      string    `json:"owner,omitempty"`
-	Repository string    `json:"repository,omitempty"`
-	Branch     string    `json:"branch"`
-	AutoSync   bool      `json:"auto_sync"`
-	SyncOnSave bool      `json:"sync_on_save"`
-	LastSync   time.Time `json:"last_sync,omitempty"`
+	Enabled    bool                   `json:"enabled"`
+	Token      *crypto.EncryptedValue `json:"token,omitempty"`
+	Owner      string                 `json:"owner,omitempty"`
+	Repository string                 `json:"repository,omitempty"`
+	Branch     string                 `json:"branch"`
+	AutoSync   bool                   `json:"auto_sync"`
+	SyncOnSave bool                   `json:"sync_on_save"`
+	LastSync   time.Time              `json:"last_sync,omitempty"`
 }
 
 type UISettings struct {
@@ -34,6 +37,13 @@ type SystemSettings struct {
 	Version   string    `json:"version"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type SecretsConfig struct {
+	Version       int                               `json:"version"`
+	KeyDerivation string                            `json:"keyDerivation"`
+	Salt          string                            `json:"salt"`
+	Store         map[string]*crypto.EncryptedValue `json:"store,omitempty"`
 }
 
 func LoadSettings(dataDir string) (*Settings, error) {
@@ -57,9 +67,29 @@ func LoadSettings(dataDir string) (*Settings, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
+	settings, err := parseSettings(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	return settings, nil
+}
+
+func parseSettings(data []byte) (*Settings, error) {
+	var rawConfig map[string]any
+	if err := json.Unmarshal(data, &rawConfig); err != nil {
+		return nil, err
+	}
+
 	var settings Settings
 	if err := json.Unmarshal(data, &settings); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
+		return nil, err
+	}
+
+	if githubConfig, ok := rawConfig["github"].(map[string]any); ok {
+		if token, ok := githubConfig["token"].(string); ok && token != "" {
+			settings.GitHub.Token = crypto.NewEncryptedValue(token, false)
+		}
 	}
 
 	return &settings, nil
@@ -103,6 +133,35 @@ func (s *Settings) UpdateUISettings(dataDir string, ui *UISettings) error {
 
 func (s *Settings) GetSystemSettings() *SystemSettings {
 	return &s.System
+}
+
+func (s *Settings) GetSecretsConfig() *SecretsConfig {
+	return s.Secrets
+}
+
+func (s *Settings) UpdateSecretsConfig(dataDir string, secrets *SecretsConfig) error {
+	s.Secrets = secrets
+	return s.Save(dataDir)
+}
+
+func (s *Settings) HasPlaintextSecrets() bool {
+	return crypto.IsPlaintext(s.GitHub.Token)
+}
+
+func (s *Settings) MigratePlaintextSecrets(dataDir string, secureStore *crypto.SecureStore) error {
+	if !s.HasPlaintextSecrets() {
+		return nil
+	}
+
+	if s.GitHub.Token != nil && s.GitHub.Token.Value != "" {
+		encrypted, err := secureStore.Encrypt(s.GitHub.Token.Value)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt GitHub token: %w", err)
+		}
+		s.GitHub.Token = encrypted
+	}
+
+	return s.Save(dataDir)
 }
 
 func createDefaultSettings() *Settings {

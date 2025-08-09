@@ -1,4 +1,4 @@
-.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui check verify
+.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui check verify cleanup cleanup-dry-run
 
 all: build
 
@@ -64,3 +64,10 @@ verify:
 	make fmt
 	make lint
 	make check
+
+# Data cleanup commands
+cleanup:
+	./scripts/cleanup.sh
+
+cleanup-dry-run:
+	./scripts/cleanup.sh --dry-run --verbose

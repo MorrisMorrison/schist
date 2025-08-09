@@ -8,6 +8,9 @@
 	} from '$lib/components/ui/card';
 	import { Github } from 'lucide-svelte';
 	import GitHubSettingsSection from '$lib/components/GitHubSettingsSection.svelte';
+	import SecretManager from '$lib/components/SecretManager.svelte';
+	import PasskeyManager from '$lib/components/PasskeyManager.svelte';
+	import UserManagement from '$lib/components/UserManagement.svelte';
 </script>
 
 <svelte:head>
@@ -20,6 +23,15 @@
 		<h1 class="text-foreground text-3xl font-bold tracking-tight">Settings</h1>
 		<p class="text-muted-foreground">Manage your application settings and integrations.</p>
 	</div>
+
+	<!-- User Management Section -->
+	<UserManagement />
+
+	<!-- Passkey Security Section -->
+	<PasskeyManager />
+
+	<!-- Secret Management Section -->
+	<SecretManager />
 
 	<!-- GitHub Integration Section -->
 	<Card>

@@ -59,10 +59,9 @@
 
 	function handleSetupSuccess() {
 		showSetupModal = false;
-		// Auto-trigger unlock flow after successful setup
-		if ($hasPasskeys && !$isUnlocked) {
-			showUnlockModal = true;
-		}
+		// Reload passkey status after successful setup
+		passkeyStore.loadStatus();
+		passkeyStore.loadPasskeys();
 	}
 
 	function handleUnlockSuccess() {
@@ -91,21 +90,21 @@
 				{#if $isUnlocked}
 					<div class="h-2 w-2 rounded-full bg-green-500"></div>
 					<span class="text-sm font-medium text-green-700 dark:text-green-400">
-						Secrets Unlocked
+						Passkeys Ready
 					</span>
 				{:else if $hasPasskeys}
 					<div class="h-2 w-2 rounded-full bg-amber-500"></div>
 					<span class="text-sm font-medium text-amber-700 dark:text-amber-400">
-						Secrets Locked
+						Passkeys Locked
 					</span>
 				{:else}
 					<div class="h-2 w-2 rounded-full bg-gray-400"></div>
-					<span class="text-muted-foreground text-sm font-medium"> No Security Set Up </span>
+					<span class="text-muted-foreground text-sm font-medium"> No Passkeys Set Up </span>
 				{/if}
 			</div>
 
 			{#if $hasPasskeys && !$isUnlocked}
-				<Button size="sm" onclick={() => (showUnlockModal = true)}>Unlock Secrets</Button>
+				<Button size="sm" onclick={() => (showUnlockModal = true)}>Unlock Passkeys</Button>
 			{/if}
 		</div>
 

@@ -93,15 +93,15 @@ func NewPasskeyService(config *config.Config) (*PasskeyService, error) {
 
 	// Extract hostname without port for RPID (WebAuthn requirement)
 	rpID := frontendURL.Hostname()
-	
+
 	// Create list of allowed origins (include both with and without port for flexibility)
 	rpOrigins := []string{config.FrontendURL}
-	
+
 	// Add development origins if we're in development mode
 	if config.Environment == "development" {
-		rpOrigins = append(rpOrigins, 
-			"http://localhost:5173", 
-			"http://localhost:4173", 
+		rpOrigins = append(rpOrigins,
+			"http://localhost:5173",
+			"http://localhost:4173",
 			"http://localhost:4174",
 		)
 		// For localhost development, use "localhost" as RPID

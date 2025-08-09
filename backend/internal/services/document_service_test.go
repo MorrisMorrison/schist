@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"testing"
@@ -854,5 +855,39 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 		err := documentService.MoveFolder("/", "/target")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "cannot move root folder")
+	})
+}
+
+// Test the skip functionality by checking the ImportResult structure
+func TestDocumentService_ImportResult_SkippedField(t *testing.T) {
+	testDir, cleanup := setupTestDir(t)
+	defer cleanup()
+
+	documentService := setupDocumentService(t, testDir)
+
+	t.Run("ImportResult has correct skip tracking fields", func(t *testing.T) {
+		// Create a basic import options
+		options := &models.ImportOptions{
+			TargetPath:    "/",
+			OverwriteMode: "skip",
+		}
+
+		// Import empty file list to get initialized result
+		result, err := documentService.ImportDocuments([]*multipart.FileHeader{}, options)
+		require.NoError(t, err)
+
+		// Verify all expected fields exist and are initialized
+		assert.NotNil(t, result.Success)
+		assert.NotNil(t, result.Failed)
+		assert.NotNil(t, result.Skipped)
+		assert.Equal(t, 0, result.TotalFiles)
+		assert.Equal(t, 0, result.ImportedCount)
+		assert.Equal(t, 0, result.FailedCount)
+		assert.Equal(t, 0, result.SkippedCount)
+
+		// Verify slice types
+		assert.IsType(t, []models.ImportedDocument{}, result.Success)
+		assert.IsType(t, []models.ImportError{}, result.Failed)
+		assert.IsType(t, []models.ImportedDocument{}, result.Skipped)
 	})
 }

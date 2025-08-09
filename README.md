@@ -113,10 +113,10 @@ Schist provides powerful keyboard shortcuts for efficient navigation and documen
 - `Cmd/Ctrl + ,` - Go to Settings
 
 ### Document Actions
-- `Cmd/Ctrl + Shift + Y` - Create new document
-- `Cmd/Ctrl + Shift + U` - Create new folder
+- `Cmd/Ctrl + Alt + N` - Create new document
+- `Cmd/Ctrl + Alt + F` - Create new folder
 - `Cmd/Ctrl + E` - Edit current document *(when viewing)*
-- `Delete` - Delete current document *(when viewing)*
+- `Cmd/Ctrl + Alt + D` - Delete current document *(when viewing)*
 - `Cmd/Ctrl + J` - Download current document *(when viewing)*
 
 ### UI Controls

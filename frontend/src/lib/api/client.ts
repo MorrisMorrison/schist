@@ -496,7 +496,43 @@ class SchістApiClient {
 		const encodedPath = this.encodePath(path);
 		const url = `${this.getApiUrl()}/export/document${encodedPath}`;
 
-		window.open(url, '_blank');
+		try {
+			const headers: Record<string, string> = {};
+			if (this.authToken) {
+				headers.Authorization = `Bearer ${this.authToken}`;
+			}
+
+			const response = await fetch(url, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				throw new Error(`Export failed: ${response.statusText}`);
+			}
+
+			const contentDisposition = response.headers.get('content-disposition');
+			let filename = 'document.md';
+			if (contentDisposition) {
+				const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+				if (matches != null && matches[1]) {
+					filename = matches[1].replace(/['"]/g, '');
+				}
+			}
+
+			const blob = await response.blob();
+			const downloadUrl = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = downloadUrl;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			window.URL.revokeObjectURL(downloadUrl);
+		} catch (error) {
+			console.error('Export failed:', error);
+			throw error;
+		}
 	}
 
 	async exportFolder(path: string): Promise<void> {

@@ -20,6 +20,11 @@ import (
 
 const MARKDOWN_FILE_ENDING = ".md"
 
+type pathResult struct {
+	finalPath  string
+	shouldSkip bool
+}
+
 type DocumentService struct {
 	dataDir       string
 	gitService    *GitService
@@ -869,6 +874,7 @@ func (d *DocumentService) ImportDocuments(
 	result := &models.ImportResult{
 		Success:    make([]models.ImportedDocument, 0),
 		Failed:     make([]models.ImportError, 0),
+		Skipped:    make([]models.ImportedDocument, 0),
 		TotalFiles: len(files),
 	}
 
@@ -888,6 +894,7 @@ func (d *DocumentService) ImportDocuments(
 	}
 
 	result.ImportedCount = len(result.Success)
+	result.SkippedCount = len(result.Skipped)
 
 	return result, nil
 }
@@ -917,13 +924,23 @@ func (d *DocumentService) importSingleFile(
 	title := d.extractTitleFromContent(processedContent, fileHeader.Filename)
 	slug := utils.GenerateSlug(title)
 
-	finalPath := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
+	pathResult := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
+
+	// Check if file should be skipped
+	if pathResult.shouldSkip {
+		result.Skipped = append(result.Skipped, models.ImportedDocument{
+			OriginalName: fileHeader.Filename,
+			FinalPath:    pathResult.finalPath,
+			Title:        title,
+		})
+		return nil
+	}
 
 	now := time.Now()
 	metadata := &models.DocumentMetaData{
 		Slug:    slug,
 		Title:   title,
-		Path:    finalPath,
+		Path:    pathResult.finalPath,
 		Created: now,
 		Updated: now,
 		Tags:    []string{},
@@ -940,7 +957,7 @@ func (d *DocumentService) importSingleFile(
 
 	result.Success = append(result.Success, models.ImportedDocument{
 		OriginalName: fileHeader.Filename,
-		FinalPath:    finalPath,
+		FinalPath:    pathResult.finalPath,
 		Title:        title,
 	})
 
@@ -971,7 +988,7 @@ func (d *DocumentService) extractTitleFromContent(content, filename string) stri
 	return strings.TrimSuffix(filename, filepath.Ext(filename))
 }
 
-func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) string {
+func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) pathResult {
 	if targetPath == "" || targetPath == "/" {
 		targetPath = ""
 	} else {
@@ -988,18 +1005,23 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 	for {
 		_, err := d.GetDocumentByPath(finalPath)
 		if err != nil {
+			// Document doesn't exist, we can use this path
 			break
 		}
 
+		// Document exists at this path
 		switch overwriteMode {
 		case "overwrite":
-			// Use the path as-is, will overwrite
-			// No action needed, exit the loop
+			// Use the path as-is, will overwrite existing document
+			break
 		case "skip":
-			// This would require different handling in the calling function
-			// For now, treat as rename
-			fallthrough
+			// Document exists and should be skipped
+			return pathResult{
+				finalPath:  finalPath,
+				shouldSkip: true,
+			}
 		default: // "rename" or empty
+			// Generate new path with counter
 			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
 			counter++
 			continue
@@ -1007,7 +1029,10 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 		break
 	}
 
-	return finalPath
+	return pathResult{
+		finalPath:  finalPath,
+		shouldSkip: false,
+	}
 }
 
 func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {

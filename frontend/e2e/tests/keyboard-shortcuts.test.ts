@@ -11,14 +11,14 @@ test.describe('Keyboard Shortcuts', () => {
 		await expect(page.locator('html')).toHaveAttribute('class', /dark|light/);
 	});
 
-	test('should create new document with Ctrl+Shift+Y', async ({ page }) => {
-		await page.keyboard.press('Control+Shift+y');
+	test('should create new document with Ctrl+Alt+N', async ({ page }) => {
+		await page.keyboard.press('Control+Alt+n');
 
 		await expect(page).toHaveURL(/\/new/);
 	});
 
-	test('should create new folder with Ctrl+Shift+U', async ({ page }) => {
-		await page.keyboard.press('Control+Shift+u');
+	test('should create new folder with Ctrl+Alt+F', async ({ page }) => {
+		await page.keyboard.press('Control+Alt+f');
 
 		await expect(page.locator('[data-testid="create-folder-modal"]')).toBeVisible();
 	});

@@ -61,9 +61,11 @@ type ImportOptions struct {
 type ImportResult struct {
 	Success       []ImportedDocument `json:"success"`
 	Failed        []ImportError      `json:"failed"`
+	Skipped       []ImportedDocument `json:"skipped"`
 	TotalFiles    int                `json:"total_files"`
 	ImportedCount int                `json:"imported_count"`
 	FailedCount   int                `json:"failed_count"`
+	SkippedCount  int                `json:"skipped_count"`
 }
 
 type ImportedDocument struct {

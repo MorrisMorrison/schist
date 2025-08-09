@@ -216,7 +216,7 @@
 			<div class="space-y-4">
 				<div class="bg-muted rounded-lg p-4">
 					<h3 class="text-foreground mb-2 text-sm font-medium">Import Summary</h3>
-					<div class="grid grid-cols-3 gap-4 text-sm">
+					<div class="grid grid-cols-4 gap-4 text-sm">
 						<div>
 							<span class="text-muted-foreground">Total Files:</span>
 							<span class="text-foreground ml-1 font-medium">{importResult.total_files}</span>
@@ -224,6 +224,10 @@
 						<div>
 							<span class="text-green-600 dark:text-green-400">Imported:</span>
 							<span class="text-foreground ml-1 font-medium">{importResult.imported_count}</span>
+						</div>
+						<div>
+							<span class="text-yellow-600 dark:text-yellow-400">Skipped:</span>
+							<span class="text-foreground ml-1 font-medium">{importResult.skipped_count}</span>
 						</div>
 						<div>
 							<span class="text-red-600 dark:text-red-400">Failed:</span>
@@ -246,6 +250,27 @@
 									<span class="truncate">
 										<strong class="text-foreground">{doc.title}</strong>
 										<span class="text-muted-foreground ml-1">→ {doc.final_path}</span>
+									</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				{#if importResult.skipped && importResult.skipped.length > 0}
+					<div class="space-y-2">
+						<h4 class="text-sm font-medium text-yellow-700 dark:text-yellow-400">Skipped Files</h4>
+						<div class="max-h-32 space-y-1 overflow-y-auto">
+							{#each importResult.skipped as doc (doc.final_path)}
+								<div
+									class="flex items-center gap-2 rounded border border-yellow-200 bg-yellow-50 p-2 text-sm dark:border-yellow-800 dark:bg-yellow-950/20"
+								>
+									<AlertCircle class="h-4 w-4 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
+									<span class="truncate">
+										<strong class="text-foreground">{doc.title}</strong>
+										<span class="text-muted-foreground ml-1"
+											>→ {doc.final_path} (already exists)</span
+										>
 									</span>
 								</div>
 							{/each}

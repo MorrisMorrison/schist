@@ -44,15 +44,15 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 		if (isTyping || handlers.isQuickSwitcherOpen()) return;
 
 		// Document creation shortcuts
-		if (isCmdOrCtrl && event.key === 'y' && event.shiftKey) {
-			// Cmd/Ctrl + Shift + Y: Create new document (truly safe alternative)
+		if (isCmdOrCtrl && event.altKey && event.key === 'n') {
+			// Cmd/Ctrl + Alt + N: Create new document (safe alternative)
 			event.preventDefault();
 			handleCreateDocument(currentPath);
 			return;
 		}
 
-		if (isCmdOrCtrl && event.key === 'u' && event.shiftKey) {
-			// Cmd/Ctrl + Shift + U: Create folder (truly safe alternative)
+		if (isCmdOrCtrl && event.altKey && event.key === 'f') {
+			// Cmd/Ctrl + Alt + F: Create folder (safe alternative)
 			event.preventDefault();
 			handleCreateFolder(currentPath);
 			return;
@@ -69,8 +69,8 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 				return;
 			}
 
-			// Delete: Delete current document (safe, rarely used by browsers)
-			if (event.key === 'Delete' && !event.ctrlKey && !event.metaKey) {
+			// Ctrl/Cmd + Alt + D: Delete current document (safe alternative)
+			if (isCmdOrCtrl && event.altKey && event.key === 'd') {
 				event.preventDefault();
 				handleDeleteDocument(documentPath);
 				return;
@@ -165,12 +165,12 @@ export const KEYBOARD_SHORTCUTS = {
 		'Cmd/Ctrl + ,': 'Go to Settings'
 	},
 	creation: {
-		'Cmd/Ctrl + Shift + Y': 'Create new document',
-		'Cmd/Ctrl + Shift + U': 'Create new folder'
+		'Cmd/Ctrl + Alt + N': 'Create new document',
+		'Cmd/Ctrl + Alt + F': 'Create new folder'
 	},
 	document: {
 		'Cmd/Ctrl + E': 'Edit current document',
-		Delete: 'Delete current document',
+		'Cmd/Ctrl + Alt + D': 'Delete current document',
 		'Cmd/Ctrl + J': 'Download current document'
 	},
 	ui: {

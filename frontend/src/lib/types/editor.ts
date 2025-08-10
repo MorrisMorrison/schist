@@ -46,6 +46,8 @@ export interface PreviewProps {
 	content: string;
 	theme?: EditorTheme;
 	className?: string;
+	container?: HTMLElement | null;
+	onScroll?: () => void;
 }
 
 export interface ToolbarProps {

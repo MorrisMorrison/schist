@@ -41,6 +41,7 @@ export default ts.config(
 		files: [
 			'src/lib/components/document/DocumentView.svelte',
 			'src/lib/components/editor/MarkdownPreview.svelte',
+			'src/lib/components/markdown/*.svelte',
 			'src/routes/share/*/+page.svelte'
 		],
 		rules: {

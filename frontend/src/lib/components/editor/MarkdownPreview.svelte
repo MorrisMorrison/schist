@@ -1,10 +1,6 @@
 <script lang="ts">
 	import type { PreviewProps } from '$lib/types/editor';
-	import {
-		parseMarkdownWithCopyButtons,
-		initializeMarkdownInteractions
-	} from '$lib/utils/markdown';
-	import { sanitizeMarkdownHtml } from '$lib/utils/sanitizer';
+	import MarkdownRenderer from '../markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import {
@@ -14,13 +10,27 @@
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
 
-	let { content, theme = 'light', className = '' }: PreviewProps = $props();
+	let {
+		content,
+		theme = 'light',
+		className = '',
+		container = $bindable(),
+		onScroll
+	}: PreviewProps = $props();
 
 	let containerRef: HTMLDivElement;
 
-	let htmlContent = $state('');
+	function handleScroll() {
+		if (onScroll) {
+			onScroll();
+		}
+	}
 
-	const sanitizedContent = $derived(htmlContent ? sanitizeMarkdownHtml(htmlContent) : '');
+	$effect(() => {
+		container = containerRef;
+	});
+
+	let processedContent = $state('');
 
 	// Helper function for adding secret placeholder indicators
 	function addSecretPlaceholderIndicators(text: string): string {
@@ -39,7 +49,6 @@
 		const updateContent = async () => {
 			try {
 				// Process secret placeholders
-				let processedContent = content;
 				if ($secretsUnlocked && content) {
 					// Replace placeholders with actual values when unlocked
 					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
@@ -48,15 +57,12 @@
 				} else if (content) {
 					// Add visual indicators for locked placeholders
 					processedContent = addSecretPlaceholderIndicators(content);
-				}
-
-				htmlContent = await parseMarkdownWithCopyButtons(processedContent || '');
-				if (containerRef) {
-					initializeMarkdownInteractions(containerRef);
+				} else {
+					processedContent = '';
 				}
 			} catch (error) {
-				console.error('Markdown parsing error:', error);
-				htmlContent = '<p class="text-red-500">Error parsing markdown content</p>';
+				console.error('Markdown processing error:', error);
+				processedContent = 'Error processing markdown content';
 			}
 		};
 		updateContent();
@@ -65,8 +71,6 @@
 	const themeClasses = $derived(
 		theme === 'dark' ? 'bg-gray-900 text-gray-100 dark' : 'bg-white text-gray-900'
 	);
-
-	const proseClasses = 'prose max-w-none';
 </script>
 
 <div
@@ -74,9 +78,10 @@
 	class="markdown-preview h-full overflow-auto border-l {themeClasses} {className}"
 	role="region"
 	aria-label="Markdown preview"
+	onscroll={handleScroll}
 >
-	<div class="p-4 {proseClasses}">
-		{@html sanitizedContent}
+	<div class="p-4">
+		<MarkdownRenderer content={processedContent} />
 	</div>
 </div>
 

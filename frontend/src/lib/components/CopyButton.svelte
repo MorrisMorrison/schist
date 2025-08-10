@@ -5,19 +5,12 @@
 
 	interface Props {
 		text: string;
-		title?: string;
 		variant?: 'default' | 'ghost' | 'outline';
 		size?: 'default' | 'sm' | 'lg' | 'icon';
 		class?: string;
 	}
 
-	let {
-		text,
-		title = 'Copy to clipboard',
-		variant = 'ghost',
-		size = 'icon',
-		class: className = ''
-	}: Props = $props();
+	let { text, variant = 'ghost', size = 'icon', class: className = '' }: Props = $props();
 
 	type CopyState = 'idle' | 'copying' | 'success' | 'error';
 	let copyState = $state<CopyState>('idle');
@@ -64,19 +57,6 @@
 		}
 	}
 
-	const buttonTitle = $derived(() => {
-		switch (copyState) {
-			case 'copying':
-				return 'Copying...';
-			case 'success':
-				return 'Copied!';
-			case 'error':
-				return errorMessage || 'Copy failed';
-			default:
-				return title;
-		}
-	});
-
 	const ariaLabel = $derived(() => {
 		switch (copyState) {
 			case 'copying':
@@ -98,7 +78,7 @@
 		onclick={handleCopy}
 		onkeydown={handleKeydown}
 		disabled={copyState === 'copying'}
-		title={buttonTitle()}
+		title="Copy"
 		aria-label={ariaLabel()}
 		class={`transition-all duration-200 ${className}`}
 	>
@@ -112,20 +92,6 @@
 			<AlertCircle class="h-4 w-4 text-red-600" />
 		{:else}
 			<Copy class="h-4 w-4" />
-		{/if}
-
-		{#if size !== 'icon'}
-			<span class="ml-2">
-				{#if copyState === 'copying'}
-					Copying...
-				{:else if copyState === 'success'}
-					Copied!
-				{:else if copyState === 'error'}
-					Failed
-				{:else}
-					Copy
-				{/if}
-			</span>
 		{/if}
 	</Button>
 {/if}

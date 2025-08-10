@@ -2,11 +2,8 @@
 	import { Calendar, Tag, Eye } from 'lucide-svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
-	import {
-		parseMarkdownWithCopyButtons,
-		initializeMarkdownInteractions
-	} from '$lib/utils/markdown';
-	import { sanitizeMarkdownHtml } from '$lib/utils/sanitizer';
+	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
+	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -19,11 +16,6 @@
 	const documentTags = $derived(document.metaData?.tags || []);
 
 	let contentContainer = $state<HTMLElement>();
-	let renderedMarkdown = $state('');
-
-	const sanitizedMarkdown = $derived(
-		renderedMarkdown ? sanitizeMarkdownHtml(renderedMarkdown) : ''
-	);
 
 	function formatDate(dateString?: string): string {
 		if (!dateString) return '';
@@ -35,34 +27,9 @@
 		});
 	}
 
-	// Render markdown content
-	$effect(() => {
-		const content = document?.content;
-
-		if (content) {
-			parseMarkdownWithCopyButtons(content)
-				.then((html) => {
-					renderedMarkdown = html;
-				})
-				.catch((error) => {
-					console.error('Failed to parse markdown:', error);
-					renderedMarkdown = `<div class="text-red-500 p-4 border border-red-200 dark:border-red-800 rounded">
-						<p><strong>Error parsing content:</strong></p>
-						<p>${error.message}</p>
-						<details class="mt-2">
-							<summary class="cursor-pointer">Raw content</summary>
-							<pre class="mt-2 p-2 bg-muted rounded overflow-x-auto">${content}</pre>
-						</details>
-					</div>`;
-				});
-		} else {
-			renderedMarkdown = '';
-		}
-	});
-
 	// Initialize markdown interactions after content is rendered
 	$effect(() => {
-		if (renderedMarkdown && contentContainer) {
+		if (document?.content && contentContainer) {
 			setTimeout(() => {
 				if (contentContainer) {
 					initializeMarkdownInteractions(contentContainer);
@@ -137,16 +104,12 @@
 
 	<!-- Document Content -->
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
-		{#if renderedMarkdown}
+		{#if document?.content}
 			<div
 				bind:this={contentContainer}
 				class="prose prose-slate dark:prose-invert w-full !max-w-none"
 			>
-				{@html sanitizedMarkdown}
-			</div>
-		{:else if document?.content}
-			<div class="flex items-center justify-center py-8">
-				<div class="text-muted-foreground">Loading content...</div>
+				<MarkdownRenderer content={document.content} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">

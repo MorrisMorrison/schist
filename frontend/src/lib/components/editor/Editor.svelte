@@ -3,6 +3,7 @@
 	import { EditorView, basicSetup } from 'codemirror';
 	import { EditorState, StateEffect } from '@codemirror/state';
 	import { markdown } from '@codemirror/lang-markdown';
+	import { drawSelection } from '@codemirror/view';
 
 	import EditorToolbar from './EditorToolbar.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
@@ -38,6 +39,11 @@
 	let resizeStartY = $state(0);
 	let resizeStartHeight = $state(0);
 
+	let previewContainer = $state<HTMLElement | null>(null);
+	let isEditorScrolling = $state(false);
+	let isPreviewScrolling = $state(false);
+	let scrollSyncTimeout: ReturnType<typeof setTimeout> | null = null;
+
 	const currentTheme = $derived($theme);
 
 	const lightTheme = EditorView.theme({
@@ -66,8 +72,16 @@
 		'.cm-activeLine': {
 			backgroundColor: '#f1f5f9' // --gray-100
 		},
-		'.cm-selectionBackground': {
-			backgroundColor: '#e2e8f0' // --gray-200
+		'.cm-selectionBackground, ::selection': {
+			backgroundColor: '#60a5fa !important', // --blue-400 - brighter blue for light theme
+			color: '#ffffff !important' // white text for better contrast
+		},
+		'&.cm-focused .cm-selectionBackground': {
+			backgroundColor: '#3b82f6 !important', // slightly darker when focused
+			color: '#ffffff !important'
+		},
+		'.cm-selectionMatch': {
+			backgroundColor: '#dbeafe' // --blue-100 - lighter for search matches
 		},
 		'.cm-cursor': {
 			borderLeftColor: '#0f172a' // --gray-900 - visible cursor
@@ -103,8 +117,16 @@
 		'.cm-activeLine': {
 			backgroundColor: '#1e293b' // --gray-800
 		},
-		'.cm-selectionBackground': {
-			backgroundColor: '#334155' // --gray-700
+		'.cm-selectionBackground, ::selection': {
+			backgroundColor: '#3b82f6 !important', // --blue-500 - good contrast for dark theme
+			color: '#ffffff !important' // white text for better contrast
+		},
+		'&.cm-focused .cm-selectionBackground': {
+			backgroundColor: '#60a5fa !important', // lighter blue when focused
+			color: '#000000 !important'
+		},
+		'.cm-selectionMatch': {
+			backgroundColor: '#1e40af' // --blue-800 - darker for search matches in dark theme
 		},
 		'.cm-cursor': {
 			borderLeftColor: '#f8fafc' // --gray-50 - visible cursor
@@ -139,6 +161,66 @@
 		}
 
 		scheduleAutoSave();
+	}
+
+	function throttleScrollSync(callback: () => void) {
+		if (scrollSyncTimeout) {
+			clearTimeout(scrollSyncTimeout);
+		}
+		scrollSyncTimeout = setTimeout(callback, 16);
+	}
+
+	function syncEditorToPreview() {
+		if (!editorView || !previewContainer || isPreviewScrolling) return;
+
+		const scrollTop = editorView.scrollDOM.scrollTop;
+		const scrollHeight = editorView.scrollDOM.scrollHeight;
+		const clientHeight = editorView.scrollDOM.clientHeight;
+
+		if (scrollHeight <= clientHeight) return;
+
+		const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+		const targetScrollHeight = previewContainer.scrollHeight - previewContainer.clientHeight;
+
+		if (targetScrollHeight > 0) {
+			isEditorScrolling = true;
+			previewContainer.scrollTop = scrollPercentage * targetScrollHeight;
+			setTimeout(() => {
+				isEditorScrolling = false;
+			}, 50);
+		}
+	}
+
+	function syncPreviewToEditor() {
+		if (!editorView || !previewContainer || isEditorScrolling) return;
+
+		const scrollTop = previewContainer.scrollTop;
+		const scrollHeight = previewContainer.scrollHeight;
+		const clientHeight = previewContainer.clientHeight;
+
+		if (scrollHeight <= clientHeight) return;
+
+		const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+		const targetScrollHeight =
+			editorView.scrollDOM.scrollHeight - editorView.scrollDOM.clientHeight;
+
+		if (targetScrollHeight > 0) {
+			isPreviewScrolling = true;
+			editorView.scrollDOM.scrollTop = scrollPercentage * targetScrollHeight;
+			setTimeout(() => {
+				isPreviewScrolling = false;
+			}, 50);
+		}
+	}
+
+	function createScrollSyncExtension() {
+		return EditorView.domEventHandlers({
+			scroll() {
+				if (previewContainer && !isPreviewScrolling) {
+					throttleScrollSync(syncEditorToPreview);
+				}
+			}
+		});
 	}
 
 	function scheduleAutoSave() {
@@ -251,7 +333,9 @@
 				basicSetup,
 				markdown(),
 				currentTheme === 'dark' ? darkTheme : lightTheme,
+				drawSelection(),
 				wikiLinksExtension(),
+				createScrollSyncExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						const newContent = update.state.doc.toString();
@@ -405,6 +489,9 @@
 		if (autoSaveTimer) {
 			clearTimeout(autoSaveTimer);
 		}
+		if (scrollSyncTimeout) {
+			clearTimeout(scrollSyncTimeout);
+		}
 	});
 
 	// Reactive theme updates - only update theme, don't recreate editor
@@ -414,7 +501,9 @@
 				basicSetup,
 				markdown(),
 				currentTheme === 'dark' ? darkTheme : lightTheme,
+				drawSelection(),
 				wikiLinksExtension(),
+				createScrollSyncExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						const newContent = update.state.doc.toString();
@@ -579,7 +668,16 @@
 					<span class="text-sm font-medium">Preview</span>
 				</div>
 				<div class="flex-1 overflow-hidden">
-					<MarkdownPreview content={currentContent} theme={currentTheme} />
+					<MarkdownPreview
+						content={currentContent}
+						theme={currentTheme}
+						bind:container={previewContainer}
+						onScroll={() => {
+							if (previewContainer && !isEditorScrolling) {
+								throttleScrollSync(syncPreviewToEditor);
+							}
+						}}
+					/>
 				</div>
 			</div>
 		{/if}
@@ -689,5 +787,36 @@
 
 	:global(.markdown-editor .cm-scroller::-webkit-scrollbar-thumb:hover) {
 		background-color: rgba(156, 163, 175, 0.7);
+	}
+
+	/* Force text selection visibility */
+	:global(.markdown-editor .cm-selectionBackground) {
+		background-color: #3b82f6 !important;
+		color: white !important;
+		opacity: 1 !important;
+		display: block !important;
+		visibility: visible !important;
+	}
+
+	:global(.markdown-editor.cm-focused .cm-selectionBackground) {
+		background-color: #60a5fa !important;
+		color: white !important;
+	}
+
+	:global(.markdown-editor .cm-content) {
+		user-select: text !important;
+		-webkit-user-select: text !important;
+		-moz-user-select: text !important;
+	}
+
+	/* Alternative selection styling using CSS pseudo-element */
+	:global(.markdown-editor .cm-content ::selection) {
+		background-color: #3b82f6 !important;
+		color: white !important;
+	}
+
+	:global(.markdown-editor .cm-content ::-moz-selection) {
+		background-color: #3b82f6 !important;
+		color: white !important;
 	}
 </style>

@@ -68,7 +68,10 @@
 
 				htmlContent = await parseMarkdownWithCopyButtons(processedContent || '');
 				if (containerRef) {
-					initializeMarkdownInteractions(containerRef);
+					// Add a small delay to ensure DOM is fully rendered after sanitization
+					setTimeout(() => {
+						initializeMarkdownInteractions(containerRef);
+					}, 10);
 				}
 			} catch (error) {
 				console.error('Markdown parsing error:', error);

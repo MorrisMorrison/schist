@@ -40,7 +40,14 @@ const allowedTags = [
 	'span',
 	'dl',
 	'dt',
-	'dd'
+	'dd',
+	'button',
+	'svg',
+	'rect',
+	'path',
+	'polyline',
+	'circle',
+	'line'
 ];
 
 const allowedAttributes = {
@@ -51,7 +58,23 @@ const allowedAttributes = {
 	code: ['class'],
 	table: ['class'],
 	th: ['scope', 'colspan', 'rowspan'],
-	td: ['colspan', 'rowspan']
+	td: ['colspan', 'rowspan'],
+	button: ['type', 'aria-label', 'data-copy-text'],
+	svg: [
+		'width',
+		'height',
+		'viewBox',
+		'fill',
+		'stroke',
+		'stroke-width',
+		'stroke-linecap',
+		'stroke-linejoin'
+	],
+	rect: ['x', 'y', 'width', 'height', 'rx', 'ry'],
+	path: ['d'],
+	polyline: ['points'],
+	circle: ['cx', 'cy', 'r'],
+	line: ['x1', 'y1', 'x2', 'y2']
 };
 
 const allowedClasses = [
@@ -96,7 +119,42 @@ const allowedClasses = [
 
 	// Copy button classes
 	'copy-button',
-	'copy-icon'
+	'copy-icon',
+
+	// Code block classes
+	'code-block-container',
+	'code-lang',
+	'relative',
+	'group',
+	'border',
+	'rounded-lg',
+	'rounded',
+	'my-*',
+	'flex',
+	'items-center',
+	'justify-between',
+	'opacity-*',
+	'group-hover:opacity-*',
+	'transition-colors',
+	'hover:*',
+	'overflow-x-auto',
+	'leading-relaxed',
+
+	// Tailwind utility classes
+	'text-xs',
+	'text-sm',
+	'px-*',
+	'py-*',
+	'muted-foreground',
+	'bg-muted',
+	'border-b',
+	'hover:bg-muted',
+	'hover:text-foreground',
+	'text-muted-foreground',
+	'font-mono',
+
+	// Highlight.js language classes
+	'language-*'
 ];
 
 const sanitizerConfig = {
@@ -106,7 +164,7 @@ const sanitizerConfig = {
 		/^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
 	ALLOW_DATA_ATTR: true,
 	ALLOW_UNKNOWN_PROTOCOLS: false,
-	FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'textarea', 'select', 'button'],
+	FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'textarea', 'select'],
 	FORBID_ATTR: [
 		'onclick',
 		'onload',
@@ -150,11 +208,14 @@ function sanitizeClasses(element: Element): void {
 	}
 }
 
-DOMPurify.addHook('afterSanitizeAttributes', function (node: Node) {
-	if (node.nodeType === 1) {
-		sanitizeClasses(node as Element);
-	}
-});
+// Only add hooks in browser environment
+if (typeof window !== 'undefined' && DOMPurify.addHook) {
+	DOMPurify.addHook('afterSanitizeAttributes', function (node: Node) {
+		if (node.nodeType === 1) {
+			sanitizeClasses(node as Element);
+		}
+	});
+}
 
 export function sanitizeHtml(dirty: string): string {
 	if (!dirty || typeof dirty !== 'string') {

@@ -62,7 +62,8 @@ fixtureTest.describe('Recent Page with Data', () => {
 
 	fixtureTest(
 		'should display recent documents after navigation',
-		async ({ page, withMultipleDocuments }) => {
+		async ({ page, withMultipleDocuments: _withMultipleDocuments }) => {
+			// Test data is automatically available via the withMultipleDocuments fixture
 			await page.click('[data-testid="nav-recent"]');
 
 			await expect(page.locator('h1')).toContainText('Recent Documents');

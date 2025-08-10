@@ -393,17 +393,43 @@ async function postprocessWikiLinks(text: string): Promise<string> {
 	return processedText.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
 }
 
+// Simple LRU cache for processInlineMarkdown
+const INLINE_MARKDOWN_CACHE_SIZE = 200;
+const inlineMarkdownCache = new Map<string, Promise<string>>();
+
 // Process inline markdown elements within text
 async function processInlineMarkdown(text: string): Promise<string> {
-	try {
-		// Use marked to parse full markdown and extract inner content
-		const htmlResult = await marked.parse(text, { async: true });
-		// Remove wrapping <p> tags if present, but keep other HTML elements
-		const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
-		return cleaned;
-	} catch (error) {
-		console.warn('Failed to process inline markdown:', error);
-		// Return original text as fallback
-		return text;
+	if (inlineMarkdownCache.has(text)) {
+		// Move to end to mark as recently used
+		const cached = inlineMarkdownCache.get(text)!;
+		inlineMarkdownCache.delete(text);
+		inlineMarkdownCache.set(text, cached);
+		return cached;
 	}
+
+	const promise = (async () => {
+		try {
+			// Use marked to parse full markdown and extract inner content
+			const htmlResult = await marked.parse(text, { async: true });
+			// Remove wrapping <p> tags if present, but keep other HTML elements
+			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
+			return cleaned;
+		} catch (error) {
+			console.warn('Failed to process inline markdown:', error);
+			// Return original text as fallback
+			return text;
+		}
+	})();
+
+	inlineMarkdownCache.set(text, promise);
+
+	// Enforce LRU cache size
+	if (inlineMarkdownCache.size > INLINE_MARKDOWN_CACHE_SIZE) {
+		const firstKey = inlineMarkdownCache.keys().next().value;
+		if (firstKey !== undefined) {
+			inlineMarkdownCache.delete(firstKey);
+		}
+	}
+
+	return promise;
 }

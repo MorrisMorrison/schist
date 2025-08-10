@@ -22,6 +22,7 @@
 	]}"
 	title="Toggle theme (current: {$theme})"
 	aria-label="Toggle theme"
+	data-testid="theme-toggle"
 >
 	{#if $theme === 'dark'}
 		<Sun class="h-4 w-4"></Sun>

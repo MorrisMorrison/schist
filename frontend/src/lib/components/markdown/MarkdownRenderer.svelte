@@ -10,6 +10,7 @@
 	import TableBlock from './TableBlock.svelte';
 	import HrBlock from './HrBlock.svelte';
 	import HtmlBlock from './HtmlBlock.svelte';
+	import ImageBlock from './ImageBlock.svelte';
 
 	let { content = '' }: { content: string } = $props();
 
@@ -71,6 +72,8 @@
 				<HrBlock {block} />
 			{:else if block.type === 'html'}
 				<HtmlBlock {block} />
+			{:else if block.type === 'image'}
+				<ImageBlock {block} />
 			{:else}
 				<!-- Fallback for unknown block types -->
 				<div class="rounded border border-yellow-300 p-2 text-yellow-600">

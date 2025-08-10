@@ -129,7 +129,10 @@
 
 		<!-- Sidebar -->
 		{#if showSidebarComponent}
-			<div class="sidebar-container {$sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}">
+			<div
+				class="sidebar-container {$sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}"
+				data-testid="sidebar"
+			>
 				<Sidebar />
 			</div>
 		{/if}

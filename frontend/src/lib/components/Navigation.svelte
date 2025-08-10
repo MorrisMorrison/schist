@@ -122,6 +122,7 @@
 								.url.pathname === '/recent'
 								? 'text-primary border-blue-500'
 								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"
+							data-testid="nav-recent"
 						>
 							Recent
 						</a>
@@ -350,6 +351,7 @@
 						'/recent'
 							? 'bg-blue-muted text-blue-primary border-blue-500'
 							: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"
+						data-testid="nav-recent-mobile"
 					>
 						Recent
 					</a>

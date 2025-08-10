@@ -21,9 +21,9 @@
 	$effect(() => {
 		if (initialTitle && !title) {
 			title = initialTitle;
-			content = '# ' + (initialTitle || 'New Page') + '\n\nWrite your content here...';
+			content = '# ' + (initialTitle || 'New Page') + '\n\n';
 		} else if (!title && !content) {
-			content = '# New Page\n\nWrite your content here...';
+			content = '# New Page\n\n';
 		}
 	});
 	let isCreating = $state(false);
@@ -33,7 +33,7 @@
 
 	$effect(() => {
 		if (title && !content.includes(title)) {
-			content = `# ${title}\n\nWrite your content here...`;
+			content = `# ${title}\n\n`;
 		}
 	});
 

@@ -16,7 +16,7 @@ export default defineConfig({
 	workers: globalThis.process?.env.CI ? 1 : 1,
 
 	/* Global timeout for each test */
-	timeout: 30 * 1000,
+	timeout: 20 * 1000,
 
 	/* Expect timeout for assertions */
 	expect: {
@@ -39,7 +39,8 @@ export default defineConfig({
 		baseURL: 'http://localhost:4173',
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
-		video: 'retain-on-failure'
+		video: 'retain-on-failure',
+		viewport: { width: 1280, height: 720 }
 	},
 
 	projects: [
@@ -53,8 +54,7 @@ export default defineConfig({
 				...devices['Desktop Chrome'],
 				baseURL: 'http://localhost:4173'
 			},
-			dependencies: ['setup'],
-			testIgnore: /.*authentication\.test\.ts/
+			testIgnore: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/]
 		},
 		{
 			name: 'auth-enabled-unauthenticated',
@@ -75,7 +75,7 @@ export default defineConfig({
 				storageState: 'playwright/.auth/user.json'
 			},
 			dependencies: ['setup'],
-			testMatch: [/.*authentication\.test\.ts/],
+			testMatch: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/],
 			grepInvert: /Unauthenticated State/
 		}
 	],
@@ -90,7 +90,7 @@ export default defineConfig({
 		},
 		{
 			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_AUTH_USERS="testuser:\\$2a\\$10\\$4g1x0g52pZ1EtekJO8C2YuLrKWMVOi97lBpI0yOo/nXGs5iNywrHe" SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
+				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
 			port: 8082,
 			reuseExistingServer: true,
 			timeout: 60 * 1000

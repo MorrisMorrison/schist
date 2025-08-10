@@ -16,6 +16,73 @@ interface DocumentListData {
 	}>;
 }
 
+interface PasskeyOptions {
+	publicKey: {
+		challenge: string;
+		rp: { id: string; name: string };
+		user: { id: string; name: string; displayName: string };
+		pubKeyCredParams: Array<{ type: string; alg: number }>;
+		timeout?: number;
+		excludeCredentials?: Array<{ id: string; type: string }>;
+		authenticatorSelection?: {
+			authenticatorAttachment?: string;
+			userVerification?: string;
+		};
+	};
+}
+
+interface WebAuthnCredentialResponse {
+	id: string;
+	rawId: string;
+	response: {
+		clientDataJSON: string;
+		attestationObject?: string;
+		authenticatorData?: string;
+		signature?: string;
+		userHandle?: string;
+	};
+	type: string;
+	authenticatorAttachment?: string;
+}
+
+interface PasskeyRegistrationData extends Record<string, unknown> {
+	name: string;
+}
+
+interface PasskeyRegistrationResponse {
+	sessionId: string;
+	options: PasskeyOptions;
+}
+
+interface PasskeyRegistrationFinishData extends Record<string, unknown> {
+	name: string;
+	sessionId: string;
+	response: WebAuthnCredentialResponse;
+}
+
+interface PasskeyAuthenticationResponse {
+	sessionId: string;
+	options: PasskeyOptions;
+}
+
+interface PasskeyAuthenticationFinishData extends Record<string, unknown> {
+	sessionId: string;
+	response: WebAuthnCredentialResponse;
+}
+
+interface UserData {
+	id: string;
+	username: string;
+	is_admin: boolean;
+	created_at: string;
+	last_login?: string;
+	passkey_ids: string[];
+}
+
+interface UsersListResponse {
+	users: UserData[];
+}
+
 interface FolderListData {
 	folders: Array<{
 		name?: string;
@@ -38,7 +105,7 @@ export class ApiHelper {
 	constructor(apiContext: APIRequestContext, _workerIndex?: number, baseURL?: string) {
 		this.apiContext = apiContext;
 		this.workerIndex = _workerIndex ?? 0;
-		this.baseURL = baseURL || this.getWorkerSpecificBaseURL(_workerIndex);
+		this.baseURL = baseURL || this.getWorkerSpecificBaseURL(this.workerIndex);
 	}
 
 	setAuthToken(token: string) {
@@ -490,15 +557,14 @@ export class ApiHelper {
 	async request(
 		method: string,
 		endpoint: string,
-		data?: { username: string; password: string }
+		data?: Record<string, unknown>
 	): Promise<ApiResponse> {
 		try {
 			const url = endpoint.startsWith('/')
 				? `${this.baseURL}${endpoint}`
 				: `${this.baseURL}/${endpoint}`;
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			let response: any;
+			let response: Awaited<ReturnType<APIRequestContext['get']>>;
 			const headers = this.getAuthHeaders();
 			switch (method.toUpperCase()) {
 				case 'GET':
@@ -536,6 +602,7 @@ export class ApiHelper {
 		}
 	}
 
+	// Legacy password-based login (for backward compatibility during migration)
 	async login(username: string, password: string): Promise<ApiResponse> {
 		return this.request('POST', '/auth/login', { username, password });
 	}
@@ -546,6 +613,72 @@ export class ApiHelper {
 
 	async getCurrentUser(): Promise<ApiResponse> {
 		return this.request('GET', '/auth/me');
+	}
+
+	// New passkey-based authentication methods
+	async checkSetupRequired(): Promise<ApiResponse<{ requires_setup: boolean }>> {
+		return this.request('GET', '/auth/setup/required') as Promise<
+			ApiResponse<{ requires_setup: boolean }>
+		>;
+	}
+
+	async createFirstUser(userData: {
+		username: string;
+		credential_id: string;
+	}): Promise<ApiResponse> {
+		return this.request('POST', '/auth/setup/first-user', userData);
+	}
+
+	async createUserFromInvite(inviteData: {
+		token: string;
+		username: string;
+		credential_id: string;
+	}): Promise<ApiResponse> {
+		return this.request('POST', '/auth/setup/invite-user', inviteData);
+	}
+
+	async generateInviteToken(): Promise<ApiResponse<{ invite_url: string; token: string }>> {
+		return this.request('POST', '/auth/invite') as Promise<
+			ApiResponse<{ invite_url: string; token: string }>
+		>;
+	}
+
+	async beginPasskeyRegistration(
+		data: PasskeyRegistrationData
+	): Promise<ApiResponse<PasskeyRegistrationResponse>> {
+		return this.request('POST', '/passkeys/register/begin', data) as Promise<
+			ApiResponse<PasskeyRegistrationResponse>
+		>;
+	}
+
+	async finishPasskeyRegistration(
+		data: PasskeyRegistrationFinishData
+	): Promise<ApiResponse<{ credentialId: string }>> {
+		return this.request('POST', '/passkeys/register/finish', data) as Promise<
+			ApiResponse<{ credentialId: string }>
+		>;
+	}
+
+	async beginPasskeyAuthentication(): Promise<ApiResponse<PasskeyAuthenticationResponse>> {
+		return this.request('POST', '/passkeys/authenticate/begin') as Promise<
+			ApiResponse<PasskeyAuthenticationResponse>
+		>;
+	}
+
+	async finishPasskeyAuthentication(
+		data: PasskeyAuthenticationFinishData
+	): Promise<ApiResponse<{ credentialId: string }>> {
+		return this.request('POST', '/passkeys/authenticate/finish', data) as Promise<
+			ApiResponse<{ credentialId: string }>
+		>;
+	}
+
+	async listUsers(): Promise<ApiResponse<UsersListResponse>> {
+		return this.request('GET', '/users') as Promise<ApiResponse<UsersListResponse>>;
+	}
+
+	async deleteUser(username: string): Promise<ApiResponse> {
+		return this.request('DELETE', `/users/${username}`);
 	}
 }
 

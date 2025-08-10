@@ -67,7 +67,7 @@ export class SharedDocumentPage extends BasePage {
 		this.codeBlocks = this.documentContent.locator('pre, code');
 
 		// Error states
-		this.notFoundMessage = page.getByText(/share not found/i);
+		this.notFoundMessage = page.getByText(/page not found/i);
 		this.expiredMessage = page.getByText(/expired/i);
 		this.loadingMessage = page.getByText(/loading content/i);
 	}

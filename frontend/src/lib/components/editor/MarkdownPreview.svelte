@@ -79,6 +79,7 @@
 	role="region"
 	aria-label="Markdown preview"
 	onscroll={handleScroll}
+	data-testid="markdown-preview"
 >
 	<div class="p-4">
 		<MarkdownRenderer content={processedContent} />

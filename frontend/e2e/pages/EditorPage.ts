@@ -37,9 +37,9 @@ export class EditorPage extends BasePage {
 		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
 
 		this.editorToolbar = page.getByTestId('editor-toolbar');
-		this.previewToggle = page.getByRole('button', { name: /preview/i });
+		this.previewToggle = page.getByTestId('preview-toggle-button');
 		this.previewPane = page.getByTestId('preview-pane');
-		this.imageUploadButton = page.getByRole('button', { name: /upload image|image/i });
+		this.imageUploadButton = page.getByTestId('image-upload-button');
 		this.fileUploadInput = page.locator('input[type="file"]');
 
 		this.saveStatus = page.getByTestId('save-status');
@@ -69,8 +69,9 @@ export class EditorPage extends BasePage {
 	async fillDocumentDetails(title: string, content: string, tags: string[] = []) {
 		await this.fillInput(this.titleInput, title);
 
-		await this.contentEditor.click();
-		await this.contentEditor.fill(content);
+		// Use proper CodeMirror interaction - clear existing content and type new content
+		await this.clearContent();
+		await this.typeContent(content);
 
 		if (tags.length > 0) {
 			await this.addTags(tags);
@@ -111,6 +112,12 @@ export class EditorPage extends BasePage {
 
 	async typeContent(content: string) {
 		await this.contentEditor.click();
+		await this.contentEditor.pressSequentially(content);
+	}
+
+	async appendContent(content: string) {
+		await this.contentEditor.click();
+		await this.page.keyboard.press('Control+End');
 		await this.contentEditor.pressSequentially(content);
 	}
 

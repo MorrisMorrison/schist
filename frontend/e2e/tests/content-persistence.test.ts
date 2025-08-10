@@ -176,8 +176,11 @@ End of formatting test.`;
 		await editorPage.verifyContent('1. First item');
 
 		// Make a small change and save
-		await editorPage.typeContent('\n\n## New Section\n\nAdded formatting preserved.');
+		await editorPage.appendContent('\n\n## New Section\n\nAdded formatting preserved.');
 		await editorPage.saveAndExpectNavigation();
+
+		// Wait for document to fully load after navigation
+		await documentViewPage.verifyDocumentLoaded(`Formatting Test ${testId}`);
 
 		// Verify formatting still intact
 		await documentViewPage.verifyHeading('New Section', 2);

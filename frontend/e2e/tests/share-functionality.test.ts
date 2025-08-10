@@ -45,7 +45,7 @@ test.describe.serial('Share Functionality', () => {
 		await documentViewPage.closeShareModal();
 	});
 
-	test.skip('should create share links with different expiry options', async ({
+	test('should create share links with different expiry options', async ({
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
@@ -59,9 +59,12 @@ test.describe.serial('Share Functionality', () => {
 			shareUrls.push(shareUrl);
 
 			expect(shareUrl).toMatch(/\/share\/[a-f0-9]{64}$/);
-			expect(shareUrls.filter((url) => url === shareUrl)).toHaveLength(1);
 			await documentViewPage.closeShareModal();
 		}
+
+		// Check that all URLs are unique
+		const uniqueUrls = [...new Set(shareUrls)];
+		expect(uniqueUrls).toHaveLength(expiryOptions.length);
 
 		await documentViewPage.openShareModal();
 
@@ -71,7 +74,7 @@ test.describe.serial('Share Functionality', () => {
 		await documentViewPage.closeShareModal();
 	});
 
-	test.skip('should revoke share links', async ({
+	test('should revoke share links', async ({
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
@@ -157,7 +160,7 @@ test.describe.serial('Share Functionality', () => {
 		await sharedPage.verifyDocumentPath(testDocument.path!);
 	});
 
-	test.skip('should handle invalid share tokens', async ({ page }) => {
+	test('should handle invalid share tokens', async ({ page }) => {
 		const sharedPage = new SharedDocumentPage(page);
 
 		const invalidToken = 'invalid-token-123';
@@ -166,7 +169,7 @@ test.describe.serial('Share Functionality', () => {
 		await sharedPage.verifyNotFound();
 	});
 
-	test.skip('should show proper error for revoked shares', async ({
+	test('should show proper error for revoked shares', async ({
 		page,
 		documentViewPage,
 		withSimpleTestDocument: testDocument

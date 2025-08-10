@@ -217,7 +217,7 @@
 	<meta name="description" content={document.content?.slice(0, 160) || ''} />
 </svelte:head>
 
-<div class="mx-auto max-w-7xl space-y-8 p-6">
+<div class="mx-auto max-w-7xl space-y-8 p-6" data-testid="document-view">
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<!-- Page Header -->
@@ -225,7 +225,9 @@
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
 	>
 		<div class="flex-1">
-			<h1 class="text-primary mb-4 text-4xl leading-tight font-bold">{documentTitle}</h1>
+			<h1 class="text-primary mb-4 text-4xl leading-tight font-bold" data-testid="document-title">
+				{documentTitle}
+			</h1>
 
 			<!-- Document Metadata -->
 			<div class="flex flex-wrap items-center gap-4">
@@ -315,7 +317,11 @@
 	<!-- Document Content -->
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
-			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
+			<div
+				bind:this={contentContainer}
+				class="prose prose-slate dark:prose-invert max-w-none"
+				data-testid="document-content"
+			>
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}

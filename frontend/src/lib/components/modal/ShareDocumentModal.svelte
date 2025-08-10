@@ -173,7 +173,12 @@
 							</select>
 						</div>
 						<div class="flex items-end">
-							<Button onclick={createShare} disabled={loading} class="w-full">
+							<Button
+								onclick={createShare}
+								disabled={loading}
+								class="w-full"
+								data-testid="create-share-link"
+							>
 								{#if loading}
 									<RefreshCw class="mr-2 h-4 w-4 animate-spin" />
 								{:else}
@@ -234,7 +239,12 @@
 								</div>
 
 								<div class="flex gap-2">
-									<Input value={share.share_url} readonly class="font-mono text-xs" />
+									<Input
+										value={share.share_url}
+										readonly
+										class="font-mono text-xs"
+										data-testid="share-url"
+									/>
 									<Button size="sm" onclick={() => copyToClipboard(share.share_url)}>
 										<Copy class="h-4 w-4" />
 									</Button>

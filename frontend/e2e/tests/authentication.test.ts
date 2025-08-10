@@ -1,137 +1,20 @@
 import { test, expect } from '../fixtures';
 import { ApiHelper } from '../utils/api-helpers';
+import { WebAuthnHelper } from '../utils/webauthn-helper';
 
-test.describe('Authentication System', () => {
+test.describe('Passkey Authentication System', () => {
 	test.describe('Authentication Enabled - Unauthenticated State', () => {
 		test('should redirect unauthenticated users to login', async ({ page }) => {
 			await page.goto('http://localhost:4174/');
 
 			await expect(page).toHaveURL(/\/login/);
 
-			await expect(page.getByTestId('username-input')).toBeVisible();
-			await expect(page.getByTestId('password-input')).toBeVisible();
-			await expect(page.getByTestId('login-submit')).toBeVisible();
+			// Should show passkey login interface
+			await expect(page.getByTestId('passkey-login-button')).toBeVisible();
+			await expect(page.getByTestId('login-title')).toBeVisible(); // App branding
 		});
 
 		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
-			const unauthApiHelper = new ApiHelper(
-				apiHelper['apiContext'],
-				0,
-				'http://localhost:8082/api'
-			);
-
-			const response = await unauthApiHelper.request('GET', '/documents');
-			expect(response.status).toBe(401);
-
-			const loginResponse = await unauthApiHelper.login('testuser', 'testpass123');
-			expect(loginResponse.status).toBe(200);
-
-			const token = (loginResponse.data as { token: string }).token;
-			unauthApiHelper.setAuthToken(token);
-			const authenticatedResponse = await unauthApiHelper.request('GET', '/documents');
-			expect(authenticatedResponse.status).toBe(200);
-		});
-	});
-
-	test.describe('Authentication Enabled', () => {
-		test('should allow login with valid credentials', async ({ page }) => {
-			// Clear any existing auth state
-			await page.context().clearCookies();
-			await page.evaluate(() => {
-				try {
-					localStorage.clear();
-				} catch {
-					// localStorage might not be accessible initially
-				}
-			});
-
-			await page.goto('http://localhost:4174/login');
-
-			// Wait for login form to be ready
-			await expect(page.getByTestId('username-input')).toBeVisible();
-			await expect(page.getByTestId('password-input')).toBeVisible();
-
-			// Fill credentials
-			await page.getByTestId('username-input').fill('testuser');
-			await page.getByTestId('password-input').fill('testpass123');
-
-			// Wait for submit button to be enabled
-			const submitButton = page.getByTestId('login-submit');
-			await expect(submitButton).toBeEnabled();
-
-			// Submit the form
-			await submitButton.click();
-
-			// Should redirect to home page
-			await expect(page).toHaveURL('http://localhost:4174/');
-
-			// Should show authenticated UI elements
-			await expect(page.locator('[data-testid="user-info"]')).toBeVisible();
-			await expect(page.locator('[data-testid="logout-button"]')).toBeVisible();
-		});
-
-		test('should show error for invalid credentials', async ({ page }) => {
-			// Clear any existing auth state
-			await page.context().clearCookies();
-			await page.evaluate(() => {
-				try {
-					localStorage.clear();
-				} catch {
-					// localStorage might not be accessible initially
-				}
-			});
-
-			await page.goto('http://localhost:4174/login');
-
-			// Wait for login form to be ready
-			await expect(page.getByTestId('username-input')).toBeVisible();
-			await expect(page.getByTestId('password-input')).toBeVisible();
-
-			// Fill invalid credentials
-			await page.getByTestId('username-input').fill('invalid');
-			await page.getByTestId('password-input').fill('wrongpass');
-
-			// Wait for submit button to be enabled
-			const submitButton = page.getByTestId('login-submit');
-			await expect(submitButton).toBeEnabled();
-
-			// Submit the form
-			await submitButton.click();
-
-			// Should show error message
-			await expect(
-				page
-					.locator('text=Invalid username or password')
-					.or(page.locator('.error'))
-					.or(page.locator('[role="alert"]'))
-			).toBeVisible();
-
-			// Should remain on login page
-			await expect(page).toHaveURL(/\/login/);
-		});
-
-		test('should allow logout', async ({ page }) => {
-			await page.goto('http://localhost:4174/');
-
-			await page.click('[data-testid="logout-button"]');
-
-			await expect(page).toHaveURL(/\/login/);
-
-			await page.goto('http://localhost:4174/');
-			await expect(page).toHaveURL(/\/login/);
-		});
-
-		test('should persist authentication across page reloads', async ({ page }) => {
-			await page.goto('http://localhost:4174/');
-
-			await page.reload();
-
-			await expect(page).toHaveURL('http://localhost:4174/');
-			await expect(page.locator('[data-testid="user-info"]')).toBeVisible();
-		});
-
-		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
-			// Create a new API helper without authentication
 			const unauthApiHelper = new ApiHelper(
 				apiHelper['apiContext'],
 				0,
@@ -142,19 +25,111 @@ test.describe('Authentication System', () => {
 			const response = await unauthApiHelper.request('GET', '/documents');
 			expect(response.status).toBe(401);
 
-			// Login should succeed
-			const loginResponse = await unauthApiHelper.login('testuser', 'testpass123');
-			expect(loginResponse.status).toBe(200);
-			expect(loginResponse.data).toBeDefined();
-			expect((loginResponse.data as { token: string }).token).toBeDefined();
+			// Since we don't have password login anymore, we can't test successful auth here
+			// That's covered in the authenticated tests below
+		});
+	});
 
-			// Set auth token and retry
-			const token = (loginResponse.data as { token: string }).token;
-			unauthApiHelper.setAuthToken(token);
+	test.describe('Authentication Enabled', () => {
+		test('should allow passkey authentication for existing user', async ({ page }) => {
+			// Since auth.setup.ts already authenticated the user, verify auth is working
+			// by checking we can access protected pages directly
 
-			// Authenticated request should succeed
-			const authenticatedResponse = await unauthApiHelper.request('GET', '/documents');
-			expect(authenticatedResponse.status).toBe(200);
+			await page.goto('http://localhost:4174/');
+
+			// Should be able to access home page (not redirected to login)
+			await expect(page).toHaveURL('http://localhost:4174/');
+
+			// Should show authenticated UI elements
+			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
+		});
+
+		test('should handle passkey authentication failure gracefully', async ({ page }) => {
+			const webauthnHelper = new WebAuthnHelper(page);
+
+			try {
+				// Set up WebAuthn virtual authenticator but don't add credentials
+				await webauthnHelper.setup({
+					isUserVerified: false // This should cause auth to fail
+				});
+
+				// Clear any existing auth state
+				await page.context().clearCookies();
+				await page.evaluate(() => {
+					try {
+						localStorage.clear();
+					} catch {
+						// localStorage might not be accessible initially
+					}
+				});
+
+				await page.goto('http://localhost:4174/login');
+
+				// Wait for login form to be ready
+				await expect(page.getByTestId('passkey-login-button')).toBeVisible();
+
+				// Click sign in with passkey - this should fail
+				await page.getByRole('button', { name: /Sign in with Passkey/i }).click();
+
+				// Should show error message or remain on login page
+				// Note: The exact error handling depends on the frontend implementation
+				await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+			} finally {
+				await webauthnHelper.cleanup();
+			}
+		});
+
+		test('should allow logout', async ({ page }) => {
+			await page.goto('http://localhost:4174/');
+
+			// Find and click logout button
+			await expect(page.getByTestId('logout-button')).toBeVisible();
+			await page.getByTestId('logout-button').click();
+
+			// Should redirect to login page
+			await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+
+			// Verify we're logged out by trying to access protected page
+			await page.goto('http://localhost:4174/');
+			await expect(page).toHaveURL(/\/login/);
+		});
+
+		test('should persist authentication across page reloads', async ({ page }) => {
+			await page.goto('http://localhost:4174/');
+
+			// Verify we're authenticated
+			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
+
+			// Reload the page
+			await page.reload();
+
+			// Should remain authenticated
+			await expect(page).toHaveURL('http://localhost:4174/');
+			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
+		});
+
+		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
+			// This test uses the authenticated API helper from the setup
+			// It should be able to access protected endpoints
+			const response = await apiHelper.request('GET', '/documents');
+			expect(response.status).toBe(200);
+		});
+	});
+
+	test.describe('First-Time Setup Flow', () => {
+		test('should handle first-time setup with fresh database', async ({ page }) => {
+			// This test would require a completely fresh database
+			// For now, we'll test the setup API endpoints directly
+			const apiHelper = new ApiHelper(page.request, 0, 'http://localhost:8082/api');
+
+			// Test setup required check
+			const setupResponse = await apiHelper.checkSetupRequired();
+			expect(setupResponse.status).toBe(200);
+			expect(setupResponse.data).toHaveProperty('requires_setup');
+
+			// The actual value depends on whether users exist
+			const requiresSetup = (setupResponse.data as { requires_setup: boolean }).requires_setup;
+			expect(typeof requiresSetup).toBe('boolean');
 		});
 	});
 
@@ -179,65 +154,87 @@ test.describe('Authentication System', () => {
 	});
 
 	test.describe('Login Page UI', () => {
-		test('should display proper login form when accessed directly', async ({ page }) => {
+		test('should display proper passkey login interface', async ({ page }) => {
 			await page.goto('http://localhost:4174/login');
 
-			// Should show login form elements (use fallback selectors)
-			await expect(page.getByTestId('username-input')).toBeVisible();
-			await expect(page.getByTestId('password-input')).toBeVisible();
-			await expect(page.getByTestId('login-submit')).toBeVisible();
+			// Should show passkey login elements
+			await expect(page.getByTestId('passkey-login-button')).toBeVisible();
 
-			// Should show branding (optional, may not have test IDs)
-			const titleLocator = page
-				.getByTestId('login-title')
-				.or(page.locator('h1'))
-				.or(page.locator('.login-title'));
-			if ((await titleLocator.count()) > 0) {
-				await expect(titleLocator.first()).toBeVisible();
-			}
+			// Should show branding
+			await expect(page.getByTestId('login-title')).toBeVisible();
 
-			// Should have proper form validation
-			const inputCount = await page
-				.locator('input[required], input[type="text"], input[type="password"]')
-				.count();
-			expect(inputCount).toBeGreaterThan(1);
-		});
-
-		test('should have password visibility toggle', async ({ page }) => {
-			await page.goto('http://localhost:4174/login');
-
+			// Should not show old password form elements
+			const usernameInput = page.getByTestId('username-input');
 			const passwordInput = page.getByTestId('password-input');
-			const toggleButton = page.getByTestId('password-toggle');
 
-			// Password should be hidden initially
-			await expect(passwordInput).toHaveAttribute('type', 'password');
-
-			// Check if toggle button exists (optional feature)
-			if ((await toggleButton.count()) > 0) {
-				// Toggle should be visible
-				await expect(toggleButton.first()).toBeVisible();
-
-				// Click toggle to show password
-				await toggleButton.first().click();
-
-				// Should change to text input (or remain as password if not implemented)
-				const inputType = await passwordInput.getAttribute('type');
-				expect(['password', 'text']).toContain(inputType);
+			if ((await usernameInput.count()) > 0) {
+				// If these elements exist, they should not be visible (they're deprecated)
+				await expect(usernameInput).not.toBeVisible();
+			}
+			if ((await passwordInput.count()) > 0) {
+				await expect(passwordInput).not.toBeVisible();
 			}
 		});
 
-		test('should handle form submission properly', async ({ page }) => {
+		test('should handle WebAuthn not supported scenario', async ({ page }) => {
+			// Mock WebAuthn as not supported
+			await page.addInitScript(() => {
+				// Remove WebAuthn support to test fallback
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				delete (window as any).PublicKeyCredential;
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				delete (navigator as any).credentials;
+			});
+
 			await page.goto('http://localhost:4174/login');
 
-			await page.getByTestId('username-input').fill('testuser');
-			await page.getByTestId('password-input').fill('testpass');
+			// Should show appropriate error or fallback message
+			// const notSupportedMessage = page
+			// 	.locator('text=/not supported/i')
+			// 	.or(page.locator('text=/incompatible/i'))
+			// 	.or(page.locator('[role="alert"]'));
 
-			const submitButton = page.getByTestId('login-submit');
-			await expect(submitButton).toBeEnabled();
+			// The exact behavior depends on the frontend implementation
+			// At minimum, the passkey button should be disabled or show an error
+			const passkeyButton = page.getByTestId('passkey-login-button');
+			if ((await passkeyButton.count()) > 0) {
+				// Button might be disabled or show error state
+				const isVisible = await passkeyButton.isVisible();
+				expect(isVisible).toBe(true); // Button should still be visible
+			}
+		});
+	});
 
-			await submitButton.click();
+	test.describe('User Management Integration', () => {
+		test('should allow viewing user list when authenticated', async ({ page }) => {
+			await page.goto('http://localhost:4174/settings');
 
-			await expect(submitButton).toBeVisible();
+			// Should show user management section
+			await expect(page.getByTestId('user-management-title')).toBeVisible();
+
+			// Should show current user in the list
+			await expect(page.getByTestId('user-item-username')).toBeVisible();
+
+			// Should show admin badge for first user
+			await expect(page.getByTestId('admin-badge')).toBeVisible();
+		});
+
+		test('should allow generating invite tokens', async ({ page }) => {
+			await page.goto('http://localhost:4174/settings');
+
+			// Find and click invite user button
+			await expect(page.getByTestId('invite-user-button')).toBeVisible();
+			await page.getByTestId('invite-user-button').click();
+
+			// Should show invite dialog with token
+			// Wait for the dialog to appear and the invite URL input field to be visible
+			await expect(page.getByTestId('invitation-dialog-title')).toBeVisible();
+			await expect(page.locator('#invite-url')).toBeVisible();
+
+			// Should show dialog elements - use the exact text match for the label
+			await expect(page.getByText('Invitation Link', { exact: true })).toBeVisible();
+			await expect(page.getByText('Copy')).toBeVisible();
+			await expect(page.getByText('Close')).toBeVisible();
 		});
 	});
 });

@@ -12,23 +12,6 @@ test.describe('Quick Unlock Feature', () => {
 		await expect(page.getByTestId('quick-unlock-button').locator('svg')).toBeVisible();
 	});
 
-	test.skip('should show unlocked indicator after secrets are unlocked', async ({ page }) => {
-		// Go to any authenticated page
-		await page.goto('http://localhost:4174/');
-
-		// Click the quick unlock button
-		await page.getByTestId('quick-unlock-button').click();
-
-		// Wait for unlock process to complete (WebAuthn simulation happens automatically)
-		await expect(page.getByTestId('secrets-unlocked-indicator')).toBeVisible({ timeout: 10000 });
-
-		// Quick unlock button should be hidden now
-		await expect(page.getByTestId('quick-unlock-button')).not.toBeVisible();
-
-		// Should show unlocked indicator with unlock icon
-		await expect(page.getByTestId('secrets-unlocked-indicator').locator('svg')).toBeVisible();
-	});
-
 	test('should work in mobile menu as well', async ({ page }) => {
 		// Set mobile viewport
 		await page.setViewportSize({ width: 375, height: 667 });

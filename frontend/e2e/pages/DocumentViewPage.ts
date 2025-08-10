@@ -390,17 +390,27 @@ export class DocumentViewPage extends BasePage {
 	async createShareLink(expiryDays: number = 7): Promise<string> {
 		const modal = await this.openShareModal();
 
+		// Count existing shares before creating a new one
+		const existingShares = await modal.locator('input[readonly]').count();
+
 		const expirySelect = modal.locator('select');
 		await expirySelect.selectOption(expiryDays.toString());
 
 		const createButton = modal.getByRole('button', { name: /create share link/i });
 		await createButton.click();
 
-		await this.page.waitForTimeout(1000);
-		const shareInput = modal.locator('input[readonly]').first();
-		await expect(shareInput).toBeVisible();
+		// Wait for the new share to be created by waiting for one more input field
+		await expect(modal.locator('input[readonly]')).toHaveCount(existingShares + 1);
 
-		return await shareInput.inputValue();
+		// Wait for success message to confirm creation completed
+		await expect(modal.getByText(/share link created successfully/i)).toBeVisible();
+
+		// Get the newly created share (last one in the list)
+		const shareInputs = modal.locator('input[readonly]');
+		const newShareInput = shareInputs.last();
+		await expect(newShareInput).toBeVisible();
+
+		return await newShareInput.inputValue();
 	}
 
 	/**

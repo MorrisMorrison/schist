@@ -56,16 +56,23 @@ test.describe('Recent Page', () => {
 });
 
 fixtureTest.describe('Recent Page with Data', () => {
-	fixtureTest('should display recent documents after navigation', async ({ page }) => {
-		await page.click('[data-testid="nav-recent"]');
-
-		await expect(page.locator('h1')).toContainText('Recent Documents');
-
-		await expect(page.locator('[data-testid="document-card"]').first()).toBeVisible();
-
-		await expect(page.locator('text=No recent activity')).not.toBeVisible();
-		await expect(page.locator('text=Loading...')).not.toBeVisible();
+	fixtureTest.beforeEach(async ({ page }) => {
+		await page.goto('/');
 	});
+
+	fixtureTest(
+		'should display recent documents after navigation',
+		async ({ page, withMultipleDocuments }) => {
+			await page.click('[data-testid="nav-recent"]');
+
+			await expect(page.locator('h1')).toContainText('Recent Documents');
+
+			await expect(page.locator('[data-testid="document-card"]').first()).toBeVisible();
+
+			await expect(page.locator('text=No recent activity')).not.toBeVisible();
+			await expect(page.locator('text=Loading...')).not.toBeVisible();
+		}
+	);
 
 	fixtureTest(
 		'should display multiple documents in recent view',

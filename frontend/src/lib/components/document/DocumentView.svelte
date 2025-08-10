@@ -6,11 +6,8 @@
 	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
 	import VersionHistoryModal from '../VersionHistoryModal.svelte';
 	import ShareDocumentModal from '../modal/ShareDocumentModal.svelte';
-	import {
-		parseMarkdownWithCopyButtons,
-		initializeMarkdownInteractions
-	} from '$lib/utils/markdown';
-	import { sanitizeMarkdownHtml } from '$lib/utils/sanitizer';
+	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
+	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
 	import type { Document, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
@@ -54,11 +51,7 @@
 		});
 	}
 
-	let renderedMarkdown = $state('');
-
-	const sanitizedMarkdown = $derived(
-		renderedMarkdown ? sanitizeMarkdownHtml(renderedMarkdown) : ''
-	);
+	let processedContent = $state('');
 
 	let backlinks = $state<Document[]>([]);
 	let backlinkLoading = $state(false);
@@ -87,13 +80,12 @@
 			const content = document.content;
 
 			if (!content) {
-				renderedMarkdown = '';
+				processedContent = '';
 				return;
 			}
 
 			try {
 				// Process secret placeholders
-				let processedContent = content;
 				if ($secretsUnlocked) {
 					// Replace placeholders with actual values when unlocked
 					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
@@ -103,21 +95,9 @@
 					// Add visual indicators for locked placeholders
 					processedContent = addSecretPlaceholderIndicators(content);
 				}
-
-				// Parse markdown with processed content
-				const html = await parseMarkdownWithCopyButtons(processedContent);
-				renderedMarkdown = html;
 			} catch (error) {
 				console.error('Failed to process document content:', error);
-				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-				renderedMarkdown = `<div class="text-red-500 p-4 border border-red-200 rounded">
-					<p><strong>Error processing content:</strong></p>
-					<p>${errorMessage}</p>
-					<details class="mt-2">
-						<summary class="cursor-pointer">Raw content</summary>
-						<pre class="mt-2 p-2 bg-gray-100 rounded overflow-x-auto">${content}</pre>
-					</details>
-				</div>`;
+				processedContent = content; // Fallback to original content
 			}
 		}
 
@@ -125,7 +105,7 @@
 	});
 
 	$effect(() => {
-		if (contentContainer && renderedMarkdown) {
+		if (contentContainer && processedContent) {
 			setTimeout(() => {
 				if (contentContainer) {
 					initializeMarkdownInteractions(contentContainer);
@@ -336,7 +316,7 @@
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
 			<div bind:this={contentContainer} class="prose prose-slate dark:prose-invert max-w-none">
-				{@html sanitizedMarkdown}
+				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">

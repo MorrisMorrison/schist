@@ -63,7 +63,7 @@
 			backgroundColor: '#f1f5f9' // --gray-100
 		},
 		'.cm-selectionBackground': {
-			backgroundColor: '#e2e8f0' // --gray-200
+			backgroundColor: '#3b82f6' // --blue-500 - more visible selection
 		},
 		'.cm-cursor': {
 			borderLeftColor: '#0f172a' // --gray-900 - visible cursor
@@ -100,7 +100,7 @@
 			backgroundColor: '#1e293b' // --gray-800
 		},
 		'.cm-selectionBackground': {
-			backgroundColor: '#334155' // --gray-700
+			backgroundColor: '#3b82f6' // --blue-500 - more visible selection
 		},
 		'.cm-cursor': {
 			borderLeftColor: '#f8fafc' // --gray-50 - visible cursor

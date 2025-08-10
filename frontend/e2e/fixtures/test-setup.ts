@@ -152,9 +152,7 @@ export const test = base.extend<{
 		await use(apiHelper);
 
 		try {
-			console.log(`[ApiHelper] Starting cleanup for project ${projectName}`);
 			await apiHelper.cleanupTestData();
-			console.log(`[ApiHelper] Cleanup completed for project ${projectName}`);
 		} catch (error) {
 			console.error(`[ApiHelper] Cleanup failed for project ${projectName}:`, error);
 		}

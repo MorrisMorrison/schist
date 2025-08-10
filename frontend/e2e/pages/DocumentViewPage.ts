@@ -40,8 +40,8 @@ export class DocumentViewPage extends BasePage {
 		super(page);
 
 		// Document content
-		this.documentTitle = page.locator('h1').first();
-		this.documentContent = page.locator('.prose').first();
+		this.documentTitle = page.getByTestId('document-title').or(page.locator('h1').first());
+		this.documentContent = page.getByTestId('document-content').or(page.locator('.prose').first());
 		this.documentTags = page.getByTestId('document-tag');
 		this.documentMetadata = page.getByTestId('document-metadata');
 		this.createdDate = page.getByTestId('created-date');
@@ -65,8 +65,12 @@ export class DocumentViewPage extends BasePage {
 		this.copyButtons = page.getByTestId('copy-button');
 
 		// Error states (using actual UI text)
-		this.notFoundMessage = page.getByText("404 - The document you're looking for doesn't exist.");
-		this.notFoundHeading = page.getByRole('heading', { name: 'Document Not Found' });
+		this.notFoundMessage = page
+			.getByTestId('not-found-message')
+			.or(page.getByText("404 - The document you're looking for doesn't exist."));
+		this.notFoundHeading = page
+			.getByTestId('not-found-heading')
+			.or(page.getByRole('heading', { name: 'Document Not Found' }));
 		this.errorMessage = page.getByTestId('error-message');
 		this.loadingSpinner = page.getByTestId('loading');
 	}

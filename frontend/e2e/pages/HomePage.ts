@@ -14,18 +14,22 @@ export class HomePage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
-		this.pageTitle = page.locator('h1').first();
+		this.pageTitle = page.getByTestId('page-title').or(page.locator('h1').first());
 		this.newPageButton = page
-			.getByRole('link', { name: /Create.*First.*Page|Create.*Page/i })
-			.first();
+			.getByTestId('new-page-button')
+			.or(page.getByRole('link', { name: /Create.*First.*Page|Create.*Page/i }).first());
 		this.quickSwitcherButton = page
 			.getByTestId('quick-switcher-button')
 			.or(page.getByTestId('quick-switcher-button-mobile'));
-		this.quickSwitcherInput = page.getByPlaceholder('Search documents...');
-		this.quickSwitcherResults = page.locator('[role="dialog"] button');
+		this.quickSwitcherInput = page
+			.getByTestId('quick-switcher-input')
+			.or(page.getByPlaceholder('Search documents...'));
+		this.quickSwitcherResults = page
+			.getByTestId('quick-switcher-results')
+			.or(page.locator('[role="dialog"] button'));
 		this.recentPages = page.getByTestId('recent-pages');
 		this.sidebar = page.getByTestId('sidebar');
-		this.navigation = page.locator('nav');
+		this.navigation = page.getByTestId('main-navigation').or(page.locator('nav'));
 	}
 
 	async navigate() {
@@ -45,11 +49,9 @@ export class HomePage extends BasePage {
 
 	async search(query: string) {
 		await this.page.keyboard.press('Control+k');
-		await this.page.waitForTimeout(100);
 
 		if (!(await this.quickSwitcherInput.isVisible())) {
 			await this.page.keyboard.press('Meta+k');
-			await this.page.waitForTimeout(100);
 		}
 
 		await this.quickSwitcherInput.waitFor({ state: 'visible' });
@@ -69,13 +71,17 @@ export class HomePage extends BasePage {
 	}
 
 	async goToPages() {
-		const pagesLink = this.navigation.getByRole('link', { name: /documents/i });
+		const pagesLink = this.navigation
+			.getByTestId('nav-documents')
+			.or(this.navigation.getByRole('link', { name: /documents/i }));
 		await pagesLink.click();
 		await this.page.waitForURL('/pages');
 	}
 
 	async goToFolders() {
-		const foldersLink = this.navigation.getByRole('link', { name: /folders/i });
+		const foldersLink = this.navigation
+			.getByTestId('nav-folders')
+			.or(this.navigation.getByRole('link', { name: /folders/i }));
 		await foldersLink.click();
 		await this.page.waitForURL('/folders');
 	}
@@ -95,7 +101,9 @@ export class HomePage extends BasePage {
 	}
 
 	async toggleSidebar() {
-		const sidebarToggle = this.page.getByRole('button', { name: /toggle sidebar|menu/i });
+		const sidebarToggle = this.page
+			.getByTestId('sidebar-toggle')
+			.or(this.page.getByRole('button', { name: /toggle sidebar|menu/i }));
 		if (await sidebarToggle.isVisible()) {
 			await sidebarToggle.click();
 		}

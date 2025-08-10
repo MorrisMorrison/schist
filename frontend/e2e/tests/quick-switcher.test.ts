@@ -10,7 +10,7 @@ test.describe('Quick Switcher', () => {
 		await page.keyboard.press('Control+k');
 
 		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
-		await expect(page.locator('input[placeholder*="Search"]')).toBeFocused();
+		await expect(page.locator('[data-testid="quick-switcher-input"]')).toBeFocused();
 	});
 
 	test('should work when API returns empty documents', async ({ page }) => {
@@ -25,7 +25,7 @@ test.describe('Quick Switcher', () => {
 		await page.keyboard.press('Control+k');
 		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
 
-		await page.fill('input[placeholder*="Search"]', 'anything');
+		await page.fill('[data-testid="quick-switcher-input"]', 'anything');
 
 		await expect(page.locator('text=No results found')).toBeVisible();
 	});
@@ -45,7 +45,7 @@ test.describe('Quick Switcher', () => {
 		await page.keyboard.press('Control+k');
 		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
 
-		await page.fill('input[placeholder*="Search"]', 'test');
+		await page.fill('[data-testid="quick-switcher-input"]', 'test');
 
 		await expect(page.locator('text=No results found')).toBeVisible();
 
@@ -58,21 +58,21 @@ fixtureTest.describe('Quick Switcher with Data', () => {
 		await page.keyboard.press('Control+k');
 		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
 
-		await page.fill('input[placeholder*="Search"]', withTestDocument.title.split(' ')[0]);
+		await page.fill('[data-testid="quick-switcher-input"]', withTestDocument.title.split(' ')[0]);
 
 		await expect(page.locator(`text=${withTestDocument.title}`)).toBeVisible();
 	});
 
 	fixtureTest('should handle no search results gracefully', async ({ page }) => {
 		await page.keyboard.press('Control+k');
-		await page.fill('input[placeholder*="Search"]', 'nonexistent');
+		await page.fill('[data-testid="quick-switcher-input"]', 'nonexistent');
 
 		await expect(page.locator('text=No results found')).toBeVisible();
 	});
 
 	fixtureTest('should navigate to selected document', async ({ page, withTestDocument }) => {
 		await page.keyboard.press('Control+k');
-		await page.fill('input[placeholder*="Search"]', withTestDocument.title.split(' ')[0]);
+		await page.fill('[data-testid="quick-switcher-input"]', withTestDocument.title.split(' ')[0]);
 
 		await expect(page.locator(`text=${withTestDocument.title}`)).toBeVisible();
 

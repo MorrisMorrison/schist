@@ -77,18 +77,24 @@ export class WebAuthnHelper {
 			throw new Error('WebAuthn not initialized. Call setup() first.');
 		}
 
-		await this.client.send('WebAuthn.addCredential', {
-			authenticatorId: this.authenticatorId,
-			credential: {
-				credentialId: credential.credentialId,
-				isResidentCredential: true,
-				privateKey: credential.privateKey,
-				userHandle: credential.userHandle,
-				signCount: credential.signCount,
-				rpId: credential.rpId || 'localhost',
-				largeBlob: undefined
-			}
-		});
+		try {
+			await this.client.send('WebAuthn.addCredential', {
+				authenticatorId: this.authenticatorId,
+				credential: {
+					credentialId: credential.credentialId,
+					isResidentCredential: true,
+					privateKey: credential.privateKey,
+					userHandle: credential.userHandle,
+					signCount: credential.signCount,
+					rpId: credential.rpId || 'localhost'
+				}
+			});
+			console.log(`[WebAuthn] Successfully added credential: ${credential.credentialId}`);
+		} catch (error) {
+			console.error(`[WebAuthn] Failed to add credential:`, error);
+			console.error(`[WebAuthn] Credential data:`, JSON.stringify(credential, null, 2));
+			throw error;
+		}
 	}
 
 	/**
@@ -166,9 +172,6 @@ export class WebAuthnHelper {
 	 */
 	async simulateAuthentication(): Promise<void> {
 		await this.simulateUserPresence();
-
-		// Small delay to simulate real user interaction
-		await this.page.waitForTimeout(100);
 	}
 
 	/**
@@ -184,9 +187,6 @@ export class WebAuthnHelper {
 			authenticatorId: this.authenticatorId,
 			isUserVerified: true
 		});
-
-		// Add a small delay to ensure the authenticator is ready
-		await this.page.waitForTimeout(200);
 	}
 }
 

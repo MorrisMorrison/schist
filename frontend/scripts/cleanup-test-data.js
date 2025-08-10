@@ -11,7 +11,9 @@ const TEST_DATA_DIRS = [
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-1'),
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-2'),
 	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-3'),
-	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-4')
+	resolve(__dirname, '../../backend/cmd/schist/test-data-worker-4'),
+	resolve(__dirname, '../../backend/cmd/schist/test-data-auth-disabled'),
+	resolve(__dirname, '../../backend/cmd/schist/test-data-auth-enabled')
 ];
 
 const TEST_RESULT_DIRS = [

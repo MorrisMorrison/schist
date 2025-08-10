@@ -7,7 +7,7 @@ test.describe('Recent Page', () => {
 	});
 
 	test('should navigate to recent page from navbar', async ({ page }) => {
-		await page.click('a[href="/recent"]');
+		await page.click('[data-testid="nav-recent"]');
 
 		await expect(page).toHaveURL('/recent');
 
@@ -15,7 +15,7 @@ test.describe('Recent Page', () => {
 	});
 
 	test('should handle empty state gracefully', async ({ page }) => {
-		await page.click('a[href="/recent"]');
+		await page.click('[data-testid="nav-recent"]');
 
 		await expect(page).toHaveURL('/recent');
 		await expect(page.locator('h1')).toContainText('Recent Documents');
@@ -50,7 +50,7 @@ test.describe('Recent Page', () => {
 
 fixtureTest.describe('Recent Page with Data', () => {
 	fixtureTest('should display recent documents after navigation', async ({ page }) => {
-		await page.click('a[href="/recent"]');
+		await page.click('[data-testid="nav-recent"]');
 
 		await expect(page.locator('h1')).toContainText('Recent Documents');
 

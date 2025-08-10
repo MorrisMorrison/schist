@@ -144,6 +144,7 @@
 		<div
 			class="bg-card border-border w-full max-w-2xl rounded-lg border shadow-2xl"
 			role="document"
+			data-testid="quick-switcher"
 		>
 			<div class="flex items-center gap-3 border-b p-4">
 				<Search class="text-muted-foreground h-5 w-5" />

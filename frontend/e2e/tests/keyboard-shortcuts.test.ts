@@ -27,7 +27,7 @@ test.describe('Keyboard Shortcuts', () => {
 		await page.keyboard.press('Control+b');
 
 		// Check if sidebar state changed (could be opened or closed depending on initial state)
-		await expect(page.locator('aside')).toBeVisible();
+		await expect(page.locator('[data-testid="sidebar"]')).toBeVisible();
 	});
 
 	test('should navigate home with Ctrl+H', async ({ page }) => {

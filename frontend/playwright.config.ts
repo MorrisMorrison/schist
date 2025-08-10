@@ -16,7 +16,7 @@ export default defineConfig({
 	workers: globalThis.process?.env.CI ? 1 : 1,
 
 	/* Global timeout for each test */
-	timeout: 30 * 1000,
+	timeout: 20 * 1000,
 
 	/* Expect timeout for assertions */
 	expect: {

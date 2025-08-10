@@ -37,9 +37,9 @@ export class EditorPage extends BasePage {
 		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
 
 		this.editorToolbar = page.getByTestId('editor-toolbar');
-		this.previewToggle = page.getByRole('button', { name: /preview/i });
+		this.previewToggle = page.getByTestId('preview-toggle-button');
 		this.previewPane = page.getByTestId('preview-pane');
-		this.imageUploadButton = page.getByRole('button', { name: /upload image|image/i });
+		this.imageUploadButton = page.getByTestId('image-upload-button');
 		this.fileUploadInput = page.locator('input[type="file"]');
 
 		this.saveStatus = page.getByTestId('save-status');

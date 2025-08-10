@@ -78,6 +78,7 @@
 			onView?.(documentPathDerived);
 		}
 	}}
+	data-testid="document-card"
 >
 	<div class="flex h-full flex-col p-3">
 		<div class="mb-2 flex items-center gap-3">

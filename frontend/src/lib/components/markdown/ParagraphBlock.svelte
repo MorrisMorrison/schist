@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ParagraphBlock } from '$lib/utils/markdown-blocks';
+	import { sanitizeHtml } from '$lib/utils/sanitizer';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
@@ -33,4 +34,4 @@
 	});
 </script>
 
-<p bind:this={container} class="mb-4 leading-relaxed">{@html block.text}</p>
+<p bind:this={container} class="mb-4 leading-relaxed">{@html sanitizeHtml(block.text)}</p>

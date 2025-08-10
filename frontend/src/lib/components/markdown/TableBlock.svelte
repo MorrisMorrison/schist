@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { TableBlock } from '$lib/utils/markdown-blocks';
+	import { sanitizeHtml } from '$lib/utils/sanitizer';
 
 	let { block }: { block: TableBlock } = $props();
 
@@ -26,7 +27,7 @@
 						block.align[index]
 					)}"
 				>
-					{@html cell}
+					{@html sanitizeHtml(cell)}
 				</th>
 			{/each}
 		</tr>
@@ -40,7 +41,7 @@
 							block.align[index]
 						)}"
 					>
-						{@html cell}
+						{@html sanitizeHtml(cell)}
 					</td>
 				{/each}
 			</tr>

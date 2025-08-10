@@ -14,9 +14,25 @@
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
 
-	let { content, theme = 'light', className = '' }: PreviewProps = $props();
+	let {
+		content,
+		theme = 'light',
+		className = '',
+		container = $bindable(),
+		onScroll
+	}: PreviewProps = $props();
 
 	let containerRef: HTMLDivElement;
+
+	function handleScroll() {
+		if (onScroll) {
+			onScroll();
+		}
+	}
+
+	$effect(() => {
+		container = containerRef;
+	});
 
 	let htmlContent = $state('');
 
@@ -74,6 +90,7 @@
 	class="markdown-preview h-full overflow-auto border-l {themeClasses} {className}"
 	role="region"
 	aria-label="Markdown preview"
+	onscroll={handleScroll}
 >
 	<div class="p-4 {proseClasses}">
 		{@html sanitizedContent}

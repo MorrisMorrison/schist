@@ -69,8 +69,9 @@ export class EditorPage extends BasePage {
 	async fillDocumentDetails(title: string, content: string, tags: string[] = []) {
 		await this.fillInput(this.titleInput, title);
 
-		await this.contentEditor.click();
-		await this.contentEditor.fill(content);
+		// Use proper CodeMirror interaction - clear existing content and type new content
+		await this.clearContent();
+		await this.typeContent(content);
 
 		if (tags.length > 0) {
 			await this.addTags(tags);

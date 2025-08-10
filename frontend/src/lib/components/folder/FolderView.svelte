@@ -206,7 +206,11 @@
 						<FolderPlus class="h-4 w-4" />
 						New Folder
 					</Button>
-					<Button variant="default" onclick={() => navigateToNewDocument(path)}>
+					<Button
+						variant="default"
+						onclick={() => navigateToNewDocument(path)}
+						data-testid="create-document"
+					>
 						<Plus class="h-4 w-4" />
 						New Document
 					</Button>

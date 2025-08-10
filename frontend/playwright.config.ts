@@ -39,7 +39,8 @@ export default defineConfig({
 		baseURL: 'http://localhost:4173',
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
-		video: 'retain-on-failure'
+		video: 'retain-on-failure',
+		viewport: { width: 1280, height: 720 }
 	},
 
 	projects: [
@@ -53,8 +54,7 @@ export default defineConfig({
 				...devices['Desktop Chrome'],
 				baseURL: 'http://localhost:4173'
 			},
-			dependencies: ['setup'],
-			testIgnore: /.*authentication\.test\.ts/
+			testIgnore: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/]
 		},
 		{
 			name: 'auth-enabled-unauthenticated',
@@ -75,7 +75,7 @@ export default defineConfig({
 				storageState: 'playwright/.auth/user.json'
 			},
 			dependencies: ['setup'],
-			testMatch: [/.*authentication\.test\.ts/],
+			testMatch: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/],
 			grepInvert: /Unauthenticated State/
 		}
 	],

@@ -652,7 +652,7 @@
 
 			<!-- CodeMirror Editor -->
 			<div class="flex-1 overflow-hidden">
-				<div bind:this={editorElement} class="h-full"></div>
+				<div bind:this={editorElement} class="h-full" data-testid="document-content-textarea"></div>
 			</div>
 		</div>
 

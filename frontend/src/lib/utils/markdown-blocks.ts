@@ -192,11 +192,16 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 	switch (token.type) {
 		case 'heading': {
 			const headingToken = token as Tokens.Heading;
+			let text = headingToken.text;
+			
+			// Process inline markdown elements (links, emphasis, code, etc.)
+			text = await processInlineMarkdown(text);
+			
 			return {
 				type: 'heading',
 				id,
 				level: headingToken.depth as 1 | 2 | 3 | 4 | 5 | 6,
-				text: headingToken.text,
+				text,
 				raw: headingToken.raw
 			} as HeadingBlock;
 		}
@@ -209,6 +214,9 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			if (text.includes('<!--WIKI_LINK_')) {
 				text = await postprocessWikiLinks(text);
 			}
+
+			// Process inline markdown elements (links, emphasis, code, etc.)
+			text = await processInlineMarkdown(text);
 
 			return {
 				type: 'paragraph',
@@ -254,20 +262,30 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 
 		case 'list_item': {
 			const itemToken = token as Tokens.ListItem;
+			let text = itemToken.text;
+
+			// Process inline markdown elements (links, emphasis, code, etc.)
+			text = await processInlineMarkdown(text);
+
 			return {
 				type: 'list_item',
 				id,
-				text: itemToken.text,
+				text,
 				raw: itemToken.raw
 			} as ListItemBlock;
 		}
 
 		case 'blockquote': {
 			const blockquoteToken = token as Tokens.Blockquote;
+			let text = blockquoteToken.text;
+
+			// Process inline markdown elements (links, emphasis, code, etc.)
+			text = await processInlineMarkdown(text);
+
 			return {
 				type: 'blockquote',
 				id,
-				text: blockquoteToken.text,
+				text,
 				raw: blockquoteToken.raw
 			} as BlockquoteBlock;
 		}
@@ -300,6 +318,18 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 				id,
 				raw: token.raw
 			} as HrBlock;
+		}
+
+		case 'image': {
+			const imageToken = token as Tokens.Image;
+			return {
+				type: 'image',
+				id,
+				href: imageToken.href,
+				title: imageToken.title || undefined,
+				text: imageToken.text,
+				raw: imageToken.raw
+			} as ImageBlock;
 		}
 
 		default:
@@ -361,4 +391,19 @@ async function postprocessWikiLinks(text: string): Promise<string> {
 
 	delete (globalThis as Record<string, unknown>)[sessionId];
 	return processedText.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
+}
+
+// Process inline markdown elements within text
+async function processInlineMarkdown(text: string): Promise<string> {
+	try {
+		// Use marked to parse full markdown and extract inner content
+		const htmlResult = await marked.parse(text, { async: true });
+		// Remove wrapping <p> tags if present, but keep other HTML elements
+		const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
+		return cleaned;
+	} catch (error) {
+		console.warn('Failed to process inline markdown:', error);
+		// Return original text as fallback
+		return text;
+	}
 }

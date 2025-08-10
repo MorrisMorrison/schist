@@ -92,7 +92,7 @@
 
 <Card>
 	<CardHeader>
-		<CardTitle class="flex items-center gap-2">
+		<CardTitle class="flex items-center gap-2" data-testid="user-management-title">
 			<Users class="h-5 w-5" />
 			User Management
 		</CardTitle>
@@ -128,6 +128,7 @@
 						class="flex items-center gap-2"
 						onclick={generateInvite}
 						disabled={generatingInvite}
+						data-testid="invite-user-button"
 					>
 						<Plus class="h-4 w-4" />
 						{generatingInvite ? 'Generating...' : 'Invite User'}
@@ -137,7 +138,7 @@
 				{#if showInviteDialog}
 					<Card>
 						<CardHeader>
-							<CardTitle class="text-base">Invite User</CardTitle>
+							<CardTitle class="text-base" data-testid="invitation-dialog-title">Invite User</CardTitle>
 							<CardDescription>
 								Share this invitation link with the person you want to invite. The link expires in 7
 								days.
@@ -159,6 +160,7 @@
 										size="sm"
 										onclick={copyInviteURL}
 										class="flex items-center gap-1"
+										data-testid="copy-invite-button"
 									>
 										<Copy class="h-4 w-4" />
 										Copy

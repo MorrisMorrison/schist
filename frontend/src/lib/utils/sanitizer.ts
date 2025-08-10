@@ -14,13 +14,23 @@ const componentSanitizerConfig = {
 		'span',
 		'a',
 		// Line breaks (sometimes needed in component text)
-		'br'
+		'br',
+		// Images
+		'img'
 	],
 	ALLOWED_ATTR: [
 		'class',
 		'href',
 		'target',
-		'data-wiki-target' // For wiki links
+		'data-wiki-target', // For wiki links
+		'data-testid', // For E2E testing
+		// Image attributes
+		'src',
+		'alt',
+		'title',
+		'width',
+		'height',
+		'loading'
 	],
 	ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
 	FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'textarea', 'select'],
@@ -54,7 +64,18 @@ export function sanitizeHtml(dirty: string): string {
 	}
 
 	try {
-		return DOMPurify.sanitize(dirty, componentSanitizerConfig);
+		// Pre-process to remove dangerous patterns that might not be caught by DOMPurify
+		// This handles cases where HTML entities in text get decoded by {@html}
+		let cleaned = dirty;
+		
+		// Remove any onclick or other event handlers, even in text form
+		cleaned = cleaned.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '');
+		cleaned = cleaned.replace(/\bon\w+\s*=\s*[^"\s'>\]]+/gi, '');
+		
+		// Remove javascript: URLs
+		cleaned = cleaned.replace(/javascript\s*:/gi, '');
+		
+		return DOMPurify.sanitize(cleaned, componentSanitizerConfig);
 	} catch (error) {
 		console.error('HTML sanitization failed:', error);
 		return '';

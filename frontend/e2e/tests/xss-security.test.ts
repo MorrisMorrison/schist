@@ -17,9 +17,17 @@ Some normal content here.`;
 		await page.locator('[data-testid="create-document"]').click();
 
 		await page.locator('[data-testid="document-title-input"]').fill('XSS Test Document');
-		await page.locator('[data-testid="document-content-textarea"]').fill(maliciousContent);
 
-		await page.locator('[data-testid="save-document"]').click();
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(maliciousContent);
+
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
 
@@ -32,16 +40,26 @@ Some normal content here.`;
 	test('should sanitize dangerous onclick handlers in images', async ({ page }) => {
 		const maliciousContent = `# Image XSS Test
 
-![Alt text](/assets/test.jpg "Title|small" onclick="alert('XSS via image!')")
+![Alt text](/assets/test.jpg "Title")
+
+<img src="/assets/test.jpg" alt="Alt text" onclick="alert('XSS via image!')">
 
 Normal content after image.`;
 
 		await page.locator('[data-testid="create-document"]').click();
 
 		await page.locator('[data-testid="document-title-input"]').fill('Image XSS Test');
-		await page.locator('[data-testid="document-content-textarea"]').fill(maliciousContent);
 
-		await page.locator('[data-testid="save-document"]').click();
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(maliciousContent);
+
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
 
@@ -66,9 +84,17 @@ Normal content after image.`;
 		await page.locator('[data-testid="create-document"]').click();
 
 		await page.locator('[data-testid="document-title-input"]').fill('Attribute XSS Test');
-		await page.locator('[data-testid="document-content-textarea"]').fill(maliciousContent);
 
-		await page.locator('[data-testid="save-document"]').click();
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(maliciousContent);
+
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
 
@@ -114,9 +140,17 @@ Final paragraph.`;
 		await page.locator('[data-testid="create-document"]').click();
 
 		await page.locator('[data-testid="document-title-input"]').fill('Safe Markdown Test');
-		await page.locator('[data-testid="document-content-textarea"]').fill(safeContent);
 
-		await page.locator('[data-testid="save-document"]').click();
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(safeContent);
+
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
 
@@ -142,7 +176,14 @@ Final paragraph.`;
 
 		await page.locator('[data-testid="create-document"]').click();
 
-		await page.locator('[data-testid="document-content-textarea"]').fill(maliciousContent);
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(maliciousContent);
 
 		await expect(page.locator('[data-testid="markdown-preview"]')).toBeVisible();
 
@@ -169,11 +210,19 @@ Normal content to verify rendering works.`;
 		// Create document first
 		await page.locator('[data-testid="create-document"]').click();
 		await page.locator('[data-testid="document-title-input"]').fill('Shared XSS Test');
-		await page.locator('[data-testid="document-content-textarea"]').fill(maliciousContent);
-		await page.locator('[data-testid="save-document"]').click();
+
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(maliciousContent);
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		// Create a share link
-		await page.locator('[data-testid="share-document"]').click();
+		await page.locator('[data-testid="share-document-button"]').click();
 		await page.locator('[data-testid="create-share-link"]').click();
 
 		const shareUrl = await page.locator('[data-testid="share-url"]').textContent();
@@ -207,9 +256,17 @@ Normal content to verify rendering works.`;
 		await page.locator('[data-testid="create-document"]').click();
 
 		await page.locator('[data-testid="document-title-input"]').fill('CSS XSS Test');
-		await page.locator('[data-testid="document-content-textarea"]').fill(maliciousContent);
 
-		await page.locator('[data-testid="save-document"]').click();
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(maliciousContent);
+
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
 
@@ -233,9 +290,17 @@ Regular content here.`;
 		await page.locator('[data-testid="create-document"]').click();
 
 		await page.locator('[data-testid="document-title-input"]').fill('Data URL XSS Test');
-		await page.locator('[data-testid="document-content-textarea"]').fill(maliciousContent);
 
-		await page.locator('[data-testid="save-document"]').click();
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(maliciousContent);
+
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
 
@@ -284,9 +349,17 @@ interface User {
 		await page.locator('[data-testid="create-document"]').click();
 
 		await page.locator('[data-testid="document-title-input"]').fill('Complex Markdown Test');
-		await page.locator('[data-testid="document-content-textarea"]').fill(complexMarkdown);
 
-		await page.locator('[data-testid="save-document"]').click();
+		// Use CodeMirror editor properly - wait for it to load and clear default content
+		const contentEditor = page.locator('.cm-editor .cm-content').first();
+		await contentEditor.click();
+		// Clear any existing content first
+		await page.keyboard.press('Control+a');
+		await page.keyboard.press('Delete');
+		// Type the content using pressSequentially for CodeMirror compatibility
+		await contentEditor.pressSequentially(complexMarkdown);
+
+		await page.locator('[data-testid="save-document-button"]').click();
 
 		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
 

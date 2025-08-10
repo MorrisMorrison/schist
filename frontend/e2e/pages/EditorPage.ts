@@ -115,6 +115,12 @@ export class EditorPage extends BasePage {
 		await this.contentEditor.pressSequentially(content);
 	}
 
+	async appendContent(content: string) {
+		await this.contentEditor.click();
+		await this.page.keyboard.press('Control+End');
+		await this.contentEditor.pressSequentially(content);
+	}
+
 	async clearContent() {
 		await this.contentEditor.click();
 		await this.page.keyboard.press('Control+a');

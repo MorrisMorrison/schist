@@ -67,14 +67,14 @@ export function sanitizeHtml(dirty: string): string {
 		// Pre-process to remove dangerous patterns that might not be caught by DOMPurify
 		// This handles cases where HTML entities in text get decoded by {@html}
 		let cleaned = dirty;
-		
+
 		// Remove any onclick or other event handlers, even in text form
 		cleaned = cleaned.replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '');
 		cleaned = cleaned.replace(/\bon\w+\s*=\s*[^"\s'>\]]+/gi, '');
-		
+
 		// Remove javascript: URLs
 		cleaned = cleaned.replace(/javascript\s*:/gi, '');
-		
+
 		return DOMPurify.sanitize(cleaned, componentSanitizerConfig);
 	} catch (error) {
 		console.error('HTML sanitization failed:', error);

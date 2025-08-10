@@ -138,7 +138,9 @@
 				{#if showInviteDialog}
 					<Card>
 						<CardHeader>
-							<CardTitle class="text-base" data-testid="invitation-dialog-title">Invite User</CardTitle>
+							<CardTitle class="text-base" data-testid="invitation-dialog-title"
+								>Invite User</CardTitle
+							>
 							<CardDescription>
 								Share this invitation link with the person you want to invite. The link expires in 7
 								days.

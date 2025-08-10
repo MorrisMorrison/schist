@@ -264,7 +264,7 @@ test.describe('Passkey Authentication System', () => {
 			// Should show invite dialog with token
 			// Wait for the input field with the invite URL using locator
 			await expect(page.locator('input[value*="localhost:4174"]')).toBeVisible({ timeout: 10000 });
-			
+
 			// Should show dialog elements - use the exact text match for the label
 			await expect(page.getByText('Invitation Link', { exact: true })).toBeVisible();
 			await expect(page.getByText('Copy')).toBeVisible();

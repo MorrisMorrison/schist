@@ -56,7 +56,7 @@ test.describe('Recent Page', () => {
 });
 
 fixtureTest.describe('Recent Page with Data', () => {
-	fixtureTest('should display recent documents after navigation', async ({ page, homePage, withMultipleDocuments }) => {
+	fixtureTest('should display recent documents after navigation', async ({ page }) => {
 		await page.click('[data-testid="nav-recent"]');
 
 		await expect(page.locator('h1')).toContainText('Recent Documents');

@@ -7,7 +7,7 @@
 	// Parse size from title if present (supports "Title|size" format)
 	const parseImageTitle = (title?: string) => {
 		if (!title) return { cleanTitle: undefined, size: undefined };
-		
+
 		const parts = title.split('|');
 		if (parts.length === 2) {
 			return {
@@ -15,7 +15,7 @@
 				size: parts[1].trim() || undefined
 			};
 		}
-		
+
 		return { cleanTitle: title, size: undefined };
 	};
 
@@ -47,7 +47,7 @@
 		loading="lazy"
 	/>
 	{#if block.text && block.text !== cleanTitle}
-		<p class="mt-2 text-sm text-muted-foreground text-center italic">
+		<p class="text-muted-foreground mt-2 text-center text-sm italic">
 			{sanitizeHtml(block.text)}
 		</p>
 	{/if}

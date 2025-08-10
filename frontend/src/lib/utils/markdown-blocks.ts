@@ -193,10 +193,10 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		case 'heading': {
 			const headingToken = token as Tokens.Heading;
 			let text = headingToken.text;
-			
+
 			// Process inline markdown elements (links, emphasis, code, etc.)
 			text = await processInlineMarkdown(text);
-			
+
 			return {
 				type: 'heading',
 				id,

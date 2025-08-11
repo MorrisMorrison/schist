@@ -138,6 +138,7 @@
 							onclick={openQuickSwitcher}
 							class="bg-secondary hover:bg-accent text-muted-foreground hover:text-foreground flex w-64 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors"
 							title="Quick search (⌘K)"
+							aria-label="Open quick search for documents"
 							data-testid="quick-switcher-button"
 						>
 							<Search class="h-4 w-4" />
@@ -164,6 +165,7 @@
 								onclick={handleLogout}
 								class="border-secondary bg-primary text-primary hover:bg-destructive hover:text-destructive-foreground cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 								title="Logout"
+								aria-label="Sign out of your account"
 								data-testid="logout-button"
 							>
 								<LogOut class="h-4 w-4" />
@@ -178,6 +180,7 @@
 							onclick={handleQuickUnlock}
 							class="border-secondary bg-primary text-primary hover:bg-accent cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 							title="Quick unlock secrets"
+							aria-label="Unlock secrets using passkey authentication"
 							disabled={isUnlocking}
 							data-testid="quick-unlock-button"
 						>
@@ -215,6 +218,7 @@
 						onclick={toggleMenu}
 						class="text-muted hover:bg-gray-hover hover:text-secondary focus:bg-gray-hover focus:text-secondary inline-flex cursor-pointer items-center justify-center rounded-md p-2 focus:outline-none md:hidden"
 						aria-expanded={isMenuOpen}
+						aria-label="Toggle navigation menu"
 					>
 						<span class="sr-only">Open main menu</span>
 						<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

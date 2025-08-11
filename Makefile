@@ -1,4 +1,4 @@
-.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui check verify cleanup cleanup-dry-run
+.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
 
 all: build
 
@@ -67,7 +67,16 @@ verify:
 
 # Data cleanup commands
 cleanup:
-	./scripts/cleanup.sh
+	./scripts/cleanup.sh --profile=safe
 
 cleanup-dry-run:
-	./scripts/cleanup.sh --dry-run --verbose
+	./scripts/cleanup.sh --profile=safe --dry-run --verbose
+
+cleanup-full:
+	./scripts/cleanup.sh --profile=full
+
+cleanup-full-dry-run:
+	./scripts/cleanup.sh --profile=full --dry-run --verbose
+
+cleanup-e2e:
+	./scripts/cleanup.sh --profile=e2e-only

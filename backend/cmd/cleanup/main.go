@@ -9,13 +9,19 @@ import (
 	"strings"
 )
 
-type CleanupConfig struct {
+type CleanupProfile struct {
 	DataDirectories []string `json:"data_directories"`
 	TestDirectories []string `json:"test_directories"`
 	E2EResults      []string `json:"e2e_results"`
 	LogFiles        []string `json:"log_files"`
 	TempFiles       []string `json:"temp_files"`
 	SearchPatterns  []string `json:"search_patterns"`
+	SystemCleanup   bool     `json:"system_cleanup"`
+}
+
+type CleanupConfig struct {
+	Profiles       map[string]CleanupProfile `json:"profiles"`
+	DefaultProfile string                    `json:"default_profile"`
 }
 
 type CleanupStats struct {
@@ -27,6 +33,7 @@ type CleanupStats struct {
 
 func main() {
 	var configPath = flag.String("config", "cleanup-config.json", "Path to cleanup configuration file")
+	var profile = flag.String("profile", "", "Cleanup profile to use")
 	var dryRun = flag.Bool("dry-run", false, "Show what would be deleted without actually deleting")
 	var verbose = flag.Bool("verbose", false, "Show detailed output")
 	var searchMode = flag.Bool("search", false, "Auto-discover cleanup targets by searching")
@@ -36,24 +43,24 @@ func main() {
 	fmt.Println("🧹 Schist Data Cleanup Tool")
 	fmt.Println("==========================")
 
-	var config CleanupConfig
+	var activeProfile CleanupProfile
 	var err error
 
 	if *searchMode {
 		fmt.Println("🔍 Auto-discovering cleanup targets...")
-		config = autoDiscoverTargets(*rootDir)
+		activeProfile = autoDiscoverTargets(*rootDir)
 	} else {
-		config, err = loadConfig(*configPath)
+		activeProfile, err = loadProfile(*configPath, *profile)
 		if err != nil {
-			fmt.Printf("❌ Error loading config: %v\n", err)
+			fmt.Printf("❌ Error loading profile: %v\n", err)
 			os.Exit(1)
 		}
 	}
 
 	if *verbose {
-		fmt.Printf("📋 Cleanup configuration:\n")
-		configJSON, _ := json.MarshalIndent(config, "", "  ")
-		fmt.Println(string(configJSON))
+		fmt.Printf("📋 Active cleanup profile:\n")
+		profileJSON, _ := json.MarshalIndent(activeProfile, "", "  ")
+		fmt.Println(string(profileJSON))
 	}
 
 	stats := CleanupStats{}
@@ -64,38 +71,38 @@ func main() {
 
 	// Clean up data directories
 	fmt.Println("\n📂 Cleaning data directories...")
-	for _, dir := range config.DataDirectories {
+	for _, dir := range activeProfile.DataDirectories {
 		cleanupDirectory(dir, *dryRun, *verbose, &stats)
 	}
 
 	// Clean up test directories
 	fmt.Println("\n🧪 Cleaning test directories...")
-	for _, dir := range config.TestDirectories {
+	for _, dir := range activeProfile.TestDirectories {
 		cleanupDirectory(dir, *dryRun, *verbose, &stats)
 	}
 
 	// Clean up E2E results
 	fmt.Println("\n🎭 Cleaning E2E test results...")
-	for _, pattern := range config.E2EResults {
+	for _, pattern := range activeProfile.E2EResults {
 		cleanupPattern(pattern, *dryRun, *verbose, &stats)
 	}
 
 	// Clean up log files
 	fmt.Println("\n📝 Cleaning log files...")
-	for _, pattern := range config.LogFiles {
+	for _, pattern := range activeProfile.LogFiles {
 		cleanupPattern(pattern, *dryRun, *verbose, &stats)
 	}
 
 	// Clean up temp files
 	fmt.Println("\n🗂️ Cleaning temp files...")
-	for _, pattern := range config.TempFiles {
+	for _, pattern := range activeProfile.TempFiles {
 		cleanupPattern(pattern, *dryRun, *verbose, &stats)
 	}
 
 	// Clean up search patterns
-	if len(config.SearchPatterns) > 0 {
+	if len(activeProfile.SearchPatterns) > 0 {
 		fmt.Println("\n🔎 Cleaning search patterns...")
-		for _, pattern := range config.SearchPatterns {
+		for _, pattern := range activeProfile.SearchPatterns {
 			cleanupPattern(pattern, *dryRun, *verbose, &stats)
 		}
 	}
@@ -104,29 +111,49 @@ func main() {
 	printSummary(stats, *dryRun)
 }
 
-func loadConfig(configPath string) (CleanupConfig, error) {
-	var config CleanupConfig
+func loadProfile(configPath string, profileName string) (CleanupProfile, error) {
+	var profile CleanupProfile
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// Create default config if it doesn't exist
-		config = getDefaultConfig()
+		config := getDefaultConfig()
 		if err := saveConfig(configPath, config); err != nil {
-			return config, fmt.Errorf("failed to save default config: %w", err)
+			return profile, fmt.Errorf("failed to save default config: %w", err)
 		}
 		fmt.Printf("📄 Created default config at: %s\n", configPath)
-		return config, nil
+
+		// Use default profile
+		if profileName == "" {
+			profileName = config.DefaultProfile
+		}
+
+		if selectedProfile, exists := config.Profiles[profileName]; exists {
+			return selectedProfile, nil
+		}
+		return profile, fmt.Errorf("profile '%s' not found in default config", profileName)
 	}
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return config, fmt.Errorf("failed to read config file: %w", err)
+		return profile, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	if err := json.Unmarshal(data, &config); err != nil {
-		return config, fmt.Errorf("failed to parse config JSON: %w", err)
+	// Try to parse as new format first
+	var config CleanupConfig
+	if err := json.Unmarshal(data, &config); err == nil && config.Profiles != nil {
+		// New format with profiles
+		if profileName == "" {
+			profileName = config.DefaultProfile
+		}
+
+		if selectedProfile, exists := config.Profiles[profileName]; exists {
+			fmt.Printf("📋 Using profile: %s\n", profileName)
+			return selectedProfile, nil
+		}
+		return profile, fmt.Errorf("profile '%s' not found", profileName)
 	}
 
-	return config, nil
+	return profile, fmt.Errorf("failed to parse config JSON or profiles not found: %w", err)
 }
 
 func saveConfig(configPath string, config CleanupConfig) error {
@@ -139,59 +166,118 @@ func saveConfig(configPath string, config CleanupConfig) error {
 
 func getDefaultConfig() CleanupConfig {
 	return CleanupConfig{
-		DataDirectories: []string{
-			"data",
-			"test-data",
-			"e2e-data",
-			"tmp/schist-*",
-		},
-		TestDirectories: []string{
-			"frontend/test-results",
-			"frontend/playwright-report",
-			"frontend/coverage",
-			"backend/coverage",
-			"backend/test-results",
-		},
-		E2EResults: []string{
-			"frontend/test-results/**",
-			"frontend/playwright-report/**",
-			"frontend/e2e-results/**",
-			"**/playwright-report/**",
-			"**/test-results/**",
-		},
-		LogFiles: []string{
-			"*.log",
-			"logs/**",
-			"backend/*.log",
-			"frontend/*.log",
-			"backend/logs/**",
-			"frontend/logs/**",
-		},
-		TempFiles: []string{
-			"*.tmp",
-			"*.temp",
-			".tmp/**",
-			"tmp/**",
-			"/tmp/schist-*",
-			"/var/tmp/schist-*",
-		},
-		SearchPatterns: []string{
-			"**/node_modules/.cache/**",
-			"**/.svelte-kit/output/**",
-			"**/dist/**",
-			"**/build/**",
+		DefaultProfile: "safe",
+		Profiles: map[string]CleanupProfile{
+			"full": {
+				DataDirectories: []string{
+					"data",
+					"test-data",
+					"e2e-data",
+					"tmp/schist-*",
+					"backend/cmd/schist/test-data-*",
+				},
+				TestDirectories: []string{
+					"frontend/test-results",
+					"frontend/playwright-report",
+					"frontend/coverage",
+					"backend/coverage",
+					"backend/test-results",
+				},
+				E2EResults: []string{
+					"frontend/test-results/**",
+					"frontend/playwright-report/**",
+					"**/playwright-report/**",
+					"**/test-results/**",
+				},
+				LogFiles: []string{
+					"*.log",
+					"logs/**",
+					"backend/*.log",
+					"frontend/*.log",
+				},
+				TempFiles: []string{
+					"*.tmp",
+					"*.temp",
+					".tmp/**",
+					"tmp/**",
+					"/tmp/schist-*",
+					"/var/tmp/schist-*",
+					"frontend/playwright/.auth/user.json",
+				},
+				SearchPatterns: []string{
+					"**/node_modules/.cache/**",
+					"**/.svelte-kit/output/**",
+					"**/dist/**",
+					"**/build/**",
+				},
+				SystemCleanup: true,
+			},
+			"safe": {
+				DataDirectories: []string{
+					"data",
+					"test-data",
+					"e2e-data",
+					"backend/cmd/schist/test-data-*",
+				},
+				TestDirectories: []string{
+					"frontend/test-results",
+					"frontend/playwright-report",
+					"frontend/coverage",
+					"backend/coverage",
+				},
+				E2EResults: []string{
+					"frontend/test-results/**",
+					"frontend/playwright-report/**",
+				},
+				LogFiles: []string{
+					"*.log",
+					"logs/**",
+				},
+				TempFiles: []string{
+					"*.tmp",
+					"*.temp",
+					"frontend/playwright/.auth/user.json",
+				},
+				SearchPatterns: []string{},
+				SystemCleanup:  false,
+			},
+			"e2e-only": {
+				DataDirectories: []string{
+					"backend/cmd/schist/test-data-auth-disabled",
+					"backend/cmd/schist/test-data-auth-enabled",
+					"backend/cmd/schist/test-data-worker-1",
+					"backend/cmd/schist/test-data-worker-2",
+					"backend/cmd/schist/test-data-worker-3",
+					"backend/cmd/schist/test-data-worker-4",
+				},
+				TestDirectories: []string{
+					"frontend/test-results",
+					"frontend/playwright-report",
+				},
+				E2EResults: []string{
+					"frontend/test-results/**",
+					"frontend/playwright-report/**",
+				},
+				LogFiles: []string{},
+				TempFiles: []string{
+					"frontend/playwright/.auth/user.json",
+				},
+				SearchPatterns: []string{},
+				SystemCleanup:  false,
+			},
 		},
 	}
 }
 
-func autoDiscoverTargets(rootDir string) CleanupConfig {
-	config := CleanupConfig{
+func autoDiscoverTargets(rootDir string) CleanupProfile {
+	profile := CleanupProfile{
 		DataDirectories: []string{},
 		TestDirectories: []string{},
 		E2EResults:      []string{},
 		LogFiles:        []string{},
 		TempFiles:       []string{},
 		SearchPatterns:  []string{},
+		SystemCleanup:   false,
 	}
 
 	// Walk the directory tree to find cleanup targets
@@ -208,35 +294,35 @@ func autoDiscoverTargets(rootDir string) CleanupConfig {
 
 		// Data directories
 		if name == "data" || name == "test-data" || name == "e2e-data" || strings.HasPrefix(name, "schist-data") {
-			config.DataDirectories = append(config.DataDirectories, path)
+			profile.DataDirectories = append(profile.DataDirectories, path)
 		}
 
 		// Test result directories
 		if name == "test-results" || name == "playwright-report" || name == "coverage" {
-			config.TestDirectories = append(config.TestDirectories, path)
+			profile.TestDirectories = append(profile.TestDirectories, path)
 		}
 
 		return nil
 	})
 
 	// Add common patterns
-	config.E2EResults = []string{
+	profile.E2EResults = []string{
 		"**/test-results/**",
 		"**/playwright-report/**",
 	}
 
-	config.LogFiles = []string{
+	profile.LogFiles = []string{
 		"*.log",
 		"**/logs/**",
 	}
 
-	config.TempFiles = []string{
+	profile.TempFiles = []string{
 		"*.tmp",
 		"*.temp",
 		"tmp/**",
 	}
 
-	return config
+	return profile
 }
 
 func cleanupDirectory(dirPath string, dryRun, verbose bool, stats *CleanupStats) {

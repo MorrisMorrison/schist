@@ -1,202 +1,241 @@
-# Schist Data Cleanup Tool
+# Schist Cleanup Tool
 
-A comprehensive cleanup utility for removing Schist data directories, test results, logs, and temporary files.
+The Schist Cleanup Tool is a unified data cleanup utility that helps maintain a clean development environment by removing test data, build artifacts, logs, and temporary files.
 
 ## Features
 
-- 🧹 **Configuration-based cleanup**: Define cleanup targets in JSON
-- 🔍 **Auto-discovery mode**: Automatically find cleanup targets by searching
-- 🔍 **Dry-run mode**: Preview what would be deleted without actually deleting
-- 📊 **Detailed reporting**: Shows files, directories, and space freed
-- 🛡️ **Safety features**: Comprehensive error handling and validation
-- ⚡ **Glob patterns**: Support for wildcard patterns and recursive cleanup
+- **Profile-based cleanup**: Choose from predefined cleanup profiles for different use cases
+- **Dry-run mode**: Preview what would be deleted before actually deleting
+- **Glob pattern support**: Clean up files and directories using wildcard patterns
+- **Auto-discovery**: Automatically find cleanup targets by scanning the project
+- **Detailed reporting**: Get statistics on files and space freed
+- **Safe defaults**: Default to safe cleanup mode to prevent accidental data loss
 
-## Quick Start
+## Usage
 
-### Using the Shell Script (Recommended)
-
-```bash
-# Preview what would be cleaned
-make cleanup-dry-run
-
-# Actually perform cleanup
-make cleanup
-
-# Auto-discover and preview
-./scripts/cleanup.sh --search --dry-run
-
-# Custom config with verbose output
-./scripts/cleanup.sh --config my-cleanup.json --verbose
-```
-
-### Using the Go Binary Directly
+### Command Line Interface
 
 ```bash
-# Build the tool
-cd backend/cmd/cleanup
+# Build the tool (if not already built)
 go build -o cleanup main.go
 
-# Run with default config
-./cleanup --dry-run --verbose
+# Basic usage with default profile (safe)
+./cleanup
 
-# Auto-discovery mode
-./cleanup --search --dry-run --root=/path/to/project
+# Use specific profile
+./cleanup --profile=full
 
-# Custom configuration
-./cleanup --config=/path/to/config.json
+# Preview cleanup with dry-run
+./cleanup --profile=full --dry-run --verbose
+
+# Auto-discover cleanup targets
+./cleanup --search --dry-run
 ```
 
-## Configuration
+### Shell Script Wrapper
 
-The cleanup tool uses a JSON configuration file to define what to clean:
+The recommended way to use the cleanup tool is through the shell script wrapper:
 
-```json
-{
-  "data_directories": [
-    "data",
-    "test-data", 
-    "e2e-data",
-    "tmp/schist-*"
-  ],
-  "test_directories": [
-    "frontend/test-results",
-    "frontend/playwright-report", 
-    "backend/coverage"
-  ],
-  "e2e_results": [
-    "**/test-results/**",
-    "**/playwright-report/**"
-  ],
-  "log_files": [
-    "*.log",
-    "logs/**"
-  ],
-  "temp_files": [
-    "*.tmp",
-    "tmp/**"
-  ],
-  "search_patterns": [
-    "**/.svelte-kit/output/**",
-    "**/node_modules/.cache/**"
-  ]
-}
+```bash
+# From project root
+./scripts/cleanup.sh --profile=safe --dry-run
+./scripts/cleanup.sh --profile=full --verbose
+./scripts/cleanup.sh --profile=e2e-only
 ```
 
-### Configuration Sections
+### Make Targets
 
-- **`data_directories`**: Schist data directories (production and test)
-- **`test_directories`**: Test result and coverage directories  
-- **`e2e_results`**: End-to-end test results and reports
-- **`log_files`**: Application log files
-- **`temp_files`**: Temporary files and directories
-- **`search_patterns`**: Additional patterns for build artifacts
+```bash
+make cleanup              # Safe cleanup
+make cleanup-dry-run      # Preview safe cleanup  
+make cleanup-full         # Full system cleanup
+make cleanup-e2e          # E2E test cleanup only
+```
+
+### NPM Scripts (Frontend)
+
+```bash
+npm run cleanup-test-data  # Clean E2E test data
+npm run cleanup-e2e        # Clean E2E test data
+```
+
+## Cleanup Profiles
+
+### `safe` (Default)
+- **Use case**: Regular development cleanup
+- **Includes**: Test results, coverage reports, basic temp files
+- **Excludes**: System temp directories, build caches
+- **System cleanup**: Disabled
+
+**What gets cleaned:**
+- `data/`, `test-data/`, `e2e-data/`
+- `backend/cmd/schist/test-data-*`
+- `frontend/test-results`, `frontend/playwright-report`
+- `frontend/coverage`, `backend/coverage`
+- Log files (`*.log`, `logs/**`)
+- Basic temp files (`*.tmp`, `*.temp`)
+- Playwright auth files
+
+### `full`
+- **Use case**: Complete system cleanup before releases
+- **Includes**: Everything from safe + system temp files + build caches
+- **System cleanup**: Enabled
+
+**Additional cleanup:**
+- System temp files (`/tmp/schist-*`, `/var/tmp/schist-*`)
+- Node modules cache (`**/node_modules/.cache/**`)
+- Build outputs (`**/dist/**`, `**/build/**`)
+- SvelteKit output (`**/.svelte-kit/output/**`)
+
+### `e2e-only`
+- **Use case**: E2E test cleanup, CI/CD pipelines
+- **Includes**: Only E2E test data and results
+- **System cleanup**: Disabled
+
+**What gets cleaned:**
+- E2E test databases (`test-data-auth-disabled`, `test-data-auth-enabled`)
+- Worker test data (`test-data-worker-1` through `test-data-worker-4`)
+- Test results and reports
+- Playwright auth files
 
 ## Command Line Options
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Show what would be deleted without actually deleting |
-| `--verbose` | Show detailed output with file counts and sizes |
-| `--search` | Auto-discover cleanup targets by searching filesystem |
-| `--config` | Specify custom configuration file path |
-| `--root` | Set root directory for search mode (default: current directory) |
-
-## Usage Examples
-
-### Development Cleanup
-```bash
-# Clean development artifacts, keeping actual data
-./scripts/cleanup.sh --config dev-cleanup.json --verbose
+```
+-config string
+    Path to cleanup configuration file (default "cleanup-config.json")
+-profile string
+    Cleanup profile to use (full|safe|e2e-only)
+-dry-run
+    Show what would be deleted without actually deleting
+-verbose
+    Show detailed output
+-search
+    Auto-discover cleanup targets by searching
+-root string
+    Root directory to search from (default ".")
 ```
 
-### Full System Reset  
-```bash
-# Clean everything including data (be careful!)
-./scripts/cleanup.sh --verbose
+## Configuration File
+
+The tool uses a JSON configuration file with profile-based settings:
+
+```json
+{
+  "default_profile": "safe",
+  "profiles": {
+    "safe": {
+      "data_directories": ["data", "test-data"],
+      "test_directories": ["frontend/test-results"],
+      "system_cleanup": false
+    },
+    "full": {
+      "data_directories": ["data", "test-data", "tmp/schist-*"],
+      "system_cleanup": true
+    }
+  }
+}
 ```
 
-### Test Environment Cleanup
-```bash
-# Clean only test-related files
-./scripts/cleanup.sh --config test-cleanup.json --dry-run
+### Profile Structure
+
+Each profile supports these categories:
+
+- **`data_directories`**: Data and database directories
+- **`test_directories`**: Test result and coverage directories
+- **`e2e_results`**: E2E test output patterns (supports globs)
+- **`log_files`**: Log file patterns
+- **`temp_files`**: Temporary file patterns
+- **`search_patterns`**: Advanced cleanup patterns (build caches, etc.)
+- **`system_cleanup`**: Boolean flag to enable/disable system temp cleanup
+
+## Integration
+
+### Playwright E2E Tests
+
+The tool is automatically integrated with Playwright tests via `global-teardown.ts`:
+
+```typescript
+// Automatically runs after E2E tests complete
+await execAsync(`"${cleanupScript}" --profile=e2e-only`);
 ```
 
-### Safe Exploration
+### CI/CD Integration
+
 ```bash
-# See what would be cleaned without touching anything
-./scripts/cleanup.sh --search --dry-run --verbose
+# Safe cleanup for regular CI runs
+./scripts/cleanup.sh --profile=safe
+
+# Full cleanup for release pipelines
+./scripts/cleanup.sh --profile=full --verbose
+
+# E2E-only cleanup after test runs
+./scripts/cleanup.sh --profile=e2e-only
 ```
 
 ## Safety Features
 
-- **Dry-run by default in scripts**: Shell script defaults to showing what would be deleted
-- **Detailed reporting**: Shows exactly what files and how much space
-- **Error handling**: Reports errors without stopping the entire cleanup
-- **Path validation**: Validates paths before attempting deletion
-- **Glob pattern support**: Safely handles wildcard patterns
+1. **Dry-run mode**: Always preview changes first
+2. **Safe defaults**: Default profile excludes system directories
+3. **Glob validation**: Validates glob patterns before execution  
+4. **Error handling**: Continues cleanup even if individual items fail
+5. **Detailed logging**: Shows exactly what was cleaned and any errors
 
-## Integration
-
-### Makefile Integration
-The tool integrates with the project Makefile:
+## Examples
 
 ```bash
-make cleanup          # Perform cleanup
-make cleanup-dry-run  # Preview cleanup
+# Preview what the safe profile would clean
+./scripts/cleanup.sh --profile=safe --dry-run --verbose
+
+# Clean only E2E test data
+./scripts/cleanup.sh --profile=e2e-only
+
+# Full cleanup with detailed output
+./scripts/cleanup.sh --profile=full --verbose
+
+# Auto-discover cleanup targets in current directory
+./scripts/cleanup.sh --search --dry-run
+
+# Use custom config file
+./scripts/cleanup.sh --config=my-cleanup-config.json --profile=custom
 ```
 
-### CI/CD Integration
-Add to your CI pipeline for cleaning build artifacts:
-
-```yaml
-- name: Cleanup build artifacts
-  run: ./scripts/cleanup.sh --config ci-cleanup.json
-```
-
-## Advanced Usage
-
-### Custom Configuration Files
-Create specialized configurations for different scenarios:
+## Building
 
 ```bash
-# Development environment
-./scripts/cleanup.sh --config configs/dev-cleanup.json
+# Build the cleanup tool
+cd backend/cmd/cleanup
+go build -o cleanup main.go
 
-# CI/CD pipeline  
-./scripts/cleanup.sh --config configs/ci-cleanup.json
-
-# Full reset
-./scripts/cleanup.sh --config configs/full-cleanup.json
-```
-
-### Automation
-Schedule regular cleanup:
-
-```bash
-# Crontab entry for weekly cleanup
-0 2 * * 0 cd /path/to/schist && ./scripts/cleanup.sh --config weekly-cleanup.json
+# The shell script will automatically build if needed
+./scripts/cleanup.sh --help
 ```
 
 ## Troubleshooting
 
-### Permission Errors
-- Ensure you have write permissions to target directories
-- Use `sudo` if cleaning system-wide temporary files
+### Common Issues
 
-### Configuration Issues
-- Validate JSON syntax with `json_pp < config.json`
-- Use `--verbose` to see detailed configuration loading
+**"Profile not found"**
+- Check that the profile name is correct: `safe`, `full`, or `e2e-only`
+- Verify the configuration file exists and is valid JSON
 
-### Path Issues
-- Use absolute paths for reliability
-- Check that glob patterns are properly escaped
+**"Permission denied"**
+- Ensure the cleanup script has execute permissions: `chmod +x scripts/cleanup.sh`
+- Some system temp directories may require elevated permissions
 
-## Contributing
+**"No files to clean"**
+- This is normal if your environment is already clean
+- Use `--verbose` flag to see what directories were checked
 
-The cleanup tool is designed to be easily extensible:
+### Debug Mode
 
-1. **Add new cleanup categories** in the configuration structure
-2. **Implement new search patterns** in the auto-discovery logic  
-3. **Add new command-line options** for specialized use cases
+Use the `--verbose` flag to see detailed information about what the tool is doing:
 
-See `backend/cmd/cleanup/main.go` for implementation details.
+```bash
+./scripts/cleanup.sh --profile=safe --dry-run --verbose
+```
+
+This will show:
+- Active profile configuration
+- Each directory/pattern being checked
+- Files that would be deleted (in dry-run mode)
+- Detailed statistics and any errors

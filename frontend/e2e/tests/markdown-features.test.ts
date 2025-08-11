@@ -50,10 +50,10 @@ test.describe('Markdown Features', () => {
 		// Check preview shows image element
 		const preview = page.locator('[data-testid="markdown-preview"]');
 		const image = preview.locator('img[alt="Test Image"]');
-		
+
 		// Wait for the image element to be present in DOM
 		await expect(image).toBeAttached();
-		
+
 		// Check the image has correct attributes (don't wait for loading)
 		await expect(image).toHaveAttribute('src', 'https://via.placeholder.com/300x200');
 		await expect(image).toHaveAttribute('title', 'Test Image');
@@ -77,10 +77,10 @@ test.describe('Markdown Features', () => {
 		// Even malformed syntax should show an image
 		const preview = page.locator('[data-testid="markdown-preview"]');
 		const image = preview.locator('img[alt="test.png"]');
-		
+
 		// Wait for the image element to be present in DOM
 		await expect(image).toBeAttached();
-		
+
 		// Check the image has correct attributes (don't wait for loading)
 		await expect(image).toHaveAttribute('src', 'https://via.placeholder.com/200x150');
 	});

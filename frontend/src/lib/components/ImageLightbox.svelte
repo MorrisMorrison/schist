@@ -64,7 +64,7 @@
 
 <Dialog {open} onOpenChange={onClose}>
 	<DialogContent
-		class="!h-screen !w-screen !max-h-screen !max-w-screen !m-0 overflow-hidden border-0 bg-black/95 p-0 flex items-center justify-center !fixed !inset-0 !translate-x-0 !translate-y-0"
+		class="!fixed !inset-0 !m-0 flex !h-screen !max-h-screen !w-screen !max-w-screen !translate-x-0 !translate-y-0 items-center justify-center overflow-hidden border-0 bg-black/95 p-0"
 		showCloseButton={false}
 	>
 		<!-- Control Bar -->

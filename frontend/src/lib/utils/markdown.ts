@@ -179,6 +179,8 @@ export { marked as configuredMarked };
 // Legacy function removed - now using component-based rendering with MarkdownRenderer
 
 export function initializeMarkdownInteractions(container: HTMLElement): void {
+	if (!container) return;
+
 	const copyButtons = container.querySelectorAll('.copy-button');
 	const wikiLinks = container.querySelectorAll('.wiki-link');
 

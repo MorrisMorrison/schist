@@ -240,7 +240,7 @@ async function postprocessAllWikiLinks(
 					const paragraphBlock = block as ParagraphBlock;
 					if (paragraphBlock.text.includes(link.placeholder)) {
 						const newText = paragraphBlock.text.split(link.placeholder).join(linkHtml);
-						
+
 						// Create a new block object to ensure Svelte reactivity
 						blocks[i] = {
 							...paragraphBlock,
@@ -262,7 +262,7 @@ async function postprocessAllWikiLinks(
 					const paragraphBlock = block as ParagraphBlock;
 					if (paragraphBlock.text.includes(link.placeholder)) {
 						const newText = paragraphBlock.text.split(link.placeholder).join(linkHtml);
-						
+
 						// Create a new block object to ensure Svelte reactivity
 						blocks[i] = {
 							...paragraphBlock,
@@ -465,6 +465,10 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 				raw: imageToken.raw
 			} as ImageBlock;
 		}
+
+		case 'space':
+			// Skip space tokens - they're just whitespace between blocks
+			return null;
 
 		default:
 			// Handle unrecognized token types by returning null

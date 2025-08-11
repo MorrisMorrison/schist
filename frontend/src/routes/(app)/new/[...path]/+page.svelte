@@ -33,10 +33,10 @@
 	let isCreating = $state(false);
 	let createError = $state('');
 
-	let editorRef: Editor;
+	let editorRef = $state<Editor>();
 
 	$effect(() => {
-		if (title && !content.includes(title)) {
+		if (title && !content.includes(title) && content === `# New Page\n\n`) {
 			content = `# ${title}\n\n`;
 		}
 	});

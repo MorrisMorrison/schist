@@ -17,6 +17,8 @@ import type {
 	AssetUploadResponse,
 	SearchResult,
 	TagsResponse,
+	Template,
+	TemplatesResponse,
 	VersionsResponse,
 	DiffResult,
 	RestoreResponse,
@@ -762,6 +764,11 @@ class SchістApiClient {
 		return this.request<{ message: string }>(`/auth/users/${encodeURIComponent(username)}`, {
 			method: 'DELETE'
 		});
+	}
+
+	async getTemplates(): Promise<Template[]> {
+		const response = await this.request<TemplatesResponse>('/templates');
+		return response.templates;
 	}
 }
 

@@ -48,6 +48,21 @@ export interface TagsResponse {
 	total: number;
 }
 
+export interface Template {
+	id: string;
+	title: string;
+	description: string;
+	tags: string[];
+	category: string;
+	content: string;
+	metadata: Record<string, string>;
+}
+
+export interface TemplatesResponse {
+	templates: Template[];
+	total: number;
+}
+
 export interface ApiResponse<T> {
 	data?: T;
 	error?: string;

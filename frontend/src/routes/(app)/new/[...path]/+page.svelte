@@ -10,6 +10,8 @@
 	import type { PageData } from './$types';
 	import Input from '$lib/components/ui/input/input.svelte';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
+	import { templatesStore, templateActions } from '$lib/stores/templates';
+	import type { Template } from '$lib/api/types';
 
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 
@@ -25,14 +27,15 @@
 		} else if (!title && !content) {
 			content = '# New Page\n\n';
 		}
+		templateActions.loadTemplates();
 	});
 	let isCreating = $state(false);
 	let createError = $state('');
 
-	let editorRef: Editor;
+	let editorRef = $state<Editor>();
 
 	$effect(() => {
-		if (title && !content.includes(title)) {
+		if (title && !content.includes(title) && content === `# New Page\n\n`) {
 			content = `# ${title}\n\n`;
 		}
 	});
@@ -96,6 +99,30 @@
 		const cleanPath = data.path.startsWith('/') ? data.path : `/${data.path}`;
 		const trimmedPath = cleanPath.endsWith('/') ? cleanPath.slice(0, -1) : cleanPath;
 		return `${trimmedPath}/${slug}`;
+	}
+
+	function applyTemplate(template: Template) {
+		if (!title.trim()) {
+			title = template.title;
+		}
+
+		let templateContent = template.content;
+
+		const now = new Date();
+		templateContent = templateContent
+			.replace(/\{\{date\}\}/g, now.toISOString().split('T')[0])
+			.replace(/\{\{time\}\}/g, now.toTimeString().split(' ')[0])
+			.replace(/\{\{title\}\}/g, title || template.title)
+			.replace(
+				/\{\{next_date\}\}/g,
+				new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+			);
+
+		content = templateContent;
+
+		if (template.tags && template.tags.length > 0) {
+			tags = [...template.tags];
+		}
 	}
 </script>
 
@@ -199,111 +226,54 @@
 	<!-- Template Suggestions -->
 	<div class="bg-content rounded-lg p-6">
 		<h3 class="text-primary mb-4 text-lg font-medium">Quick Start Templates</h3>
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			<button
-				type="button"
-				onclick={() => {
-					title = 'Getting Started';
-					content = `# Getting Started
 
-Welcome to this Document! Here's what you need to know:
-
-## Overview
-Brief description of what this page covers.
-
-## Requirements
-- Item 1
-- Item 2
-- Item 3
-
-## Steps
-1. First step
-2. Second step
-3. Third step
-
-## Resources
-- [Link 1](https://example.com)
-- [Link 2](https://example.com)`;
-				}}
-				class="border-primary bg-primary hover:border-secondary rounded-lg border p-4 text-left hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-			>
-				<h4 class="text-primary font-medium">Getting Started Guide</h4>
-				<p class="text-secondary mt-1 text-sm">Step-by-step guide template</p>
-			</button>
-
-			<button
-				type="button"
-				onclick={() => {
-					title = 'API Documentation';
-					content = `# API Documentation
-
-## Overview
-Brief description of the API.
-
-## Authentication
-How to authenticate with the API.
-
-## Endpoints
-
-### GET /endpoint
-Description of the endpoint.
-
-**Parameters:**
-- \`param1\` (string) - Description
-
-**Response:**
-\`\`\`json
-{
-  "example": "response"
-}
-\`\`\`
-
-## Examples
-Code examples and usage.`;
-				}}
-				class="border-primary bg-primary hover:border-secondary rounded-lg border p-4 text-left hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-			>
-				<h4 class="text-primary font-medium">API Documentation</h4>
-				<p class="text-secondary mt-1 text-sm">API reference template</p>
-			</button>
-
-			<button
-				type="button"
-				onclick={() => {
-					title = 'Meeting Notes';
-					content = `# Meeting Notes - ${new Date().toLocaleDateString()}
-
-## Attendees
-- Person 1
-- Person 2
-- Person 3
-
-## Agenda
-1. Topic 1
-2. Topic 2
-3. Topic 3
-
-## Discussion
-
-### Topic 1
-Notes and decisions.
-
-### Topic 2
-Notes and decisions.
-
-## Action Items
-- [ ] Task 1 - Assigned to Person
-- [ ] Task 2 - Assigned to Person
-
-## Next Steps
-What to do before the next meeting.`;
-				}}
-				class="border-primary bg-primary hover:border-secondary rounded-lg border p-4 text-left hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-			>
-				<h4 class="text-primary font-medium">Meeting Notes</h4>
-				<p class="text-secondary mt-1 text-sm">Meeting notes template</p>
-			</button>
-		</div>
+		{#if $templatesStore.loading}
+			<div class="flex items-center justify-center py-8">
+				<div
+					class="border-border border-t-primary h-8 w-8 animate-spin rounded-full border-2"
+				></div>
+				<span class="text-secondary ml-3">Loading templates...</span>
+			</div>
+		{:else if $templatesStore.error}
+			<div class="py-8 text-center">
+				<p class="text-red-600">Error: {$templatesStore.error}</p>
+				<button
+					onclick={() => templateActions.loadTemplates(true)}
+					class="mt-2 text-sm text-blue-600 hover:text-blue-800"
+				>
+					Retry
+				</button>
+			</div>
+		{:else if $templatesStore.templates.length === 0}
+			<div class="py-8 text-center">
+				<p class="text-secondary">No templates available</p>
+			</div>
+		{:else}
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{#each $templatesStore.templates as template (template.id)}
+					<button
+						type="button"
+						onclick={() => applyTemplate(template)}
+						class="border-primary bg-primary hover:border-secondary rounded-lg border p-4 text-left hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+					>
+						<h4 class="text-primary font-medium">{template.title}</h4>
+						<p class="text-secondary mt-1 text-sm">{template.description}</p>
+						{#if template.tags && template.tags.length > 0}
+							<div class="mt-2 flex flex-wrap gap-1">
+								{#each template.tags.slice(0, 2) as tag (tag)}
+									<span class="bg-secondary text-secondary-foreground rounded px-2 py-0.5 text-xs"
+										>{tag}</span
+									>
+								{/each}
+								{#if template.tags.length > 2}
+									<span class="text-secondary text-xs">+{template.tags.length - 2} more</span>
+								{/if}
+							</div>
+						{/if}
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<MarkdownInfoHelp showTaskExample={true} />

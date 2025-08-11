@@ -173,9 +173,11 @@ marked.setOptions({
 	gfm: true
 });
 
-// Legacy function removed - now using component-based rendering with MarkdownRenderer
+export { marked as configuredMarked };
 
 export function initializeMarkdownInteractions(container: HTMLElement): void {
+	if (!container) return;
+
 	const copyButtons = container.querySelectorAll('.copy-button');
 	const wikiLinks = container.querySelectorAll('.wiki-link');
 

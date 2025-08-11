@@ -4,6 +4,8 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
+	import ImageLightbox from '$lib/components/ImageLightbox.svelte';
+	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -147,6 +149,14 @@
 		<ThemeToggle size="sm" />
 	</div>
 </footer>
+
+<!-- Image Lightbox -->
+<ImageLightbox
+	src={$imageLightbox.src}
+	alt={$imageLightbox.alt}
+	open={$imageLightbox.open}
+	onClose={imageLightboxActions.close}
+/>
 
 <style>
 	/* Print styles */

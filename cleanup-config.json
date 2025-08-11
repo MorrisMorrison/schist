@@ -1,54 +1,102 @@
 {
-  "data_directories": [
-    "data",
-    "test-data", 
-    "e2e-data",
-    "backend/data",
-    "backend/test-data",
-    "frontend/test-data",
-    "tmp/schist-*"
-  ],
-  "test_directories": [
-    "frontend/test-results",
-    "frontend/playwright-report", 
-    "frontend/coverage",
-    "frontend/e2e-results",
-    "backend/coverage",
-    "backend/test-results"
-  ],
-  "e2e_results": [
-    "frontend/test-results/**",
-    "frontend/playwright-report/**", 
-    "frontend/e2e-results/**",
-    "**/playwright-report/**",
-    "**/test-results/**",
-    "**/.playwright/**"
-  ],
-  "log_files": [
-    "*.log",
-    "logs/**",
-    "backend/*.log",
-    "frontend/*.log", 
-    "backend/logs/**",
-    "frontend/logs/**",
-    "backend/cmd/*/*.log"
-  ],
-  "temp_files": [
-    "*.tmp",
-    "*.temp",
-    ".tmp/**",
-    "tmp/**",
-    "/tmp/schist-*",
-    "/var/tmp/schist-*",
-    "backend/tmp/**",
-    "frontend/tmp/**"
-  ],
-  "search_patterns": [
-    "**/node_modules/.cache/**",
-    "**/.svelte-kit/output/**",
-    "**/dist/tmp/**",
-    "**/build/tmp/**",
-    "**/.next/**",
-    "**/.nuxt/**"
-  ]
+  "default_profile": "safe",
+  "profiles": {
+    "full": {
+      "data_directories": [
+        "data",
+        "test-data", 
+        "e2e-data",
+        "tmp/schist-*",
+        "backend/cmd/schist/test-data-*"
+      ],
+      "test_directories": [
+        "frontend/test-results",
+        "frontend/playwright-report",
+        "frontend/coverage",
+        "backend/coverage", 
+        "backend/test-results"
+      ],
+      "e2e_results": [
+        "frontend/test-results/**",
+        "frontend/playwright-report/**",
+        "**/playwright-report/**",
+        "**/test-results/**"
+      ],
+      "log_files": [
+        "*.log",
+        "logs/**",
+        "backend/*.log",
+        "frontend/*.log"
+      ],
+      "temp_files": [
+        "*.tmp",
+        "*.temp",
+        ".tmp/**",
+        "tmp/**",
+        "/tmp/schist-*",
+        "/var/tmp/schist-*",
+        "frontend/playwright/.auth/user.json"
+      ],
+      "search_patterns": [
+        "**/node_modules/.cache/**",
+        "**/.svelte-kit/output/**",
+        "**/dist/**",
+        "**/build/**"
+      ],
+      "system_cleanup": true
+    },
+    "safe": {
+      "data_directories": [
+        "data",
+        "test-data",
+        "e2e-data", 
+        "backend/cmd/schist/test-data-*"
+      ],
+      "test_directories": [
+        "frontend/test-results",
+        "frontend/playwright-report", 
+        "frontend/coverage",
+        "backend/coverage"
+      ],
+      "e2e_results": [
+        "frontend/test-results/**",
+        "frontend/playwright-report/**"
+      ],
+      "log_files": [
+        "*.log",
+        "logs/**"
+      ],
+      "temp_files": [
+        "*.tmp",
+        "*.temp",
+        "frontend/playwright/.auth/user.json"
+      ],
+      "search_patterns": [],
+      "system_cleanup": false
+    },
+    "e2e-only": {
+      "data_directories": [
+        "backend/cmd/schist/test-data-auth-disabled",
+        "backend/cmd/schist/test-data-auth-enabled", 
+        "backend/cmd/schist/test-data-worker-1",
+        "backend/cmd/schist/test-data-worker-2",
+        "backend/cmd/schist/test-data-worker-3",
+        "backend/cmd/schist/test-data-worker-4"
+      ],
+      "test_directories": [
+        "frontend/test-results",
+        "frontend/playwright-report"
+      ],
+      "e2e_results": [
+        "frontend/test-results/**",
+        "frontend/playwright-report/**"
+      ],
+      "log_files": [],
+      "temp_files": [
+        "frontend/playwright/.auth/user.json"
+      ],
+      "search_patterns": [],
+      "system_cleanup": false
+    }
+  }
 }

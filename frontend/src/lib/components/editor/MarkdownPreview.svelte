@@ -3,6 +3,7 @@
 	import MarkdownRenderer from '../markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
 	import {
 		secretStore,
 		secretsUnlocked,
@@ -32,7 +33,6 @@
 
 	let processedContent = $state('');
 
-	// Helper function for adding secret placeholder indicators
 	function addSecretPlaceholderIndicators(text: string): string {
 		const placeholders = parseSecretPlaceholders(text);
 
@@ -48,17 +48,20 @@
 	$effect(() => {
 		const updateContent = async () => {
 			try {
-				// Process secret placeholders
 				if ($secretsUnlocked && content) {
-					// Replace placeholders with actual values when unlocked
 					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
 						return await secretStore.getSecret(key);
 					});
 				} else if (content) {
-					// Add visual indicators for locked placeholders
 					processedContent = addSecretPlaceholderIndicators(content);
 				} else {
 					processedContent = '';
+				}
+
+				if (containerRef) {
+					setTimeout(() => {
+						initializeMarkdownInteractions(containerRef);
+					}, 10);
 				}
 			} catch (error) {
 				console.error('Markdown processing error:', error);
@@ -86,7 +89,6 @@
 	</div>
 </div>
 
-<!-- Image Lightbox Modal -->
 <ImageLightbox
 	src={$imageLightbox.src}
 	alt={$imageLightbox.alt}

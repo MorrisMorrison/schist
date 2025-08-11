@@ -13,9 +13,10 @@ type Services struct {
 	PasskeyService *PasskeyService
 	UserService    *UserService
 
-	AssetService  *AssetService
-	IgnoreService *IgnoreService
-	GitService    *GitService
+	AssetService    *AssetService
+	IgnoreService   *IgnoreService
+	GitService      *GitService
+	TemplateService *TemplateService
 
 	DocumentService *DocumentService
 	LinkService     *LinkService
@@ -35,6 +36,7 @@ func NewServices() (*Services, error) {
 
 	assetService := NewAssetService(dataDir)
 	ignoreService := NewIgnoreService(dataDir)
+	templateService := NewTemplateService(dataDir)
 
 	gitService, err := NewGitService(dataDir)
 	if err != nil {
@@ -62,6 +64,7 @@ func NewServices() (*Services, error) {
 		AssetService:    assetService,
 		IgnoreService:   ignoreService,
 		GitService:      gitService,
+		TemplateService: templateService,
 		DocumentService: documentService,
 		LinkService:     linkService,
 		GitHubService:   gitHubService,

@@ -152,6 +152,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/import/documents", h.importDocuments)
 	routerGroup.GET("/search", h.search)
 	routerGroup.GET("/tags", h.getAllTags)
+	routerGroup.GET("/templates", h.getTemplates)
 }
 
 func (h *APIHandler) healthCheck(c *gin.Context) {
@@ -208,6 +209,21 @@ func (h *APIHandler) getAllTags(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"tags":  tags,
 		"total": len(tags),
+	})
+}
+
+func (h *APIHandler) getTemplates(c *gin.Context) {
+	templates, err := h.Services.TemplateService.GetTemplates()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"templates": templates,
+		"total":     len(templates),
 	})
 }
 

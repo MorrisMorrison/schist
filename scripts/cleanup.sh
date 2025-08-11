@@ -25,6 +25,7 @@ fi
 DRY_RUN=""
 VERBOSE=""
 SEARCH_MODE=""
+PROFILE=""
 CONFIG="$PROJECT_ROOT/cleanup-config.json"
 
 # Parse command line arguments
@@ -42,9 +43,21 @@ while [[ $# -gt 0 ]]; do
             SEARCH_MODE="--search"
             shift
             ;;
+        -p|--profile)
+            PROFILE="--profile=$2"
+            shift 2
+            ;;
+        --profile=*)
+            PROFILE="--profile=${1#*=}"
+            shift
+            ;;
         -c|--config)
             CONFIG="$2"
             shift 2
+            ;;
+        --config=*)
+            CONFIG="${1#*=}"
+            shift
             ;;
         -h|--help)
             echo ""
@@ -54,14 +67,20 @@ while [[ $# -gt 0 ]]; do
             echo "  -d, --dry-run     Show what would be deleted without actually deleting"
             echo "  -v, --verbose     Show detailed output"
             echo "  -s, --search      Auto-discover cleanup targets by searching"
+            echo "  -p, --profile     Specify cleanup profile (full|safe|e2e-only)"
             echo "  -c, --config      Specify custom config file (default: cleanup-config.json)"
             echo "  -h, --help        Show this help message"
             echo ""
+            echo "Profiles:"
+            echo "  safe              Safe cleanup (default) - excludes system paths"
+            echo "  full              Complete cleanup including system temporary files"
+            echo "  e2e-only          E2E test cleanup only - just test data and results"
+            echo ""
             echo "Examples:"
-            echo "  $0 --dry-run                    # Preview what would be cleaned"
-            echo "  $0 --verbose                    # Clean with detailed output"
-            echo "  $0 --search --dry-run          # Auto-discover and preview"
-            echo "  $0 --config custom-config.json # Use custom config"
+            echo "  $0 --dry-run                    # Preview safe cleanup"
+            echo "  $0 --profile=full --verbose     # Full cleanup with details"
+            echo "  $0 --profile=e2e-only           # Clean only E2E test data"
+            echo "  $0 --search --dry-run           # Auto-discover and preview"
             echo ""
             exit 0
             ;;
@@ -83,7 +102,7 @@ echo ""
 if [ -n "$SEARCH_MODE" ]; then
     "$CLEANUP_TOOL" $DRY_RUN $VERBOSE --search --root="$PROJECT_ROOT"
 else
-    "$CLEANUP_TOOL" $DRY_RUN $VERBOSE --config="$CONFIG"
+    "$CLEANUP_TOOL" $DRY_RUN $VERBOSE $PROFILE --config="$CONFIG"
 fi
 
 echo ""

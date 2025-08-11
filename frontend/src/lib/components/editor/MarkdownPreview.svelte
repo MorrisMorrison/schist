@@ -3,7 +3,7 @@
 	import MarkdownRenderer from '../markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
-	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
+	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import {
 		secretStore,
 		secretsUnlocked,

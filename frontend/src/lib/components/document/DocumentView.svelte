@@ -6,7 +6,7 @@
 	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
 	import VersionHistoryModal from '../VersionHistoryModal.svelte';
 	import ShareDocumentModal from '../modal/ShareDocumentModal.svelte';
-	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
+	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
 	import type { Document, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from '../ImageLightbox.svelte';
@@ -255,6 +255,7 @@
 						class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
 						onclick={handleVersionHistoryClick}
 						title="View version history"
+						aria-label="View document version history"
 					>
 						<History class="h-4 w-4" />
 						<span>Versions: {versionCount}</span>
@@ -356,6 +357,7 @@
 						<button
 							class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
 							onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
+							aria-label={`Navigate to document: ${backlinkDocument.metaData.title}`}
 						>
 							<div class="mb-2 flex items-start justify-between">
 								<h3 class="group-hover:text-primary font-medium transition-colors">

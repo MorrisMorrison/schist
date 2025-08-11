@@ -353,35 +353,31 @@
 			{:else if backlinks.length > 0}
 				<div class="space-y-3">
 					{#each backlinks as backlinkDocument (backlinkDocument.metaData.path)}
-						<div
-							class="bg-background border-border group hover:bg-muted/50 cursor-pointer rounded-lg border p-4 transition-colors"
+						<button
+							class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
+							onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
 						>
-							<button
-								class="w-full text-left"
-								onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
-							>
-								<div class="mb-2 flex items-start justify-between">
-									<h3 class="group-hover:text-primary font-medium transition-colors">
-										{backlinkDocument.metaData.title}
-									</h3>
-									<span class="text-muted-foreground text-xs">
-										{formatDate(backlinkDocument.metaData.updated)}
-									</span>
-								</div>
+							<div class="mb-2 flex items-start justify-between">
+								<h3 class="group-hover:text-primary font-medium transition-colors">
+									{backlinkDocument.metaData.title}
+								</h3>
+								<span class="text-muted-foreground text-xs">
+									{formatDate(backlinkDocument.metaData.updated)}
+								</span>
+							</div>
 
-								{#if backlinkDocument.metaData.path}
-									<p class="text-muted-foreground mb-2 text-sm">
-										{backlinkDocument.metaData.path}
-									</p>
-								{/if}
+							{#if backlinkDocument.metaData.path}
+								<p class="text-muted-foreground mb-2 text-sm">
+									{backlinkDocument.metaData.path}
+								</p>
+							{/if}
 
-								{#if backlinkDocument.content}
-									<p class="text-muted-foreground line-clamp-2 text-sm">
-										{backlinkDocument.content.slice(0, 150)}...
-									</p>
-								{/if}
-							</button>
-						</div>
+							{#if backlinkDocument.content}
+								<p class="text-muted-foreground line-clamp-2 text-sm">
+									{backlinkDocument.content.slice(0, 150)}...
+								</p>
+							{/if}
+						</button>
 					{/each}
 				</div>
 			{:else}

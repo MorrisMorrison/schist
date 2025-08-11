@@ -7,11 +7,9 @@
 	let { block }: { block: ParagraphBlock } = $props();
 	let container: HTMLElement;
 
-	// Handle wiki link clicks
 	function handleWikiLinkClick(event: Event) {
 		const target = event.target as HTMLElement;
 		if (target.classList.contains('wiki-link')) {
-			// Don't handle clicks for broken links
 			if (target.classList.contains('broken-link')) {
 				event.preventDefault();
 				return;

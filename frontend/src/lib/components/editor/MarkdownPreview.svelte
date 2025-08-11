@@ -33,7 +33,6 @@
 
 	let processedContent = $state('');
 
-	// Helper function for adding secret placeholder indicators
 	function addSecretPlaceholderIndicators(text: string): string {
 		const placeholders = parseSecretPlaceholders(text);
 
@@ -49,22 +48,17 @@
 	$effect(() => {
 		const updateContent = async () => {
 			try {
-				// Process secret placeholders
 				if ($secretsUnlocked && content) {
-					// Replace placeholders with actual values when unlocked
 					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
 						return await secretStore.getSecret(key);
 					});
 				} else if (content) {
-					// Add visual indicators for locked placeholders
 					processedContent = addSecretPlaceholderIndicators(content);
 				} else {
 					processedContent = '';
 				}
 
-				// Initialize markdown interactions after content is processed
 				if (containerRef) {
-					// Small delay to ensure MarkdownRenderer has updated the DOM
 					setTimeout(() => {
 						initializeMarkdownInteractions(containerRef);
 					}, 10);
@@ -95,7 +89,6 @@
 	</div>
 </div>
 
-<!-- Image Lightbox Modal -->
 <ImageLightbox
 	src={$imageLightbox.src}
 	alt={$imageLightbox.alt}

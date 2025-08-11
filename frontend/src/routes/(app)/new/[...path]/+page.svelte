@@ -27,7 +27,6 @@
 		} else if (!title && !content) {
 			content = '# New Page\n\n';
 		}
-		// Load templates using the store
 		templateActions.loadTemplates();
 	});
 	let isCreating = $state(false);
@@ -103,15 +102,12 @@
 	}
 
 	function applyTemplate(template: Template) {
-		// Set title from template if not already set
 		if (!title.trim()) {
 			title = template.title;
 		}
 
-		// Apply template content with basic variable substitution
 		let templateContent = template.content;
 
-		// Replace common template variables
 		const now = new Date();
 		templateContent = templateContent
 			.replace(/\{\{date\}\}/g, now.toISOString().split('T')[0])
@@ -124,7 +120,6 @@
 
 		content = templateContent;
 
-		// Apply template tags if any
 		if (template.tags && template.tags.length > 0) {
 			tags = [...template.tags];
 		}

@@ -258,17 +258,20 @@
 	}
 
 	function getCurrentFolderPath(): string {
-		if (!currentPath || currentPath === '/' || currentPath === '' || currentPath === '/folders') {
+		const FOLDERS_PREFIX = '/folders';
+		const DOCUMENTS_PREFIX = '/documents';
+		
+		if (!currentPath || currentPath === '/' || currentPath === '' || currentPath === FOLDERS_PREFIX) {
 			return '';
 		}
 
-		if (currentPath.startsWith('/folders')) {
-			const folderPath = currentPath.substring(8); // Remove '/folders'
+		if (currentPath.startsWith(FOLDERS_PREFIX)) {
+			const folderPath = currentPath.substring(FOLDERS_PREFIX.length);
 			return folderPath || '';
 		}
 
-		if (currentPath.startsWith('/documents')) {
-			const pagePath = currentPath.substring(10); // Remove '/documents'
+		if (currentPath.startsWith(DOCUMENTS_PREFIX)) {
+			const pagePath = currentPath.substring(DOCUMENTS_PREFIX.length);
 			const pathSegments = pagePath.split('/').filter(Boolean);
 
 			if (pathSegments.length <= 1) {

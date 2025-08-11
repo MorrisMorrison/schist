@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { apiClient } from '$lib/api/client';
 import type { Template } from '$lib/api/types';
 
@@ -22,18 +22,13 @@ export const templateActions = {
 	async loadTemplates(force: boolean = false): Promise<void> {
 		const store = templatesStore;
 
-		// Get current state
-		let currentState: TemplatesState;
-		const unsubscribe = store.subscribe((state) => (currentState = state));
-		unsubscribe();
+		const currentState = get(store);
 
-		// Don't reload if already loaded unless forced
-		if (currentState!.loaded && !force) {
+		if (currentState.loaded && !force) {
 			return;
 		}
 
-		// Don't make multiple concurrent requests
-		if (currentState!.loading) {
+		if (currentState.loading) {
 			return;
 		}
 
@@ -71,7 +66,6 @@ export const templateActions = {
 		templatesStore.set(initialState);
 	},
 
-	// Helper to get a template by ID
 	getTemplateById(id: string): Template | null {
 		let template: Template | null = null;
 		const unsubscribe = templatesStore.subscribe((state) => {
@@ -81,7 +75,6 @@ export const templateActions = {
 		return template;
 	},
 
-	// Helper to get templates by category
 	getTemplatesByCategory(category: string): Template[] {
 		let templates: Template[] = [];
 		const unsubscribe = templatesStore.subscribe((state) => {

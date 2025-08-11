@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,7 +36,6 @@ func NewTemplateService(dataDir string) *TemplateService {
 }
 
 func (s *TemplateService) GetTemplates() ([]Template, error) {
-	// Create templates directory if it doesn't exist
 	if err := os.MkdirAll(s.templatesDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create templates directory: %w", err)
 	}
@@ -53,8 +53,7 @@ func (s *TemplateService) GetTemplates() ([]Template, error) {
 
 		template, err := s.loadTemplate(entry.Name())
 		if err != nil {
-			// Log error but continue with other templates
-			fmt.Printf("Warning: failed to load template %s: %v\n", entry.Name(), err)
+			log.Printf("Warning: failed to load template %s: %v", entry.Name(), err)
 			continue
 		}
 
@@ -71,13 +70,11 @@ func (s *TemplateService) loadTemplate(filename string) (Template, error) {
 		return Template{}, fmt.Errorf("failed to read template file: %w", err)
 	}
 
-	// Parse front matter and content
 	parts := strings.SplitN(string(content), "---", 3)
 	if len(parts) < 3 {
 		return Template{}, fmt.Errorf("invalid template format: missing front matter")
 	}
 
-	// Parse YAML front matter
 	var frontMatter struct {
 		Title       string            `yaml:"title"`
 		Description string            `yaml:"description"`
@@ -90,7 +87,6 @@ func (s *TemplateService) loadTemplate(filename string) (Template, error) {
 		return Template{}, fmt.Errorf("failed to parse front matter: %w", err)
 	}
 
-	// Extract template ID from filename (without .md extension)
 	id := strings.TrimSuffix(filename, ".md")
 
 	return Template{

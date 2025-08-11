@@ -5,7 +5,6 @@ import hljs from 'highlight.js/lib/core';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 
-// Import all the language modules (reusing from existing markdown.ts)
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
 import python from 'highlight.js/lib/languages/python';
@@ -21,8 +20,6 @@ import markdown from 'highlight.js/lib/languages/markdown';
 import yaml from 'highlight.js/lib/languages/yaml';
 import dockerfile from 'highlight.js/lib/languages/dockerfile';
 import nginx from 'highlight.js/lib/languages/nginx';
-
-// Register languages
 hljs.registerLanguage('javascript', javascript);
 hljs.registerLanguage('js', javascript);
 hljs.registerLanguage('typescript', typescript);
@@ -48,8 +45,6 @@ hljs.registerLanguage('yaml', yaml);
 hljs.registerLanguage('yml', yaml);
 hljs.registerLanguage('dockerfile', dockerfile);
 hljs.registerLanguage('nginx', nginx);
-
-// Block type definitions
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -144,14 +139,10 @@ export type MarkdownBlock =
 	| HrBlock
 	| ImageBlock
 	| WikiLinkBlock;
-
-// Utility function to generate unique IDs
 let blockIdCounter = 0;
 function generateBlockId(): string {
 	return `block-${Date.now()}-${++blockIdCounter}`;
 }
-
-// Function to highlight code
 function highlightCode(code: string, language?: string): string {
 	if (language && hljs.getLanguage(language)) {
 		try {
@@ -168,13 +159,9 @@ function highlightCode(code: string, language?: string): string {
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&#39;');
 }
-
-// Main parsing function
 export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBlock[]> {
-	// Preprocess wiki links
 	const processedContent = preprocessWikiLinks(content);
 
-	// Parse markdown using marked's lexer
 	const tokens = marked.lexer(processedContent);
 	const blocks: MarkdownBlock[] = [];
 
@@ -185,100 +172,105 @@ export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBl
 		}
 	}
 
-	// Post-process all wiki links in all blocks
 	await postprocessAllWikiLinks(blocks, processedContent);
 
 	return blocks;
 }
 
-// Post-process wiki links across all blocks
 async function postprocessAllWikiLinks(
 	blocks: MarkdownBlock[],
 	originalContent: string
 ): Promise<void> {
-	// Find the session ID from the original content
-	const sessionMatch = originalContent.match(/<!-- WIKI_SESSION:([^-]+) -->/);
-	if (!sessionMatch) {
-		return;
+	const sessionId = extractSessionId(originalContent);
+	if (!sessionId) return;
+
+	const wikiLinks = getWikiLinksFromSession(sessionId);
+	if (wikiLinks.length === 0) return;
+
+	for (const link of wikiLinks) {
+		await processWikiLink(link, blocks);
 	}
 
-	const sessionId = sessionMatch[1];
+	cleanupSession(sessionId);
+}
 
-	const wikiLinks =
+function extractSessionId(content: string): string | null {
+	const sessionMatch = content.match(/<!-- WIKI_SESSION:([^-]+) -->/);
+	return sessionMatch?.[1] || null;
+}
+
+function getWikiLinksFromSession(sessionId: string): Array<{
+	placeholder: string;
+	target: string;
+	displayText: string;
+}> {
+	return (
 		((globalThis as Record<string, unknown>)[sessionId] as Array<{
 			placeholder: string;
 			target: string;
 			displayText: string;
-		}>) || [];
+		}>) || []
+	);
+}
 
-	if (wikiLinks.length === 0) {
-		return;
+async function processWikiLink(
+	link: { placeholder: string; target: string; displayText: string },
+	blocks: MarkdownBlock[]
+): Promise<void> {
+	try {
+		const linkHtml = await createWikiLinkHtml(link);
+		replaceWikiLinkInBlocks(link.placeholder, linkHtml, blocks);
+	} catch (error) {
+		console.warn(`Failed to resolve wiki link "${link.target}":`, error);
+		const fallbackHtml = createBrokenLinkHtml(link);
+		replaceWikiLinkInBlocks(link.placeholder, fallbackHtml, blocks);
+	}
+}
+
+async function createWikiLinkHtml(link: { target: string; displayText: string }): Promise<string> {
+	const resolvedLink = await resolveWikiLink(link.target);
+	let linkClass = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
+	let title = `Go to ${resolvedLink.target}`;
+
+	try {
+		await apiClient.getDocumentByPath(resolvedLink.path);
+	} catch (_error) {
+		linkClass = 'wiki-link broken-link text-red-500 cursor-default';
+		title = `Document "${resolvedLink.target}" does not exist`;
 	}
 
-	// Process each wiki link
-	for (const link of wikiLinks) {
-		try {
-			const resolvedLink = await resolveWikiLink(link.target);
+	return `<span class="${linkClass}" data-wiki-target="${resolvedLink.path}" title="${title}">${link.displayText}</span>`;
+}
 
-			let linkClass = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
-			let title = `Go to ${resolvedLink.target}`;
+function createBrokenLinkHtml(link: { target: string; displayText: string }): string {
+	const slug = generateSlug(link.target);
+	return `<span class="wiki-link broken-link text-red-500 cursor-default" data-wiki-target="/${slug}" title="Failed to resolve link">${link.displayText}</span>`;
+}
 
-			// Check if document exists by trying to get it
-			try {
-				await apiClient.getDocumentByPath(resolvedLink.path);
-			} catch (_error) {
-				linkClass = 'wiki-link broken-link text-red-500 cursor-default';
-				title = `Document "${resolvedLink.target}" does not exist`;
-			}
-
-			const linkHtml = `<span class="${linkClass}" data-wiki-target="${resolvedLink.path}" title="${title}">${link.displayText}</span>`;
-
-			// Replace the placeholder in all paragraph blocks
-			for (let i = 0; i < blocks.length; i++) {
-				const block = blocks[i];
-				if (block.type === 'paragraph') {
-					const paragraphBlock = block as ParagraphBlock;
-					if (paragraphBlock.text.includes(link.placeholder)) {
-						const newText = paragraphBlock.text.split(link.placeholder).join(linkHtml);
-
-						// Create a new block object to ensure Svelte reactivity
-						blocks[i] = {
-							...paragraphBlock,
-							text: newText
-						};
-					}
-				}
-			}
-		} catch (error) {
-			console.warn(`Failed to resolve wiki link "${link.target}":`, error);
-			// Fallback to basic broken link
-			const slug = generateSlug(link.target);
-			const linkHtml = `<span class="wiki-link broken-link text-red-500 cursor-default" data-wiki-target="/${slug}" title="Failed to resolve link">${link.displayText}</span>`;
-
-			// Replace the placeholder in all paragraph blocks
-			for (let i = 0; i < blocks.length; i++) {
-				const block = blocks[i];
-				if (block.type === 'paragraph') {
-					const paragraphBlock = block as ParagraphBlock;
-					if (paragraphBlock.text.includes(link.placeholder)) {
-						const newText = paragraphBlock.text.split(link.placeholder).join(linkHtml);
-
-						// Create a new block object to ensure Svelte reactivity
-						blocks[i] = {
-							...paragraphBlock,
-							text: newText
-						};
-					}
-				}
+function replaceWikiLinkInBlocks(
+	placeholder: string,
+	linkHtml: string,
+	blocks: MarkdownBlock[]
+): void {
+	for (let i = 0; i < blocks.length; i++) {
+		const block = blocks[i];
+		if (block.type === 'paragraph') {
+			const paragraphBlock = block as ParagraphBlock;
+			if (paragraphBlock.text.includes(placeholder)) {
+				const newText = paragraphBlock.text.split(placeholder).join(linkHtml);
+				blocks[i] = {
+					...paragraphBlock,
+					text: newText
+				};
 			}
 		}
 	}
+}
 
-	// Clean up the session
+function cleanupSession(sessionId: string): void {
 	delete (globalThis as Record<string, unknown>)[sessionId];
 }
 
-// Convert marked token to our block format
 async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock | null> {
 	const id = generateBlockId();
 
@@ -287,7 +279,6 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			const headingToken = token as Tokens.Heading;
 			let text = headingToken.text;
 
-			// Process inline markdown elements (links, emphasis, code, etc.)
 			text = await processInlineMarkdown(text);
 
 			return {
@@ -302,14 +293,14 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		case 'paragraph': {
 			const paragraphToken = token as Tokens.Paragraph;
 			let text = paragraphToken.text;
+			console.log('DEBUG: Processing paragraph text:', JSON.stringify(text));
 
-			// Check if this paragraph contains only an image
-			const imageMatch = text.match(/^!\[(.*?)\]\((.*?)(?:\s+"(.*?)")?\)\s*$/);
-			if (imageMatch) {
-				// Convert to image block instead of paragraph
-				const [, altText, href, title] = imageMatch;
+			// Check if the paragraph contains ONLY an image (standalone image)
+			const standaloneImageMatch = text.match(/^!\[(.*?)\]\((.*?)(?:\s+"(.*?)")?\)\s*$/);
+			if (standaloneImageMatch) {
+				console.log('DEBUG: Converting standalone paragraph to ImageBlock:', text);
+				const [, altText, href, title] = standaloneImageMatch;
 
-				// Parse size from title if present
 				let cleanTitle: string | undefined = title;
 				let size: string | undefined;
 
@@ -333,9 +324,8 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 				} as ImageBlock;
 			}
 
-			// Wiki links are now processed at the document level
-
-			// Process inline markdown elements (links, emphasis, code, etc.)
+			// For paragraphs with mixed content (text + images), process inline markdown
+			// This will convert ![image](url) to clickable <img> tags
 			text = await processInlineMarkdown(text);
 
 			return {
@@ -384,7 +374,6 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			const itemToken = token as Tokens.ListItem;
 			let text = itemToken.text;
 
-			// Process inline markdown elements (links, emphasis, code, etc.)
 			text = await processInlineMarkdown(text);
 
 			return {
@@ -399,7 +388,6 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			const blockquoteToken = token as Tokens.Blockquote;
 			let text = blockquoteToken.text;
 
-			// Process inline markdown elements (links, emphasis, code, etc.)
 			text = await processInlineMarkdown(text);
 
 			return {
@@ -441,9 +429,9 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		}
 
 		case 'image': {
+			console.log('DEBUG: Converting image token to ImageBlock:', token);
 			const imageToken = token as Tokens.Image;
 
-			// Parse size from title if present (supports "Title|size" format)
 			let cleanTitle = imageToken.title;
 			let size: string | undefined;
 
@@ -467,17 +455,13 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		}
 
 		case 'space':
-			// Skip space tokens - they're just whitespace between blocks
 			return null;
 
 		default:
-			// Handle unrecognized token types by returning null
 			console.warn('Unhandled token type:', token.type);
 			return null;
 	}
 }
-
-// Wiki link preprocessing (adapted from existing code)
 function preprocessWikiLinks(content: string): string {
 	const wikiLinks: Array<{ placeholder: string; target: string; displayText: string }> = [];
 	let linkIndex = 0;
@@ -498,8 +482,6 @@ function preprocessWikiLinks(content: string): string {
 
 	return `${processed}\n<!-- WIKI_SESSION:${sessionId} -->`;
 }
-
-// Wiki link resolution (adapted from original working code)
 interface WikiLink {
 	target: string;
 	displayText: string;
@@ -533,15 +515,10 @@ async function resolveWikiLink(target: string): Promise<WikiLink> {
 		path: `/${slug}`
 	};
 }
-
-// Simple LRU cache for processInlineMarkdown
 const INLINE_MARKDOWN_CACHE_SIZE = 200;
 const inlineMarkdownCache = new Map<string, Promise<string>>();
-
-// Process inline markdown elements within text
 async function processInlineMarkdown(text: string): Promise<string> {
 	if (inlineMarkdownCache.has(text)) {
-		// Move to end to mark as recently used
 		const cached = inlineMarkdownCache.get(text)!;
 		inlineMarkdownCache.delete(text);
 		inlineMarkdownCache.set(text, cached);
@@ -550,21 +527,17 @@ async function processInlineMarkdown(text: string): Promise<string> {
 
 	const promise = (async () => {
 		try {
-			// Use configured marked instance with custom renderer to parse inline markdown
 			const htmlResult = await configuredMarked.parse(text, { async: true });
-			// Remove wrapping <p> tags if present, but keep other HTML elements
 			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
 			return cleaned;
 		} catch (error) {
 			console.warn('Failed to process inline markdown:', error);
-			// Return original text as fallback
 			return text;
 		}
 	})();
 
 	inlineMarkdownCache.set(text, promise);
 
-	// Enforce LRU cache size
 	if (inlineMarkdownCache.size > INLINE_MARKDOWN_CACHE_SIZE) {
 		const firstKey = inlineMarkdownCache.keys().next().value;
 		if (firstKey !== undefined) {

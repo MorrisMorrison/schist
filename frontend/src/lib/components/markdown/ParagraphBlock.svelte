@@ -3,12 +3,15 @@
 	import { sanitizeHtml } from '$lib/utils/sanitizer';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { imageLightboxActions } from '$lib/stores/image-lightbox';
 
 	let { block }: { block: ParagraphBlock } = $props();
 	let container: HTMLElement;
 
-	function handleWikiLinkClick(event: Event) {
+	function handleClick(event: Event) {
 		const target = event.target as HTMLElement;
+
+		// Handle wiki links
 		if (target.classList.contains('wiki-link')) {
 			if (target.classList.contains('broken-link')) {
 				event.preventDefault();
@@ -20,14 +23,34 @@
 			if (wikiTarget) {
 				goto(`/documents${wikiTarget}`);
 			}
+			return;
+		}
+
+		// Handle inline images
+		if (target.tagName === 'IMG') {
+			event.preventDefault();
+			const img = target as HTMLImageElement;
+
+			// Use the actual src from the img element (already transformed by the renderer)
+			const src = img.src;
+			const alt = img.alt || '';
+
+			imageLightboxActions.open(src, alt);
 		}
 	}
 
 	onMount(() => {
 		if (container) {
-			container.addEventListener('click', handleWikiLinkClick);
+			container.addEventListener('click', handleClick);
+
+			// Add cursor pointer to images
+			const images = container.querySelectorAll('img');
+			images.forEach((img) => {
+				img.classList.add('cursor-pointer', 'transition-opacity', 'hover:opacity-90');
+			});
+
 			return () => {
-				container.removeEventListener('click', handleWikiLinkClick);
+				container.removeEventListener('click', handleClick);
 			};
 		}
 	});

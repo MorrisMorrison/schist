@@ -4,6 +4,7 @@ import { configuredMarked } from './markdown';
 import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
+import { goto } from '$app/navigation';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -519,9 +520,9 @@ function handleWikiLinkClick(event: Event): void {
 	const isBrokenLink = linkElement.classList.contains('broken-link');
 
 	if (isBrokenLink) {
-		import('$app/navigation').then(({ goto }) => goto(`/edit${targetPath}`));
+		goto(`/edit${targetPath}`);
 	} else {
-		import('$app/navigation').then(({ goto }) => goto(`/documents${targetPath}`));
+		goto(`/documents${targetPath}`);
 	}
 }
 

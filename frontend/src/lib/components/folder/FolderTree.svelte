@@ -258,7 +258,6 @@
 	}
 
 	function getCurrentFolderPath(): string {
-		console.log(currentPath);
 		if (!currentPath || currentPath === '/' || currentPath === '' || currentPath === '/folders') {
 			return '';
 		}
@@ -269,7 +268,7 @@
 		}
 
 		if (currentPath.startsWith('/documents')) {
-			const pagePath = currentPath.substring(6); // Remove '/documents'
+			const pagePath = currentPath.substring(10); // Remove '/documents'
 			const pathSegments = pagePath.split('/').filter(Boolean);
 
 			if (pathSegments.length <= 1) {

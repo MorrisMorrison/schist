@@ -64,7 +64,7 @@
 
 <Dialog {open} onOpenChange={onClose}>
 	<DialogContent
-		class="max-h-[95vh] max-w-[95vw] overflow-hidden border-0 bg-black/95 p-0"
+		class="!h-screen !w-screen !max-h-screen !max-w-screen !m-0 overflow-hidden border-0 bg-black/95 p-0 flex items-center justify-center !fixed !inset-0 !translate-x-0 !translate-y-0"
 		showCloseButton={false}
 	>
 		<!-- Control Bar -->
@@ -121,18 +121,16 @@
 			</div>
 		{/if}
 
-		<!-- Image Container -->
-		<div class="flex h-full min-h-[400px] w-full items-center justify-center p-4">
-			<img
-				{src}
-				{alt}
-				class="max-h-full max-w-full object-contain transition-transform duration-200 select-none"
-				class:opacity-0={!imageLoaded}
-				style="transform: scale({zoom}) rotate({rotation}deg);"
-				onload={() => (imageLoaded = true)}
-				draggable="false"
-			/>
-		</div>
+		<!-- Image -->
+		<img
+			{src}
+			{alt}
+			class="max-h-[95vh] max-w-[95vw] object-contain transition-transform duration-200 select-none"
+			class:opacity-0={!imageLoaded}
+			style="transform: scale({zoom}) rotate({rotation}deg);"
+			onload={() => (imageLoaded = true)}
+			draggable="false"
+		/>
 
 		<!-- Image Info -->
 		{#if alt && imageLoaded}

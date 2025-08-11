@@ -3,6 +3,7 @@
 	import MarkdownRenderer from '../markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
 	import {
 		secretStore,
 		secretsUnlocked,
@@ -59,6 +60,14 @@
 					processedContent = addSecretPlaceholderIndicators(content);
 				} else {
 					processedContent = '';
+				}
+
+				// Initialize markdown interactions after content is processed
+				if (containerRef) {
+					// Small delay to ensure MarkdownRenderer has updated the DOM
+					setTimeout(() => {
+						initializeMarkdownInteractions(containerRef);
+					}, 10);
 				}
 			} catch (error) {
 				console.error('Markdown processing error:', error);

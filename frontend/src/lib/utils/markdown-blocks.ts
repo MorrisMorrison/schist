@@ -1,6 +1,9 @@
 import { marked } from 'marked';
 import type { Tokens } from 'marked';
+import { configuredMarked } from './markdown';
 import hljs from 'highlight.js/lib/core';
+import { apiClient } from '$lib/api/client';
+import { generateSlug } from '$lib/utils/path';
 
 // Import all the language modules (reusing from existing markdown.ts)
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -182,7 +185,97 @@ export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBl
 		}
 	}
 
+	// Post-process all wiki links in all blocks
+	await postprocessAllWikiLinks(blocks, processedContent);
+
 	return blocks;
+}
+
+// Post-process wiki links across all blocks
+async function postprocessAllWikiLinks(
+	blocks: MarkdownBlock[],
+	originalContent: string
+): Promise<void> {
+	// Find the session ID from the original content
+	const sessionMatch = originalContent.match(/<!-- WIKI_SESSION:([^-]+) -->/);
+	if (!sessionMatch) {
+		return;
+	}
+
+	const sessionId = sessionMatch[1];
+
+	const wikiLinks =
+		((globalThis as Record<string, unknown>)[sessionId] as Array<{
+			placeholder: string;
+			target: string;
+			displayText: string;
+		}>) || [];
+
+	if (wikiLinks.length === 0) {
+		return;
+	}
+
+	// Process each wiki link
+	for (const link of wikiLinks) {
+		try {
+			const resolvedLink = await resolveWikiLink(link.target);
+
+			let linkClass = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
+			let title = `Go to ${resolvedLink.target}`;
+
+			// Check if document exists by trying to get it
+			try {
+				await apiClient.getDocumentByPath(resolvedLink.path);
+			} catch (_error) {
+				linkClass = 'wiki-link broken-link text-red-500 cursor-default';
+				title = `Document "${resolvedLink.target}" does not exist`;
+			}
+
+			const linkHtml = `<span class="${linkClass}" data-wiki-target="${resolvedLink.path}" title="${title}">${link.displayText}</span>`;
+
+			// Replace the placeholder in all paragraph blocks
+			for (let i = 0; i < blocks.length; i++) {
+				const block = blocks[i];
+				if (block.type === 'paragraph') {
+					const paragraphBlock = block as ParagraphBlock;
+					if (paragraphBlock.text.includes(link.placeholder)) {
+						const newText = paragraphBlock.text.split(link.placeholder).join(linkHtml);
+						
+						// Create a new block object to ensure Svelte reactivity
+						blocks[i] = {
+							...paragraphBlock,
+							text: newText
+						};
+					}
+				}
+			}
+		} catch (error) {
+			console.warn(`Failed to resolve wiki link "${link.target}":`, error);
+			// Fallback to basic broken link
+			const slug = generateSlug(link.target);
+			const linkHtml = `<span class="wiki-link broken-link text-red-500 cursor-default" data-wiki-target="/${slug}" title="Failed to resolve link">${link.displayText}</span>`;
+
+			// Replace the placeholder in all paragraph blocks
+			for (let i = 0; i < blocks.length; i++) {
+				const block = blocks[i];
+				if (block.type === 'paragraph') {
+					const paragraphBlock = block as ParagraphBlock;
+					if (paragraphBlock.text.includes(link.placeholder)) {
+						const newText = paragraphBlock.text.split(link.placeholder).join(linkHtml);
+						
+						// Create a new block object to ensure Svelte reactivity
+						blocks[i] = {
+							...paragraphBlock,
+							text: newText
+						};
+					}
+				}
+			}
+		}
+	}
+
+	// Clean up the session
+	delete (globalThis as Record<string, unknown>)[sessionId];
 }
 
 // Convert marked token to our block format
@@ -210,10 +303,37 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			const paragraphToken = token as Tokens.Paragraph;
 			let text = paragraphToken.text;
 
-			// Check for wiki links and process them
-			if (text.includes('<!--WIKI_LINK_')) {
-				text = await postprocessWikiLinks(text);
+			// Check if this paragraph contains only an image
+			const imageMatch = text.match(/^!\[(.*?)\]\((.*?)(?:\s+"(.*?)")?\)\s*$/);
+			if (imageMatch) {
+				// Convert to image block instead of paragraph
+				const [, altText, href, title] = imageMatch;
+
+				// Parse size from title if present
+				let cleanTitle: string | undefined = title;
+				let size: string | undefined;
+
+				if (title && title.includes('|')) {
+					const parts = title.split('|');
+					if (parts.length === 2) {
+						const titlePart = parts[0].trim();
+						cleanTitle = titlePart || undefined;
+						size = parts[1].trim() || undefined;
+					}
+				}
+
+				return {
+					type: 'image',
+					id,
+					href,
+					title: cleanTitle,
+					text: altText,
+					size,
+					raw: paragraphToken.raw
+				} as ImageBlock;
 			}
+
+			// Wiki links are now processed at the document level
 
 			// Process inline markdown elements (links, emphasis, code, etc.)
 			text = await processInlineMarkdown(text);
@@ -322,12 +442,26 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 
 		case 'image': {
 			const imageToken = token as Tokens.Image;
+
+			// Parse size from title if present (supports "Title|size" format)
+			let cleanTitle = imageToken.title;
+			let size: string | undefined;
+
+			if (imageToken.title && imageToken.title.includes('|')) {
+				const parts = imageToken.title.split('|');
+				if (parts.length === 2) {
+					cleanTitle = parts[0].trim() || null;
+					size = parts[1].trim() || undefined;
+				}
+			}
+
 			return {
 				type: 'image',
 				id,
 				href: imageToken.href,
-				title: imageToken.title || undefined,
+				title: cleanTitle,
 				text: imageToken.text,
+				size,
 				raw: imageToken.raw
 			} as ImageBlock;
 		}
@@ -345,7 +479,7 @@ function preprocessWikiLinks(content: string): string {
 	let linkIndex = 0;
 
 	const processed = content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, display) => {
-		const placeholder = `<!--WIKI_LINK_${linkIndex}-->`;
+		const placeholder = `WIKILINK${linkIndex}PLACEHOLDER`;
 		wikiLinks.push({
 			placeholder,
 			target: target.trim(),
@@ -361,36 +495,39 @@ function preprocessWikiLinks(content: string): string {
 	return `${processed}\n<!-- WIKI_SESSION:${sessionId} -->`;
 }
 
-// Wiki link postprocessing (adapted from existing code)
-async function postprocessWikiLinks(text: string): Promise<string> {
-	const sessionMatch = text.match(/<!-- WIKI_SESSION:([^-]+) -->/);
-	if (!sessionMatch) {
-		return text;
+// Wiki link resolution (adapted from original working code)
+interface WikiLink {
+	target: string;
+	displayText: string;
+	path: string;
+}
+
+async function resolveWikiLink(target: string): Promise<WikiLink> {
+	try {
+		const documents = await apiClient.getDocuments();
+
+		const matchingDocument = documents.find(
+			(document: { metaData?: { title?: string; path?: string } }) =>
+				document.metaData?.title?.toLowerCase() === target.toLowerCase()
+		);
+
+		if (matchingDocument && matchingDocument.metaData?.path) {
+			return {
+				target,
+				displayText: target,
+				path: matchingDocument.metaData.path
+			};
+		}
+	} catch (error) {
+		console.warn('Failed to fetch documents for wiki link resolution:', error);
 	}
 
-	const sessionId = sessionMatch[1];
-	const wikiLinks =
-		((globalThis as Record<string, unknown>)[sessionId] as Array<{
-			placeholder: string;
-			target: string;
-			displayText: string;
-		}>) || [];
-
-	if (wikiLinks.length === 0) {
-		return text.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
-	}
-
-	let processedText = text;
-
-	// This is a simplified version - in a real implementation,
-	// you'd want to create WikiLinkBlock components instead
-	for (const link of wikiLinks) {
-		const linkHtml = `<span class="wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer" data-wiki-target="${link.target}">${link.displayText}</span>`;
-		processedText = processedText.split(link.placeholder).join(linkHtml);
-	}
-
-	delete (globalThis as Record<string, unknown>)[sessionId];
-	return processedText.replace(/\n<!-- WIKI_SESSION:[^-]+ -->/, '');
+	const slug = generateSlug(target);
+	return {
+		target,
+		displayText: target,
+		path: `/${slug}`
+	};
 }
 
 // Simple LRU cache for processInlineMarkdown
@@ -409,8 +546,8 @@ async function processInlineMarkdown(text: string): Promise<string> {
 
 	const promise = (async () => {
 		try {
-			// Use marked to parse full markdown and extract inner content
-			const htmlResult = await marked.parse(text, { async: true });
+			// Use configured marked instance with custom renderer to parse inline markdown
+			const htmlResult = await configuredMarked.parse(text, { async: true });
 			// Remove wrapping <p> tags if present, but keep other HTML elements
 			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
 			return cleaned;

@@ -11,15 +11,16 @@
 	function handleWikiLinkClick(event: Event) {
 		const target = event.target as HTMLElement;
 		if (target.classList.contains('wiki-link')) {
+			// Don't handle clicks for broken links
+			if (target.classList.contains('broken-link')) {
+				event.preventDefault();
+				return;
+			}
+
 			event.preventDefault();
 			const wikiTarget = target.getAttribute('data-wiki-target');
 			if (wikiTarget) {
-				const isBrokenLink = target.classList.contains('broken-link');
-				if (isBrokenLink) {
-					goto(`/edit${wikiTarget}`);
-				} else {
-					goto(`/documents${wikiTarget}`);
-				}
+				goto(`/documents${wikiTarget}`);
 			}
 		}
 	}

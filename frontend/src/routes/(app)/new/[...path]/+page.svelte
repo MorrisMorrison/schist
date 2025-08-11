@@ -107,20 +107,23 @@
 		if (!title.trim()) {
 			title = template.title;
 		}
-		
+
 		// Apply template content with basic variable substitution
 		let templateContent = template.content;
-		
+
 		// Replace common template variables
 		const now = new Date();
 		templateContent = templateContent
 			.replace(/\{\{date\}\}/g, now.toISOString().split('T')[0])
 			.replace(/\{\{time\}\}/g, now.toTimeString().split(' ')[0])
 			.replace(/\{\{title\}\}/g, title || template.title)
-			.replace(/\{\{next_date\}\}/g, new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-		
+			.replace(
+				/\{\{next_date\}\}/g,
+				new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+			);
+
 		content = templateContent;
-		
+
 		// Apply template tags if any
 		if (template.tags && template.tags.length > 0) {
 			tags = [...template.tags];
@@ -228,24 +231,26 @@
 	<!-- Template Suggestions -->
 	<div class="bg-content rounded-lg p-6">
 		<h3 class="text-primary mb-4 text-lg font-medium">Quick Start Templates</h3>
-		
+
 		{#if $templatesStore.loading}
 			<div class="flex items-center justify-center py-8">
-				<div class="border-border border-t-primary h-8 w-8 animate-spin rounded-full border-2"></div>
+				<div
+					class="border-border border-t-primary h-8 w-8 animate-spin rounded-full border-2"
+				></div>
 				<span class="text-secondary ml-3">Loading templates...</span>
 			</div>
 		{:else if $templatesStore.error}
-			<div class="text-center py-8">
+			<div class="py-8 text-center">
 				<p class="text-red-600">Error: {$templatesStore.error}</p>
-				<button 
+				<button
 					onclick={() => templateActions.loadTemplates(true)}
-					class="text-blue-600 hover:text-blue-800 mt-2 text-sm"
+					class="mt-2 text-sm text-blue-600 hover:text-blue-800"
 				>
 					Retry
 				</button>
 			</div>
 		{:else if $templatesStore.templates.length === 0}
-			<div class="text-center py-8">
+			<div class="py-8 text-center">
 				<p class="text-secondary">No templates available</p>
 			</div>
 		{:else}
@@ -260,8 +265,10 @@
 						<p class="text-secondary mt-1 text-sm">{template.description}</p>
 						{#if template.tags && template.tags.length > 0}
 							<div class="mt-2 flex flex-wrap gap-1">
-								{#each template.tags.slice(0, 2) as tag}
-									<span class="bg-secondary text-secondary-foreground rounded px-2 py-0.5 text-xs">{tag}</span>
+								{#each template.tags.slice(0, 2) as tag (tag)}
+									<span class="bg-secondary text-secondary-foreground rounded px-2 py-0.5 text-xs"
+										>{tag}</span
+									>
 								{/each}
 								{#if template.tags.length > 2}
 									<span class="text-secondary text-xs">+{template.tags.length - 2} more</span>

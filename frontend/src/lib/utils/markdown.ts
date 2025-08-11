@@ -173,6 +173,9 @@ marked.setOptions({
 	gfm: true
 });
 
+// Export the configured marked instance for use in other modules
+export { marked as configuredMarked };
+
 // Legacy function removed - now using component-based rendering with MarkdownRenderer
 
 export function initializeMarkdownInteractions(container: HTMLElement): void {

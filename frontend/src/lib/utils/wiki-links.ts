@@ -296,6 +296,50 @@ export function wikiLinksExtension() {
 			},
 			'.cm-wiki-link-broken': {
 				color: '#dc2626 !important'
+			},
+			// Autocomplete dropdown styling
+			'.cm-tooltip': {
+				backgroundColor: 'var(--background)',
+				border: '1px solid var(--border)',
+				borderRadius: 'calc(var(--radius) - 2px)',
+				boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)'
+			},
+			'.cm-tooltip-autocomplete': {
+				backgroundColor: 'var(--background)',
+				border: '1px solid var(--border)'
+			},
+			'.cm-tooltip-autocomplete ul': {
+				maxHeight: '200px',
+				overflowY: 'auto'
+			},
+			'.cm-tooltip-autocomplete ul li': {
+				padding: '8px 12px',
+				cursor: 'pointer',
+				color: 'var(--foreground)',
+				borderBottom: '1px solid var(--border)'
+			},
+			'.cm-tooltip-autocomplete ul li:last-child': {
+				borderBottom: 'none'
+			},
+			'.cm-tooltip-autocomplete ul li[aria-selected]': {
+				backgroundColor: 'var(--accent)',
+				color: 'var(--accent-foreground)'
+			},
+			'.cm-completionLabel': {
+				color: 'var(--foreground)',
+				fontWeight: '500'
+			},
+			'.cm-completionDetail': {
+				color: 'var(--muted-foreground)',
+				fontSize: '0.875rem',
+				fontStyle: 'italic'
+			},
+			'.cm-completionInfo': {
+				color: 'var(--muted-foreground)',
+				padding: '8px',
+				backgroundColor: 'var(--muted)',
+				borderRadius: 'calc(var(--radius) - 4px)',
+				fontSize: '0.875rem'
 			}
 		})
 	];

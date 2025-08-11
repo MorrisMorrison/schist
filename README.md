@@ -8,16 +8,44 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 
 ## Features
 
+### **Core Wiki Experience**
 - **Markdown-first** - Write in plain markdown with live preview
-- **Wiki linking** - Connect documents with `[[Document Name]]` syntax
+- **Wiki linking** - Connect documents with `[[Document Name]]` syntax  
 - **Full-text search** - Find content across all your documents
 - **File-based storage** - No database required, just markdown files
+
+### **Authentication & Security**
+- **Passkey authentication** - Modern passwordless login using WebAuthn
+- **JWT-based security** - Secure token-based authentication
+- **Secret storage** - Encrypted personal secrets protected by passkeys
+
+### **Simple User Management**
+- **Shared workspace** - All authenticated users have admin access
+- **Invite system** - Generate invitation links to onboard new users
+- **No complex permissions** - Simplified collaboration model
+- **User dashboard** - Manage users and generate invites
+
+### **Public Sharing**
+- **Share documents publicly** - Create public read-only links
+- **Configurable expiry** - Set custom expiration times for shared links
+
+### **Version Control & Backup**
+- **Git integration** - Automatic versioning with Git backend
+- **GitHub backup** - Optional backup to GitHub repositories
+- **Version history** - Track changes over time
+- **Restore capabilities** - Recover previous versions of documents
+
+### **User Experience**
 - **Web-based** - Access your wiki from any browser
-- **Clean interface** - Responsive design with dark/light themes
-- **Docker ready** - Easy deployment with Docker
-- **Fast** - Built with Go backend and Svelte frontend
-- **Secure authentication** - Optional JWT-based login with modern UI
+- **Responsive design** - Works on desktop, tablet, and mobile
+- **Dark/light themes** - Automatic or manual theme switching
 - **Keyboard shortcuts** - Navigate efficiently with global hotkeys
+- **Quick switcher** - Instant document search and navigation
+
+### **Deployment & Operations**
+- **Docker ready** - Easy deployment with Docker containers
+- **Self-hosted** - Complete control over your data
+- **Minimal configuration** - Works out of the box
 
 ## Installation
 
@@ -55,10 +83,9 @@ services:
       - ENV=production
       - SCHIST_PORT=8080
       - SCHIST_DATA_DIR=/app/data
-      # Optional: Enable JWT authentication
+      # Optional: Enable passkey authentication
       # - SCHIST_AUTH_ENABLED=true
-      # - SCHIST_AUTH_USERS=admin:$2a$10$your_bcrypt_hash_here
-      # - SCHIST_JWT_SECRET=your-secret-key-here
+      # - SCHIST_JWT_SECRET=your-secret-key-minimum-32-characters
       # - SCHIST_JWT_EXPIRY_HOURS=24
       # Optional: Enable rate limiting
       # - SCHIST_RATE_LIMIT_ENABLED=true
@@ -78,28 +105,26 @@ Schist works out of the box with minimal configuration. For advanced setup inclu
 
 #### Quick Authentication Setup
 
-To enable authentication for your wiki:
+Schist uses modern **passkey authentication** (WebAuthn) for secure, passwordless login:
 
-1. **Generate a password hash:**
-   ```bash
-   cd backend && go run cmd/generate-hash/main.go your-password
-   ```
-
-2. **Set environment variables:**
+1. **Enable authentication:**
    ```bash
    export SCHIST_AUTH_ENABLED=true
-   export SCHIST_AUTH_USERS="admin:$2a$10$your_generated_hash_here"
    export SCHIST_JWT_SECRET="your-secret-key-minimum-32-characters"
    ```
 
-3. **Start Schist:**
+2. **Start Schist:**
    ```bash
    docker-compose up -d
    # or
    make run
    ```
 
-4. **Access your wiki:** Navigate to your wiki URL and you'll be redirected to a login page.
+3. **First-time setup:** 
+   - Navigate to your wiki URL
+   - You'll be guided through creating the first admin user with a passkey
+   - Set up your passkey using your device's built-in authentication (Face ID, Touch ID, Windows Hello, etc.)
+
 
 **Default behavior:** Authentication is **disabled** by default. All users can access the wiki without any login.
 
@@ -128,11 +153,11 @@ Schist provides powerful keyboard shortcuts for efficient navigation and documen
 
 ## Documentation
 
-- [📚 Quick Start Guide](docs/QUICK_START.md) - Get up and running
-- [🔧 API Documentation](docs/API.md) - Complete API reference
-- [⚙️ Configuration](docs/CONFIGURATION.md) - Environment setup
-- [💻 Development Guide](docs/DEVELOPMENT.md) - Contributing guide
-- [📋 Design Document](docs/DESIGN_DOC.md) - Architecture overview
+- [Quick Start Guide](docs/QUICK_START.md) - Get up and running
+- [API Documentation](docs/API.md) - Complete API reference
+- [Configuration](docs/CONFIGURATION.md) - Environment setup
+- [Development Guide](docs/DEVELOPMENT.md) - Contributing guide
+- [Design Document](docs/DESIGN_DOC.md) - Architecture overview
 
 ## Contributing
 
@@ -144,9 +169,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- 📖 [Documentation](docs/)
-- 🐛 [Issues](https://github.com/MorrisMorrison/schist/issues)
-- 💬 [Discussions](https://github.com/MorrisMorrison/schist/discussions)
+- [Documentation](docs/)
+- [Issues](https://github.com/MorrisMorrison/schist/issues)
+- [Discussions](https://github.com/MorrisMorrison/schist/discussions)
 
 ---
 

@@ -260,8 +260,13 @@
 	function getCurrentFolderPath(): string {
 		const FOLDERS_PREFIX = '/folders';
 		const DOCUMENTS_PREFIX = '/documents';
-		
-		if (!currentPath || currentPath === '/' || currentPath === '' || currentPath === FOLDERS_PREFIX) {
+
+		if (
+			!currentPath ||
+			currentPath === '/' ||
+			currentPath === '' ||
+			currentPath === FOLDERS_PREFIX
+		) {
 			return '';
 		}
 

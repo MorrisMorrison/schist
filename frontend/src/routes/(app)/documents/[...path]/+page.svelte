@@ -108,8 +108,10 @@
 	{:else if isNotFound}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
 			<div class="mb-6 text-6xl">🔍</div>
-			<h1 class="text-foreground mb-4 text-3xl font-bold">Document Not Found</h1>
-			<p class="text-muted-foreground mb-2 text-lg">
+			<h1 class="text-foreground mb-4 text-3xl font-bold" data-testid="not-found-heading">
+				Document Not Found
+			</h1>
+			<p class="text-muted-foreground mb-2 text-lg" data-testid="not-found-message">
 				404 - The document you're looking for doesn't exist.
 			</p>
 			<p class="text-muted-foreground mb-8 max-w-2xl">

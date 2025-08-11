@@ -2,7 +2,7 @@
 	import { Calendar, Tag, Eye } from 'lucide-svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
-	import { initializeMarkdownInteractions } from '$lib/utils/markdown';
+	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '$lib/components/ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';

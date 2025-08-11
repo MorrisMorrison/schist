@@ -34,7 +34,7 @@ go.work.sum
 backend/data
 data/
 backend/schist
-.claude/
+.claude/settings.local.json
 wiki-data/
 frontend/playwright-report
 frontend/test-results

@@ -9,7 +9,8 @@ async function globalTeardown() {
 
 	try {
 		// Use the unified cleanup script with e2e-only profile
-		const cleanupScript = path.resolve(process.cwd(), '../../scripts/cleanup.sh');
+		// In CI, we run from frontend directory, so we need to go up one level
+		const cleanupScript = path.resolve(process.cwd(), '../scripts/cleanup.sh');
 		const { stdout, stderr } = await execAsync(`"${cleanupScript}" --profile=e2e-only`);
 
 		if (stdout) {

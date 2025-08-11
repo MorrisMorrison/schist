@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/models"
@@ -30,7 +29,6 @@ type DocumentService struct {
 	dataDir       string
 	gitService    *GitService
 	ignoreService *IgnoreService
-	mutex         sync.RWMutex
 }
 
 func NewDocumentService(dataDir string, gitService *GitService, ignoreService *IgnoreService) *DocumentService {
@@ -146,9 +144,6 @@ func (d *DocumentService) GetAllTags() (map[string]int, error) {
 }
 
 func (d *DocumentService) CreateDocument(document *models.Document) error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if document.MetaData.Slug == "" {
 		document.MetaData.Slug = utils.GenerateSlug(document.MetaData.Title)
 	}
@@ -171,9 +166,6 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 }
 
 func (d *DocumentService) ReadDocument(slug string) (*models.Document, error) {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-
 	filePath := d.buildFilePath(slug)
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
@@ -193,9 +185,6 @@ func (d *DocumentService) UpdateDocument(document *models.Document) error {
 }
 
 func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, saveType string) error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	document.MetaData.Updated = time.Now()
 
 	if err := d.saveDocument(document); err != nil {
@@ -211,9 +200,6 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 }
 
 func (d *DocumentService) DeleteDocument(slug string) error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	filePath := d.buildFilePath(slug)
 
 	if err := os.Remove(filePath); err != nil {
@@ -227,9 +213,6 @@ func (d *DocumentService) DeleteDocument(slug string) error {
 }
 
 func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-
 	var documents []*models.Document
 
 	err := filepath.WalkDir(d.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
@@ -635,9 +618,6 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 }
 
 func (d *DocumentService) CreateFolder(path string) error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if err := utils.ValidatePath(path); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
@@ -653,9 +633,6 @@ func (d *DocumentService) CreateFolder(path string) error {
 }
 
 func (d *DocumentService) RenameFolder(oldPath, newName string) error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if err := utils.ValidatePath(oldPath); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}
@@ -823,9 +800,6 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 }
 
 func (d *DocumentService) DeleteFolder(path string) error {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
 	if err := utils.ValidatePath(path); err != nil {
 		return fmt.Errorf("invalid folder path: %w", err)
 	}

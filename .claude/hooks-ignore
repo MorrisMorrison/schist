@@ -1,0 +1,89 @@
+# Claude hooks ignore patterns for schist project
+
+# Vendor and dependencies
+vendor/**
+node_modules/**
+.git/**
+frontend/node_modules/**
+
+# Generated files
+*.pb.go
+*_gen.go
+*_generated.go
+*.generated.ts
+dist/**
+build/**
+out/**
+backend/build/**
+frontend/build/**
+
+# Test data and fixtures
+testdata/**
+fixtures/**
+**/testdata/**
+frontend/e2e/fixtures/**
+
+# Documentation examples
+docs/**/*.go
+docs/**/*.js
+examples/**
+
+# IDE and editor files
+.idea/**
+.vscode/**
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/**
+temp/**
+*.tmp
+*.temp
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+backend/cmd/*/schist
+backend/cmd/*/cleanup
+backend/cmd/*/generate-hash
+
+# Images and media
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.mp4
+*.mp3
+
+# Test results and reports
+test-results/**
+playwright-report/**
+frontend/playwright-report/**
+frontend/test-results/**
+
+# Specific files that are allowed to use certain patterns
+cmd/**/main.go  # Main files allowed for graceful shutdown patterns
+
+# Third-party or external code
+external/**
+third_party/**
+
+# Playwright generated files
+frontend/playwright/**
+
+# Build artifacts
+frontend/static/**
+backend/cmd/schist/data/**

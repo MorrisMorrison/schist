@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "editTool": ".claude/hooks.sh --fast",
+    "multiEditTool": ".claude/hooks.sh --fast",
+    "writeTool": ".claude/hooks.sh --fast",
+    "sessionStart": "echo 'Please read and follow the instructions in .claude/START_PROMPT.md'",
+    "preCompact": "echo 'About to compact conversation context'"
+  },
+  "allowedTools": ["*"]
+}

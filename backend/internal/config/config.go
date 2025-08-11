@@ -36,7 +36,7 @@ func Load() *Config {
 		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
 		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),
 
-		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", true),
+		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", false),
 		JWTSecret:      getEnv("SCHIST_JWT_SECRET", "secret"),
 		JWTExpiryHours: getEnvInt("SCHIST_JWT_EXPIRY_HOURS", 24),
 

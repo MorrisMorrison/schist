@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { X, Plus } from 'lucide-svelte';
+	import { tagActions, tagSuggestions } from '$lib/stores/tags';
 
 	interface Props {
 		tags: string[];
@@ -29,17 +30,33 @@
 	let showSuggestions = $state(false);
 	let selectedSuggestionIndex = $state(-1);
 
+	// Load tags when component mounts
+	$effect(() => {
+		tagActions.loadTags();
+	});
+
 	const filteredSuggestions = $derived(() => {
-		if (!inputValue.trim() || !suggestions.length) return [];
+		// Combine provided suggestions with global tag suggestions
+		const allSuggestions = [
+			...suggestions,
+			...$tagSuggestions.filter((tag) => !suggestions.includes(tag))
+		];
+
+		if (!inputValue.trim()) {
+			// Show most popular tags when no input
+			return allSuggestions
+				.filter((suggestion) => (!allowDuplicates ? !tags.includes(suggestion) : true))
+				.slice(0, 8);
+		}
 
 		const lowerInput = inputValue.toLowerCase();
-		return suggestions
+		return allSuggestions
 			.filter(
 				(suggestion) =>
 					suggestion.toLowerCase().includes(lowerInput) &&
 					(!allowDuplicates ? !tags.includes(suggestion) : true)
 			)
-			.slice(0, 5); // Limit to 5 suggestions
+			.slice(0, 8); // Limit to 8 suggestions
 	});
 
 	const canAddTag = $derived((tagText: string) => {
@@ -114,7 +131,7 @@
 
 	function handleInput() {
 		selectedSuggestionIndex = -1;
-		showSuggestions = filteredSuggestions().length > 0 && inputValue.trim().length > 0;
+		showSuggestions = filteredSuggestions().length > 0;
 	}
 
 	function handleBlur() {

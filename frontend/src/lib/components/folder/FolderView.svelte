@@ -13,6 +13,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import { Card, CardContent } from '$lib/components/ui/card';
+	import TagFilterChips from '../tags/TagFilterChips.svelte';
+	import { tagActions, filteredDocumentsByTags } from '$lib/stores/tags';
 	import type { Document, Folder as FolderType } from '$lib/api/types';
 
 	interface Props {
@@ -40,14 +42,17 @@
 	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc');
 
 	const currentFolderDocuments = $derived(() => {
+		// Start with tag-filtered documents if there are active filters
+		let baseDocuments = $filteredDocumentsByTags;
+
 		let filteredDocuments;
 
 		if (mode === 'recent') {
-			filteredDocuments = ($documentsStore.documents || []).slice(0, recentLimit);
+			filteredDocuments = (baseDocuments || []).slice(0, recentLimit);
 		} else if (mode === 'all') {
-			filteredDocuments = $documentsStore.documents || [];
+			filteredDocuments = baseDocuments || [];
 		} else {
-			filteredDocuments = ($documentsStore.documents || []).filter((document) => {
+			filteredDocuments = (baseDocuments || []).filter((document) => {
 				const documentPath = document.metaData?.path || '';
 				const isRoot = path === '' || path === '/';
 				if (isRoot) {
@@ -96,6 +101,9 @@
 		if (initialDocuments?.length === 0 || initialFolders?.length === 0) {
 			loadFolderData();
 		}
+
+		// Load tags for filtering
+		tagActions.loadTags();
 	});
 
 	async function loadFolderData() {
@@ -221,6 +229,9 @@
 
 	<Card class="border-border bg-card shadow-sm">
 		<CardContent class="pt-4 pr-8 pb-6 pl-8">
+			<!-- Tag Filter Chips -->
+			<TagFilterChips />
+
 			{#if currentFolderDocuments().length > 0}
 				<section class="space-y-6" data-testid="documents-section">
 					<div class="flex items-center justify-between">

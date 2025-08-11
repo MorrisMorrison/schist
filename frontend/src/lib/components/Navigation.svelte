@@ -126,6 +126,16 @@
 						>
 							Recent
 						</a>
+						<a
+							href="/tags"
+							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page
+								.url.pathname === '/tags'
+								? 'text-primary border-blue-500'
+								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"
+							data-testid="nav-tags"
+						>
+							Tags
+						</a>
 					</div>
 				</div>
 
@@ -354,6 +364,17 @@
 						data-testid="nav-recent-mobile"
 					>
 						Recent
+					</a>
+					<a
+						href="/tags"
+						onclick={closeMenu}
+						class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {page.url.pathname ===
+						'/tags'
+							? 'bg-blue-muted text-blue-primary border-blue-500'
+							: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"
+						data-testid="nav-tags-mobile"
+					>
+						Tags
 					</a>
 				</div>
 			</div>

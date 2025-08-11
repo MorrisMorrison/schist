@@ -16,6 +16,7 @@ import type {
 	Asset,
 	AssetUploadResponse,
 	SearchResult,
+	TagInfo,
 	TagsResponse,
 	VersionsResponse,
 	DiffResult,
@@ -762,6 +763,11 @@ class SchістApiClient {
 		return this.request<{ message: string }>(`/auth/users/${encodeURIComponent(username)}`, {
 			method: 'DELETE'
 		});
+	}
+
+	async getTags(): Promise<TagInfo[]> {
+		const response = await this.request<TagsResponse>('/tags');
+		return response.tags;
 	}
 }
 

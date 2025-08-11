@@ -12,6 +12,7 @@
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
+	import ClickableTagBadge from '../tags/ClickableTagBadge.svelte';
 	import { goto } from '$app/navigation';
 	import {
 		secretStore,
@@ -266,9 +267,7 @@
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each documentTags as tag (tag)}
-								<Badge variant="default" class="text-xs text-white " data-testid="document-tag"
-									>{tag}</Badge
-								>
+								<ClickableTagBadge {tag} variant="default" showIcon={false} clickable={true} />
 							{/each}
 						</div>
 					</div>

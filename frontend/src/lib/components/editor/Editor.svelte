@@ -29,6 +29,7 @@
 	let editorElement: HTMLElement;
 	let editorView: EditorView | null = null;
 	let currentContent = $state(initialContent);
+	let previewContent = $state(initialContent);
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let isPreviewVisible = $state(true);
@@ -144,6 +145,7 @@
 	};
 
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+	let previewUpdateTimer: ReturnType<typeof setTimeout> | null = null;
 
 	let isUploading = $state(false);
 	let uploadProgress = $state(0);
@@ -161,6 +163,17 @@
 		}
 
 		scheduleAutoSave();
+		schedulePreviewUpdate(content);
+	}
+
+	function schedulePreviewUpdate(content: string) {
+		if (previewUpdateTimer) {
+			clearTimeout(previewUpdateTimer);
+		}
+		
+		previewUpdateTimer = setTimeout(() => {
+			previewContent = content;
+		}, 300);
 	}
 
 	function throttleScrollSync(callback: () => void) {
@@ -492,6 +505,9 @@
 		if (scrollSyncTimeout) {
 			clearTimeout(scrollSyncTimeout);
 		}
+		if (previewUpdateTimer) {
+			clearTimeout(previewUpdateTimer);
+		}
 	});
 
 	// Reactive theme updates - only update theme, don't recreate editor
@@ -669,7 +685,7 @@
 				</div>
 				<div class="flex-1 overflow-hidden">
 					<MarkdownPreview
-						content={currentContent}
+						content={previewContent}
 						theme={currentTheme}
 						bind:container={previewContainer}
 						onScroll={() => {

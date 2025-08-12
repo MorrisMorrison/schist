@@ -2,65 +2,6 @@
 
 Contributing to Schist is easy! This guide covers the development workflow, architecture, testing, and contribution guidelines.
 
-## Project Structure
-
-```
-schist/
-├── backend/                    # Go backend
-│   ├── cmd/schist/            # Main application entry point
-│   │   └── main.go
-│   ├── cmd/generate-hash/     # Password hash utility
-│   │   └── main.go
-│   ├── internal/              # Internal packages
-│   │   ├── config/           # Configuration management
-│   │   ├── handlers/         # HTTP route handlers
-│   │   ├── middleware/       # HTTP middleware (auth, rate limiting)
-│   │   │   ├── auth.go       # Basic authentication middleware
-│   │   │   └── ratelimit.go  # Rate limiting middleware
-│   │   ├── models/           # Data models and structures
-│   │   ├── serializer/       # Data serialization utilities
-│   │   └── services/         # Business logic services
-│   │       ├── asset_service.go      # Asset upload/management
-│   │       ├── asset_service_test.go # Asset service tests
-│   │       ├── folder_service.go     # Folder operations
-│   │       ├── document_service.go   # Document CRUD operations
-│   │       └── document_service_test.go  # Document service tests
-│   ├── utils/                # Utility functions
-│   │   ├── utils.go
-│   │   └── utils_test.go     # Utility tests
-│   ├── go.mod               # Go module definition
-│   └── go.sum               # Go dependency checksums
-├── frontend/                  # Svelte frontend
-│   ├── src/
-│   │   ├── lib/             # Reusable components
-│   │   │   ├── components/  # UI components
-│   │   │   └── stores/       # Svelte stores for state
-│   │   ├── routes/          # SvelteKit routes
-│   │   │   ├── +layout.svelte
-│   │   │   ├── +page.svelte
-│   │   │   └── [...path]/   # Dynamic page routing
-│   │   └── app.html         # HTML template
-│   ├── e2e/                 # Playwright e2e tests
-│   ├── tests/               # Component tests
-│   ├── package.json         # Node.js dependencies
-│   ├── svelte.config.js     # SvelteKit configuration
-│   ├── vite.config.ts       # Vite build configuration
-│   ├── tailwind.config.js   # Tailwind CSS v4 configuration
-│   └── tsconfig.json        # TypeScript configuration
-├── data/                      # Default data directory
-│   ├── documents/           # Markdown documents storage
-│   └── assets/              # Uploaded assets storage
-├── docs/                      # Documentation
-│   ├── API.md
-│   ├── CONFIGURATION.md
-│   ├── DEVELOPMENT.md       # This file
-│   └── QUICK_START.md
-├── http/                      # HTTP API testing files
-├── docker-compose.yml         # Production Docker setup
-├── Dockerfile                 # Docker build configuration
-└── Makefile                   # Build and development commands
-```
-
 ## Development Setup
 
 ### Prerequisites
@@ -123,7 +64,7 @@ cd frontend
 npm install
 
 # Run development server
-npm run dev
+npm run-dev
 
 # Build for production
 npm run build
@@ -170,22 +111,6 @@ cd backend && go test ./services -v
 cd backend && go test -cover ./...
 ```
 
-**Security Testing:**
-```bash
-# Test rate limiting (requires server running)
-for i in {1..10}; do curl http://localhost:8080/api/health; done
-
-# Test authentication (with auth enabled)
-curl -u admin:password http://localhost:8080/api/documents
-
-# Test without credentials (should return 401)
-curl http://localhost:8080/api/documents
-
-# Generate password hashes
-cd backend && go build -o generate-hash ./cmd/generate-hash
-./generate-hash mypassword
-```
-
 ### Frontend Testing
 
 **Component Tests:**
@@ -228,20 +153,20 @@ make fmt-frontend
 
 # Lint frontend code
 make lint
+
+# Format and Lint all
+make verify
 ```
 
 ### Pre-commit Workflow
 
 Before committing changes:
 ```bash
-# 1. Format code
-make fmt
+# 1. Verify changes
+make verify
 
-# 2. Lint frontend
-make lint
-
-# 3. Run backend tests
-make run-backend-test
+# 3. Run tests
+make test
 
 # 4. Run e2e tests (optional but recommended)
 make run-e2e
@@ -339,11 +264,11 @@ ENV=development make run-backend    # Terminal 1
 make run-frontend                        # Terminal 2
 
 # Run tests
-make run-backend-test
+make test
 make run-e2e
 
 # Code quality
-make fmt && make lint
+make verify 
 ```
 
 ### 5. Submit Pull Request
@@ -381,13 +306,10 @@ ENV=development make run-backend
 # Test with security features enabled
 SCHIST_RATE_LIMIT_ENABLED=true \
 SCHIST_RATE_LIMIT_RPM=5 \
-SCHIST_AUTH_ENABLED=true \
-SCHIST_AUTH_USERS="admin:$2a$10$hash" \
 ENV=development make run-backend
 
 # Development logs will show:
 # "Rate limiting enabled: 5 requests per minute"
-# "Basic authentication enabled for all endpoints"
 ```
 
 **Using Delve Debugger:**
@@ -399,21 +321,6 @@ go install github.com/go-delve/delve/cmd/dlv@latest
 cd backend && dlv debug ./cmd/schist
 
 # Set breakpoints and step through code
-```
-
-### Frontend Debugging
-
-**Browser Developer Tools:**
-- **Network Tab** - Monitor API calls
-- **Console** - JavaScript errors and logs
-- **Svelte DevTools** - Component state inspection
-
-**Development Mode:**
-```bash
-# Vite provides hot reload and source maps
-make run-frontend
-
-# Access source maps in browser debugger
 ```
 
 ## Deployment

@@ -143,12 +143,10 @@
 				</p>
 			</div>
 
-			<div
-				class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/50"
-			>
+			<div class="border-border bg-muted rounded-lg border p-3">
 				<div class="flex">
 					<svg
-						class="mt-0.5 mr-2 h-4 w-4 flex-shrink-0 text-blue-600 dark:text-blue-400"
+						class="text-muted-foreground mt-0.5 mr-2 h-4 w-4 flex-shrink-0"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -161,8 +159,8 @@
 						/>
 					</svg>
 					<div>
-						<p class="text-sm font-medium text-blue-900 dark:text-blue-200">Usage Example</p>
-						<p class="mt-1 font-mono text-xs text-blue-700 dark:text-blue-300">
+						<p class="text-foreground text-sm font-medium">Usage Example</p>
+						<p class="text-muted-foreground mt-1 font-mono text-xs">
 							In your documents: My API key is {'{{secret:' + (key || 'your_key') + '}}'}
 						</p>
 					</div>

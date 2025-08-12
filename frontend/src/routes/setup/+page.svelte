@@ -193,14 +193,12 @@
 				<!-- Step 3: Setup Complete -->
 				<div class="space-y-4 text-center">
 					<div
-						class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20"
+						class="bg-accent text-accent-foreground mx-auto flex h-16 w-16 items-center justify-center rounded-full"
 					>
-						<CheckCircle class="h-8 w-8 text-green-600 dark:text-green-400" />
+						<CheckCircle class="text-primary h-8 w-8" />
 					</div>
 					<div>
-						<h3 class="text-lg font-semibold text-green-600 dark:text-green-400">
-							Setup Complete!
-						</h3>
+						<h3 class="text-primary text-lg font-semibold">Setup Complete!</h3>
 						<p class="text-muted-foreground text-sm">
 							Your passkey-native wiki is ready. You can now sign in securely.
 						</p>

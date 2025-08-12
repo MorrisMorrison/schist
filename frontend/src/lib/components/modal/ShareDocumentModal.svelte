@@ -137,17 +137,13 @@
 		<div class="space-y-6">
 			<!-- Success/Error Messages -->
 			{#if success}
-				<div
-					class="rounded-md bg-green-50 p-3 text-sm text-green-800 dark:bg-green-900/50 dark:text-green-200"
-				>
+				<div class="bg-accent text-accent-foreground rounded-md p-3 text-sm">
 					{success}
 				</div>
 			{/if}
 
 			{#if error}
-				<div
-					class="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/50 dark:text-red-200"
-				>
+				<div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
 					{error}
 				</div>
 			{/if}

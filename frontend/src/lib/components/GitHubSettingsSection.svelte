@@ -188,7 +188,7 @@
 
 <div class="space-y-6">
 	<!-- Tab Navigation -->
-	<div class="flex border-b border-gray-200 dark:border-gray-700">
+	<div class="border-border flex border-b">
 		<button
 			type="button"
 			onclick={() => {
@@ -196,8 +196,8 @@
 				clearErrors();
 			}}
 			class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'setup'
-				? 'border-blue-500 text-blue-600 dark:text-blue-400'
-				: 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
+				? 'border-primary text-primary'
+				: 'text-muted-foreground hover:text-foreground border-transparent'}"
 		>
 			<Settings class="mr-1 inline h-4 w-4" />
 			Setup
@@ -206,8 +206,8 @@
 			type="button"
 			onclick={() => (activeTab = 'sync')}
 			class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'sync'
-				? 'border-blue-500 text-blue-600 dark:text-blue-400'
-				: 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'} {!isConnected
+				? 'border-primary text-primary'
+				: 'text-muted-foreground hover:text-foreground border-transparent'} {!isConnected
 				? 'cursor-not-allowed opacity-50'
 				: 'cursor-pointer'}"
 			disabled={!isConnected}
@@ -241,7 +241,7 @@
 						required
 						oninput={() => (tokenChanged = true)}
 					/>
-					<p class="text-sm text-gray-600 dark:text-gray-400">
+					<p class="text-muted-foreground text-sm">
 						Create a token at <a
 							href="https://github.com/settings/tokens"
 							target="_blank"
@@ -297,7 +297,7 @@
 						<Label for="backup-mode">Backup Mode</Label>
 						<select
 							bind:value={backupMode}
-							class="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+							class="border-input bg-background w-full rounded-md border px-3 py-2"
 						>
 							<option value="manual">Manual</option>
 							<option value="auto">Automatic</option>
@@ -321,7 +321,7 @@
 
 			{#if formError || $githubError}
 				<div
-					class="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-300"
+					class="bg-destructive/10 text-destructive flex items-center gap-2 rounded-md p-3 text-sm"
 				>
 					<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					{formError || $githubError}
@@ -331,8 +331,8 @@
 			{#if $connectionTest}
 				<div
 					class="flex items-center gap-2 rounded-md p-3 text-sm {$connectionTest.success
-						? 'bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-						: 'bg-red-50 text-red-700 dark:bg-red-900/50 dark:text-red-300'}"
+						? 'bg-accent/50 text-accent-foreground'
+						: 'bg-destructive/10 text-destructive'}"
 				>
 					{#if $connectionTest.success}
 						<CheckCircle class="h-4 w-4 flex-shrink-0" />
@@ -357,10 +357,10 @@
 							<div class="flex items-center gap-2">
 								{#if $githubStatus?.connected}
 									<CheckCircle class="h-4 w-4 text-green-500" />
-									<span class="text-sm text-green-600 dark:text-green-400">Connected</span>
+									<span class="text-sm text-green-600">Connected</span>
 								{:else}
 									<AlertCircle class="h-4 w-4 text-red-500" />
-									<span class="text-sm text-red-600 dark:text-red-400">Disconnected</span>
+									<span class="text-destructive text-sm">Disconnected</span>
 								{/if}
 							</div>
 						</div>
@@ -368,7 +368,7 @@
 						<!-- Last Sync -->
 						<div class="space-y-2">
 							<Label>Last Sync</Label>
-							<div class="text-sm text-gray-900 dark:text-gray-100">
+							<div class="text-foreground text-sm">
 								{formatLastSync($githubStatus?.last_sync)}
 							</div>
 						</div>
@@ -382,7 +382,7 @@
 									<a
 										href="https://github.com/{status.owner}/{status.repository}"
 										target="_blank"
-										class="truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
+										class="text-primary truncate text-sm hover:underline"
 										title="https://github.com/{status.owner}/{status.repository}"
 									>
 										{status.owner}/{status.repository}
@@ -395,7 +395,7 @@
 					<!-- Error Display -->
 					{#if $githubStatus?.error}
 						<div
-							class="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-300"
+							class="bg-destructive/10 text-destructive flex items-center gap-2 rounded-md p-3 text-sm"
 						>
 							<AlertCircle class="h-4 w-4 flex-shrink-0" />
 							{$githubStatus.error}
@@ -452,9 +452,7 @@
 	{#if activeTab === 'sync'}
 		<div class="space-y-4">
 			{#if !isConnected}
-				<div
-					class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
-				>
+				<div class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
 					<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.
 				</div>
@@ -482,39 +480,37 @@
 					<div class="flex items-center gap-2">
 						{#if $lastSyncResult.success}
 							<CheckCircle class="h-4 w-4 text-green-500" />
-							<span class="font-medium text-green-600 dark:text-green-400"
-								>Last Sync Successful</span
-							>
+							<span class="font-medium text-green-600">Last Sync Successful</span>
 						{:else}
 							<AlertCircle class="h-4 w-4 text-red-500" />
-							<span class="font-medium text-red-600 dark:text-red-400">Last Sync Failed</span>
+							<span class="text-destructive font-medium">Last Sync Failed</span>
 						{/if}
 					</div>
 
-					<div class="text-sm text-gray-600 dark:text-gray-400">
+					<div class="text-muted-foreground text-sm">
 						{formatLastSync($lastSyncResult.timestamp)}
 					</div>
 
 					<div class="text-sm">{$lastSyncResult.message}</div>
 
 					{#if $lastSyncResult.syncedFiles !== undefined}
-						<div class="text-sm text-gray-600 dark:text-gray-400">
+						<div class="text-muted-foreground text-sm">
 							Files synced: {$lastSyncResult.syncedFiles}
 						</div>
 					{/if}
 
 					{#if $lastSyncResult.errors && $lastSyncResult.errors.length > 0}
 						<div class="space-y-1">
-							<div class="text-sm font-medium text-red-600 dark:text-red-400">Errors:</div>
+							<div class="text-destructive text-sm font-medium">Errors:</div>
 							{#each $lastSyncResult.errors as error, index (index)}
-								<div class="text-sm text-red-600 dark:text-red-400">• {error}</div>
+								<div class="text-destructive text-sm">• {error}</div>
 							{/each}
 						</div>
 					{/if}
 				</div>
 			{/if}
 
-			<div class="text-sm text-gray-600 dark:text-gray-400">
+			<div class="text-muted-foreground text-sm">
 				{#if isConnected}
 					<p>
 						Manual sync will immediately push all your documents to the configured GitHub

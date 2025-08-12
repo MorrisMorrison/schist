@@ -68,7 +68,7 @@
 
 		let processedText = text;
 		for (const { placeholder, key } of placeholders) {
-			const indicator = `<span class="secret-placeholder bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md font-mono text-sm border border-amber-200 dark:border-amber-700" title="Secret '${key}' is locked. Unlock secrets to view the value.">${placeholder} 🔒</span>`;
+			const indicator = `<span class="secret-placeholder bg-muted text-muted-foreground px-2 py-1 rounded-md font-mono text-sm border border-border" title="Secret '${key}' is locked. Unlock secrets to view the value.">${placeholder} 🔒</span>`;
 			processedText = processedText.replace(placeholder, indicator);
 		}
 
@@ -320,7 +320,7 @@
 		{#if document.content}
 			<div
 				bind:this={contentContainer}
-				class="prose prose-slate dark:prose-invert max-w-none"
+				class="prose prose-slate max-w-none"
 				data-testid="document-content"
 			>
 				<MarkdownRenderer content={processedContent} />

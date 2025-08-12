@@ -25,13 +25,13 @@
 	function getLineTypeClass(type: DiffLine['type']): string {
 		switch (type) {
 			case 'addition':
-				return 'bg-green-50 border-l-4 border-l-green-500 dark:bg-green-950/20';
+				return 'bg-accent/50 border-l-4 border-l-primary';
 			case 'deletion':
-				return 'bg-red-50 border-l-4 border-l-red-500 dark:bg-red-950/20';
+				return 'bg-destructive/10 border-l-4 border-l-destructive';
 			case 'modification':
-				return 'bg-yellow-50 border-l-4 border-l-yellow-500 dark:bg-yellow-950/20';
+				return 'bg-muted border-l-4 border-l-muted-foreground';
 			case 'context':
-				return 'bg-gray-50 dark:bg-gray-900/50';
+				return 'bg-muted/50';
 			default:
 				return '';
 		}
@@ -154,9 +154,7 @@
 				{#each groupedLines as item, index (index)}
 					{#if 'count' in item}
 						<!-- Separator for collapsed context lines -->
-						<div
-							class="border-y border-gray-200 bg-gray-100 px-4 py-2 text-center dark:border-gray-700 dark:bg-gray-800"
-						>
+						<div class="border-border bg-muted border-y px-4 py-2 text-center">
 							<button
 								class="text-muted-foreground hover:text-foreground text-sm transition-colors"
 								onclick={() => {

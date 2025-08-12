@@ -221,11 +221,11 @@
 							<span class="text-foreground ml-1 font-medium">{importResult.total_files}</span>
 						</div>
 						<div>
-							<span class="text-green-600 dark:text-green-400">Imported:</span>
+							<span class="text-primary">Imported:</span>
 							<span class="text-foreground ml-1 font-medium">{importResult.imported_count}</span>
 						</div>
 						<div>
-							<span class="text-yellow-600 dark:text-yellow-400">Skipped:</span>
+							<span class="text-muted-foreground">Skipped:</span>
 							<span class="text-foreground ml-1 font-medium">{importResult.skipped_count}</span>
 						</div>
 						<div>

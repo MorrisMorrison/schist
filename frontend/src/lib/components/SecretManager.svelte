@@ -143,14 +143,10 @@
 			<div class="flex items-center space-x-2">
 				{#if $secretsUnlocked}
 					<div class="h-2 w-2 rounded-full bg-green-500"></div>
-					<span class="text-sm font-medium text-green-700 dark:text-green-400">
-						Secrets Unlocked
-					</span>
+					<span class="text-primary text-sm font-medium"> Secrets Unlocked </span>
 				{:else if $hasSecrets || $requiresPassword}
 					<div class="h-2 w-2 rounded-full bg-amber-500"></div>
-					<span class="text-sm font-medium text-amber-700 dark:text-amber-400">
-						Secrets Locked
-					</span>
+					<span class="text-muted-foreground text-sm font-medium"> Secrets Locked </span>
 				{:else}
 					<div class="h-2 w-2 rounded-full bg-gray-400"></div>
 					<span class="text-muted-foreground text-sm font-medium"> No Secrets </span>
@@ -265,10 +261,8 @@
 			<!-- Locked State -->
 		{:else if ($hasSecrets || $requiresPassword) && !$secretsUnlocked}
 			<div class="space-y-4 py-6 text-center">
-				<div
-					class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900"
-				>
-					<Lock class="h-8 w-8 text-amber-600 dark:text-amber-400" />
+				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+					<Lock class="text-muted-foreground h-8 w-8" />
 				</div>
 				<div>
 					<h3 class="text-lg font-medium">Secrets Locked</h3>

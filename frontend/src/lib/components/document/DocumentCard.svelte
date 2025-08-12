@@ -68,7 +68,7 @@
 </script>
 
 <Card
-	class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-all duration-200 hover:shadow-lg {isSelected
+	class="group border-border bg-card hover:border-primary/20 hover:shadow-primary/5 cursor-pointer transition-colors duration-200 hover:shadow-lg {isSelected
 		? 'ring-primary ring-2'
 		: ''} relative"
 	onclick={(e) => {

@@ -138,7 +138,7 @@
 	{#if tags.length > 0}
 		<div class="flex flex-wrap gap-2">
 			{#each tags as tag, index (tag)}
-				<Badge variant="default" class="group flex items-center gap-1.5 pr-1.5 transition-all">
+				<Badge variant="default" class="group flex items-center gap-1.5 pr-1.5 transition-colors">
 					<span class="text-sm">{tag}</span>
 					<button
 						type="button"

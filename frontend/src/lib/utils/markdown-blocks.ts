@@ -111,6 +111,11 @@ export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBl
 
 	try {
 		sessionId = extractSessionId(processedContent);
+		// Enable GitHub Flavored Markdown for task list support
+		marked.setOptions({
+			gfm: true,
+			breaks: true
+		});
 		const tokens = marked.lexer(processedContent);
 		const blocks: MarkdownBlock[] = [];
 

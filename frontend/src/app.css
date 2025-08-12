@@ -575,37 +575,9 @@
 		}
 	}
 
-	/* Task list styling */
-	.prose ul li:has(input[type='checkbox']) {
-		@apply flex list-none items-center gap-3;
-		margin-left: 0;
-		margin-bottom: 0.5rem;
-		padding-left: 0;
-	}
-
-	.prose ul li input[type='checkbox'] {
-		@apply flex-shrink-0 cursor-default;
-		width: 1rem;
-		height: 1rem;
-		margin-top: 0;
-		margin-right: 0;
-	}
-
-	.prose ul li:has(input[type='checkbox']) span {
-		@apply flex-1;
-		line-height: 1.5;
-	}
-
-	/* Only remove bullet points from pure task lists, not mixed lists */
-	.prose ul:not(:has(li:not(:has(input[type='checkbox'])))) {
+	/* Task list container - only remove bullets from pure task lists */
+	.prose ul:not(:has(li:not(.list-none))) {
 		@apply list-none;
-		padding-left: 1.5rem;
-		margin-left: 0;
-	}
-
-	/* Ensure regular list items still have bullets in mixed lists */
-	.prose ul li:not(:has(input[type='checkbox'])) {
-		@apply list-disc;
-		margin-left: 1.5rem;
+		padding-left: 0;
 	}
 }

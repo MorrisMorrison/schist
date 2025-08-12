@@ -136,18 +136,9 @@
 		margin: 1rem 0;
 	}
 
-	/* Task list styling */
-	:global(.markdown-preview ul li input[type='checkbox']) {
-		margin-right: 0.5rem;
-		margin-top: 0.125rem; /* Align with text baseline */
-		cursor: default; /* Indicate read-only state */
-		transform: scale(1.1); /* Slightly larger for better visibility */
-	}
-
-	/* Task list items should not have bullets */
-	:global(.markdown-preview ul li:has(input[type='checkbox'])) {
-		list-style-type: none;
-		margin-left: 0; /* Remove the negative margin that was causing issues */
-		padding-left: 1.5rem; /* Add proper indentation */
+	/* Task list containers in preview should not have default list padding */
+	:global(.markdown-preview ul:not(:has(li:not(.list-none)))) {
+		list-style: none;
+		padding-left: 0;
 	}
 </style>

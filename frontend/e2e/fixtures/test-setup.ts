@@ -8,6 +8,7 @@ import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
+import { SettingsPage } from '../pages/SettingsPage';
 import { ApiHelper } from '../utils/api-helpers';
 import { DirectoryManager, createDirectoryManager } from '../utils/directory-manager';
 import { TestMonitor, createTestMonitor } from '../utils/test-monitor';
@@ -57,6 +58,7 @@ export const test = base.extend<{
 	editorPage: EditorPage;
 	documentViewPage: DocumentViewPage;
 	folderPage: FolderPage;
+	settingsPage: SettingsPage;
 	apiHelper: ApiHelper;
 	directoryManager: DirectoryManager;
 	testMonitor: TestMonitor;
@@ -86,6 +88,12 @@ export const test = base.extend<{
 		await page.goto(workerBaseURL);
 		const folderPage = new FolderPage(page);
 		await use(folderPage);
+	},
+
+	settingsPage: async ({ page, workerBaseURL }, use) => {
+		await page.goto(workerBaseURL);
+		const settingsPage = new SettingsPage(page);
+		await use(settingsPage);
 	},
 
 	directoryManager: async ({ request }, use, testInfo) => {

@@ -605,6 +605,12 @@ class SchістApiClient {
 		});
 	}
 
+	async disconnectGitHub(): Promise<{ message: string; status: GitHubStatus }> {
+		return this.request<{ message: string; status: GitHubStatus }>('/github/disconnect', {
+			method: 'POST'
+		});
+	}
+
 	// Share management
 	async createShare(request: CreateShareRequest): Promise<ShareToken> {
 		return this.request<ShareToken>('/shares', {
@@ -789,6 +795,16 @@ class SchістApiClient {
 	async getTemplates(): Promise<Template[]> {
 		const response = await this.request<TemplatesResponse>('/templates');
 		return response.templates;
+	}
+
+	async checkGitHealth(): Promise<{ healthy: boolean; message?: string; error?: string }> {
+		return this.request<{ healthy: boolean; message?: string; error?: string }>('/git/health');
+	}
+
+	async repairGitRepository(): Promise<{ success: boolean; message?: string; error?: string }> {
+		return this.request<{ success: boolean; message?: string; error?: string }>('/git/repair', {
+			method: 'POST'
+		});
 	}
 }
 

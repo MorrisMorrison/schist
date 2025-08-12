@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,9 +16,7 @@ func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path = utils.EnsureLeadingSlash(path)
 
 	versions, err := h.DocumentService.GetDocumentVersions(path)
 	if err != nil {
@@ -52,9 +50,7 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path = utils.EnsureLeadingSlash(path)
 
 	document, err := h.DocumentService.GetDocumentAtVersion(path, commitHash)
 	if err != nil {
@@ -96,9 +92,7 @@ func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path = utils.EnsureLeadingSlash(path)
 
 	diff, err := h.DocumentService.CompareDocumentVersions(path, hash1, hash2)
 	if err != nil {
@@ -130,9 +124,7 @@ func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path = utils.EnsureLeadingSlash(path)
 
 	err := h.DocumentService.RestoreDocumentToVersion(path, commitHash)
 	if err != nil {

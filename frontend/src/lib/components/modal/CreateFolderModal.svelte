@@ -10,7 +10,7 @@
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Folder, AlertCircle } from 'lucide-svelte';
-	import { parseError, isValidationError } from '$lib/utils/error';
+	import { parseError } from '$lib/utils/error';
 
 	interface Props {
 		parentPath?: string;
@@ -69,11 +69,13 @@
 			const parsedError = parseError(err);
 			error = parsedError.message;
 			errorSeverity = parsedError.severity;
-			
+
 			// Log detailed error for debugging
 			console.error('Failed to create folder', {
 				folderName,
-				fullPath: parentPath ? `${parentPath}/${folderName.trim().toLowerCase().replace(/\s+/g, '-')}` : `/${folderName.trim().toLowerCase().replace(/\s+/g, '-')}`,
+				fullPath: parentPath
+					? `${parentPath}/${folderName.trim().toLowerCase().replace(/\s+/g, '-')}`
+					: `/${folderName.trim().toLowerCase().replace(/\s+/g, '-')}`,
 				error: parsedError
 			});
 		} finally {
@@ -112,13 +114,13 @@
 					/>
 
 					{#if error && folderName}
-						<div class="flex items-center gap-2 rounded-md p-2 text-sm {
-							errorSeverity === 'error' 
+						<div
+							class="flex items-center gap-2 rounded-md p-2 text-sm {errorSeverity === 'error'
 								? 'bg-red-50 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-								: errorSeverity === 'warning' 
-								? 'bg-amber-50 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
-								: 'bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
-						}">
+								: errorSeverity === 'warning'
+									? 'bg-amber-50 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+									: 'bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'}"
+						>
 							<AlertCircle class="h-4 w-4 flex-shrink-0" />
 							{error}
 						</div>

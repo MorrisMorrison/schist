@@ -125,7 +125,7 @@ func ValidateQueryParameter(c *gin.Context, paramName string, required bool) (st
 	return value, nil
 }
 
-func ValidateJSONBody(c *gin.Context, obj interface{}) *errors.APIError {
+func ValidateJSONBody(c *gin.Context, obj any) *errors.APIError {
 	if err := c.ShouldBindJSON(obj); err != nil {
 		return errors.NewInvalidRequestError("Invalid JSON in request body").WithCause(err)
 	}
@@ -134,15 +134,15 @@ func ValidateJSONBody(c *gin.Context, obj interface{}) *errors.APIError {
 
 // Success response helpers
 
-func RespondWithSuccess(c *gin.Context, statusCode int, data interface{}) {
+func RespondWithSuccess(c *gin.Context, statusCode int, data any) {
 	c.JSON(statusCode, data)
 }
 
-func RespondWithCreated(c *gin.Context, data interface{}) {
+func RespondWithCreated(c *gin.Context, data any) {
 	RespondWithSuccess(c, http.StatusCreated, data)
 }
 
-func RespondWithOK(c *gin.Context, data interface{}) {
+func RespondWithOK(c *gin.Context, data any) {
 	RespondWithSuccess(c, http.StatusOK, data)
 }
 

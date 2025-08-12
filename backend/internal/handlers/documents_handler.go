@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
-	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/gin-gonic/gin"
 )
 

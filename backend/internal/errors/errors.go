@@ -104,7 +104,8 @@ func NewNotFoundError(resource, identifier string) *APIError {
 }
 
 func NewAlreadyExistsError(resource, identifier string) *APIError {
-	return NewAPIError(ErrCodeAlreadyExists, fmt.Sprintf("%s already exists: %s", resource, identifier), http.StatusConflict).
+	message := fmt.Sprintf("%s already exists: %s", resource, identifier)
+	return NewAPIError(ErrCodeAlreadyExists, message, http.StatusConflict).
 		WithDetails("resource", resource).
 		WithDetails("identifier", identifier)
 }
@@ -160,7 +161,8 @@ func NewUnavailableError(service string) *APIError {
 
 // Business Logic Errors
 func NewOperationFailedError(operation string, reason string) *APIError {
-	return NewAPIError(ErrCodeOperationFailed, fmt.Sprintf("Operation failed: %s - %s", operation, reason), http.StatusUnprocessableEntity).
+	message := fmt.Sprintf("Operation failed: %s - %s", operation, reason)
+	return NewAPIError(ErrCodeOperationFailed, message, http.StatusUnprocessableEntity).
 		WithDetails("operation", operation).
 		WithDetails("reason", reason)
 }

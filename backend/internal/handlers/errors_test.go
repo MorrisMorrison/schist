@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/MorrisMorrison/schist/internal/errors"
+	"github.com/gin-gonic/gin"
 )
 
 func TestHandleError(t *testing.T) {
@@ -69,11 +69,11 @@ func TestValidatePathParameter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	tests := []struct {
-		name      string
-		paramName string
+		name       string
+		paramName  string
 		paramValue string
-		wantError bool
-		wantValue string
+		wantError  bool
+		wantValue  string
 	}{
 		{
 			name:       "valid path parameter",
@@ -83,10 +83,10 @@ func TestValidatePathParameter(t *testing.T) {
 			wantValue:  "/test/path",
 		},
 		{
-			name:      "missing path parameter",
-			paramName: "path",
+			name:       "missing path parameter",
+			paramName:  "path",
 			paramValue: "",
-			wantError: true,
+			wantError:  true,
 		},
 	}
 
@@ -237,7 +237,7 @@ func TestRespondWithSuccess(t *testing.T) {
 	tests := []struct {
 		name           string
 		statusCode     int
-		data           interface{}
+		data           any
 		expectedStatus int
 	}{
 		{
@@ -265,7 +265,7 @@ func TestRespondWithSuccess(t *testing.T) {
 				t.Errorf("RespondWithSuccess() status = %v, want %v", w.Code, tt.expectedStatus)
 			}
 
-			var response map[string]interface{}
+			var response map[string]any
 			if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 				t.Fatalf("Failed to unmarshal response: %v", err)
 			}

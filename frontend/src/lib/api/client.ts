@@ -110,7 +110,7 @@ class SchістApiClient {
 			case 408:
 				return 'TIMEOUT_ERROR';
 			case 429:
-				return 'TIMEOUT_ERROR'; 
+				return 'TIMEOUT_ERROR';
 			case 500:
 				return 'INTERNAL_ERROR';
 			case 502:
@@ -132,15 +132,11 @@ class SchістApiClient {
 			try {
 				const config = await this.getConfig();
 				if (config.auth_enabled) {
-					const returnUrl = encodeURIComponent(
-						window.location.pathname + window.location.search
-					);
+					const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
 					await goto(`/login?returnUrl=${returnUrl}`);
 				}
 			} catch {
-				const returnUrl = encodeURIComponent(
-					window.location.pathname + window.location.search
-				);
+				const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
 				await goto(`/login?returnUrl=${returnUrl}`);
 			}
 		}
@@ -186,7 +182,7 @@ class SchістApiClient {
 			if (!response.ok) {
 				const errorText = await response.text();
 				let errorData;
-				
+
 				try {
 					errorData = JSON.parse(errorText);
 				} catch {

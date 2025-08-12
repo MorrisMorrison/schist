@@ -45,7 +45,9 @@ describe('parseError', () => {
 
 		const result = parseError(error);
 
-		expect(result.message).toBe('Network connection failed. Please check your internet connection.');
+		expect(result.message).toBe(
+			'Network connection failed. Please check your internet connection.'
+		);
 		expect(result.isRetryable).toBe(false);
 		expect(result.severity).toBe('error');
 	});
@@ -131,7 +133,7 @@ describe('error classification', () => {
 			{ code: 'INTERNAL_ERROR' as const }
 		];
 
-		retryableErrors.forEach(error => {
+		retryableErrors.forEach((error) => {
 			const result = parseError(error);
 			expect(result.isRetryable).toBe(true);
 		});
@@ -144,7 +146,7 @@ describe('error classification', () => {
 			{ code: 'RESOURCE_NOT_FOUND' as const }
 		];
 
-		nonRetryableErrors.forEach(error => {
+		nonRetryableErrors.forEach((error) => {
 			const result = parseError(error);
 			expect(result.isRetryable).toBe(false);
 		});
@@ -182,13 +184,9 @@ describe('formatErrorForLogging', () => {
 
 describe('error type checkers', () => {
 	it('should identify authentication errors', () => {
-		const authErrors = [
-			{ code: 'UNAUTHORIZED' as const },
-			'You need to sign in',
-			'HTTP 401 error'
-		];
+		const authErrors = [{ code: 'UNAUTHORIZED' as const }, 'You need to sign in', 'HTTP 401 error'];
 
-		authErrors.forEach(error => {
+		authErrors.forEach((error) => {
 			expect(isAuthenticationError(error)).toBe(true);
 		});
 
@@ -202,7 +200,7 @@ describe('error type checkers', () => {
 			{ code: 'MISSING_REQUIRED_FIELD' as const }
 		];
 
-		validationErrors.forEach(error => {
+		validationErrors.forEach((error) => {
 			expect(isValidationError(error)).toBe(true);
 		});
 

@@ -310,6 +310,12 @@ export interface GitHubDocument {
 	name: string;
 	path: string;
 	content: string;
+	sha: string;
+	repository: string;
+	owner: string;
+	branch: string;
+	size: number;
+	last_modified: string;
 	html_url?: string;
 	download_url?: string;
 }

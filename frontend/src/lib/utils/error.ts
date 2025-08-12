@@ -1,9 +1,3 @@
-/**
- * Frontend error handling utilities
- * Provides consistent error handling and user-friendly error messages
- */
-
-// Standard error codes from backend
 export type ErrorCode =
 	| 'VALIDATION_ERROR'
 	| 'INVALID_PATH'
@@ -19,18 +13,17 @@ export type ErrorCode =
 	| 'FILESYSTEM_ERROR'
 	| 'NETWORK_ERROR'
 	| 'TIMEOUT_ERROR'
+	| 'RATE_LIMITED'
 	| 'SERVICE_UNAVAILABLE'
 	| 'OPERATION_FAILED'
 	| 'INVALID_STATE';
 
-// API Error response structure
 export interface APIErrorResponse {
 	error: string;
 	code?: ErrorCode;
 	details?: Record<string, unknown>;
 }
 
-// Parsed error with user-friendly message
 export interface ParsedError {
 	message: string;
 	code?: ErrorCode;
@@ -39,11 +32,7 @@ export interface ParsedError {
 	severity: 'error' | 'warning' | 'info';
 }
 
-/**
- * Parse error from various sources into a standardized format
- */
 export function parseError(error: unknown): ParsedError {
-	// Handle Response objects (fetch errors)
 	if (error instanceof Response) {
 		return {
 			message: getStatusMessage(error.status),
@@ -53,9 +42,7 @@ export function parseError(error: unknown): ParsedError {
 		};
 	}
 
-	// Handle Error objects
 	if (error instanceof Error) {
-		// Try to parse as API error response
 		try {
 			const apiError = JSON.parse(error.message) as APIErrorResponse;
 			if (apiError.error) {
@@ -78,7 +65,6 @@ export function parseError(error: unknown): ParsedError {
 		};
 	}
 
-	// Handle string errors
 	if (typeof error === 'string') {
 		return {
 			message: getUserFriendlyMessage(error),
@@ -87,7 +73,6 @@ export function parseError(error: unknown): ParsedError {
 		};
 	}
 
-	// Handle objects with code property (like { code: 'VALIDATION_ERROR' })
 	if (error && typeof error === 'object' && 'code' in error) {
 		const errorObj = error as {
 			code?: ErrorCode;
@@ -103,7 +88,6 @@ export function parseError(error: unknown): ParsedError {
 		};
 	}
 
-	// Handle objects with error property
 	if (error && typeof error === 'object' && 'error' in error) {
 		const errorObj = error as APIErrorResponse;
 		return {
@@ -115,7 +99,6 @@ export function parseError(error: unknown): ParsedError {
 		};
 	}
 
-	// Fallback for unknown error types
 	return {
 		message: 'An unexpected error occurred. Please try again.',
 		isRetryable: true,
@@ -123,11 +106,16 @@ export function parseError(error: unknown): ParsedError {
 	};
 }
 
-/**
- * Convert generic error messages to user-friendly messages
- */
+function isUserFriendlyMessage(message: string): boolean {
+	return (
+		message.length > 10 &&
+		!message.toLowerCase().includes('error:') &&
+		!message.includes('Error:') &&
+		!message.includes('HTTP ')
+	);
+}
+
 function getUserFriendlyMessage(message: string, code?: ErrorCode): string {
-	// Handle specific error codes
 	if (code) {
 		switch (code) {
 			case 'VALIDATION_ERROR':
@@ -146,6 +134,8 @@ function getUserFriendlyMessage(message: string, code?: ErrorCode): string {
 				return 'Network connection failed. Please check your internet connection.';
 			case 'TIMEOUT_ERROR':
 				return 'The request timed out. Please try again.';
+			case 'RATE_LIMITED':
+				return 'Too many requests. Please wait a moment and try again.';
 			case 'SERVICE_UNAVAILABLE':
 				return 'The service is temporarily unavailable. Please try again later.';
 			case 'DATABASE_ERROR':
@@ -155,7 +145,6 @@ function getUserFriendlyMessage(message: string, code?: ErrorCode): string {
 		}
 	}
 
-	// Handle common error patterns
 	if (message.toLowerCase().includes('network')) {
 		return 'Network connection failed. Please check your internet connection.';
 	}
@@ -180,23 +169,13 @@ function getUserFriendlyMessage(message: string, code?: ErrorCode): string {
 		return 'You do not have permission to perform this action.';
 	}
 
-	// Return the original message if it's already user-friendly
-	if (
-		message.length > 10 &&
-		!message.toLowerCase().includes('error:') &&
-		!message.includes('Error:') &&
-		!message.includes('HTTP ')
-	) {
+	if (isUserFriendlyMessage(message)) {
 		return message;
 	}
 
-	// Fallback for technical error messages
 	return 'An error occurred. Please try again.';
 }
 
-/**
- * Get user-friendly message for HTTP status codes
- */
 function getStatusMessage(status: number): string {
 	switch (status) {
 		case 400:
@@ -224,9 +203,6 @@ function getStatusMessage(status: number): string {
 	}
 }
 
-/**
- * Get error code from HTTP status
- */
 function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
 	switch (status) {
 		case 400:
@@ -241,6 +217,8 @@ function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
 			return 'RESOURCE_CONFLICT';
 		case 408:
 			return 'TIMEOUT_ERROR';
+		case 429:
+			return 'RATE_LIMITED';
 		case 500:
 			return 'INTERNAL_ERROR';
 		case 502:
@@ -252,24 +230,17 @@ function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
 	}
 }
 
-/**
- * Determine if an HTTP status is retryable
- */
 function isRetryableStatus(status: number): boolean {
-	// Client errors (4xx) are generally not retryable
-	// Server errors (5xx) are usually retryable
 	return status >= 500 || status === 408 || status === 429;
 }
 
-/**
- * Determine if an error code represents a retryable error
- */
 function isRetryableError(code?: ErrorCode): boolean {
 	if (!code) return false;
 
 	const retryableErrors: ErrorCode[] = [
 		'NETWORK_ERROR',
 		'TIMEOUT_ERROR',
+		'RATE_LIMITED',
 		'SERVICE_UNAVAILABLE',
 		'INTERNAL_ERROR',
 		'DATABASE_ERROR',
@@ -279,9 +250,6 @@ function isRetryableError(code?: ErrorCode): boolean {
 	return retryableErrors.includes(code);
 }
 
-/**
- * Get severity level from HTTP status
- */
 function getSeverityFromStatus(status: number): 'error' | 'warning' | 'info' {
 	if (status >= 500) return 'error';
 	if (status === 401 || status === 403) return 'warning';
@@ -289,9 +257,6 @@ function getSeverityFromStatus(status: number): 'error' | 'warning' | 'info' {
 	return 'info';
 }
 
-/**
- * Get severity level from error code
- */
 function getSeverityFromCode(code?: ErrorCode): 'error' | 'warning' | 'info' {
 	if (!code) return 'error';
 
@@ -316,9 +281,6 @@ function getSeverityFromCode(code?: ErrorCode): 'error' | 'warning' | 'info' {
 	return 'info';
 }
 
-/**
- * Format error for logging
- */
 export function formatErrorForLogging(error: unknown, context?: Record<string, unknown>): string {
 	const parsed = parseError(error);
 	const logData = {
@@ -332,9 +294,6 @@ export function formatErrorForLogging(error: unknown, context?: Record<string, u
 	return JSON.stringify(logData);
 }
 
-/**
- * Check if error indicates authentication is required
- */
 export function isAuthenticationError(error: unknown): boolean {
 	const parsed = parseError(error);
 	return (
@@ -344,9 +303,6 @@ export function isAuthenticationError(error: unknown): boolean {
 	);
 }
 
-/**
- * Check if error is a validation error
- */
 export function isValidationError(error: unknown): boolean {
 	const parsed = parseError(error);
 	return (
@@ -356,21 +312,16 @@ export function isValidationError(error: unknown): boolean {
 	);
 }
 
-/**
- * Check if error suggests the item was not found
- */
 export function isNotFoundError(error: unknown): boolean {
 	const parsed = parseError(error);
 	return parsed.code === 'RESOURCE_NOT_FOUND';
 }
 
-/**
- * Create a retry function for retryable errors
- */
 export function createRetryHandler<T>(
 	originalAction: () => Promise<T>,
 	maxRetries = 3,
-	delay = 1000
+	delay = 1000,
+	maxDelay = 30000
 ) {
 	return async function retryWithBackoff(): Promise<T> {
 		let lastError: unknown;
@@ -386,8 +337,8 @@ export function createRetryHandler<T>(
 					throw error;
 				}
 
-				// Wait with exponential backoff
-				await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, attempt - 1)));
+				const backoffDelay = Math.min(delay * Math.pow(2, attempt - 1), maxDelay);
+				await new Promise((resolve) => setTimeout(resolve, backoffDelay));
 			}
 		}
 

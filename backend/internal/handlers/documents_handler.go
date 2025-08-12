@@ -19,7 +19,7 @@ func (h *APIHandler) listDocuments(c *gin.Context) {
 		return
 	}
 
-	RespondWithOK(c, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"documents": documents,
 		"total":     len(documents),
 	})
@@ -46,7 +46,7 @@ func (h *APIHandler) createDocument(c *gin.Context) {
 		fmt.Printf("Warning: failed to update backlinks for new document %s: %v\n", document.MetaData.Path, err)
 	}
 
-	RespondWithCreated(c, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"message": "Document created successfully",
 		"path":    document.MetaData.Path,
 	})
@@ -70,7 +70,7 @@ func (h *APIHandler) getDocumentByPath(c *gin.Context) {
 		return
 	}
 
-	RespondWithOK(c, document)
+	c.JSON(http.StatusOK, document)
 }
 
 func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
@@ -114,7 +114,7 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 		fmt.Printf("Warning: failed to update backlinks for updated document %s: %v\n", updatedDocument.MetaData.Path, err)
 	}
 
-	RespondWithOK(c, updatedDocument)
+	c.JSON(http.StatusOK, updatedDocument)
 }
 
 func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
@@ -135,7 +135,7 @@ func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
 			return
 		}
 
-		RespondWithOK(c, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"message": "Document permanently deleted",
 			"path":    path,
 		})

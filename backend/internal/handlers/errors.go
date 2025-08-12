@@ -131,21 +131,3 @@ func ValidateJSONBody(c *gin.Context, obj any) *errors.APIError {
 	}
 	return nil
 }
-
-// Success response helpers
-
-func RespondWithSuccess(c *gin.Context, statusCode int, data any) {
-	c.JSON(statusCode, data)
-}
-
-func RespondWithCreated(c *gin.Context, data any) {
-	RespondWithSuccess(c, http.StatusCreated, data)
-}
-
-func RespondWithOK(c *gin.Context, data any) {
-	RespondWithSuccess(c, http.StatusOK, data)
-}
-
-func RespondWithNoContent(c *gin.Context) {
-	c.JSON(http.StatusNoContent, nil)
-}

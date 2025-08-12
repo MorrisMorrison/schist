@@ -9,8 +9,9 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Folder, AlertCircle } from 'lucide-svelte';
+	import { Folder } from 'lucide-svelte';
 	import { parseError } from '$lib/utils/error';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 
 	interface Props {
 		parentPath?: string;
@@ -23,7 +24,6 @@
 
 	let folderName = $state('');
 	let error = $state('');
-	let errorSeverity = $state<'error' | 'warning' | 'info'>('error');
 	let isLoading = $state(false);
 
 	$effect(() => {
@@ -34,9 +34,7 @@
 		}
 	});
 
-	const folderPath = $derived(
-		parentPath && parentPath !== '/' ? `${parentPath}/${folderName}` : `/${folderName}`
-	);
+	const folderPath = $derived(constructFolderPath(folderName, parentPath));
 	const isValidName = $derived(validateFolderName(folderName));
 
 	function validateFolderName(name: string): boolean {
@@ -53,6 +51,11 @@
 		return true;
 	}
 
+	function constructFolderPath(folderName: string, parentPath: string, normalize = false): string {
+		const name = normalize ? folderName.trim().toLowerCase().replace(/\s+/g, '-') : folderName;
+		return parentPath && parentPath !== '/' ? `${parentPath}/${name}` : `/${name}`;
+	}
+
 	async function createFolder() {
 		if (!isValidName || isLoading) return;
 
@@ -60,22 +63,17 @@
 		error = '';
 
 		try {
-			const normalizedName = folderName.trim().toLowerCase().replace(/\s+/g, '-');
-			const fullPath = parentPath ? `${parentPath}/${normalizedName}` : `/${normalizedName}`;
+			const fullPath = constructFolderPath(folderName, parentPath, true);
 
 			await folderActions.createFolder(fullPath);
 			onCreated();
 		} catch (err) {
 			const parsedError = parseError(err);
 			error = parsedError.message;
-			errorSeverity = parsedError.severity;
 
-			// Log detailed error for debugging
 			console.error('Failed to create folder', {
 				folderName,
-				fullPath: parentPath
-					? `${parentPath}/${folderName.trim().toLowerCase().replace(/\s+/g, '-')}`
-					: `/${folderName.trim().toLowerCase().replace(/\s+/g, '-')}`,
+				fullPath: constructFolderPath(folderName, parentPath, true),
 				error: parsedError
 			});
 		} finally {
@@ -109,37 +107,29 @@
 						type="text"
 						bind:value={folderName}
 						placeholder="Enter folder name"
-						class={error && folderName ? 'border-red-500' : ''}
+						class={error && folderName ? 'border-destructive' : ''}
 						required
 					/>
 
 					{#if error && folderName}
-						<div
-							class="flex items-center gap-2 rounded-md p-2 text-sm {errorSeverity === 'error'
-								? 'bg-red-50 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-								: errorSeverity === 'warning'
-									? 'bg-amber-50 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
-									: 'bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'}"
-						>
-							<AlertCircle class="h-4 w-4 flex-shrink-0" />
-							{error}
-						</div>
+						<ErrorAlert {error} />
 					{/if}
 				</div>
 
-				<div class="bg-secondary rounded-lg border p-4">
+				<div class="bg-secondary/50 border-border rounded-lg border p-4">
 					<div class="space-y-2">
-						<span class="text-secondary text-sm font-medium">Full Path:</span>
-						<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-blue-600"
+						<span class="text-muted-foreground text-sm font-medium">Full Path:</span>
+						<code
+							class="bg-muted border-border text-primary block w-full rounded border px-3 py-2 text-sm"
 							>{folderPath}</code
 						>
 					</div>
 				</div>
 
 				{#if parentPath}
-					<div class="text-secondary flex items-center gap-2 text-sm">
+					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<span class="font-medium">Parent folder:</span>
-						<code class="bg-secondary text-primary rounded px-2 py-1">{parentPath}</code>
+						<code class="bg-muted text-foreground rounded px-2 py-1">{parentPath}</code>
 					</div>
 				{/if}
 			</div>

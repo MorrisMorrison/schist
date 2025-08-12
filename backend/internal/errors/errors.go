@@ -29,6 +29,7 @@ const (
 	ErrCodeFileSystem  ErrorCode = "FILESYSTEM_ERROR"
 	ErrCodeNetwork     ErrorCode = "NETWORK_ERROR"
 	ErrCodeTimeout     ErrorCode = "TIMEOUT_ERROR"
+	ErrCodeRateLimited ErrorCode = "RATE_LIMITED"
 	ErrCodeUnavailable ErrorCode = "SERVICE_UNAVAILABLE"
 
 	// Business logic errors
@@ -152,6 +153,13 @@ func NewFileSystemError(operation string, cause error) *APIError {
 func NewTimeoutError(operation string) *APIError {
 	return NewAPIError(ErrCodeTimeout, fmt.Sprintf("Operation timed out: %s", operation), http.StatusRequestTimeout).
 		WithDetails("operation", operation)
+}
+
+func NewRateLimitedError(message string) *APIError {
+	if message == "" {
+		message = "Rate limit exceeded"
+	}
+	return NewAPIError(ErrCodeRateLimited, message, http.StatusTooManyRequests)
 }
 
 func NewUnavailableError(service string) *APIError {

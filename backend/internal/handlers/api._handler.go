@@ -141,8 +141,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		passkeys.POST("/authenticate/begin", BeginPasskeyAuthenticationHandler(h.Services))
 		passkeys.POST("/authenticate/finish", FinishPasskeyAuthenticationHandler(h.Services))
 
-		// Legacy/management endpoints
-		passkeys.POST("", CreatePasskeyHandler(h.Services))
+		// Management endpoints
 		passkeys.GET("", ListPasskeysHandler(h.Services))
 		passkeys.POST("/unlock", UnlockWithPasskeyHandler(h.Services))
 		passkeys.DELETE("/:id", DeletePasskeyHandler(h.Services))

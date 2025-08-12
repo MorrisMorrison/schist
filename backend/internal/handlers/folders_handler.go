@@ -2,16 +2,13 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *APIHandler) getFolder(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	folder, err := h.DocumentService.GetFolder(path)
 	if err != nil {
@@ -52,10 +49,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 		return
 	}
 
-	path := req.Path
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(req.Path)
 
 	err := h.DocumentService.CreateFolder(path)
 	if err != nil {
@@ -72,10 +66,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 }
 
 func (h *APIHandler) renameFolder(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	type RenameRequest struct {
 		NewName string `json:"newName" binding:"required"`
@@ -106,10 +97,7 @@ func (h *APIHandler) renameFolder(c *gin.Context) {
 }
 
 func (h *APIHandler) deleteFolder(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	err := h.DocumentService.DeleteFolder(path)
 	if err != nil {
@@ -140,12 +128,8 @@ func (h *APIHandler) moveFolder(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasPrefix(req.OldPath, "/") {
-		req.OldPath = "/" + req.OldPath
-	}
-	if !strings.HasPrefix(req.NewPath, "/") {
-		req.NewPath = "/" + req.NewPath
-	}
+	req.OldPath = utils.EnsureLeadingSlash(req.OldPath)
+	req.NewPath = utils.EnsureLeadingSlash(req.NewPath)
 
 	err = h.DocumentService.MoveFolder(req.OldPath, req.NewPath)
 	if err != nil {

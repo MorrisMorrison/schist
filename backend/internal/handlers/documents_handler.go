@@ -62,7 +62,7 @@ func (h *APIHandler) getDocumentByPath(c *gin.Context) {
 
 	document, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no such file or directory") {
 			HandleError(c, errors.NewNotFoundError("document", path))
 		} else {
 			HandleError(c, errors.NewDatabaseError("get document", err))

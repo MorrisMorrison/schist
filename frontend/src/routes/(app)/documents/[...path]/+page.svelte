@@ -9,6 +9,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Home, Plus, RotateCcw, Search } from 'lucide-svelte';
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
+	import { parseError, isNotFoundError } from '$lib/utils/error';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
@@ -47,7 +48,7 @@
 					addToRecentDocuments(currentDocument.metaData.path);
 				}
 			} catch (documentError) {
-				if (documentError instanceof Error && documentError.message.includes('404')) {
+				if (isNotFoundError(documentError)) {
 					isNotFound = true;
 					isFolder = false;
 				} else {

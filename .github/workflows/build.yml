@@ -65,7 +65,7 @@ jobs:
           
       - name: Test Docker image
         run: |
-          docker run --rm -d --name schist-test -p 8080:8080 \
+          docker run --rm -d --name schist-test -p 4001:8080 \
             -e ENV=production \
             -e SCHIST_DATA_DIR=/app/data \
             -e SCHIST_PORT=8080 \

@@ -9,8 +9,8 @@ on:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    runs-on: self-hosted
+    timeout-minutes: 10
     
     steps:
       - uses: actions/checkout@v4

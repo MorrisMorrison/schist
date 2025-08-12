@@ -14,6 +14,7 @@ import (
 
 	appconfig "github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/crypto"
+	"github.com/MorrisMorrison/schist/internal/models"
 )
 
 type GitHubService struct {
@@ -590,4 +591,228 @@ func (gs *GitHubService) pushToGitHub() error {
 	}
 
 	return nil
+}
+
+func (gs *GitHubService) GetRepositoryStructure(owner, repo, path string) (*models.GitHubFolder, error) {
+	if owner == "" {
+		return nil, fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return nil, fmt.Errorf("repository name is required")
+	}
+	if path == "" {
+		path = "docs"
+	}
+
+	branch := "main"
+
+	if gs.client == nil {
+		if err := gs.initializeClient(); err != nil {
+			return nil, fmt.Errorf("failed to initialize github client: %w", err)
+		}
+	}
+
+	options := &github.RepositoryContentGetOptions{
+		Ref: branch,
+	}
+	_, dirContent, _, err := gs.client.Repositories.GetContents(gs.ctx, owner, repo, path, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository contents at %s: %w", path, err)
+	}
+
+	folder := &models.GitHubFolder{
+		Path:       path,
+		Repository: repo,
+		Owner:      owner,
+		Branch:     branch,
+		Files:      []models.GitHubDocument{},
+		Folders:    []models.GitHubFolder{},
+	}
+
+	for _, content := range dirContent {
+		if content.Type != nil {
+			switch *content.Type {
+			case "file":
+				if content.Name != nil && content.SHA != nil && content.Size != nil {
+					doc := models.GitHubDocument{
+						Path:       *content.Path,
+						SHA:        *content.SHA,
+						Repository: repo,
+						Owner:      owner,
+						Branch:     branch,
+						Size:       *content.Size,
+					}
+					folder.Files = append(folder.Files, doc)
+				}
+			case "dir":
+				if content.Name != nil {
+					subFolder := models.GitHubFolder{
+						Path:       *content.Path,
+						Repository: repo,
+						Owner:      owner,
+						Branch:     branch,
+						Files:      []models.GitHubDocument{},
+						Folders:    []models.GitHubFolder{},
+					}
+					folder.Folders = append(folder.Folders, subFolder)
+				}
+			}
+		}
+	}
+
+	return folder, nil
+}
+
+func (gs *GitHubService) GetDocumentContent(owner, repo, path string) (*models.GitHubDocument, error) {
+	if owner == "" {
+		return nil, fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return nil, fmt.Errorf("repository name is required")
+	}
+	if path == "" {
+		return nil, fmt.Errorf("file path is required")
+	}
+
+	branch := "main"
+
+	if gs.client == nil {
+		if err := gs.initializeClient(); err != nil {
+			return nil, fmt.Errorf("failed to initialize github client: %w", err)
+		}
+	}
+
+	options := &github.RepositoryContentGetOptions{
+		Ref: branch,
+	}
+	fileContent, _, _, err := gs.client.Repositories.GetContents(gs.ctx, owner, repo, path, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file content at %s: %w", path, err)
+	}
+
+	if fileContent == nil {
+		return nil, fmt.Errorf("file not found at path %s", path)
+	}
+
+	content, err := fileContent.GetContent()
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode file content: %w", err)
+	}
+
+	doc := &models.GitHubDocument{
+		Path:       path,
+		Content:    content,
+		SHA:        *fileContent.SHA,
+		Repository: repo,
+		Owner:      owner,
+		Branch:     branch,
+		Size:       *fileContent.Size,
+	}
+
+	return doc, nil
+}
+
+func (gs *GitHubService) ListDocsFiles(owner, repo string) ([]models.GitHubDocument, error) {
+	if owner == "" {
+		return nil, fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return nil, fmt.Errorf("repository name is required")
+	}
+
+	folder, err := gs.GetRepositoryStructure(owner, repo, "docs")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docs folder structure: %w", err)
+	}
+
+	var allFiles []models.GitHubDocument
+	allFiles = append(allFiles, folder.Files...)
+
+	for _, subFolder := range folder.Folders {
+		subFolderContents, err := gs.GetRepositoryStructure(owner, repo, subFolder.Path)
+		if err != nil {
+			continue
+		}
+		allFiles = append(allFiles, subFolderContents.Files...)
+	}
+
+	return allFiles, nil
+}
+
+func (gs *GitHubService) AddDocsRepository(owner, repo, docsFolder string) error {
+	if owner == "" {
+		return fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return fmt.Errorf("repository name is required")
+	}
+	if docsFolder == "" {
+		docsFolder = "docs"
+	}
+
+	if gs.client == nil {
+		if err := gs.initializeClient(); err != nil {
+			return fmt.Errorf("failed to initialize github client: %w", err)
+		}
+	}
+
+	repoKey := fmt.Sprintf("%s/%s", owner, repo)
+	settings := gs.settings.GetGitHubSettings()
+
+	if settings.DocsRepos == nil {
+		settings.DocsRepos = make(map[string]appconfig.GitHubRepoSettings)
+	}
+
+	settings.DocsRepos[repoKey] = appconfig.GitHubRepoSettings{
+		Owner:         owner,
+		Repository:    repo,
+		DocsFolder:    docsFolder,
+		LastSync:      time.Time{},
+		SyncError:     "",
+		DocumentCount: 0,
+	}
+
+	return gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+}
+
+func (gs *GitHubService) RemoveDocsRepository(owner, repo string) error {
+	if owner == "" {
+		return fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return fmt.Errorf("repository name is required")
+	}
+
+	repoKey := fmt.Sprintf("%s/%s", owner, repo)
+	settings := gs.settings.GetGitHubSettings()
+
+	if settings.DocsRepos != nil {
+		delete(settings.DocsRepos, repoKey)
+		return gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+	}
+
+	return nil
+}
+
+func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubRepoConfig, error) {
+	settings := gs.settings.GetGitHubSettings()
+	var repos []models.GitHubRepoConfig
+
+	if settings.DocsRepos == nil {
+		return repos, nil
+	}
+
+	for _, repoSettings := range settings.DocsRepos {
+		repo := models.GitHubRepoConfig{
+			Owner:         repoSettings.Owner,
+			Repository:    repoSettings.Repository,
+			DocsFolder:    repoSettings.DocsFolder,
+			LastSync:      repoSettings.LastSync,
+			SyncError:     repoSettings.SyncError,
+			DocumentCount: repoSettings.DocumentCount,
+		}
+		repos = append(repos, repo)
+	}
+
+	return repos, nil
 }

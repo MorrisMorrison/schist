@@ -94,3 +94,38 @@ type ExportOptions struct {
 	Format      string     `json:"format,omitempty"` // "zip" or "markdown"
 	IncludeMeta bool       `json:"include_meta,omitempty"`
 }
+
+type GitHubDocument struct {
+	Path         string    `json:"path"`
+	Content      string    `json:"content"`
+	SHA          string    `json:"sha"`
+	Repository   string    `json:"repository"`
+	Owner        string    `json:"owner"`
+	Branch       string    `json:"branch"`
+	Size         int       `json:"size"`
+	LastModified time.Time `json:"last_modified"`
+}
+
+type GitHubFolder struct {
+	Path       string           `json:"path"`
+	Repository string           `json:"repository"`
+	Owner      string           `json:"owner"`
+	Branch     string           `json:"branch"`
+	Files      []GitHubDocument `json:"files"`
+	Folders    []GitHubFolder   `json:"folders"`
+}
+
+type GitHubRepoConfig struct {
+	Owner         string    `json:"owner"`
+	Repository    string    `json:"repository"`
+	DocsFolder    string    `json:"docs_folder"`
+	LastSync      time.Time `json:"last_sync"`
+	SyncError     string    `json:"sync_error,omitempty"`
+	DocumentCount int       `json:"document_count"`
+}
+
+type GitHubRepoRequest struct {
+	Owner      string `json:"owner" binding:"required"`
+	Repository string `json:"repository" binding:"required"`
+	DocsFolder string `json:"docs_folder"`
+}

@@ -19,14 +19,24 @@ type Settings struct {
 }
 
 type GitHubSettings struct {
-	Enabled    bool                   `json:"enabled"`
-	Token      *crypto.EncryptedValue `json:"token,omitempty"`
-	Owner      string                 `json:"owner,omitempty"`
-	Repository string                 `json:"repository,omitempty"`
-	Branch     string                 `json:"branch"`
-	AutoSync   bool                   `json:"auto_sync"`
-	SyncOnSave bool                   `json:"sync_on_save"`
-	LastSync   time.Time              `json:"last_sync,omitempty"`
+	Enabled    bool                          `json:"enabled"`
+	Token      *crypto.EncryptedValue        `json:"token,omitempty"`
+	Owner      string                        `json:"owner,omitempty"`
+	Repository string                        `json:"repository,omitempty"`
+	Branch     string                        `json:"branch"`
+	AutoSync   bool                          `json:"auto_sync"`
+	SyncOnSave bool                          `json:"sync_on_save"`
+	LastSync   time.Time                     `json:"last_sync,omitempty"`
+	DocsRepos  map[string]GitHubRepoSettings `json:"docs_repos,omitempty"`
+}
+
+type GitHubRepoSettings struct {
+	Owner         string    `json:"owner"`
+	Repository    string    `json:"repository"`
+	DocsFolder    string    `json:"docs_folder"`
+	LastSync      time.Time `json:"last_sync"`
+	SyncError     string    `json:"sync_error,omitempty"`
+	DocumentCount int       `json:"document_count"`
 }
 
 type UISettings struct {

@@ -90,7 +90,7 @@
 		</div>
 
 		<div
-			class="mx-auto px-4 transition-all duration-300 ease-in-out sm:px-6 lg:px-8"
+			class="mx-auto px-4 transition-colors duration-300 ease-in-out sm:px-6 lg:px-8"
 			class:pl-16={showSidebarToggle}
 			class:md:ml-[280px]={isSidebarOpen}
 			class:max-w-7xl={!isSidebarOpen}

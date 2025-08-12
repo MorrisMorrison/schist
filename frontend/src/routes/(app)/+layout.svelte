@@ -212,7 +212,7 @@
 	.main-content {
 		flex: 1;
 		padding: 2rem;
-		transition: all 0.3s ease-in-out;
+		transition: padding 0.3s ease-in-out;
 	}
 
 	/* Only add overflow when sidebar is visible */

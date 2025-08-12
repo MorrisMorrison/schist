@@ -85,9 +85,23 @@ detect_project_type() {
     local types=()
     
     # Go project
-    if [[ -f "go.mod" ]] || [[ -f "go.sum" ]] || [[ -n "$(find . -maxdepth 3 -name "*.go" -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("go")
+    local go_detected=false
+    if [[ -f "go.mod" ]] || [[ -f "go.sum" ]]; then
+        go_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_GO_BASE_PATH:-}" ]]; then
+        local go_path="${CLAUDE_HOOKS_GO_BASE_PATH%/}"
+        if [[ -f "$go_path/go.mod" ]] || [[ -f "$go_path/go.sum" ]]; then
+            go_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "backend/go.mod" ]] || [[ -f "backend/go.sum" ]] || [[ -f "api/go.mod" ]] || [[ -f "server/go.mod" ]]; then
+            go_detected=true
+        elif [[ -n "$(find . -maxdepth 4 -name "*.go" -type f -print -quit 2>/dev/null)" ]]; then
+            go_detected=true
+        fi
     fi
+    [[ "$go_detected" == true ]] && types+=("go")
     
     # Python project
     if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || [[ -n "$(find . -maxdepth 3 -name "*.py" -type f -print -quit 2>/dev/null)" ]]; then
@@ -229,6 +243,32 @@ lint_go() {
     
     log_info "Running Go formatting and linting..."
     
+    # Determine Go project directory
+    local go_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_GO_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_GO_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/go.mod" ]] || [[ -f "$configured_path/go.sum" ]]; then
+            go_dir="$configured_path"
+            log_debug "Go project found in configured path: $go_dir/"
+        else
+            log_debug "Configured Go path '$configured_path' doesn't contain Go project, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "backend/go.mod" ]]; then
+            go_dir="backend"
+            log_debug "Go project auto-detected in backend/ directory"
+        elif [[ -f "api/go.mod" ]]; then
+            go_dir="api"
+            log_debug "Go project auto-detected in api/ directory"
+        elif [[ -f "server/go.mod" ]]; then
+            go_dir="server"
+            log_debug "Go project auto-detected in server/ directory"
+        fi
+    fi
+    
     # Check if Makefile exists with fmt and lint targets
     if [[ -f "Makefile" ]]; then
         local has_fmt=$(grep -E "^fmt:" Makefile 2>/dev/null || echo "")
@@ -253,11 +293,11 @@ lint_go() {
             log_info "Using direct Go tools"
             
             # Format check
-            local unformatted_files=$(gofmt -l . 2>/dev/null | grep -v vendor/ || true)
+            local unformatted_files=$(gofmt -l "$go_dir" 2>/dev/null | grep -v vendor/ || true)
             
             if [[ -n "$unformatted_files" ]]; then
                 local fmt_output
-                if ! fmt_output=$(gofmt -w . 2>&1); then
+                if ! fmt_output=$(gofmt -w "$go_dir" 2>&1); then
                     add_error "Go formatting failed"
                     echo "$fmt_output" >&2
                 fi
@@ -266,13 +306,13 @@ lint_go() {
             # Linting
             if command_exists golangci-lint; then
                 local lint_output
-                if ! lint_output=$(golangci-lint run --timeout=2m 2>&1); then
+                if ! lint_output=$(cd "$go_dir" && golangci-lint run --timeout=2m 2>&1); then
                     add_error "golangci-lint found issues"
                     echo "$lint_output" >&2
                 fi
             elif command_exists go; then
                 local vet_output
-                if ! vet_output=$(go vet ./... 2>&1); then
+                if ! vet_output=$(cd "$go_dir" && go vet ./... 2>&1); then
                     add_error "go vet found issues"
                     echo "$vet_output" >&2
                 fi
@@ -285,11 +325,11 @@ lint_go() {
         log_info "Using direct Go tools"
         
         # Format check
-        local unformatted_files=$(gofmt -l . 2>/dev/null | grep -v vendor/ || true)
+        local unformatted_files=$(gofmt -l "$go_dir" 2>/dev/null | grep -v vendor/ || true)
         
         if [[ -n "$unformatted_files" ]]; then
             local fmt_output
-            if ! fmt_output=$(gofmt -w . 2>&1); then
+            if ! fmt_output=$(gofmt -w "$go_dir" 2>&1); then
                 add_error "Go formatting failed"
                 echo "$fmt_output" >&2
             fi
@@ -298,13 +338,13 @@ lint_go() {
         # Linting
         if command_exists golangci-lint; then
             local lint_output
-            if ! lint_output=$(golangci-lint run --timeout=2m 2>&1); then
+            if ! lint_output=$(cd "$go_dir" && golangci-lint run --timeout=2m 2>&1); then
                 add_error "golangci-lint found issues"
                 echo "$lint_output" >&2
             fi
         elif command_exists go; then
             local vet_output
-            if ! vet_output=$(go vet ./... 2>&1); then
+            if ! vet_output=$(cd "$go_dir" && go vet ./... 2>&1); then
                 add_error "go vet found issues"
                 echo "$vet_output" >&2
             fi
@@ -365,11 +405,37 @@ lint_javascript() {
     
     log_info "Running JavaScript/TypeScript linters..."
     
+    # Determine JS project directory
+    local js_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_JS_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_JS_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/package.json" ]]; then
+            js_dir="$configured_path"
+            log_debug "JavaScript project found in configured path: $js_dir/"
+        else
+            log_debug "Configured JS path '$configured_path' doesn't contain package.json, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "frontend/package.json" ]]; then
+            js_dir="frontend"
+            log_debug "JavaScript project auto-detected in frontend/ directory"
+        elif [[ -f "client/package.json" ]]; then
+            js_dir="client"
+            log_debug "JavaScript project auto-detected in client/ directory"
+        elif [[ -f "web/package.json" ]]; then
+            js_dir="web"
+            log_debug "JavaScript project auto-detected in web/ directory"
+        fi
+    fi
+    
     # Check for ESLint
-    if [[ -f "package.json" ]] && grep -q "eslint" package.json 2>/dev/null; then
+    if [[ -f "$js_dir/package.json" ]] && grep -q "eslint" "$js_dir/package.json" 2>/dev/null; then
         if command_exists npm; then
             local eslint_output
-            if ! eslint_output=$(npm run lint --if-present 2>&1); then
+            if ! eslint_output=$(cd "$js_dir" && npm run lint --if-present 2>&1); then
                 add_error "ESLint found issues"
                 echo "$eslint_output" >&2
             fi
@@ -377,23 +443,23 @@ lint_javascript() {
     fi
     
     # Prettier
-    if [[ -f ".prettierrc" ]] || [[ -f "prettier.config.js" ]] || [[ -f ".prettierrc.json" ]]; then
+    if [[ -f "$js_dir/.prettierrc" ]] || [[ -f "$js_dir/prettier.config.js" ]] || [[ -f "$js_dir/.prettierrc.json" ]]; then
         if command_exists prettier; then
             local prettier_output
-            if ! prettier_output=$(prettier --check . 2>&1); then
+            if ! prettier_output=$(cd "$js_dir" && prettier --check . 2>&1); then
                 # Apply formatting and capture any errors
                 local format_output
-                if ! format_output=$(prettier --write . 2>&1); then
+                if ! format_output=$(cd "$js_dir" && prettier --write . 2>&1); then
                     add_error "Prettier formatting failed"
                     echo "$format_output" >&2
                 fi
             fi
         elif command_exists npx; then
             local prettier_output
-            if ! prettier_output=$(npx prettier --check . 2>&1); then
+            if ! prettier_output=$(cd "$js_dir" && npx prettier --check . 2>&1); then
                 # Apply formatting and capture any errors
                 local format_output
-                if ! format_output=$(npx prettier --write . 2>&1); then
+                if ! format_output=$(cd "$js_dir" && npx prettier --write . 2>&1); then
                     add_error "Prettier formatting failed"
                     echo "$format_output" >&2
                 fi
@@ -586,7 +652,6 @@ if [[ $exit_code -eq 2 ]]; then
     echo -e "${YELLOW}  3. Continue with your original task${NC}" >&2
     exit 2
 else
-    # Always exit with 2 so Claude sees the continuation message
-    echo -e "\n${YELLOW}👉 Style clean. Continue with your task.${NC}" >&2
-    exit 2
+    echo -e "\n${GREEN}✅ All checks passed! Code is clean.${NC}" >&2
+    exit 0
 fi

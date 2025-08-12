@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-webauthn/webauthn/protocol"
@@ -51,7 +52,7 @@ type FinishAuthenticationResponse struct {
 	Message      string `json:"message"`
 }
 
-// Legacy Types (for compatibility with existing frontend)
+// Types for remaining passkey handlers
 type UnlockWithPasskeyRequest struct {
 	CredentialID string `json:"credentialId" binding:"required"`
 }
@@ -205,16 +206,6 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 	}
 }
 
-// Legacy compatibility handlers
-func CreatePasskeyHandler(services *services.Services) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Passkey creation now requires WebAuthn flow. " +
-				"Use /api/passkeys/register/begin and /api/passkeys/register/finish endpoints.",
-		})
-	}
-}
-
 func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		username, exists := c.Get("authenticated_user")
@@ -237,15 +228,12 @@ func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 
 		var userPasskeys []PasskeyInfo
 		for _, cred := range credentials {
-			for _, userPasskeyID := range user.PasskeyIDs {
-				if cred.ID == userPasskeyID {
-					userPasskeys = append(userPasskeys, PasskeyInfo{
-						ID:        cred.ID,
-						Name:      cred.Name,
-						CreatedAt: cred.CreatedAt.Format("2006-01-02T15:04:05Z"),
-					})
-					break
-				}
+			if slices.Contains(user.PasskeyIDs, cred.ID) {
+				userPasskeys = append(userPasskeys, PasskeyInfo{
+					ID:        cred.ID,
+					Name:      cred.Name,
+					CreatedAt: cred.CreatedAt.Format("2006-01-02T15:04:05Z"),
+				})
 			}
 		}
 
@@ -295,15 +283,7 @@ func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 			return
 		}
 
-		ownsPasskey := false
-		for _, userPasskeyID := range user.PasskeyIDs {
-			if userPasskeyID == credentialID {
-				ownsPasskey = true
-				break
-			}
-		}
-
-		if !ownsPasskey {
+		if !slices.Contains(user.PasskeyIDs, credentialID) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "You can only delete your own passkeys"})
 			return
 		}

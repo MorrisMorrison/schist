@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build All
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       PUBLIC_API_URL: http://localhost:8080/api
     
@@ -53,7 +53,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build
     
     steps:

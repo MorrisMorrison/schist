@@ -736,7 +736,7 @@
 								: 'bg-gray-200'}"
 						>
 							<div
-								class="h-full bg-blue-500 transition-all duration-300"
+								class="h-full bg-blue-500 transition-[width] duration-300"
 								style="width: {uploadProgress}%"
 							></div>
 						</div>

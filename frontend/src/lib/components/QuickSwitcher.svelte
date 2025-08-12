@@ -8,6 +8,7 @@
 		addToRecentDocuments,
 		getRecentDocumentPaths
 	} from '$lib/utils/fuzzy-search';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		open: boolean;
@@ -159,9 +160,7 @@
 					data-testid="quick-switcher-input"
 				/>
 				{#if isSearching}
-					<div
-						class="border-border border-t-primary h-4 w-4 animate-spin rounded-full border-2"
-					></div>
+					<LoadingSpinner size="sm" />
 				{/if}
 			</div>
 

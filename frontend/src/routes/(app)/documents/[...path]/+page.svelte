@@ -10,6 +10,7 @@
 	import { Home, Plus, RotateCcw, Search } from 'lucide-svelte';
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
 	import { isNotFoundError } from '$lib/utils/error';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
@@ -87,9 +88,9 @@
 <div class="min-h-screen">
 	{#if isLoading}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
-			<div
-				class="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"
-			></div>
+			<div class="mb-4">
+				<LoadingSpinner size="lg" />
+			</div>
 			<p class="text-muted-foreground">Loading...</p>
 		</div>
 	{:else if error}

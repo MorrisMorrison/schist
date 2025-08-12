@@ -11,6 +11,7 @@
 		DialogTitle
 	} from '$lib/components/ui/dialog';
 	import { isWebAuthnSupported, isPlatformAuthenticatorAvailable } from '$lib/utils/webauthn';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -125,7 +126,7 @@
 				</div>
 			{:else if step === 'authenticating'}
 				<div class="flex flex-col items-center space-y-4 py-6">
-					<div class="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
+					<LoadingSpinner size="lg" />
 					<div class="text-center">
 						<p class="text-sm font-medium">Authenticating...</p>
 						<p class="text-muted-foreground text-xs">

@@ -13,6 +13,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Upload, AlertCircle, CheckCircle } from 'lucide-svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -201,9 +202,7 @@
 					</Button>
 					<Button type="submit" disabled={!isValidSelection || isLoading}>
 						{#if isLoading}
-							<div
-								class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-transparent border-t-current"
-							></div>
+							<LoadingSpinner size="sm" class="mr-2" />
 							Importing...
 						{:else}
 							Import Documents

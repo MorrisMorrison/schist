@@ -13,6 +13,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from 'lucide-svelte';
 	import { apiClient } from '$lib/api/client';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { UserInfo } from '$lib/api/types';
 
 	let users: UserInfo[] = [];
@@ -113,9 +114,7 @@
 
 		{#if loading}
 			<div class="flex items-center justify-center py-8">
-				<div
-					class="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
-				></div>
+				<LoadingSpinner size="md" />
 				<span class="text-muted-foreground ml-2 text-sm">Loading users...</span>
 			</div>
 		{:else}

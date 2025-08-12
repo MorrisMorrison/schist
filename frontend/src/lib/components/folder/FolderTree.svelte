@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
 	import FolderContextMenu from './FolderContextMenu.svelte';
 	import DocumentContextMenu from '../document/DocumentContextMenu.svelte';
@@ -558,7 +559,7 @@
 
 	{#if $isFoldersLoading}
 		<div class="flex items-center justify-center py-8">
-			<div class="border-border border-t-primary h-6 w-6 animate-spin rounded-full border-2"></div>
+			<LoadingSpinner size="md" />
 		</div>
 	{:else if !$isFoldersLoading && $folders !== null && filteredFolders.length === 0}
 		<div class="flex flex-col items-center justify-center py-8 text-center">

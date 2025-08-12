@@ -14,6 +14,7 @@
 	import { apiClient } from '$lib/api/client';
 	import { authenticateWithPasskey } from '$lib/utils/webauthn';
 	import { authService } from '$lib/auth/auth-service';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let isLoading = false;
 	let error = '';
@@ -96,9 +97,7 @@
 			{#if checkingSetup}
 				<div class="space-y-4 text-center">
 					<div class="mx-auto flex h-12 w-12 items-center justify-center">
-						<div
-							class="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
-						></div>
+						<LoadingSpinner size="md" />
 					</div>
 					<p class="text-muted-foreground text-sm">Checking system status...</p>
 				</div>
@@ -126,9 +125,7 @@
 						data-testid="passkey-login-button"
 					>
 						{#if isLoading}
-							<div
-								class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-							></div>
+							<LoadingSpinner size="sm" class="mr-2" />
 							Authenticating...
 						{:else}
 							<Fingerprint class="mr-2 h-5 w-5" />

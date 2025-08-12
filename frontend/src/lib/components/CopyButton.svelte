@@ -2,6 +2,7 @@
 	import { Copy, Check, AlertCircle } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { copyToClipboard, isClipboardSupported } from '$lib/utils/clipboard';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		text: string;
@@ -83,9 +84,7 @@
 		class={`transition-colors duration-200 ${className}`}
 	>
 		{#if copyState === 'copying'}
-			<div class="h-4 w-4 animate-spin">
-				<div class="h-2 w-2 rounded-full bg-current"></div>
-			</div>
+			<LoadingSpinner size="sm" />
 		{:else if copyState === 'success'}
 			<Check class="h-4 w-4 text-green-600" />
 		{:else if copyState === 'error'}

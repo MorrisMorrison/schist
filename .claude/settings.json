@@ -1,10 +1,22 @@
 {
   "hooks": {
-    "editTool": ".claude/hooks.sh --fast",
-    "multiEditTool": ".claude/hooks.sh --fast",
-    "writeTool": ".claude/hooks.sh --fast",
-    "sessionStart": "echo 'Please read and follow the instructions in .claude/START_PROMPT.md'",
-    "preCompact": "echo 'About to compact conversation context'"
-  },
-  "allowedTools": ["*"]
+    "PostToolUse": [
+      {
+        "matcher": "Edit MultiEdit Write",
+        "hooks": [{ "type": "command", "command": ".claude/hooks.sh --fast" }]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "SessionStart",
+        "hooks": [{ "type": "command", "command": "echo 'Please read and follow the instructions in .claude/START_PROMPT.md'" }]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "PreCompact",
+        "hooks": [{ "type": "command", "command": "echo 'About to compact conversation context'" }]
+      }
+    ]
+  }
 }

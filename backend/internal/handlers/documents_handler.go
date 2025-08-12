@@ -173,12 +173,8 @@ func (h *APIHandler) moveDocument(c *gin.Context) {
 		return
 	}
 
-	if !strings.HasPrefix(req.OldPath, "/") {
-		req.OldPath = "/" + req.OldPath
-	}
-	if !strings.HasPrefix(req.NewPath, "/") {
-		req.NewPath = "/" + req.NewPath
-	}
+	req.OldPath = utils.EnsureLeadingSlash(req.OldPath)
+	req.NewPath = utils.EnsureLeadingSlash(req.NewPath)
 
 	err = h.DocumentService.MoveDocument(req.OldPath, req.NewPath)
 	if err != nil {

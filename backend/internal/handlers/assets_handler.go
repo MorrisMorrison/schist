@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,10 +32,7 @@ func (h *APIHandler) uploadAsset(c *gin.Context) {
 }
 
 func (h *APIHandler) serveAsset(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	assetPath := "/assets" + path
 
@@ -50,10 +48,7 @@ func (h *APIHandler) serveAsset(c *gin.Context) {
 }
 
 func (h *APIHandler) deleteAsset(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	assetPath := strings.TrimPrefix(path, "/assets")
 	if assetPath == "" {

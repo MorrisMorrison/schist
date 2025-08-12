@@ -3,11 +3,11 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
+	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -228,10 +228,7 @@ func (h *APIHandler) getTemplates(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentLinks(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	links, err := h.LinkService.GetOutgoingLinks(path)
 	if err != nil {
@@ -249,10 +246,7 @@ func (h *APIHandler) getDocumentLinks(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentBacklinks(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	backlinks, err := h.LinkService.GetBacklinks(path)
 	if err != nil {

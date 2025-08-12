@@ -105,20 +105,28 @@ function generateBlockId(): string {
 }
 export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBlock[]> {
 	const processedContent = preprocessWikiLinks(content);
+	const sessionId = extractSessionId(processedContent);
 
-	const tokens = marked.lexer(processedContent);
-	const blocks: MarkdownBlock[] = [];
+	try {
+		const tokens = marked.lexer(processedContent);
+		const blocks: MarkdownBlock[] = [];
 
-	for (const token of tokens) {
-		const block = await convertTokenToBlock(token);
-		if (block) {
-			blocks.push(block);
+		for (const token of tokens) {
+			const block = await convertTokenToBlock(token);
+			if (block) {
+				blocks.push(block);
+			}
+		}
+
+		await postprocessAllWikiLinks(blocks, processedContent);
+
+		return blocks;
+	} finally {
+		// Always cleanup session, even if processing fails
+		if (sessionId) {
+			cleanupSession(sessionId);
 		}
 	}
-
-	await postprocessAllWikiLinks(blocks, processedContent);
-
-	return blocks;
 }
 
 async function postprocessAllWikiLinks(
@@ -135,7 +143,7 @@ async function postprocessAllWikiLinks(
 		await processWikiLink(link, blocks);
 	}
 
-	cleanupSession(sessionId);
+	// Note: Session cleanup is now handled in parseMarkdownToBlocks finally block
 }
 
 function extractSessionId(content: string): string | null {

@@ -59,7 +59,8 @@ import type {
 	CreateFirstUserRequest,
 	UserInfo
 } from './types.js';
-import { normalizePath } from './types.js';
+import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
+import { parseError } from '$lib/utils/error';
 
 class SchістApiClient {
 	private baseUrl: string;
@@ -94,14 +95,55 @@ class SchістApiClient {
 		return this.baseUrl;
 	}
 
-	private encodePath(path: string): string {
-		const normalizedPath = normalizePath(path);
+	private getErrorCodeFromStatus(status: number): string | undefined {
+		switch (status) {
+			case 400:
+				return 'VALIDATION_ERROR';
+			case 401:
+				return 'UNAUTHORIZED';
+			case 403:
+				return 'FORBIDDEN';
+			case 404:
+				return 'RESOURCE_NOT_FOUND';
+			case 409:
+				return 'RESOURCE_CONFLICT';
+			case 408:
+				return 'TIMEOUT_ERROR';
+			case 429:
+				return 'TIMEOUT_ERROR';
+			case 500:
+				return 'INTERNAL_ERROR';
+			case 502:
+			case 503:
+			case 504:
+				return 'SERVICE_UNAVAILABLE';
+			default:
+				return undefined;
+		}
+	}
 
-		const segments = normalizedPath.split('/');
-		const encodedSegments = segments.map((segment) =>
-			segment ? encodeURIComponent(segment) : segment
-		);
-		return encodedSegments.join('/');
+	private async handleAuthenticationError() {
+		this.setAuthToken(null);
+
+		const isPublicRoute =
+			window.location.pathname === '/login' || window.location.pathname.startsWith('/share/');
+
+		if (!isPublicRoute) {
+			try {
+				const config = await this.getConfig();
+				if (config.auth_enabled) {
+					const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+					await goto(`/login?returnUrl=${returnUrl}`);
+				}
+			} catch {
+				const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+				await goto(`/login?returnUrl=${returnUrl}`);
+			}
+		}
+	}
+
+	private encodePath(path: string): string {
+		return encodePath(path);
 	}
 
 	private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -133,49 +175,32 @@ class SchістApiClient {
 
 			if (!response.ok) {
 				const errorText = await response.text();
-				const error = new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+				let errorData;
+
+				try {
+					errorData = JSON.parse(errorText);
+				} catch {
+					errorData = {
+						error: errorText || response.statusText || `HTTP ${response.status} Error`,
+						code: this.getErrorCodeFromStatus(response.status)
+					};
+				}
 
 				if (browser) {
 					console.error('API Request failed', {
 						url,
 						status: response.status,
 						statusText: response.statusText,
-						errorText,
+						errorData,
 						headers: Object.fromEntries(response.headers.entries())
 					});
 				}
 
 				if (response.status === 401 && browser) {
-					this.setAuthToken(null);
-
-					const isPublicRoute =
-						window.location.pathname === '/login' || window.location.pathname.startsWith('/share/');
-
-					if (!isPublicRoute) {
-						if (url.endsWith('/config')) {
-							const returnUrl = encodeURIComponent(
-								window.location.pathname + window.location.search
-							);
-							await goto(`/login?returnUrl=${returnUrl}`);
-						} else {
-							try {
-								const config = await this.getConfig();
-								if (config.auth_enabled) {
-									const returnUrl = encodeURIComponent(
-										window.location.pathname + window.location.search
-									);
-									await goto(`/login?returnUrl=${returnUrl}`);
-								}
-							} catch {
-								const returnUrl = encodeURIComponent(
-									window.location.pathname + window.location.search
-								);
-								await goto(`/login?returnUrl=${returnUrl}`);
-							}
-						}
-					}
+					await this.handleAuthenticationError();
 				}
 
+				const error = new Error(JSON.stringify(errorData));
 				throw error;
 			}
 
@@ -187,17 +212,19 @@ class SchістApiClient {
 			return data;
 		} catch (error) {
 			if (browser) {
+				const parsedError = parseError(error);
 				console.error('API Request error', {
 					url,
-					error: error instanceof Error ? error.message : 'Unknown error',
+					error: parsedError.message,
+					code: parsedError.code,
+					severity: parsedError.severity,
+					originalError: error instanceof Error ? error.message : 'Unknown error',
 					stack: error instanceof Error ? error.stack : undefined
 				});
 			}
 
-			if (error instanceof Error) {
-				throw error;
-			}
-			throw new Error('Unknown API error occurred');
+			// Re-throw the error to preserve its structure
+			throw error;
 		}
 	}
 
@@ -279,14 +306,13 @@ class SchістApiClient {
 	}
 
 	async deleteDocument(path: string): Promise<void> {
-		await this.request<void>(`/documents/${this.encodePath(path)}`, {
+		await this.request<void>(buildApiEndpoint('/documents', path), {
 			method: 'DELETE'
 		});
 	}
 
 	async getDocumentByPath(path: string): Promise<Document> {
-		const encodedPath = this.encodePath(path);
-		return this.request<Document>(`/documents${encodedPath}`);
+		return this.request<Document>(buildApiEndpoint('/documents', path));
 	}
 
 	async updateDocumentByPath(
@@ -294,8 +320,6 @@ class SchістApiClient {
 		documentData: UpdateDocumentRequest,
 		saveType: 'manual' | 'auto' = 'manual'
 	): Promise<Document> {
-		const encodedPath = this.encodePath(path);
-
 		const normalizedDocumentData = {
 			...documentData,
 			metaData: {
@@ -305,15 +329,14 @@ class SchістApiClient {
 			saveType
 		};
 
-		return this.request<Document>(`/documents${encodedPath}`, {
+		return this.request<Document>(buildApiEndpoint('/documents', path), {
 			method: 'PUT',
 			body: JSON.stringify(normalizedDocumentData)
 		});
 	}
 
 	async deleteDocumentByPath(path: string): Promise<void> {
-		const encodedPath = this.encodePath(path);
-		await this.request<void>(`/documents${encodedPath}`, {
+		await this.request<void>(buildApiEndpoint('/documents', path), {
 			method: 'DELETE'
 		});
 	}
@@ -332,16 +355,14 @@ class SchістApiClient {
 	}
 
 	async renameFolder(path: string, newName: string): Promise<FolderOperationResponse> {
-		const encodedPath = this.encodePath(path);
-		return this.request<FolderOperationResponse>(`/folders${encodedPath}`, {
+		return this.request<FolderOperationResponse>(buildApiEndpoint('/folders', path), {
 			method: 'PUT',
 			body: JSON.stringify({ newName })
 		});
 	}
 
 	async deleteFolder(path: string): Promise<FolderOperationResponse> {
-		const encodedPath = this.encodePath(path);
-		return this.request<FolderOperationResponse>(`/folders${encodedPath}`, {
+		return this.request<FolderOperationResponse>(buildApiEndpoint('/folders', path), {
 			method: 'DELETE'
 		});
 	}
@@ -378,9 +399,8 @@ class SchістApiClient {
 	}
 
 	async getDocumentBacklinks(path: string): Promise<Document[]> {
-		const encodedPath = this.encodePath(path);
 		const response = await this.request<{ backlinks: Document[]; total: number }>(
-			`/links/backlinks${encodedPath}`
+			buildApiEndpoint('/links/backlinks', path)
 		);
 		return response.backlinks;
 	}

@@ -7,7 +7,7 @@ import type {
 	Folder,
 	MoveDocumentRequest
 } from '../api/types.js';
-import { getParentPath } from '../api/types.js';
+import { getParentPath } from '../utils/path.js';
 
 interface DocumentsState {
 	documents: Document[];

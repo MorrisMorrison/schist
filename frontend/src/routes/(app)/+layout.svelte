@@ -234,7 +234,7 @@
 		}
 
 		.main-content {
-			@apply p-2;
+			padding: 0.5rem;
 			/* On mobile, main content always takes full width */
 			width: 100%;
 		}

@@ -8,19 +8,18 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *APIHandler) listDocuments(c *gin.Context) {
 	documents, err := h.DocumentService.ListDocuments()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewDatabaseError("list documents", err))
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	RespondWithOK(c, gin.H{
 		"documents": documents,
 		"total":     len(documents),
 	})
@@ -28,19 +27,18 @@ func (h *APIHandler) listDocuments(c *gin.Context) {
 
 func (h *APIHandler) createDocument(c *gin.Context) {
 	document := &models.Document{}
-	err := c.BindJSON(document)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, document); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
-	err = h.DocumentService.CreateDocument(document)
+	err := h.DocumentService.CreateDocument(document)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		if strings.Contains(err.Error(), "already exists") {
+			HandleError(c, errors.NewAlreadyExistsError("document", document.MetaData.Path))
+		} else {
+			HandleError(c, errors.NewDatabaseError("create document", err))
+		}
 		return
 	}
 
@@ -48,28 +46,40 @@ func (h *APIHandler) createDocument(c *gin.Context) {
 		fmt.Printf("Warning: failed to update backlinks for new document %s: %v\n", document.MetaData.Path, err)
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	RespondWithCreated(c, gin.H{
 		"message": "Document created successfully",
 		"path":    document.MetaData.Path,
 	})
 }
 
 func (h *APIHandler) getDocumentByPath(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path, apiErr := ValidatePathParameter(c, "path")
+	if apiErr != nil {
+		HandleError(c, apiErr)
+		return
+	}
+	path = utils.EnsureLeadingSlash(path)
 
 	document, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		if strings.Contains(err.Error(), "not found") {
+			HandleError(c, errors.NewNotFoundError("document", path))
+		} else {
+			HandleError(c, errors.NewDatabaseError("get document", err))
+		}
 		return
 	}
 
-	c.JSON(http.StatusOK, document)
+	RespondWithOK(c, document)
 }
 
 func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path, apiErr := ValidatePathParameter(c, "path")
+	if apiErr != nil {
+		HandleError(c, apiErr)
+		return
+	}
+	path = utils.EnsureLeadingSlash(path)
 
 	type UpdateDocumentRequest struct {
 		*models.Document
@@ -77,11 +87,8 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	}
 
 	var req UpdateDocumentRequest
-	err := c.BindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
@@ -94,17 +101,12 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	updatedDocument.MetaData.Updated = time.Now()
 
 	if err := h.DocumentService.MoveDocument(path, updatedDocument.MetaData.Path); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("failed to move document: %v", err),
-		})
+		HandleError(c, errors.NewOperationFailedError("move document", err.Error()).WithCause(err))
 		return
 	}
 
-	err = h.DocumentService.UpdateDocumentWithSaveType(updatedDocument, saveType)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+	if err := h.DocumentService.UpdateDocumentWithSaveType(updatedDocument, saveType); err != nil {
+		HandleError(c, errors.NewDatabaseError("update document", err))
 		return
 	}
 
@@ -112,22 +114,28 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 		fmt.Printf("Warning: failed to update backlinks for updated document %s: %v\n", updatedDocument.MetaData.Path, err)
 	}
 
-	c.JSON(http.StatusOK, updatedDocument)
+	RespondWithOK(c, updatedDocument)
 }
 
 func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path, apiErr := ValidatePathParameter(c, "path")
+	if apiErr != nil {
+		HandleError(c, apiErr)
+		return
+	}
+	path = utils.EnsureLeadingSlash(path)
 
 	if strings.HasPrefix(path, "/trash") {
-		err := h.DocumentService.DeleteDocument(path)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
+		if err := h.DocumentService.DeleteDocument(path); err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				HandleError(c, errors.NewNotFoundError("document", path))
+			} else {
+				HandleError(c, errors.NewDatabaseError("delete document", err))
+			}
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
+		RespondWithOK(c, gin.H{
 			"message": "Document permanently deleted",
 			"path":    path,
 		})

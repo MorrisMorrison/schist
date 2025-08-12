@@ -3,16 +3,13 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *APIHandler) exportDocument(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	content, filename, err := h.DocumentService.ExportDocument(path)
 	if err != nil {
@@ -30,10 +27,7 @@ func (h *APIHandler) exportDocument(c *gin.Context) {
 }
 
 func (h *APIHandler) exportFolder(c *gin.Context) {
-	path := c.Param("path")
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path := utils.EnsureLeadingSlash(c.Param("path"))
 
 	content, filename, err := h.DocumentService.ExportFolder(path)
 	if err != nil {

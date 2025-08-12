@@ -132,51 +132,6 @@ export interface MoveDocumentResponse {
 	newPath: string;
 }
 
-export function getParentPath(path: string): string {
-	if (!path || path === '/') {
-		return '/';
-	}
-	const segments = path.split('/').filter((segment) => segment !== '');
-	if (segments.length <= 1) {
-		return '/';
-	}
-	return '/' + segments.slice(0, -1).join('/');
-}
-
-export function getDepth(path: string): number {
-	if (!path || path === '/') {
-		return 0;
-	}
-	return path.split('/').filter((segment) => segment !== '').length;
-}
-
-export function isValidPath(path: string): boolean {
-	if (!path) {
-		return false;
-	}
-
-	if (!path.startsWith('/')) {
-		return false;
-	}
-
-	if (path.includes('//')) {
-		return false;
-	}
-
-	if (path.length > 1 && path.endsWith('/')) {
-		return false;
-	}
-
-	// Check for invalid characters (basic validation)
-	// eslint-disable-next-line no-control-regex
-	const invalidChars = /[<>:"|?*\x00-\x1f]/;
-	if (invalidChars.test(path)) {
-		return false;
-	}
-
-	return true;
-}
-
 export interface DocumentVersion {
 	hash: string;
 	message: string;
@@ -332,24 +287,6 @@ export interface GitHubSetupResponse {
 	status?: GitHubStatus;
 	auto_sync: boolean;
 	sync_on_save: boolean;
-}
-
-export function normalizePath(path: string): string {
-	if (!path) {
-		return '/';
-	}
-
-	if (!path.startsWith('/')) {
-		path = '/' + path;
-	}
-
-	path = path.replace(/\/+/g, '/');
-
-	if (path.length > 1 && path.endsWith('/')) {
-		path = path.slice(0, -1);
-	}
-
-	return path;
 }
 
 // Authentication

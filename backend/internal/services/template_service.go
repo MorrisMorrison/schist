@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -24,14 +25,9 @@ type TemplateService struct {
 	templatesDir string
 }
 
-func NewTemplateService(dataDir string) *TemplateService {
-	templatesDir := os.Getenv("SCHIST_TEMPLATES_DIR")
-	if templatesDir == "" {
-		templatesDir = "../../../templates"
-	}
-
+func NewTemplateService(config *config.Config) *TemplateService {
 	return &TemplateService{
-		templatesDir: templatesDir,
+		templatesDir: config.TemplatesDir,
 	}
 }
 

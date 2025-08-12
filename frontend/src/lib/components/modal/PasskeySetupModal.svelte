@@ -12,6 +12,7 @@
 		DialogHeader,
 		DialogTitle
 	} from '$lib/components/ui/dialog';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		open?: boolean;
@@ -112,7 +113,7 @@
 				</div>
 			{:else if step === 'creating'}
 				<div class="flex flex-col items-center space-y-4 py-6">
-					<div class="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
+					<LoadingSpinner size="lg" />
 					<p class="text-muted-foreground text-sm">Creating your passkey...</p>
 					<p class="text-muted-foreground text-center text-xs">
 						This will generate a unique cryptographic key for securing your secrets.

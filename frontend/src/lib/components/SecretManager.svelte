@@ -23,6 +23,7 @@
 	import SecretEditModal from './modal/SecretEditModal.svelte';
 	import InfoBox from '$lib/components/ui/info-box.svelte';
 	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from 'lucide-svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let showUnlockModal = $state(false);
 	let showCreateModal = $state(false);
@@ -202,7 +203,7 @@
 
 				{#if $secretsLoading && $secretList.length === 0}
 					<div class="flex items-center justify-center py-6">
-						<div class="border-primary h-6 w-6 animate-spin rounded-full border-b-2"></div>
+						<LoadingSpinner size="md" />
 						<span class="text-muted-foreground ml-2 text-sm">Loading secrets...</span>
 					</div>
 				{:else}

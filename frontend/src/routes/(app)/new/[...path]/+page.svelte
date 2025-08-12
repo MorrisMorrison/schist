@@ -12,6 +12,7 @@
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { templatesStore, templateActions } from '$lib/stores/templates';
 	import type { Template } from '$lib/api/types';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	const initialTitle = $derived(page.url.searchParams.get('title') || '');
 
@@ -229,9 +230,7 @@
 
 		{#if $templatesStore.loading}
 			<div class="flex items-center justify-center py-8">
-				<div
-					class="border-border border-t-primary h-8 w-8 animate-spin rounded-full border-2"
-				></div>
+				<LoadingSpinner size="lg" />
 				<span class="text-secondary ml-3">Loading templates...</span>
 			</div>
 		{:else if $templatesStore.error}

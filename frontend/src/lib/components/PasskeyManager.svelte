@@ -20,6 +20,7 @@
 	import PasskeySetupModal from './modal/PasskeySetupModal.svelte';
 	import InfoBox from '$lib/components/ui/info-box.svelte';
 	import { Shield, Key, Plus, Trash2, Loader2 } from 'lucide-svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let showSetupModal = false;
 	let deletingPasskey: string | null = null;
@@ -103,7 +104,7 @@
 
 				{#if $passkeyLoading && $passkeyList.length === 0}
 					<div class="flex items-center justify-center py-6">
-						<div class="border-primary h-6 w-6 animate-spin rounded-full border-b-2"></div>
+						<LoadingSpinner size="md" />
 						<span class="text-muted-foreground ml-2 text-sm">Loading passkeys...</span>
 					</div>
 				{:else}

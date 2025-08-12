@@ -2,6 +2,7 @@
 	import { Dialog, DialogContent } from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { X, ZoomIn, ZoomOut, RotateCw, ExternalLink, Download } from 'lucide-svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		src: string;
@@ -117,7 +118,7 @@
 		<!-- Loading Indicator -->
 		{#if !imageLoaded}
 			<div class="absolute inset-0 flex items-center justify-center">
-				<div class="h-8 w-8 animate-spin rounded-full border-b-2 border-white"></div>
+				<LoadingSpinner size="lg" />
 			</div>
 		{/if}
 

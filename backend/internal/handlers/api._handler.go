@@ -103,6 +103,16 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		github.GET("/status", h.getGitHubStatus)
 		github.POST("/sync", h.syncToGitHub)
 		github.PUT("/config", h.updateGitHubConfig)
+
+		// GitHub docs endpoints
+		github.GET("/docs/repositories", h.getDocsRepositories)
+		github.POST("/docs/repositories", h.addDocsRepository)
+		github.DELETE("/docs/repositories/:owner/:repo", h.removeDocsRepository)
+		github.GET("/docs/structure", h.getRepositoryStructure)
+		github.GET("/docs/content", h.getDocumentContent)
+		github.GET("/docs/files", h.listDocsFiles)
+		github.POST("/docs/sync/:owner/:repo", h.syncDocsRepository)
+		github.POST("/docs/sync", h.syncAllDocsRepositories)
 	}
 
 	exportRoutes := routerGroup.Group("/export")

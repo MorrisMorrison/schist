@@ -203,6 +203,107 @@ export const githubActions = {
 
 	clearConnectionTest() {
 		githubStore.update((state) => ({ ...state, connectionTest: null }));
+	},
+
+	// GitHub docs actions
+	async getDocsRepositories() {
+		githubStore.update((state) => ({ ...state, loading: true, error: null }));
+
+		try {
+			const response = await apiClient.getDocsRepositories();
+			githubStore.update((state) => ({
+				...state,
+				loading: false
+			}));
+			return response.repositories;
+		} catch (error) {
+			githubStore.update((state) => ({
+				...state,
+				loading: false,
+				error: error instanceof Error ? error.message : 'Failed to get docs repositories'
+			}));
+			throw error;
+		}
+	},
+
+	async addDocsRepository(owner: string, repo: string, docsFolder?: string) {
+		githubStore.update((state) => ({ ...state, loading: true, error: null }));
+
+		try {
+			const result = await apiClient.addDocsRepository(owner, repo, docsFolder);
+			githubStore.update((state) => ({
+				...state,
+				loading: false
+			}));
+			return result;
+		} catch (error) {
+			githubStore.update((state) => ({
+				...state,
+				loading: false,
+				error: error instanceof Error ? error.message : 'Failed to add docs repository'
+			}));
+			throw error;
+		}
+	},
+
+	async removeDocsRepository(owner: string, repo: string) {
+		githubStore.update((state) => ({ ...state, loading: true, error: null }));
+
+		try {
+			const result = await apiClient.removeDocsRepository(owner, repo);
+			githubStore.update((state) => ({
+				...state,
+				loading: false
+			}));
+			return result;
+		} catch (error) {
+			githubStore.update((state) => ({
+				...state,
+				loading: false,
+				error: error instanceof Error ? error.message : 'Failed to remove docs repository'
+			}));
+			throw error;
+		}
+	},
+
+	async syncDocsRepository(owner: string, repo: string) {
+		githubStore.update((state) => ({ ...state, syncing: true, error: null }));
+
+		try {
+			const result = await apiClient.syncDocsRepository(owner, repo);
+			githubStore.update((state) => ({
+				...state,
+				syncing: false
+			}));
+			return result;
+		} catch (error) {
+			githubStore.update((state) => ({
+				...state,
+				syncing: false,
+				error: error instanceof Error ? error.message : 'Failed to sync docs repository'
+			}));
+			throw error;
+		}
+	},
+
+	async syncAllDocsRepositories() {
+		githubStore.update((state) => ({ ...state, syncing: true, error: null }));
+
+		try {
+			const result = await apiClient.syncAllDocsRepositories();
+			githubStore.update((state) => ({
+				...state,
+				syncing: false
+			}));
+			return result;
+		} catch (error) {
+			githubStore.update((state) => ({
+				...state,
+				syncing: false,
+				error: error instanceof Error ? error.message : 'Failed to sync all docs repositories'
+			}));
+			throw error;
+		}
 	}
 };
 

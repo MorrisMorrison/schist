@@ -289,6 +289,46 @@ export interface GitHubSetupResponse {
 	sync_on_save: boolean;
 }
 
+// GitHub Docs types
+export interface GitHubRepoConfig {
+	owner: string;
+	repository: string;
+	docs_folder: string;
+	last_sync: string;
+	sync_error: string;
+	document_count: number;
+}
+
+export interface GitHubFolder {
+	name: string;
+	path: string;
+	type: 'dir' | 'file';
+	children?: GitHubFolder[];
+}
+
+export interface GitHubDocument {
+	name: string;
+	path: string;
+	content: string;
+	html_url?: string;
+	download_url?: string;
+}
+
+export interface GitHubDocsRepositoriesResponse {
+	repositories: GitHubRepoConfig[];
+}
+
+export interface GitHubDocsFilesResponse {
+	files: GitHubDocument[];
+}
+
+export interface GitHubSyncResponse {
+	message: string;
+	success_count: number;
+	failure_count: number;
+	failures: string[];
+}
+
 // Authentication
 export interface User {
 	username: string;

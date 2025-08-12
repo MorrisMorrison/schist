@@ -816,3 +816,67 @@ func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubRepoConfig, error
 
 	return repos, nil
 }
+
+func (gs *GitHubService) SyncDocsRepository(owner, repo string) error {
+	if gs.client == nil {
+		return fmt.Errorf("GitHub client not initialized")
+	}
+
+	if owner == "" || repo == "" {
+		return fmt.Errorf("owner and repository are required")
+	}
+
+	settings := gs.settings.GetGitHubSettings()
+	repoKey := fmt.Sprintf("%s/%s", owner, repo)
+
+	if settings.DocsRepos == nil {
+		return fmt.Errorf("repository %s not found in configured docs repositories", repoKey)
+	}
+
+	repoSettings, exists := settings.DocsRepos[repoKey]
+	if !exists {
+		return fmt.Errorf("repository %s not found in configured docs repositories", repoKey)
+	}
+
+	files, err := gs.ListDocsFiles(owner, repo)
+	if err != nil {
+		repoSettings.SyncError = err.Error()
+		repoSettings.LastSync = time.Now()
+		settings.DocsRepos[repoKey] = repoSettings
+		_ = gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+		return fmt.Errorf("failed to list docs files: %w", err)
+	}
+
+	repoSettings.DocumentCount = len(files)
+	repoSettings.SyncError = ""
+	repoSettings.LastSync = time.Now()
+	settings.DocsRepos[repoKey] = repoSettings
+
+	err = gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+	if err != nil {
+		return fmt.Errorf("failed to update sync status: %w", err)
+	}
+
+	return nil
+}
+
+func (gs *GitHubService) SyncAllDocsRepositories() (map[string]error, error) {
+	repos, err := gs.GetDocsRepositories()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docs repositories: %w", err)
+	}
+
+	results := make(map[string]error)
+
+	for _, repo := range repos {
+		repoKey := fmt.Sprintf("%s/%s", repo.Owner, repo.Repository)
+		err := gs.SyncDocsRepository(repo.Owner, repo.Repository)
+		if err != nil {
+			results[repoKey] = err
+		} else {
+			results[repoKey] = nil
+		}
+	}
+
+	return results, nil
+}

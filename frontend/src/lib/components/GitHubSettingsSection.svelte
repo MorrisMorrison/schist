@@ -274,7 +274,13 @@
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="space-y-2">
 						<Label for="github-owner">Owner/Organization</Label>
-						<Input id="github-owner" data-testid="github-owner-input" bind:value={owner} placeholder="username or org" required />
+						<Input
+							id="github-owner"
+							data-testid="github-owner-input"
+							bind:value={owner}
+							placeholder="username or org"
+							required
+						/>
 					</div>
 
 					<div class="space-y-2">
@@ -291,7 +297,13 @@
 
 				<div class="space-y-2">
 					<Label for="github-branch">Branch</Label>
-					<Input id="github-branch" data-testid="github-branch-input" bind:value={branch} placeholder="main" required />
+					<Input
+						id="github-branch"
+						data-testid="github-branch-input"
+						bind:value={branch}
+						placeholder="main"
+						required
+					/>
 				</div>
 
 				{#if !isConnected}
@@ -387,10 +399,14 @@
 							<div class="flex items-center gap-2">
 								{#if $githubStatus?.connected}
 									<CheckCircle class="h-4 w-4 text-green-500" />
-									<span data-testid="github-status-connected" class="text-sm text-green-600">Connected</span>
+									<span data-testid="github-status-connected" class="text-sm text-green-600"
+										>Connected</span
+									>
 								{:else}
 									<AlertCircle class="h-4 w-4 text-red-500" />
-									<span data-testid="github-status-disconnected" class="text-destructive text-sm">Disconnected</span>
+									<span data-testid="github-status-disconnected" class="text-destructive text-sm"
+										>Disconnected</span
+									>
 								{/if}
 							</div>
 						</div>

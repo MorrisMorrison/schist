@@ -5,4 +5,15 @@
 	let { block }: { block: ListItemBlock } = $props();
 </script>
 
-<li class="mb-2">{@html sanitizeHtml(block.text)}</li>
+{#if block.task}
+	<li>
+		{#if block.checked}
+			<input type="checkbox" checked disabled />
+		{:else}
+			<input type="checkbox" disabled />
+		{/if}
+		<span>{@html sanitizeHtml(block.text)}</span>
+	</li>
+{:else}
+	<li>{@html sanitizeHtml(block.text)}</li>
+{/if}

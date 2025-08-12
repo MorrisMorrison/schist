@@ -42,6 +42,8 @@ export interface ListItemBlock extends BaseBlock {
 	type: 'list_item';
 	text: string;
 	raw: string;
+	task?: boolean;
+	checked?: boolean;
 }
 
 export interface BlockquoteBlock extends BaseBlock {
@@ -246,12 +248,10 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		case 'paragraph': {
 			const paragraphToken = token as Tokens.Paragraph;
 			let text = paragraphToken.text;
-			console.log('DEBUG: Processing paragraph text:', JSON.stringify(text));
 
 			// Check if the paragraph contains ONLY an image (standalone image)
 			const standaloneImageMatch = text.match(/^!\[(.*?)\]\((.*?)(?:\s+"(.*?)")?\)\s*$/);
 			if (standaloneImageMatch) {
-				console.log('DEBUG: Converting standalone paragraph to ImageBlock:', text);
 				const [, altText, href, title] = standaloneImageMatch;
 
 				let cleanTitle: string | undefined = title;
@@ -327,13 +327,19 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			const itemToken = token as Tokens.ListItem;
 			let text = itemToken.text;
 
+			// Check if this is a task list item
+			const isTask = itemToken.task || false;
+			const isChecked = itemToken.checked || false;
+
 			text = await processInlineMarkdown(text);
 
 			return {
 				type: 'list_item',
 				id,
 				text,
-				raw: itemToken.raw
+				raw: itemToken.raw,
+				task: isTask,
+				checked: isChecked
 			} as ListItemBlock;
 		}
 
@@ -382,7 +388,6 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		}
 
 		case 'image': {
-			console.log('DEBUG: Converting image token to ImageBlock:', token);
 			const imageToken = token as Tokens.Image;
 
 			let cleanTitle = imageToken.title;

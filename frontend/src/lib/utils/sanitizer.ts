@@ -16,7 +16,9 @@ const componentSanitizerConfig = {
 		// Line breaks (sometimes needed in component text)
 		'br',
 		// Images
-		'img'
+		'img',
+		// Task list checkboxes
+		'input'
 	],
 	ALLOWED_ATTR: [
 		'class',
@@ -30,10 +32,14 @@ const componentSanitizerConfig = {
 		'title',
 		'width',
 		'height',
-		'loading'
+		'loading',
+		// Task list checkbox attributes
+		'type',
+		'checked',
+		'disabled'
 	],
 	ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
-	FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input', 'textarea', 'select'],
+	FORBID_TAGS: ['script', 'object', 'embed', 'form', 'textarea', 'select'],
 	FORBID_ATTR: [
 		'onclick',
 		'onload',

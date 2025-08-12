@@ -18,6 +18,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-svelte';
 	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
@@ -134,8 +135,6 @@
 			};
 
 			await githubActions.setupGitHub(setupRequest);
-
-			console.log('Setup completed, GitHub status:', $githubStatus);
 		} catch {
 			console.error('Error setting up github');
 		}
@@ -354,21 +353,7 @@
 			</div>
 
 			{#if formError || $githubError}
-				<div
-					data-testid="github-error-alert"
-					class="bg-destructive/10 text-destructive flex items-start gap-2 rounded-md p-3 text-sm"
-				>
-					<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
-					<div class="space-y-1">
-						<div class="font-medium">Error</div>
-						<div data-testid="github-error-message">{formError || $githubError}</div>
-						{#if $githubError?.includes('Git repository') || $githubError?.includes('health')}
-							<div class="mt-2 text-xs opacity-75">
-								💡 Try checking the Git repository health in the Sync tab to diagnose the issue.
-							</div>
-						{/if}
-					</div>
-				</div>
+				<ErrorAlert error={formError || $githubError || ''} class="[&_span]:space-y-1" />
 			{/if}
 
 			{#if $connectionTest}
@@ -437,12 +422,7 @@
 					</div>
 
 					{#if $githubStatus?.error}
-						<div
-							class="bg-destructive/10 text-destructive flex items-center gap-2 rounded-md p-3 text-sm"
-						>
-							<AlertCircle class="h-4 w-4 flex-shrink-0" />
-							{$githubStatus.error}
-						</div>
+						<ErrorAlert error={$githubStatus.error} />
 					{/if}
 				</div>
 			{/if}
@@ -548,13 +528,9 @@
 						</div>
 
 						{#if !$gitHealthStatus.healthy && $gitHealthStatus.error}
-							<div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-								<div class="mb-1 font-medium">Health Check Error:</div>
-								{$gitHealthStatus.error}
-								<div class="mt-2 text-xs opacity-75">
-									💡 Click the "Repair" button to attempt automatic repository repair.
-								</div>
-							</div>
+							<ErrorAlert
+								error={`Health Check Error: ${$gitHealthStatus.error}. 💡 Click the "Repair" button to attempt automatic repository repair.`}
+							/>
 						{/if}
 					{/if}
 

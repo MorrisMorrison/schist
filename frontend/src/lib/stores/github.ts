@@ -168,8 +168,6 @@ export const githubActions = {
 		githubStore.update((state) => ({ ...state, syncing: true, error: null }));
 
 		try {
-			await this.checkGitHealth();
-
 			const result = await apiClient.syncToGitHub();
 
 			const status = await apiClient.getGitHubStatus();

@@ -325,12 +325,17 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 		return nil, fmt.Errorf("git service not available")
 	}
 
-	log.Printf("[GitHubService] Running Git service health check with auto-repair...")
-	if err := gs.gitService.HealthCheckWithRepair(true); err != nil {
-		log.Printf("[GitHubService] ERROR: Git service health check failed even after repair: %v", err)
-		return nil, fmt.Errorf("git repository could not be initialized or repaired: %w", err)
+	log.Printf("[GitHubService] Running Git service health check...")
+	if err := gs.gitService.HealthCheckWithRepair(false); err != nil {
+		log.Printf("[GitHubService] Health check failed, attempting auto-repair...")
+		if repairErr := gs.gitService.HealthCheckWithRepair(true); repairErr != nil {
+			log.Printf("[GitHubService] ERROR: Git service health check failed even after repair: %v", repairErr)
+			return nil, fmt.Errorf("git repository could not be initialized or repaired: %w", repairErr)
+		}
+		log.Printf("[GitHubService] Git service health check passed after repair")
+	} else {
+		log.Printf("[GitHubService] Git service health check passed")
 	}
-	log.Printf("[GitHubService] Git service health check passed")
 
 	result := &GitHubSyncResult{
 		Timestamp: time.Now().Format(time.RFC3339),

@@ -17,6 +17,8 @@ import (
 	"github.com/MorrisMorrison/schist/internal/serializer"
 )
 
+const maxRepairAttempts = 3
+
 type GitService struct {
 	dataDir    string
 	repository *git.Repository
@@ -157,16 +159,23 @@ func (gs *GitService) HealthCheck() error {
 }
 
 func (gs *GitService) HealthCheckWithRepair(autoRepair bool) error {
-	log.Printf("[GitService] Running health check (autoRepair: %v)...", autoRepair)
+	return gs.healthCheckWithRepairAttempts(autoRepair, 0)
+}
+
+func (gs *GitService) healthCheckWithRepairAttempts(autoRepair bool, repairAttempts int) error {
+	log.Printf("[GitService] Running health check (autoRepair: %v, repairAttempts: %d)...", autoRepair, repairAttempts)
 
 	if gs.repository == nil {
 		log.Printf("[GitService] ERROR: Repository is nil")
 		if autoRepair {
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if repairAttempts >= maxRepairAttempts {
+				return fmt.Errorf("git repository not initialized and maximum repair attempts (%d) reached", maxRepairAttempts)
+			}
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
 			if err := gs.RepairRepository(); err != nil {
 				return fmt.Errorf("git repository not initialized and repair failed: %w", err)
 			}
-			return gs.HealthCheckWithRepair(false)
+			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
 		}
 		return fmt.Errorf("git repository not initialized")
 	}
@@ -175,11 +184,14 @@ func (gs *GitService) HealthCheckWithRepair(autoRepair bool) error {
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		log.Printf("[GitService] ERROR: .git directory does not exist at: %s", gitDir)
 		if autoRepair {
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if repairAttempts >= maxRepairAttempts {
+				return fmt.Errorf(".git directory not found and maximum repair attempts (%d) reached", maxRepairAttempts)
+			}
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
 			if err := gs.RepairRepository(); err != nil {
 				return fmt.Errorf(".git directory not found and repair failed: %w", err)
 			}
-			return gs.HealthCheckWithRepair(false)
+			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
 		}
 		return fmt.Errorf(".git directory not found at %s", gitDir)
 	}
@@ -188,11 +200,14 @@ func (gs *GitService) HealthCheckWithRepair(autoRepair bool) error {
 	if err != nil {
 		log.Printf("[GitService] ERROR: Failed to get repository config: %v", err)
 		if autoRepair {
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if repairAttempts >= maxRepairAttempts {
+				return fmt.Errorf("repository config is invalid and maximum repair attempts (%d) reached", maxRepairAttempts)
+			}
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
 			if err := gs.RepairRepository(); err != nil {
 				return fmt.Errorf("repository config is invalid and repair failed: %w", err)
 			}
-			return gs.HealthCheckWithRepair(false)
+			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
 		}
 		return fmt.Errorf("repository config is invalid: %w", err)
 	}
@@ -201,11 +216,14 @@ func (gs *GitService) HealthCheckWithRepair(autoRepair bool) error {
 	if err != nil {
 		log.Printf("[GitService] ERROR: Failed to get worktree: %v", err)
 		if autoRepair {
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if repairAttempts >= maxRepairAttempts {
+				return fmt.Errorf("repository worktree is invalid and maximum repair attempts (%d) reached", maxRepairAttempts)
+			}
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
 			if err := gs.RepairRepository(); err != nil {
 				return fmt.Errorf("repository worktree is invalid and repair failed: %w", err)
 			}
-			return gs.HealthCheckWithRepair(false)
+			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
 		}
 		return fmt.Errorf("repository worktree is invalid: %w", err)
 	}
@@ -214,11 +232,14 @@ func (gs *GitService) HealthCheckWithRepair(autoRepair bool) error {
 	if err != nil {
 		log.Printf("[GitService] ERROR: Failed to get worktree status: %v", err)
 		if autoRepair {
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if repairAttempts >= maxRepairAttempts {
+				return fmt.Errorf("repository status check failed and maximum repair attempts (%d) reached", maxRepairAttempts)
+			}
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
 			if err := gs.RepairRepository(); err != nil {
 				return fmt.Errorf("repository status check failed and repair failed: %w", err)
 			}
-			return gs.HealthCheckWithRepair(false)
+			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
 		}
 		return fmt.Errorf("repository status check failed: %w", err)
 	}
@@ -272,20 +293,23 @@ func (gs *GitService) RepairRepository() error {
 		}
 		gs.repository = repo
 		log.Printf("[GitService] Repository reopened successfully")
+		worktree, err = gs.repository.Worktree()
+		if err != nil {
+			log.Printf("[GitService] ERROR: Failed to get worktree after reopening: %v", err)
+			return fmt.Errorf("failed to get worktree after reopening: %w", err)
+		}
 	}
 
-	if worktree != nil {
-		_, err = worktree.Status()
-		if err != nil {
-			log.Printf("[GitService] Repository status check failed: %v, attempting recovery...", err)
-			gs.repository = nil
-			if err := gs.initializeRepository(); err != nil {
-				log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
-				return fmt.Errorf("failed to reinitialize repository after status failure: %w", err)
-			}
-			log.Printf("[GitService] Repository reinitialized after status check failure")
-			return nil
+	_, err = worktree.Status()
+	if err != nil {
+		log.Printf("[GitService] Repository status check failed: %v, attempting recovery...", err)
+		gs.repository = nil
+		if err := gs.initializeRepository(); err != nil {
+			log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
+			return fmt.Errorf("failed to reinitialize repository after status failure: %w", err)
 		}
+		log.Printf("[GitService] Repository reinitialized after status check failure")
+		return nil
 	}
 
 	log.Printf("[GitService] Repository repair completed successfully")

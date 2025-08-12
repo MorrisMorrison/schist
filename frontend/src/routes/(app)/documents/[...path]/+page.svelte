@@ -9,7 +9,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Home, Plus, RotateCcw, Search } from 'lucide-svelte';
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
-	import { parseError, isNotFoundError } from '$lib/utils/error';
+	import { isNotFoundError } from '$lib/utils/error';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);

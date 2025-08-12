@@ -320,7 +320,7 @@
 		{#if document.content}
 			<div
 				bind:this={contentContainer}
-				class="prose prose-slate max-w-none"
+				class="prose prose-slate dark:prose-invert max-w-none"
 				data-testid="document-content"
 			>
 				<MarkdownRenderer content={processedContent} />

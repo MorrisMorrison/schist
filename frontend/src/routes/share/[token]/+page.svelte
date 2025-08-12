@@ -107,7 +107,7 @@
 		{#if document?.content}
 			<div
 				bind:this={contentContainer}
-				class="prose prose-slate w-full !max-w-none"
+				class="prose prose-slate dark:prose-invert w-full !max-w-none"
 				data-testid="shared-document-content"
 			>
 				<MarkdownRenderer content={document.content} />

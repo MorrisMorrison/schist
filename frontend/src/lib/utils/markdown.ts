@@ -106,8 +106,8 @@ renderer.codespan = function ({ text }: Tokens.Codespan): string {
 renderer.listitem = function ({ text, task, checked }: Tokens.ListItem): string {
 	if (task) {
 		const checkedAttr = checked ? ' checked' : '';
-		const checkboxInput = `<input type="checkbox"${checkedAttr} disabled class="mr-2" style="list-style-type: none;">`;
-		return `<li class="flex items-start" style="list-style-type: none;">${checkboxInput}<span class="flex-1">${text}</span></li>`;
+		const checkboxInput = `<input type="checkbox"${checkedAttr} disabled class="mr-2">`;
+		return `<li class="flex items-start list-none">${checkboxInput}<span class="flex-1">${text}</span></li>`;
 	}
 	return `<li>${text}</li>`;
 };

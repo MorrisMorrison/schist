@@ -7,7 +7,7 @@
 </script>
 
 {#if block.task}
-	<li class="flex items-start gap-3 list-none mb-2" data-testid="task-item">
+	<li class="mb-2 flex list-none items-start gap-3" data-testid="task-item">
 		<Checkbox checked={block.checked} disabled={true} class="mt-0.5" />
 		<span class="flex-1">{@html sanitizeHtml(block.text)}</span>
 	</li>

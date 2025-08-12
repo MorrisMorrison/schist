@@ -105,7 +105,7 @@ test.describe('Markdown Features', () => {
 
 		// Check preview renders checkboxes correctly
 		const preview = page.locator('[data-testid="markdown-preview"]');
-		
+
 		// Wait for preview to update (there's a 300ms delay in the editor)
 		await page.waitForTimeout(500);
 

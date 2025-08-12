@@ -575,7 +575,19 @@
 		}
 	}
 
-	/* Task list container - only remove bullets from pure task lists */
+	/* 
+	 * Remove bullet points from "pure" task lists only.
+	 * 
+	 * This selector matches any <ul> inside .prose where every <li> has .list-none class.
+	 * - li:not(.list-none) matches <li> elements without .list-none class (regular list items).
+	 * - :has(li:not(.list-none)) matches <ul> with at least one regular <li> without .list-none.
+	 * - :not(:has(li:not(.list-none))) matches <ul> where all <li> have .list-none class (pure task list).
+	 * 
+	 * This ensures that bullet points are only removed from lists where every item is a task,
+	 * and not from mixed lists that contain both tasks and regular items.
+	 * 
+	 * Note: This selector uses :has, which may not be supported in all browsers.
+	 */
 	.prose ul:not(:has(li:not(.list-none))) {
 		@apply list-none;
 		padding-left: 0;

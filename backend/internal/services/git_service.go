@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,40 +62,54 @@ type DiffSummary struct {
 }
 
 func NewGitService(dataDir string) (*GitService, error) {
+	log.Printf("[GitService] Initializing Git service with dataDir: %s", dataDir)
+
 	gs := &GitService{
 		dataDir: dataDir,
 	}
 
 	if err := gs.initializeRepository(); err != nil {
+		log.Printf("[GitService] ERROR: Failed to initialize repository: %v", err)
 		return nil, fmt.Errorf("failed to initialize git repository: %w", err)
 	}
 
+	log.Printf("[GitService] Successfully initialized Git service")
 	return gs, nil
 }
 
 func (gs *GitService) initializeRepository() error {
 	gitDir := filepath.Join(gs.dataDir, ".git")
+	log.Printf("[GitService] Checking for Git repository at: %s", gitDir)
 
 	if _, err := os.Stat(gitDir); err == nil {
+		log.Printf("[GitService] Found existing Git repository, opening...")
 		repo, err := git.PlainOpen(gs.dataDir)
 		if err != nil {
+			log.Printf("[GitService] ERROR: Failed to open existing repository: %v", err)
 			return fmt.Errorf("failed to open existing repository: %w", err)
 		}
 		gs.repository = repo
+		log.Printf("[GitService] Successfully opened existing repository")
 		return nil
 	}
 
+	log.Printf("[GitService] No existing repository found, initializing new one...")
 	repo, err := git.PlainInit(gs.dataDir, false)
 	if err != nil {
+		log.Printf("[GitService] ERROR: Failed to initialize new repository: %v", err)
 		return fmt.Errorf("failed to initialize git repository: %w", err)
 	}
 
 	gs.repository = repo
+	log.Printf("[GitService] Successfully initialized new repository")
 
+	log.Printf("[GitService] Creating initial commit...")
 	if err := gs.createInitialCommit(); err != nil {
+		log.Printf("[GitService] ERROR: Failed to create initial commit: %v", err)
 		return fmt.Errorf("failed to create initial commit: %w", err)
 	}
 
+	log.Printf("[GitService] Repository initialization completed successfully")
 	return nil
 }
 
@@ -134,6 +149,146 @@ Thumbs.db
 		return fmt.Errorf("failed to create initial commit: %w", err)
 	}
 
+	return nil
+}
+
+func (gs *GitService) HealthCheck() error {
+	return gs.HealthCheckWithRepair(false)
+}
+
+func (gs *GitService) HealthCheckWithRepair(autoRepair bool) error {
+	log.Printf("[GitService] Running health check (autoRepair: %v)...", autoRepair)
+
+	if gs.repository == nil {
+		log.Printf("[GitService] ERROR: Repository is nil")
+		if autoRepair {
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if err := gs.RepairRepository(); err != nil {
+				return fmt.Errorf("git repository not initialized and repair failed: %w", err)
+			}
+			return gs.HealthCheckWithRepair(false)
+		}
+		return fmt.Errorf("git repository not initialized")
+	}
+
+	gitDir := filepath.Join(gs.dataDir, ".git")
+	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
+		log.Printf("[GitService] ERROR: .git directory does not exist at: %s", gitDir)
+		if autoRepair {
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if err := gs.RepairRepository(); err != nil {
+				return fmt.Errorf(".git directory not found and repair failed: %w", err)
+			}
+			return gs.HealthCheckWithRepair(false)
+		}
+		return fmt.Errorf(".git directory not found at %s", gitDir)
+	}
+
+	_, err := gs.repository.Config()
+	if err != nil {
+		log.Printf("[GitService] ERROR: Failed to get repository config: %v", err)
+		if autoRepair {
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if err := gs.RepairRepository(); err != nil {
+				return fmt.Errorf("repository config is invalid and repair failed: %w", err)
+			}
+			return gs.HealthCheckWithRepair(false)
+		}
+		return fmt.Errorf("repository config is invalid: %w", err)
+	}
+
+	worktree, err := gs.repository.Worktree()
+	if err != nil {
+		log.Printf("[GitService] ERROR: Failed to get worktree: %v", err)
+		if autoRepair {
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if err := gs.RepairRepository(); err != nil {
+				return fmt.Errorf("repository worktree is invalid and repair failed: %w", err)
+			}
+			return gs.HealthCheckWithRepair(false)
+		}
+		return fmt.Errorf("repository worktree is invalid: %w", err)
+	}
+
+	_, err = worktree.Status()
+	if err != nil {
+		log.Printf("[GitService] ERROR: Failed to get worktree status: %v", err)
+		if autoRepair {
+			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository...")
+			if err := gs.RepairRepository(); err != nil {
+				return fmt.Errorf("repository status check failed and repair failed: %w", err)
+			}
+			return gs.HealthCheckWithRepair(false)
+		}
+		return fmt.Errorf("repository status check failed: %w", err)
+	}
+
+	log.Printf("[GitService] Health check passed successfully")
+	return nil
+}
+
+func (gs *GitService) IsRepositoryInitialized() bool {
+	return gs.repository != nil && gs.HealthCheck() == nil
+}
+
+func (gs *GitService) RepairRepository() error {
+	log.Printf("[GitService] Starting repository repair process...")
+
+	if gs.repository == nil {
+		log.Printf("[GitService] Repository is nil, attempting to reinitialize...")
+		if err := gs.initializeRepository(); err != nil {
+			log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
+			return fmt.Errorf("failed to reinitialize repository: %w", err)
+		}
+		log.Printf("[GitService] Repository reinitialized successfully")
+		return nil
+	}
+
+	gitDir := filepath.Join(gs.dataDir, ".git")
+	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
+		log.Printf("[GitService] .git directory missing, reinitializing repository...")
+		gs.repository = nil
+		if err := gs.initializeRepository(); err != nil {
+			log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
+			return fmt.Errorf("failed to reinitialize repository after .git directory loss: %w", err)
+		}
+		log.Printf("[GitService] Repository reinitialized after .git directory loss")
+		return nil
+	}
+
+	worktree, err := gs.repository.Worktree()
+	if err != nil {
+		log.Printf("[GitService] Worktree corrupted, attempting to reopen repository...")
+		repo, err := git.PlainOpen(gs.dataDir)
+		if err != nil {
+			log.Printf("[GitService] Failed to reopen repository: %v, reinitializing...", err)
+			gs.repository = nil
+			if err := gs.initializeRepository(); err != nil {
+				log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
+				return fmt.Errorf("failed to reinitialize repository: %w", err)
+			}
+			log.Printf("[GitService] Repository reinitialized after worktree corruption")
+			return nil
+		}
+		gs.repository = repo
+		log.Printf("[GitService] Repository reopened successfully")
+	}
+
+	if worktree != nil {
+		_, err = worktree.Status()
+		if err != nil {
+			log.Printf("[GitService] Repository status check failed: %v, attempting recovery...", err)
+			gs.repository = nil
+			if err := gs.initializeRepository(); err != nil {
+				log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
+				return fmt.Errorf("failed to reinitialize repository after status failure: %w", err)
+			}
+			log.Printf("[GitService] Repository reinitialized after status check failure")
+			return nil
+		}
+	}
+
+	log.Printf("[GitService] Repository repair completed successfully")
 	return nil
 }
 

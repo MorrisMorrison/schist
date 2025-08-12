@@ -8,7 +8,11 @@
 		connectionTest,
 		isTestingConnection,
 		isGitHubSyncing,
-		lastSyncResult
+		lastSyncResult,
+		gitHealthStatus,
+		isCheckingHealth,
+		isRepairingRepository,
+		lastRepairResult
 	} from '$lib/stores/github';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -183,11 +187,27 @@
 		formError = '';
 		githubActions.clearError();
 		githubActions.clearConnectionTest();
+		githubActions.clearHealthStatus();
+	}
+
+	async function checkGitHealth() {
+		try {
+			await githubActions.checkGitHealth();
+		} catch {
+			console.error('Error checking Git repository health');
+		}
+	}
+
+	async function repairRepository() {
+		try {
+			await githubActions.repairRepository();
+		} catch {
+			console.error('Error repairing Git repository');
+		}
 	}
 </script>
 
 <div class="space-y-6">
-	<!-- Tab Navigation -->
 	<div class="border-border flex border-b">
 		<button
 			type="button"
@@ -217,7 +237,6 @@
 		</button>
 	</div>
 
-	<!-- Setup Tab -->
 	{#if activeTab === 'setup'}
 		<form
 			class="space-y-6"
@@ -321,10 +340,18 @@
 
 			{#if formError || $githubError}
 				<div
-					class="bg-destructive/10 text-destructive flex items-center gap-2 rounded-md p-3 text-sm"
+					class="bg-destructive/10 text-destructive flex items-start gap-2 rounded-md p-3 text-sm"
 				>
-					<AlertCircle class="h-4 w-4 flex-shrink-0" />
-					{formError || $githubError}
+					<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
+					<div class="space-y-1">
+						<div class="font-medium">Error</div>
+						<div>{formError || $githubError}</div>
+						{#if $githubError?.includes('Git repository') || $githubError?.includes('health')}
+							<div class="mt-2 text-xs opacity-75">
+								💡 Try checking the Git repository health in the Sync tab to diagnose the issue.
+							</div>
+						{/if}
+					</div>
 				</div>
 			{/if}
 
@@ -343,7 +370,6 @@
 				</div>
 			{/if}
 
-			<!-- Status Section (when connected) -->
 			{#if isConnected && $githubStatus}
 				<Separator />
 
@@ -351,7 +377,6 @@
 					<h3 class="text-lg font-medium">Status</h3>
 
 					<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-						<!-- Connection Status -->
 						<div class="space-y-2">
 							<Label>Connection Status</Label>
 							<div class="flex items-center gap-2">
@@ -365,7 +390,6 @@
 							</div>
 						</div>
 
-						<!-- Last Sync -->
 						<div class="space-y-2">
 							<Label>Last Sync</Label>
 							<div class="text-foreground text-sm">
@@ -373,7 +397,6 @@
 							</div>
 						</div>
 
-						<!-- Repository Link -->
 						{#if $githubStatus?.owner && $githubStatus?.repository}
 							{@const status = $githubStatus}
 							<div class="space-y-2">
@@ -392,7 +415,6 @@
 						{/if}
 					</div>
 
-					<!-- Error Display -->
 					{#if $githubStatus?.error}
 						<div
 							class="bg-destructive/10 text-destructive flex items-center gap-2 rounded-md p-3 text-sm"
@@ -448,13 +470,96 @@
 		</form>
 	{/if}
 
-	<!-- Sync Tab -->
 	{#if activeTab === 'sync'}
 		<div class="space-y-4">
 			{#if !isConnected}
 				<div class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
 					<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.
+				</div>
+			{/if}
+
+			{#if isConnected}
+				<div class="space-y-4 rounded-lg border p-4">
+					<div class="flex items-center justify-between">
+						<h4 class="font-medium">Git Repository Health</h4>
+						<div class="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={checkGitHealth}
+								disabled={$isCheckingHealth || $isRepairingRepository}
+							>
+								{#if $isCheckingHealth}
+									<Loader2 class="mr-1 h-3 w-3 animate-spin" />
+								{/if}
+								Check Health
+							</Button>
+							{#if $gitHealthStatus && !$gitHealthStatus.healthy}
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={repairRepository}
+									disabled={$isRepairingRepository || $isCheckingHealth}
+									class="border-orange-300 text-orange-600 hover:bg-orange-50"
+								>
+									{#if $isRepairingRepository}
+										<Loader2 class="mr-1 h-3 w-3 animate-spin" />
+									{/if}
+									Repair
+								</Button>
+							{/if}
+						</div>
+					</div>
+
+					{#if $gitHealthStatus}
+						<div class="flex items-center gap-2">
+							{#if $gitHealthStatus.healthy}
+								<CheckCircle class="h-4 w-4 text-green-500" />
+								<span class="text-sm text-green-600">Repository is healthy</span>
+							{:else}
+								<AlertCircle class="h-4 w-4 text-red-500" />
+								<span class="text-sm text-red-600">Repository health issues detected</span>
+							{/if}
+						</div>
+
+						{#if !$gitHealthStatus.healthy && $gitHealthStatus.error}
+							<div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
+								<div class="mb-1 font-medium">Health Check Error:</div>
+								{$gitHealthStatus.error}
+								<div class="mt-2 text-xs opacity-75">
+									💡 Click the "Repair" button to attempt automatic repository repair.
+								</div>
+							</div>
+						{/if}
+					{/if}
+
+					{#if $lastRepairResult}
+						<div
+							class="flex items-start gap-2 rounded-md p-3 text-sm {$lastRepairResult.success
+								? 'border border-green-200 bg-green-50 text-green-700'
+								: 'border border-red-200 bg-red-50 text-red-700'}"
+						>
+							{#if $lastRepairResult.success}
+								<CheckCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
+								<div>
+									<div class="font-medium">Repair Successful</div>
+									{$lastRepairResult.message}
+								</div>
+							{:else}
+								<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
+								<div>
+									<div class="font-medium">Repair Failed</div>
+									{$lastRepairResult.error}
+								</div>
+							{/if}
+						</div>
+					{/if}
+
+					<div class="text-muted-foreground text-sm">
+						Health checks verify that the local Git repository is properly initialized and
+						functional. If issues are detected, use the repair function to attempt automatic fixes.
+					</div>
 				</div>
 			{/if}
 

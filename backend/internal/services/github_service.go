@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -59,11 +60,11 @@ type GitHubConfigRequest struct {
 }
 
 type GitHubSyncResult struct {
-	Success       bool   `json:"success"`
-	FilesSync     int    `json:"files_synced"`
-	CommitsSynced int    `json:"commits_synced"`
-	Error         string `json:"error,omitempty"`
-	SyncTime      string `json:"sync_time"`
+	Success      bool     `json:"success"`
+	Message      string   `json:"message"`
+	SyncedFiles  int      `json:"syncedFiles,omitempty"`
+	Errors       []string `json:"errors,omitempty"`
+	Timestamp    string   `json:"timestamp"`
 }
 
 type GitHubRepoInfo struct {
@@ -191,6 +192,9 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, fmt.Errorf("failed to encrypt GitHub token: %w", err)
 	}
 
+	currentSettings := gs.settings.GetGitHubSettings()
+	githubSettings.Token = currentSettings.Token
+
 	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
 		return nil, fmt.Errorf("failed to save GitHub config: %w", err)
 	}
@@ -280,62 +284,98 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 }
 
 func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
+	log.Printf("[GitHubService] Starting GitHub sync process...")
+
 	githubSettings := gs.settings.GetGitHubSettings()
 
 	if !githubSettings.Enabled {
+		log.Printf("[GitHubService] ERROR: GitHub integration is not enabled")
 		return nil, fmt.Errorf("github integration is not enabled")
 	}
 
 	if gs.client == nil {
+		log.Printf("[GitHubService] GitHub client not initialized, attempting to initialize...")
 		if err := gs.initializeClient(); err != nil {
+			log.Printf("[GitHubService] ERROR: Failed to initialize GitHub client: %v", err)
 			return nil, fmt.Errorf("failed to initialize github client: %w", err)
 		}
+		log.Printf("[GitHubService] GitHub client initialized successfully")
 	}
 
 	if gs.gitService == nil {
+		log.Printf("[GitHubService] ERROR: Git service is not available")
 		return nil, fmt.Errorf("git service not available")
 	}
 
+	log.Printf("[GitHubService] Running Git service health check with auto-repair...")
+	if err := gs.gitService.HealthCheckWithRepair(true); err != nil {
+		log.Printf("[GitHubService] ERROR: Git service health check failed even after repair: %v", err)
+		return nil, fmt.Errorf("git repository could not be initialized or repaired: %w", err)
+	}
+	log.Printf("[GitHubService] Git service health check passed")
+
 	result := &GitHubSyncResult{
-		SyncTime: time.Now().Format(time.RFC3339),
+		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
+	log.Printf("[GitHubService] Verifying GitHub repository access...")
 	_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
 	if err != nil {
-		result.Error = fmt.Sprintf("failed to connect to github repository: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to access GitHub repository %s/%s: %v",
+			githubSettings.Owner, githubSettings.Repository, err)
+		result.Message = "Failed to connect to GitHub repository"
+		result.Errors = []string{fmt.Sprintf("failed to connect to github repository: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] GitHub repository access verified")
 
+	log.Printf("[GitHubService] Setting up Git remote...")
 	if err := gs.setupGitRemote(); err != nil {
-		result.Error = fmt.Sprintf("failed to setup git remote: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to setup Git remote: %v", err)
+		result.Message = "Failed to setup Git remote"
+		result.Errors = []string{fmt.Sprintf("failed to setup git remote: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Git remote setup completed")
 
+	log.Printf("[GitHubService] Committing uncommitted changes...")
 	if err := gs.commitUncommittedChanges(); err != nil {
-		result.Error = fmt.Sprintf("failed to commit uncommitted changes: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to commit changes: %v", err)
+		result.Message = "Failed to commit uncommitted changes"
+		result.Errors = []string{fmt.Sprintf("failed to commit uncommitted changes: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Uncommitted changes committed")
 
+	log.Printf("[GitHubService] Counting local commits...")
 	commitsBefore, err := gs.countLocalCommits()
 	if err != nil {
-		result.Error = fmt.Sprintf("failed to count local commits: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to count commits: %v", err)
+		result.Message = "Failed to count local commits"
+		result.Errors = []string{fmt.Sprintf("failed to count local commits: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Found %d local commits", commitsBefore)
 
+	log.Printf("[GitHubService] Pushing to GitHub...")
 	if err := gs.pushToGitHub(); err != nil {
-		result.Error = fmt.Sprintf("failed to push to github: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to push to GitHub: %v", err)
+		result.Message = "Failed to push to GitHub"
+		result.Errors = []string{fmt.Sprintf("failed to push to github: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Successfully pushed to GitHub")
 
 	githubSettings.LastSync = time.Now()
 	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
-		fmt.Printf("Warning: failed to update last sync time: %v\n", err)
+		log.Printf("[GitHubService] Warning: failed to update last sync time: %v", err)
 	}
 
 	result.Success = true
-	result.FilesSync = 0 // We sync the entire repository, not individual files
-	result.CommitsSynced = commitsBefore
+	result.Message = "GitHub sync completed successfully"
+	result.SyncedFiles = 0 // We sync the entire repository, not individual files
 
+	log.Printf("[GitHubService] GitHub sync completed successfully")
 	return result, nil
 }
 
@@ -562,6 +602,14 @@ func (gs *GitHubService) pushToGitHub() error {
 
 	githubSettings := gs.settings.GetGitHubSettings()
 
+	head, err := gs.gitService.repository.Head()
+	if err != nil {
+		return fmt.Errorf("failed to get current HEAD: %w", err)
+	}
+	
+	currentBranch := head.Name().Short()
+	log.Printf("[GitHubService] Current local branch: %s, target branch: %s", currentBranch, githubSettings.Branch)
+
 	token, err := gs.getToken()
 	if err != nil {
 		return fmt.Errorf("failed to get GitHub token: %w", err)
@@ -572,10 +620,16 @@ func (gs *GitHubService) pushToGitHub() error {
 		Password: token,
 	}
 
+	remoteURL := fmt.Sprintf("https://github.com/%s/%s.git", githubSettings.Owner, githubSettings.Repository)
+	log.Printf("[GitHubService] Pushing to remote: %s", remoteURL)
+
+	refSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", currentBranch, githubSettings.Branch)
+	log.Printf("[GitHubService] Using refspec: %s", refSpec)
+
 	pushOptions := &git.PushOptions{
 		RemoteName: "origin",
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", githubSettings.Branch, githubSettings.Branch)),
+			config.RefSpec(refSpec),
 		},
 		Auth:  auth,
 		Force: true,
@@ -584,10 +638,13 @@ func (gs *GitHubService) pushToGitHub() error {
 	err = gs.gitService.repository.Push(pushOptions)
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
+			log.Printf("[GitHubService] Repository is already up to date")
 			return nil
 		}
+		log.Printf("[GitHubService] Push failed with error: %v", err)
 		return fmt.Errorf("failed to push to GitHub: %w", err)
 	}
 
+	log.Printf("[GitHubService] Push completed successfully to %s branch", githubSettings.Branch)
 	return nil
 }

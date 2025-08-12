@@ -19,7 +19,12 @@
 #
 # CONFIGURATION
 #   Project-specific overrides can be placed in .claude-hooks-config.sh
-#   See inline documentation for all available options.
+#   Available configuration variables:
+#     CLAUDE_HOOKS_GO_BASE_PATH     - Base path for Go project (e.g., "backend", "api")
+#     CLAUDE_HOOKS_JS_BASE_PATH     - Base path for JS/TS project (e.g., "frontend", "client") 
+#     CLAUDE_HOOKS_PYTHON_BASE_PATH - Base path for Python project (e.g., "api", "server")
+#     CLAUDE_HOOKS_RUST_BASE_PATH   - Base path for Rust project (e.g., "services", "core")
+#   See inline documentation for all other options.
 
 # Don't use set -e - we need to control exit codes carefully
 set +e
@@ -104,19 +109,61 @@ detect_project_type() {
     [[ "$go_detected" == true ]] && types+=("go")
     
     # Python project
-    if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || [[ -n "$(find . -maxdepth 3 -name "*.py" -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("python")
+    local python_detected=false
+    if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]]; then
+        python_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_PYTHON_BASE_PATH:-}" ]]; then
+        local python_path="${CLAUDE_HOOKS_PYTHON_BASE_PATH%/}"
+        if [[ -f "$python_path/pyproject.toml" ]] || [[ -f "$python_path/setup.py" ]] || [[ -f "$python_path/requirements.txt" ]]; then
+            python_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "api/pyproject.toml" ]] || [[ -f "api/setup.py" ]] || [[ -f "api/requirements.txt" ]] || [[ -f "backend/pyproject.toml" ]] || [[ -f "backend/setup.py" ]] || [[ -f "backend/requirements.txt" ]] || [[ -f "server/pyproject.toml" ]] || [[ -f "server/setup.py" ]] || [[ -f "server/requirements.txt" ]]; then
+            python_detected=true
+        elif [[ -n "$(find . -maxdepth 3 -name "*.py" -type f -print -quit 2>/dev/null)" ]]; then
+            python_detected=true
+        fi
     fi
+    [[ "$python_detected" == true ]] && types+=("python")
     
     # JavaScript/TypeScript project
-    if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]] || [[ -n "$(find . -maxdepth 3 \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \) -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("javascript")
+    local js_detected=false
+    if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]]; then
+        js_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_JS_BASE_PATH:-}" ]]; then
+        local js_path="${CLAUDE_HOOKS_JS_BASE_PATH%/}"
+        if [[ -f "$js_path/package.json" ]] || [[ -f "$js_path/tsconfig.json" ]]; then
+            js_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "frontend/package.json" ]] || [[ -f "client/package.json" ]] || [[ -f "web/package.json" ]]; then
+            js_detected=true
+        elif [[ -n "$(find . -maxdepth 3 \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \) -type f -print -quit 2>/dev/null)" ]]; then
+            js_detected=true
+        fi
     fi
+    [[ "$js_detected" == true ]] && types+=("javascript")
     
     # Rust project
-    if [[ -f "Cargo.toml" ]] || [[ -n "$(find . -maxdepth 3 -name "*.rs" -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("rust")
+    local rust_detected=false
+    if [[ -f "Cargo.toml" ]]; then
+        rust_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_RUST_BASE_PATH:-}" ]]; then
+        local rust_path="${CLAUDE_HOOKS_RUST_BASE_PATH%/}"
+        if [[ -f "$rust_path/Cargo.toml" ]]; then
+            rust_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "services/Cargo.toml" ]] || [[ -f "core/Cargo.toml" ]] || [[ -f "backend/Cargo.toml" ]]; then
+            rust_detected=true
+        elif [[ -n "$(find . -maxdepth 3 -name "*.rs" -type f -print -quit 2>/dev/null)" ]]; then
+            rust_detected=true
+        fi
     fi
+    [[ "$rust_detected" == true ]] && types+=("rust")
     
     # Nix project
     if [[ -f "flake.nix" ]] || [[ -f "default.nix" ]] || [[ -f "shell.nix" ]]; then
@@ -366,13 +413,39 @@ lint_python() {
     
     log_info "Running Python linters..."
     
+    # Determine Python project directory
+    local python_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_PYTHON_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_PYTHON_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/pyproject.toml" ]] || [[ -f "$configured_path/setup.py" ]] || [[ -f "$configured_path/requirements.txt" ]]; then
+            python_dir="$configured_path"
+            log_debug "Python project found in configured path: $python_dir/"
+        else
+            log_debug "Configured Python path '$configured_path' doesn't contain Python project, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "api/pyproject.toml" ]] || [[ -f "api/setup.py" ]] || [[ -f "api/requirements.txt" ]]; then
+            python_dir="api"
+            log_debug "Python project auto-detected in api/ directory"
+        elif [[ -f "backend/pyproject.toml" ]] || [[ -f "backend/setup.py" ]] || [[ -f "backend/requirements.txt" ]]; then
+            python_dir="backend"
+            log_debug "Python project auto-detected in backend/ directory"
+        elif [[ -f "server/pyproject.toml" ]] || [[ -f "server/setup.py" ]] || [[ -f "server/requirements.txt" ]]; then
+            python_dir="server"
+            log_debug "Python project auto-detected in server/ directory"
+        fi
+    fi
+    
     # Black formatting
     if command_exists black; then
         local black_output
-        if ! black_output=$(black . --check 2>&1); then
+        if ! black_output=$(cd "$python_dir" && black . --check 2>&1); then
             # Apply formatting and capture any errors
             local format_output
-            if ! format_output=$(black . 2>&1); then
+            if ! format_output=$(cd "$python_dir" && black . 2>&1); then
                 add_error "Python formatting failed"
                 echo "$format_output" >&2
             fi
@@ -382,13 +455,13 @@ lint_python() {
     # Linting
     if command_exists ruff; then
         local ruff_output
-        if ! ruff_output=$(ruff check --fix . 2>&1); then
+        if ! ruff_output=$(cd "$python_dir" && ruff check --fix . 2>&1); then
             add_error "Ruff found issues"
             echo "$ruff_output" >&2
         fi
     elif command_exists flake8; then
         local flake8_output
-        if ! flake8_output=$(flake8 . 2>&1); then
+        if ! flake8_output=$(cd "$python_dir" && flake8 . 2>&1); then
             add_error "Flake8 found issues"
             echo "$flake8_output" >&2
         fi
@@ -478,19 +551,45 @@ lint_rust() {
     
     log_info "Running Rust linters..."
     
+    # Determine Rust project directory
+    local rust_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_RUST_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_RUST_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/Cargo.toml" ]]; then
+            rust_dir="$configured_path"
+            log_debug "Rust project found in configured path: $rust_dir/"
+        else
+            log_debug "Configured Rust path '$configured_path' doesn't contain Cargo.toml, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "services/Cargo.toml" ]]; then
+            rust_dir="services"
+            log_debug "Rust project auto-detected in services/ directory"
+        elif [[ -f "core/Cargo.toml" ]]; then
+            rust_dir="core"
+            log_debug "Rust project auto-detected in core/ directory"
+        elif [[ -f "backend/Cargo.toml" ]]; then
+            rust_dir="backend"
+            log_debug "Rust project auto-detected in backend/ directory"
+        fi
+    fi
+    
     if command_exists cargo; then
         local fmt_output
-        if ! fmt_output=$(cargo fmt -- --check 2>&1); then
+        if ! fmt_output=$(cd "$rust_dir" && cargo fmt -- --check 2>&1); then
             # Apply formatting and capture any errors
             local format_output
-            if ! format_output=$(cargo fmt 2>&1); then
+            if ! format_output=$(cd "$rust_dir" && cargo fmt 2>&1); then
                 add_error "Rust formatting failed"
                 echo "$format_output" >&2
             fi
         fi
         
         local clippy_output
-        if ! clippy_output=$(cargo clippy --quiet -- -D warnings 2>&1); then
+        if ! clippy_output=$(cd "$rust_dir" && cargo clippy --quiet -- -D warnings 2>&1); then
             add_error "Clippy found issues"
             echo "$clippy_output" >&2
         fi

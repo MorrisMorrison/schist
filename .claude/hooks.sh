@@ -18,7 +18,7 @@
 #   2 - ANY issues found - ALL must be fixed
 #
 # CONFIGURATION
-#   Project-specific overrides can be placed in .claude-hooks-config.sh
+#   Project-specific overrides can be placed in .claude/hooks-config.sh or .claude-hooks-config.sh
 #   Available configuration variables:
 #     CLAUDE_HOOKS_GO_BASE_PATH     - Base path for Go project (e.g., "backend", "api")
 #     CLAUDE_HOOKS_JS_BASE_PATH     - Base path for JS/TS project (e.g., "frontend", "client") 
@@ -264,7 +264,12 @@ load_config() {
     export CLAUDE_HOOKS_NIX_ENABLED="${CLAUDE_HOOKS_NIX_ENABLED:-true}"
     
     # Project-specific overrides
-    if [[ -f ".claude-hooks-config.sh" ]]; then
+    if [[ -f ".claude/hooks-config.sh" ]]; then
+        source ".claude/hooks-config.sh" || {
+            log_error "Failed to load .claude/hooks-config.sh"
+            exit 2
+        }
+    elif [[ -f ".claude-hooks-config.sh" ]]; then
         source ".claude-hooks-config.sh" || {
             log_error "Failed to load .claude-hooks-config.sh"
             exit 2

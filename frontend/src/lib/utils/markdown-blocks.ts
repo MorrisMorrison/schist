@@ -105,9 +105,10 @@ function generateBlockId(): string {
 }
 export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBlock[]> {
 	const processedContent = preprocessWikiLinks(content);
-	const sessionId = extractSessionId(processedContent);
+	let sessionId: string | null = null;
 
 	try {
+		sessionId = extractSessionId(processedContent);
 		const tokens = marked.lexer(processedContent);
 		const blocks: MarkdownBlock[] = [];
 

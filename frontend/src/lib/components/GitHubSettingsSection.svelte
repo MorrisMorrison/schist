@@ -210,6 +210,7 @@
 	<div class="border-border flex border-b">
 		<button
 			type="button"
+			data-testid="github-setup-tab"
 			onclick={() => {
 				activeTab = 'setup';
 				clearErrors();
@@ -223,6 +224,7 @@
 		</button>
 		<button
 			type="button"
+			data-testid="github-sync-tab"
 			onclick={() => (activeTab = 'sync')}
 			class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'sync'
 				? 'border-primary text-primary'
@@ -253,6 +255,7 @@
 					<Label for="github-token">GitHub Personal Access Token</Label>
 					<Input
 						id="github-token"
+						data-testid="github-token-input"
 						type="password"
 						bind:value={token}
 						placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
@@ -271,13 +274,14 @@
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="space-y-2">
 						<Label for="github-owner">Owner/Organization</Label>
-						<Input id="github-owner" bind:value={owner} placeholder="username or org" required />
+						<Input id="github-owner" data-testid="github-owner-input" bind:value={owner} placeholder="username or org" required />
 					</div>
 
 					<div class="space-y-2">
 						<Label for="github-repository">Repository Name</Label>
 						<Input
 							id="github-repository"
+							data-testid="github-repository-input"
 							bind:value={repository}
 							placeholder="my-documents"
 							required
@@ -287,7 +291,7 @@
 
 				<div class="space-y-2">
 					<Label for="github-branch">Branch</Label>
-					<Input id="github-branch" bind:value={branch} placeholder="main" required />
+					<Input id="github-branch" data-testid="github-branch-input" bind:value={branch} placeholder="main" required />
 				</div>
 
 				{#if !isConnected}
@@ -339,12 +343,13 @@
 
 			{#if formError || $githubError}
 				<div
+					data-testid="github-error-alert"
 					class="bg-destructive/10 text-destructive flex items-start gap-2 rounded-md p-3 text-sm"
 				>
 					<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
 					<div class="space-y-1">
 						<div class="font-medium">Error</div>
-						<div>{formError || $githubError}</div>
+						<div data-testid="github-error-message">{formError || $githubError}</div>
 						{#if $githubError?.includes('Git repository') || $githubError?.includes('health')}
 							<div class="mt-2 text-xs opacity-75">
 								💡 Try checking the Git repository health in the Sync tab to diagnose the issue.
@@ -356,6 +361,7 @@
 
 			{#if $connectionTest}
 				<div
+					data-testid="github-connection-test-result"
 					class="flex items-center gap-2 rounded-md p-3 text-sm {$connectionTest.success
 						? 'bg-accent/50 text-accent-foreground'
 						: 'bg-destructive/10 text-destructive'}"
@@ -365,7 +371,7 @@
 					{:else}
 						<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					{/if}
-					{$connectionTest.message}
+					<span data-testid="github-connection-test-message">{$connectionTest.message}</span>
 				</div>
 			{/if}
 
@@ -381,10 +387,10 @@
 							<div class="flex items-center gap-2">
 								{#if $githubStatus?.connected}
 									<CheckCircle class="h-4 w-4 text-green-500" />
-									<span class="text-sm text-green-600">Connected</span>
+									<span data-testid="github-status-connected" class="text-sm text-green-600">Connected</span>
 								{:else}
 									<AlertCircle class="h-4 w-4 text-red-500" />
-									<span class="text-destructive text-sm">Disconnected</span>
+									<span data-testid="github-status-disconnected" class="text-destructive text-sm">Disconnected</span>
 								{/if}
 							</div>
 						</div>
@@ -431,6 +437,7 @@
 				<div class="space-x-2">
 					<Button
 						type="button"
+						data-testid="github-test-connection-button"
 						variant="outline"
 						onclick={testConnection}
 						disabled={!canTestConnection || $isTestingConnection}
@@ -446,6 +453,7 @@
 					{#if isConnected}
 						<Button
 							type="button"
+							data-testid="github-disconnect-button"
 							variant="outline"
 							onclick={disconnect}
 							disabled={$isGitHubLoading}
@@ -455,6 +463,7 @@
 					{/if}
 					<Button
 						type="submit"
+						data-testid="github-setup-button"
 						disabled={isConnected
 							? !hasChanges || $isGitHubLoading
 							: !canTestConnection || !hasChanges || $isGitHubLoading}
@@ -565,6 +574,7 @@
 			<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<h3 class="text-lg font-medium">Manual Sync</h3>
 				<Button
+					data-testid="github-sync-now-button"
 					onclick={syncNow}
 					disabled={!isConnected || $isGitHubSyncing}
 					title={!isConnected ? 'Configure GitHub connection first' : 'Sync documents to GitHub'}

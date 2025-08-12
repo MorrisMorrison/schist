@@ -218,14 +218,27 @@ export const githubActions = {
 	},
 
 	async disconnect() {
-		githubStore.update((state) => ({
-			...state,
-			settings: null,
-			status: null,
-			loading: false,
-			connectionTest: null,
-			lastSyncResult: null
-		}));
+		githubStore.update((state) => ({ ...state, loading: true, error: null }));
+
+		try {
+			const result = await apiClient.disconnectGitHub();
+			githubStore.update((state) => ({
+				...state,
+				settings: null,
+				status: result.status,
+				loading: false,
+				connectionTest: null,
+				lastSyncResult: null
+			}));
+			return result;
+		} catch (error) {
+			githubStore.update((state) => ({
+				...state,
+				loading: false,
+				error: error instanceof Error ? error.message : 'Failed to disconnect from GitHub'
+			}));
+			throw error;
+		}
 	},
 
 	async refresh() {
@@ -330,5 +343,8 @@ export const githubActions = {
 };
 
 if (browser) {
-	githubActions.refresh().catch(console.error);
+	// Delay initial refresh to avoid interference with setup flows
+	setTimeout(() => {
+		githubActions.refresh().catch(console.error);
+	}, 500);
 }

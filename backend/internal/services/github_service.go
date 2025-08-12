@@ -60,11 +60,11 @@ type GitHubConfigRequest struct {
 }
 
 type GitHubSyncResult struct {
-	Success      bool     `json:"success"`
-	Message      string   `json:"message"`
-	SyncedFiles  int      `json:"syncedFiles,omitempty"`
-	Errors       []string `json:"errors,omitempty"`
-	Timestamp    string   `json:"timestamp"`
+	Success     bool     `json:"success"`
+	Message     string   `json:"message"`
+	SyncedFiles int      `json:"syncedFiles,omitempty"`
+	Errors      []string `json:"errors,omitempty"`
+	Timestamp   string   `json:"timestamp"`
 }
 
 type GitHubRepoInfo struct {
@@ -234,7 +234,22 @@ func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
 		LastSync:   githubSettings.LastSync,
 	}
 
-	if !githubSettings.Enabled || gs.client == nil {
+	if !githubSettings.Enabled {
+		return status, nil
+	}
+
+	if gs.client == nil && gs.hasToken() {
+		log.Printf("[GitHubService] Client is nil but we have token, attempting to initialize...")
+		if err := gs.initializeClient(); err != nil {
+			log.Printf("[GitHubService] Failed to initialize client: %v", err)
+			status.LastSyncError = fmt.Sprintf("failed to initialize GitHub client: %v", err)
+			return status, nil
+		}
+		log.Printf("[GitHubService] Client initialized successfully")
+	}
+
+	if gs.client == nil {
+		log.Printf("[GitHubService] Client is nil and no token available")
 		return status, nil
 	}
 
@@ -242,7 +257,10 @@ func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
 	status.Connected = err == nil
 
 	if err != nil {
+		log.Printf("[GitHubService] Repository access test failed: %v", err)
 		status.LastSyncError = fmt.Sprintf("connection error: %v", err)
+	} else {
+		log.Printf("[GitHubService] Repository access test succeeded - Connected: true")
 	}
 
 	if gs.gitService != nil {
@@ -606,7 +624,7 @@ func (gs *GitHubService) pushToGitHub() error {
 	if err != nil {
 		return fmt.Errorf("failed to get current HEAD: %w", err)
 	}
-	
+
 	currentBranch := head.Name().Short()
 	log.Printf("[GitHubService] Current local branch: %s, target branch: %s", currentBranch, githubSettings.Branch)
 
@@ -646,5 +664,29 @@ func (gs *GitHubService) pushToGitHub() error {
 	}
 
 	log.Printf("[GitHubService] Push completed successfully to %s branch", githubSettings.Branch)
+	return nil
+}
+
+func (gs *GitHubService) Disconnect() error {
+	log.Printf("[GitHubService] Disconnecting GitHub integration...")
+
+	githubSettings := &appconfig.GitHubSettings{
+		Enabled:    false,
+		Owner:      "",
+		Repository: "",
+		Branch:     "",
+		AutoSync:   false,
+		SyncOnSave: false,
+		Token:      nil,
+	}
+
+	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
+		log.Printf("[GitHubService] Failed to clear GitHub settings: %v", err)
+		return fmt.Errorf("failed to clear GitHub settings: %w", err)
+	}
+
+	gs.client = nil
+
+	log.Printf("[GitHubService] Successfully disconnected GitHub integration")
 	return nil
 }

@@ -237,3 +237,25 @@ func (h *APIHandler) repairGitRepository(c *gin.Context) {
 		"message": "Repository repair completed successfully",
 	})
 }
+
+func (h *APIHandler) disconnectGitHub(c *gin.Context) {
+	if err := h.GitHubService.Disconnect(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to disconnect GitHub integration: %v", err),
+		})
+		return
+	}
+
+	status, err := h.GitHubService.GetSyncStatus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Disconnected but failed to get updated status: %v", err),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "GitHub integration disconnected successfully",
+		"status":  status,
+	})
+}

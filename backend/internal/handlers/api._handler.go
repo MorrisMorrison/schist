@@ -105,6 +105,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		github.GET("/status", h.getGitHubStatus)
 		github.POST("/sync", h.syncToGitHub)
 		github.PUT("/config", h.updateGitHubConfig)
+		github.POST("/disconnect", h.disconnectGitHub)
 	}
 
 	git := routerGroup.Group("/git")

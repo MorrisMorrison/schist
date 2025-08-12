@@ -605,6 +605,12 @@ class SchістApiClient {
 		});
 	}
 
+	async disconnectGitHub(): Promise<{ message: string; status: GitHubStatus }> {
+		return this.request<{ message: string; status: GitHubStatus }>('/github/disconnect', {
+			method: 'POST'
+		});
+	}
+
 	// Share management
 	async createShare(request: CreateShareRequest): Promise<ShareToken> {
 		return this.request<ShareToken>('/shares', {

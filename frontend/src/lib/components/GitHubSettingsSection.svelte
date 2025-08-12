@@ -61,7 +61,9 @@
 	);
 
 	onMount(() => {
-		githubActions.refresh();
+		if (!$githubStatus) {
+			githubActions.refresh();
+		}
 	});
 
 	function validateForm(): boolean {
@@ -133,10 +135,7 @@
 
 			await githubActions.setupGitHub(setupRequest);
 
-			await githubActions.updateSettings({
-				auto_sync: backupMode === 'auto',
-				branch: branch.trim()
-			});
+			console.log('Setup completed, GitHub status:', $githubStatus);
 		} catch {
 			console.error('Error setting up github');
 		}

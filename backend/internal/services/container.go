@@ -36,7 +36,7 @@ func NewServices() (*Services, error) {
 
 	assetService := NewAssetService(dataDir)
 	ignoreService := NewIgnoreService(dataDir)
-	templateService := NewTemplateService(dataDir)
+	templateService := NewTemplateService(appConfig)
 
 	gitService, err := NewGitService(dataDir)
 	if err != nil {

@@ -36,8 +36,21 @@
 	let editorRef = $state<Editor>();
 
 	$effect(() => {
-		if (title && !content.includes(title) && content === `# New Page\n\n`) {
-			content = `# ${title}\n\n`;
+		if (title) {
+			// Update heading if content starts with a heading or is empty/default
+			const lines = content.split('\n');
+			const firstLine = lines[0] || '';
+
+			// Update heading if content is empty, starts with '# New Page', or starts with '# ' + old title
+			if (
+				!content.trim() ||
+				firstLine === '# New Page' ||
+				(firstLine.startsWith('# ') && !firstLine.includes(title))
+			) {
+				const newFirstLine = `# ${title}`;
+				const remainingContent = lines.slice(1).join('\n');
+				content = newFirstLine + remainingContent;
+			}
 		}
 	});
 
@@ -120,6 +133,11 @@
 			);
 
 		content = templateContent;
+
+		// Force immediate preview update using the Editor's public method
+		if (editorRef) {
+			editorRef.setContentImmediate(templateContent);
+		}
 
 		if (template.tags && template.tags.length > 0) {
 			tags = [...template.tags];

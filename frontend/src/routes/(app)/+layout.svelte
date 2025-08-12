@@ -211,7 +211,7 @@
 
 	.main-content {
 		flex: 1;
-		@apply p-8;
+		padding: 2rem;
 		transition: padding 0.3s ease-in-out;
 	}
 

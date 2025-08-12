@@ -59,7 +59,7 @@ import type {
 	CreateFirstUserRequest,
 	UserInfo
 } from './types.js';
-import { normalizePath } from './types.js';
+import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
 
 class SchістApiClient {
 	private baseUrl: string;
@@ -95,13 +95,7 @@ class SchістApiClient {
 	}
 
 	private encodePath(path: string): string {
-		const normalizedPath = normalizePath(path);
-
-		const segments = normalizedPath.split('/');
-		const encodedSegments = segments.map((segment) =>
-			segment ? encodeURIComponent(segment) : segment
-		);
-		return encodedSegments.join('/');
+		return encodePath(path);
 	}
 
 	private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -279,14 +273,13 @@ class SchістApiClient {
 	}
 
 	async deleteDocument(path: string): Promise<void> {
-		await this.request<void>(`/documents/${this.encodePath(path)}`, {
+		await this.request<void>(buildApiEndpoint('/documents', path), {
 			method: 'DELETE'
 		});
 	}
 
 	async getDocumentByPath(path: string): Promise<Document> {
-		const encodedPath = this.encodePath(path);
-		return this.request<Document>(`/documents${encodedPath}`);
+		return this.request<Document>(buildApiEndpoint('/documents', path));
 	}
 
 	async updateDocumentByPath(
@@ -294,8 +287,6 @@ class SchістApiClient {
 		documentData: UpdateDocumentRequest,
 		saveType: 'manual' | 'auto' = 'manual'
 	): Promise<Document> {
-		const encodedPath = this.encodePath(path);
-
 		const normalizedDocumentData = {
 			...documentData,
 			metaData: {
@@ -305,15 +296,14 @@ class SchістApiClient {
 			saveType
 		};
 
-		return this.request<Document>(`/documents${encodedPath}`, {
+		return this.request<Document>(buildApiEndpoint('/documents', path), {
 			method: 'PUT',
 			body: JSON.stringify(normalizedDocumentData)
 		});
 	}
 
 	async deleteDocumentByPath(path: string): Promise<void> {
-		const encodedPath = this.encodePath(path);
-		await this.request<void>(`/documents${encodedPath}`, {
+		await this.request<void>(buildApiEndpoint('/documents', path), {
 			method: 'DELETE'
 		});
 	}
@@ -332,16 +322,14 @@ class SchістApiClient {
 	}
 
 	async renameFolder(path: string, newName: string): Promise<FolderOperationResponse> {
-		const encodedPath = this.encodePath(path);
-		return this.request<FolderOperationResponse>(`/folders${encodedPath}`, {
+		return this.request<FolderOperationResponse>(buildApiEndpoint('/folders', path), {
 			method: 'PUT',
 			body: JSON.stringify({ newName })
 		});
 	}
 
 	async deleteFolder(path: string): Promise<FolderOperationResponse> {
-		const encodedPath = this.encodePath(path);
-		return this.request<FolderOperationResponse>(`/folders${encodedPath}`, {
+		return this.request<FolderOperationResponse>(buildApiEndpoint('/folders', path), {
 			method: 'DELETE'
 		});
 	}
@@ -378,9 +366,8 @@ class SchістApiClient {
 	}
 
 	async getDocumentBacklinks(path: string): Promise<Document[]> {
-		const encodedPath = this.encodePath(path);
 		const response = await this.request<{ backlinks: Document[]; total: number }>(
-			`/links/backlinks${encodedPath}`
+			buildApiEndpoint('/links/backlinks', path)
 		);
 		return response.backlinks;
 	}

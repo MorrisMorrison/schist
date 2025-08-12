@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Edit, Trash2, Move, FileText } from 'lucide-svelte';
 	import type { Document } from '$lib/api/types';
-	import { getParentPath } from '$lib/api/types';
+	import { getParentPath } from '$lib/utils/path';
 
 	interface Props {
 		document: Document;

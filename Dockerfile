@@ -48,9 +48,14 @@ COPY --from=backend-builder /app/schist ./
 # Copy frontend build from builder
 COPY --from=frontend-builder /app/frontend/build ./web/
 
+# Copy templates from project root
+COPY templates/ ./templates/
+
+# Set environment variable for templates directory
+ENV SCHIST_TEMPLATES_DIR=./templates
+
 # Create directories for wiki data
 RUN mkdir -p /app/data/documents /app/data/assets
-
 
 # Expose port
 EXPOSE 8080

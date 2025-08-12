@@ -152,7 +152,7 @@
 	let uploadMessage = $state<string | null>(null);
 	let uploadError = $state<string | null>(null);
 
-	function updateContent(content: string) {
+	function updateContent(content: string, immediate: boolean = false) {
 		if (content === currentContent) return;
 
 		currentContent = content;
@@ -163,12 +163,17 @@
 		}
 
 		scheduleAutoSave();
-		schedulePreviewUpdate(content);
+		schedulePreviewUpdate(content, immediate);
 	}
 
-	function schedulePreviewUpdate(content: string) {
+	function schedulePreviewUpdate(content: string, immediate: boolean = false) {
 		if (previewUpdateTimer) {
 			clearTimeout(previewUpdateTimer);
+		}
+
+		if (immediate) {
+			previewContent = content;
+			return;
 		}
 
 		previewUpdateTimer = setTimeout(() => {
@@ -602,6 +607,22 @@
 	const themeClasses = $derived(
 		currentTheme === 'dark' ? 'bg-gray-900 text-gray-50' : 'bg-gray-50 text-gray-900'
 	);
+
+	// Public method for immediate content updates (e.g., template application)
+	export function setContentImmediate(content: string) {
+		if (editorView) {
+			// Update the editor content immediately
+			editorView.dispatch({
+				changes: {
+					from: 0,
+					to: editorView.state.doc.length,
+					insert: content
+				}
+			});
+		}
+		// Force immediate preview update
+		updateContent(content, true);
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />

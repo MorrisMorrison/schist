@@ -104,7 +104,7 @@
 			class="space-y-6"
 		>
 			<div class="space-y-4">
-				<div class="space-y-3">
+				<div class="space-y-2">
 					<label for="document-title" class="text-primary text-sm font-medium"
 						>New Document Title</label
 					>

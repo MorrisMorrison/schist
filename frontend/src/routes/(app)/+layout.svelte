@@ -211,7 +211,7 @@
 
 	.main-content {
 		flex: 1;
-		padding: 2rem;
+		@apply p-8;
 		transition: padding 0.3s ease-in-out;
 	}
 
@@ -234,7 +234,7 @@
 		}
 
 		.main-content {
-			padding: 0.5rem;
+			@apply p-2;
 			/* On mobile, main content always takes full width */
 			width: 100%;
 		}

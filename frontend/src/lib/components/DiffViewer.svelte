@@ -161,7 +161,6 @@
 								class="text-muted-foreground hover:text-foreground text-sm transition-colors"
 								onclick={() => {
 									// Could implement expanding context lines here
-									console.log('Expand context lines');
 								}}
 							>
 								⋯ {item.count} unchanged lines ⋯

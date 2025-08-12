@@ -103,15 +103,6 @@ renderer.codespan = function ({ text }: Tokens.Codespan): string {
 	return `<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">${escapedCode}</code>`;
 };
 
-renderer.listitem = function ({ text, task, checked }: Tokens.ListItem): string {
-	if (task) {
-		const checkedAttr = checked ? ' checked' : '';
-		const checkboxInput = `<input type="checkbox"${checkedAttr} disabled class="mr-2">`;
-		return `<li class="flex items-start list-none">${checkboxInput}<span class="flex-1">${text}</span></li>`;
-	}
-	return `<li>${text}</li>`;
-};
-
 marked.setOptions({
 	renderer,
 	breaks: true,

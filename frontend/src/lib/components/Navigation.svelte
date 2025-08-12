@@ -9,6 +9,7 @@
 	import { authService } from '$lib/auth/auth-service';
 	import { secretsUnlocked, secretStore, secretList } from '$lib/stores/secrets';
 	import { passkeyStore } from '$lib/stores/passkeys';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();
 
@@ -185,9 +186,7 @@
 							data-testid="quick-unlock-button"
 						>
 							{#if isUnlocking}
-								<div
-									class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-								></div>
+								<LoadingSpinner size="sm" />
 							{:else}
 								<Lock class="h-4 w-4" />
 							{/if}
@@ -279,9 +278,7 @@
 								data-testid="quick-unlock-button-mobile"
 							>
 								{#if isUnlocking}
-									<div
-										class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-									></div>
+									<LoadingSpinner size="sm" />
 								{:else}
 									<Lock class="h-4 w-4" />
 								{/if}

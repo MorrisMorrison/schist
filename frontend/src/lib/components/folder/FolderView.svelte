@@ -13,6 +13,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import { Card, CardContent } from '$lib/components/ui/card';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { Document, Folder as FolderType } from '$lib/api/types';
 
 	interface Props {
@@ -166,9 +167,7 @@
 
 			{#if isLoadingFolderData}
 				<div class="text-secondary flex items-center gap-2 text-sm">
-					<div
-						class="border-border border-t-primary h-4 w-4 animate-spin rounded-full border-2"
-					></div>
+					<LoadingSpinner size="sm" />
 					<span>Loading...</span>
 				</div>
 			{/if}

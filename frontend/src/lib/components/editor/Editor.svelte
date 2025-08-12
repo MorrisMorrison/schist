@@ -170,7 +170,7 @@
 		if (previewUpdateTimer) {
 			clearTimeout(previewUpdateTimer);
 		}
-		
+
 		previewUpdateTimer = setTimeout(() => {
 			previewContent = content;
 		}, 300);

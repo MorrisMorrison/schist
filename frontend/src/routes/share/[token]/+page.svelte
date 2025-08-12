@@ -95,9 +95,7 @@
 
 		<!-- Shared Document Indicator -->
 		<div class="text-muted-foreground flex items-center gap-2 text-sm">
-			<div
-				class="flex items-center gap-2 rounded bg-blue-100 px-3 py-2 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
-			>
+			<div class="bg-accent text-accent-foreground flex items-center gap-2 rounded px-3 py-2">
 				<Eye class="h-4 w-4" />
 				Shared Document (Read-only)
 			</div>
@@ -109,7 +107,7 @@
 		{#if document?.content}
 			<div
 				bind:this={contentContainer}
-				class="prose prose-slate dark:prose-invert w-full !max-w-none"
+				class="prose prose-slate w-full !max-w-none"
 				data-testid="shared-document-content"
 			>
 				<MarkdownRenderer content={document.content} />

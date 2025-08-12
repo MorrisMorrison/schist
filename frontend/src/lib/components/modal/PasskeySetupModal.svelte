@@ -121,15 +121,8 @@
 				</div>
 			{:else if step === 'success'}
 				<div class="flex flex-col items-center space-y-4 py-6">
-					<div
-						class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900"
-					>
-						<svg
-							class="h-6 w-6 text-green-600 dark:text-green-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
+					<div class="bg-accent flex h-12 w-12 items-center justify-center rounded-full">
+						<svg class="text-primary h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"

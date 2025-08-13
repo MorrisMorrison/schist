@@ -15,6 +15,7 @@ type APIHandler struct {
 	DocumentService *services.DocumentService
 	AssetService    *services.AssetService
 	LinkService     *services.LinkService
+	GitService      *services.GitService
 	GitHubService   *services.GitHubService
 	AuthService     *services.AuthService
 	ShareService    *services.ShareService
@@ -28,6 +29,7 @@ func NewAPIHandler(services *services.Services) *APIHandler {
 		DocumentService: services.DocumentService,
 		AssetService:    services.AssetService,
 		LinkService:     services.LinkService,
+		GitService:      services.GitService,
 		GitHubService:   services.GitHubService,
 		AuthService:     services.AuthService,
 		ShareService:    services.ShareService,
@@ -103,8 +105,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		github.GET("/status", h.getGitHubStatus)
 		github.POST("/sync", h.syncToGitHub)
 		github.PUT("/config", h.updateGitHubConfig)
-
-		// GitHub docs endpoints
+		github.POST("/disconnect", h.disconnectGitHub)
 		github.GET("/docs/repositories", h.getDocsRepositories)
 		github.POST("/docs/repositories", h.addDocsRepository)
 		github.DELETE("/docs/repositories/:owner/:repo", h.removeDocsRepository)
@@ -113,6 +114,13 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		github.GET("/docs/files", h.listDocsFiles)
 		github.POST("/docs/sync/:owner/:repo", h.syncDocsRepository)
 		github.POST("/docs/sync", h.syncAllDocsRepositories)
+	}
+
+	git := routerGroup.Group("/git")
+	{
+		git.GET("/health", h.gitHealthCheck)
+		git.POST("/repair", h.repairGitRepository)
+
 	}
 
 	exportRoutes := routerGroup.Group("/export")

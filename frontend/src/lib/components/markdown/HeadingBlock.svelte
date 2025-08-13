@@ -4,12 +4,12 @@
 	let { block }: { block: HeadingBlock } = $props();
 
 	const headingClasses = {
-		1: 'text-4xl font-bold mt-8 mb-4',
-		2: 'text-3xl font-bold mt-8 mb-4',
-		3: 'text-2xl font-bold mt-6 mb-3',
-		4: 'text-xl font-bold mt-6 mb-3',
-		5: 'text-lg font-bold mt-6 mb-3',
-		6: 'text-base font-bold mt-6 mb-3'
+		1: 'markdown-heading-1',
+		2: 'markdown-heading-2',
+		3: 'markdown-heading-3',
+		4: 'markdown-heading-4',
+		5: 'markdown-heading-5',
+		6: 'markdown-heading-6'
 	};
 </script>
 
@@ -26,3 +26,35 @@
 {:else if block.level === 6}
 	<h6 class={headingClasses[6]}>{@html block.text}</h6>
 {/if}
+
+<style>
+	:global(.markdown-heading-1) {
+		font-size: 2rem;
+		font-weight: bold;
+	}
+
+	:global(.markdown-heading-2) {
+		font-size: 1.625rem;
+		font-weight: bold;
+	}
+
+	:global(.markdown-heading-3) {
+		font-size: 1.375rem;
+		font-weight: bold;
+	}
+
+	:global(.markdown-heading-4) {
+		font-size: 1.125rem;
+		font-weight: bold;
+	}
+
+	:global(.markdown-heading-5) {
+		font-size: 1rem;
+		font-weight: bold;
+	}
+
+	:global(.markdown-heading-6) {
+		font-size: 0.875rem;
+		font-weight: bold;
+	}
+</style>

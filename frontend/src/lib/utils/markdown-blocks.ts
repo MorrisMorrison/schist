@@ -246,12 +246,10 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		case 'paragraph': {
 			const paragraphToken = token as Tokens.Paragraph;
 			let text = paragraphToken.text;
-			console.log('DEBUG: Processing paragraph text:', JSON.stringify(text));
 
 			// Check if the paragraph contains ONLY an image (standalone image)
 			const standaloneImageMatch = text.match(/^!\[(.*?)\]\((.*?)(?:\s+"(.*?)")?\)\s*$/);
 			if (standaloneImageMatch) {
-				console.log('DEBUG: Converting standalone paragraph to ImageBlock:', text);
 				const [, altText, href, title] = standaloneImageMatch;
 
 				let cleanTitle: string | undefined = title;
@@ -481,7 +479,13 @@ async function processInlineMarkdown(text: string): Promise<string> {
 	const promise = (async () => {
 		try {
 			const htmlResult = await configuredMarked.parse(text, { async: true });
-			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
+			// More aggressive paragraph tag removal - handle multiple cases
+			const cleaned = htmlResult
+				.replace(/^<p[^>]*>(.*)<\/p>$/s, '$1') // Remove p with attributes
+				.replace(/^<p>(.*)<\/p>$/s, '$1') // Remove simple p tags
+				.replace(/<\/p>\s*<p[^>]*>/g, ' ') // Replace p breaks with spaces
+				.replace(/<\/?p[^>]*>/g, '') // Remove any remaining p tags
+				.trim();
 			return cleaned;
 		} catch (error) {
 			console.warn('Failed to process inline markdown:', error);

@@ -318,11 +318,7 @@
 	<!-- Document Content -->
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
-			<div
-				bind:this={contentContainer}
-				class="prose prose-slate max-w-none"
-				data-testid="document-content"
-			>
+			<div bind:this={contentContainer} class="max-w-none" data-testid="document-content">
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}

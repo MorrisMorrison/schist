@@ -2,7 +2,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|MultiEdit|Write",
+        "matcher": "Edit\\|MultiEdit\\|Write",
         "hooks": [{ "type": "command", "command": ".claude/hooks.sh --fast" }]
       }
     ],

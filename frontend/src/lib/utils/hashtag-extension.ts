@@ -6,6 +6,7 @@ import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { apiClient } from '$lib/api/client';
 import type { TagInfo } from '$lib/api/types';
+import { HASHTAG_REGEX } from './hashtag-constants';
 
 let tagsCache: TagInfo[] = [];
 let cacheTime = 0;
@@ -25,8 +26,6 @@ async function getTags(): Promise<TagInfo[]> {
 	}
 	return tagsCache;
 }
-
-const hashtagRegex = /#([a-zA-Z0-9_-]+)(?!\w)/g;
 
 const updateHashtagsEffect = StateEffect.define<DecorationSet>();
 const hashtagsField = StateField.define<DecorationSet>({
@@ -52,9 +51,9 @@ async function findHashtags(state: EditorState): Promise<Range<Decoration>[]> {
 	const existingTagNames = new Set(existingTags.map((tag) => tag.name.toLowerCase()));
 
 	let match;
-	hashtagRegex.lastIndex = 0;
+	HASHTAG_REGEX.lastIndex = 0;
 
-	while ((match = hashtagRegex.exec(text)) !== null) {
+	while ((match = HASHTAG_REGEX.exec(text)) !== null) {
 		const [fullMatch, tagName] = match;
 		const from = match.index;
 		const to = match.index + fullMatch.length;

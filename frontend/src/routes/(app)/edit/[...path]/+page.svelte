@@ -28,6 +28,8 @@
 
 	const originalContent = document.content;
 
+	const titleFromContent = $derived(extractTitleFromContent(content));
+
 	function replaceLastPathSegment(path: string, newSegment: string): string {
 		const parts = path.split('/').filter(Boolean);
 		if (parts.length === 0) return newSegment;
@@ -43,7 +45,7 @@
 		isSaving = true;
 		saveError = '';
 
-		const title = extractTitleFromContent(content);
+		const title = titleFromContent;
 		const tags = extractHashtagsFromContent(content);
 		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
@@ -130,7 +132,7 @@
 		isSaving = true;
 		saveError = '';
 
-		const title = extractTitleFromContent(content);
+		const title = titleFromContent;
 		const tags = extractHashtagsFromContent(content);
 		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
@@ -182,7 +184,7 @@
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-primary text-2xl font-bold">{extractTitleFromContent(content)}</h1>
+				<h1 class="text-primary text-2xl font-bold">{titleFromContent}</h1>
 				<p class="text-secondary mt-1 text-sm">
 					Editing <span class="font-mono">/{data.path}</span>
 				</p>

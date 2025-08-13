@@ -1,21 +1,18 @@
 import { autocompletion, CompletionContext } from '@codemirror/autocomplete';
 import type { CompletionResult } from '@codemirror/autocomplete';
 
-// Import completion functions from existing extensions
 import { apiClient } from '$lib/api/client';
 import type { TagInfo, Document } from '$lib/api/types';
+import { HASHTAG_PARTIAL_REGEX } from './hashtag-constants';
 
-// Cache for documents (from wiki-links)
 let documentsCache: Document[] = [];
 let documentsCacheTime = 0;
 
-// Cache for tags (from hashtags)
 let tagsCache: TagInfo[] = [];
 let tagsCacheTime = 0;
 
-const CACHE_DURATION = 60000; // 60 seconds
+const CACHE_DURATION = 60000;
 
-// Get documents for wiki-link completion
 async function getDocuments(): Promise<Document[]> {
 	const now = Date.now();
 	if (now - documentsCacheTime > CACHE_DURATION || documentsCache.length === 0) {
@@ -30,7 +27,6 @@ async function getDocuments(): Promise<Document[]> {
 	return documentsCache;
 }
 
-// Get tags for hashtag completion
 async function getTags(): Promise<TagInfo[]> {
 	const now = Date.now();
 	if (now - tagsCacheTime > CACHE_DURATION || tagsCache.length === 0) {
@@ -46,7 +42,6 @@ async function getTags(): Promise<TagInfo[]> {
 	return tagsCache;
 }
 
-// Wiki-link completion logic
 async function wikiLinkCompletion(context: CompletionContext): Promise<CompletionResult | null> {
 	const line = context.state.doc.lineAt(context.pos);
 	const lineText = line.text;
@@ -70,7 +65,7 @@ async function wikiLinkCompletion(context: CompletionContext): Promise<Completio
 
 	const searchQuery = beforeCursor.slice(openBrackets + 2);
 	const from = lineStart + openBrackets + 2;
-	const to = lineStart + cursorInLine + nextCloseBrackets;
+	const to = lineStart + cursorInLine;
 
 	try {
 		const documents = await getDocuments();
@@ -98,7 +93,6 @@ async function wikiLinkCompletion(context: CompletionContext): Promise<Completio
 	}
 }
 
-// Hashtag completion logic
 async function hashtagCompletion(context: CompletionContext): Promise<CompletionResult | null> {
 	const line = context.state.doc.lineAt(context.pos);
 	const lineText = line.text;
@@ -106,14 +100,14 @@ async function hashtagCompletion(context: CompletionContext): Promise<Completion
 	const cursorInLine = context.pos - lineStart;
 
 	const beforeCursor = lineText.slice(0, cursorInLine);
-	const hashMatch = beforeCursor.match(/#([a-zA-Z0-9_-]*)$/);
+	const hashMatch = beforeCursor.match(HASHTAG_PARTIAL_REGEX);
 
 	if (!hashMatch) {
 		return null;
 	}
 
 	const searchQuery = hashMatch[1];
-	const from = lineStart + beforeCursor.length - hashMatch[0].length + 1; // +1 to skip the #
+	const from = lineStart + beforeCursor.length - hashMatch[0].length + 1;
 	const to = context.pos;
 
 	try {
@@ -140,15 +134,12 @@ async function hashtagCompletion(context: CompletionContext): Promise<Completion
 	}
 }
 
-// Combined completion function
 async function combinedCompletion(context: CompletionContext): Promise<CompletionResult | null> {
-	// Try hashtag completion first (more specific pattern)
 	const hashtagResult = await hashtagCompletion(context);
 	if (hashtagResult) {
 		return hashtagResult;
 	}
 
-	// Try wiki-link completion
 	const wikiLinkResult = await wikiLinkCompletion(context);
 	if (wikiLinkResult) {
 		return wikiLinkResult;
@@ -157,7 +148,6 @@ async function combinedCompletion(context: CompletionContext): Promise<Completio
 	return null;
 }
 
-// Export the combined autocompletion extension
 export function combinedAutocompletionExtension() {
 	return autocompletion({
 		maxRenderedOptions: 10,

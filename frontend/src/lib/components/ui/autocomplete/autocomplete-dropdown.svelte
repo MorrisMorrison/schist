@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import type { AutocompleteItem, AutocompletePosition } from './types';
 
-	// Props
 	let {
 		items,
 		isVisible,
@@ -35,12 +34,10 @@
 		class?: string;
 	} = $props();
 
-	// Reactive state
 	const visibleItems = $derived(items.slice(0, maxItems));
 	const hasItems = $derived(visibleItems.length > 0);
 	const safeSelectedIndex = $derived(Math.max(0, Math.min(selectedIndex, visibleItems.length - 1)));
 
-	// Keyboard navigation
 	function handleKeydown(event: KeyboardEvent) {
 		if (!isVisible || !hasItems) return;
 
@@ -76,13 +73,11 @@
 		}
 	}
 
-	// Handle item selection
 	function selectItem(item: T, index: number) {
 		onNavigate?.(index);
 		onSelect(item);
 	}
 
-	// Handle mouse hover
 	function handleItemMouseEnter(index: number) {
 		onNavigate?.(index);
 	}

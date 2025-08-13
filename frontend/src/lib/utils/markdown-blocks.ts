@@ -491,7 +491,6 @@ async function processInlineMarkdown(text: string): Promise<string> {
 
 	const promise = (async () => {
 		try {
-			// Process hashtags before regular markdown processing
 			const withHashtags = processHashtags(text);
 			const htmlResult = await configuredMarked.parse(withHashtags, { async: true });
 			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();

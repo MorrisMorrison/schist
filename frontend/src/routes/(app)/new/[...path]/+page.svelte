@@ -19,6 +19,8 @@
 
 	let editorRef = $state<Editor>();
 
+	const title = $derived(extractTitleFromContent(content));
+
 	$effect(() => {
 		templateActions.loadTemplates();
 	});
@@ -33,7 +35,6 @@
 		createError = '';
 
 		try {
-			const title = extractTitleFromContent(content);
 			const tags = extractHashtagsFromContent(content);
 			const fullPath = generatePath(title);
 
@@ -117,7 +118,7 @@
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-primary text-2xl font-bold">{extractTitleFromContent(content)}</h1>
+				<h1 class="text-primary text-2xl font-bold">{title}</h1>
 				<p class="text-secondary mt-1 text-sm">Add a new document to your wiki</p>
 			</div>
 

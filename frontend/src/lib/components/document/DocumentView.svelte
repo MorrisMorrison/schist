@@ -63,7 +63,6 @@
 	let showVersionHistory = $state(false);
 	let versions = $state<DocumentVersion[]>([]);
 
-	// Helper function for adding secret placeholder indicators
 	function addSecretPlaceholderIndicators(text: string): string {
 		const placeholders = parseSecretPlaceholders(text);
 
@@ -73,7 +72,6 @@
 			processedText = processedText.replace(placeholder, indicator);
 		}
 
-		// Process hashtags after secret placeholders
 		processedText = processHashtags(processedText);
 		return processedText;
 	}
@@ -88,21 +86,17 @@
 			}
 
 			try {
-				// Process secret placeholders
 				if ($secretsUnlocked) {
-					// Replace placeholders with actual values when unlocked
 					let processedText = await replaceSecretPlaceholders(content, async (key: string) => {
 						return await secretStore.getSecret(key);
 					});
-					// Also process hashtags when secrets are unlocked
 					processedContent = processHashtags(processedText);
 				} else {
-					// Add visual indicators for locked placeholders (this already includes hashtag processing)
 					processedContent = addSecretPlaceholderIndicators(content);
 				}
 			} catch (error) {
 				console.error('Failed to process document content:', error);
-				processedContent = content; // Fallback to original content
+				processedContent = content;
 			}
 		}
 
@@ -225,7 +219,6 @@
 <div class="mx-auto max-w-7xl space-y-8 p-6" data-testid="document-view">
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
-	<!-- Page Header -->
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
 	>
@@ -234,7 +227,6 @@
 				{documentTitle}
 			</h1>
 
-			<!-- Document Metadata -->
 			<div class="flex flex-wrap items-center gap-4">
 				{#if documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
@@ -282,7 +274,6 @@
 			</div>
 		</div>
 
-		<!-- Action Buttons -->
 		<div class="flex gap-2">
 			<Button
 				variant="outline"
@@ -320,7 +311,6 @@
 		</div>
 	</header>
 
-	<!-- Document Content -->
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
 			<div
@@ -341,7 +331,6 @@
 		{/if}
 	</main>
 
-	<!-- Backlinks Section -->
 	{#if backlinks && backlinks.length > 0}
 		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 			<div class="mb-4 flex items-center gap-2">

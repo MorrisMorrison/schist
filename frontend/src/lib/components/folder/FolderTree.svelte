@@ -258,38 +258,6 @@
 		return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
 	}
 
-	function getCurrentFolderPath(): string {
-		const FOLDERS_PREFIX = '/folders';
-		const DOCUMENTS_PREFIX = '/documents';
-
-		if (
-			!currentPath ||
-			currentPath === '/' ||
-			currentPath === '' ||
-			currentPath === FOLDERS_PREFIX
-		) {
-			return '';
-		}
-
-		if (currentPath.startsWith(FOLDERS_PREFIX)) {
-			const folderPath = currentPath.substring(FOLDERS_PREFIX.length);
-			return folderPath || '';
-		}
-
-		if (currentPath.startsWith(DOCUMENTS_PREFIX)) {
-			const pagePath = currentPath.substring(DOCUMENTS_PREFIX.length);
-			const pathSegments = pagePath.split('/').filter(Boolean);
-
-			if (pathSegments.length <= 1) {
-				return '';
-			}
-
-			pathSegments.pop();
-			return '/' + pathSegments.join('/');
-		}
-
-		return '';
-	}
 
 	function expandAll() {
 		const getAllFolderPaths = (folders: FolderType[]): string[] => {
@@ -531,7 +499,7 @@
 					variant="ghost"
 					size="icon"
 					class="h-6 w-6"
-					onclick={() => ondocumentcreate?.({ parentPath: getCurrentFolderPath() })}
+					onclick={() => ondocumentcreate?.({ parentPath: '/' })}
 					title="Create new document"
 				>
 					<Plus class="h-4 w-4" />

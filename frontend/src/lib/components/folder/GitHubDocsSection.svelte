@@ -12,11 +12,11 @@
 		ExternalLink,
 		Eye
 	} from 'lucide-svelte';
-	import type { GitHubRepoConfig, GitHubDocument } from '$lib/api/types';
+	import type { GitHubDocsRepoConfig, GitHubDocument } from '$lib/api/types';
 
 	const RELOAD_DEBOUNCE_MS = 1000;
 
-	let repositories = $state<GitHubRepoConfig[]>([]);
+	let repositories = $state<GitHubDocsRepoConfig[]>([]);
 	let expandedRepos = $state<Set<string>>(new Set());
 	let repoFiles = $state<Map<string, GitHubDocument[]>>(new Map());
 	let loadingFiles = $state<Set<string>>(new Set());

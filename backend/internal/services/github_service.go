@@ -934,16 +934,16 @@ func (gs *GitHubService) RemoveDocsRepository(owner, repo string) error {
 	return nil
 }
 
-func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubRepoConfig, error) {
+func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubDocsRepoConfig, error) {
 	settings := gs.settings.GetGitHubSettings()
-	var repos []models.GitHubRepoConfig
+	var repos []models.GitHubDocsRepoConfig
 
 	if settings.DocsRepos == nil {
 		return repos, nil
 	}
 
 	for _, repoSettings := range settings.DocsRepos {
-		repo := models.GitHubRepoConfig{
+		repo := models.GitHubDocsRepoConfig{
 			Owner:         repoSettings.Owner,
 			Repository:    repoSettings.Repository,
 			DocsFolder:    repoSettings.DocsFolder,

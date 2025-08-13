@@ -290,7 +290,7 @@ export interface GitHubSetupResponse {
 }
 
 // GitHub Docs types
-export interface GitHubRepoConfig {
+export interface GitHubDocsRepoConfig {
 	owner: string;
 	repository: string;
 	docs_folder: string;
@@ -322,7 +322,7 @@ export interface GitHubDocument {
 }
 
 export interface GitHubDocsRepositoriesResponse {
-	repositories: GitHubRepoConfig[];
+	repositories: GitHubDocsRepoConfig[];
 }
 
 export interface GitHubDocsFilesResponse {

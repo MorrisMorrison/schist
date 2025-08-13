@@ -12,9 +12,9 @@
 		CardTitle
 	} from '$lib/components/ui/card';
 	import { AlertCircle, Plus, Trash2, RefreshCw, BookOpen, ExternalLink } from 'lucide-svelte';
-	import type { GitHubRepoConfig } from '$lib/api/types';
+	import type { GitHubDocsRepoConfig } from '$lib/api/types';
 
-	let repositories = $state<GitHubRepoConfig[]>([]);
+	let repositories = $state<GitHubDocsRepoConfig[]>([]);
 	let newOwner = $state('');
 	let newRepo = $state('');
 	let newDocsFolder = $state('docs');
@@ -37,11 +37,11 @@
 				throw new Error('GitHub actions not available');
 			}
 			repositories = await githubActions.getDocsRepositories();
-			error = ''; // Clear any previous errors
+			error = '';
 		} catch (err) {
 			console.error('loadRepositories error:', err);
 			error = err instanceof Error ? err.message : 'Failed to load repositories';
-			repositories = []; // Ensure repositories is always an array
+			repositories = [];
 		}
 	}
 
@@ -59,12 +59,10 @@
 				newBranch.trim()
 			);
 
-			// Automatically sync the newly added repository
 			await githubActions.syncDocsRepository(newOwner.trim(), newRepo.trim());
 
 			await loadRepositories();
 
-			// Reset form
 			newOwner = '';
 			newRepo = '';
 			newDocsFolder = 'docs';
@@ -127,7 +125,6 @@
 		</CardDescription>
 	</CardHeader>
 	<CardContent class="space-y-6">
-		<!-- Error Display -->
 		{#if error || $githubError}
 			<div
 				class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-red-800"
@@ -137,7 +134,6 @@
 			</div>
 		{/if}
 
-		<!-- Action Buttons -->
 		<div class="flex flex-wrap gap-3">
 			<Button
 				variant="outline"
@@ -164,7 +160,6 @@
 			{/if}
 		</div>
 
-		<!-- Add Repository Form -->
 		{#if showAddForm}
 			<Card>
 				<CardHeader>
@@ -219,7 +214,6 @@
 			</Card>
 		{/if}
 
-		<!-- Repository List -->
 		{#if repositories && repositories.length > 0}
 			<div class="space-y-3">
 				<h3 class="text-lg font-semibold">Configured Repositories</h3>

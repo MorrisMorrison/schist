@@ -276,7 +276,7 @@ func (h *APIHandler) getDocsRepositories(c *gin.Context) {
 }
 
 func (h *APIHandler) addDocsRepository(c *gin.Context) {
-	var req models.GitHubRepoRequest
+	var req models.GitHubDocsRepoRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request: " + err.Error(),

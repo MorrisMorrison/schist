@@ -4,6 +4,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
 	import KeyboardShortcutsModal from '$lib/components/modal/KeyboardShortcutsModal.svelte';
+	import WorkspaceIndicator from '$lib/components/WorkspaceIndicator.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import {
@@ -144,7 +145,13 @@
 
 	<!-- Footer -->
 	<footer class="border-border bg-background border-t px-4 py-3">
-		<div class="flex items-center justify-center">
+		<div class="flex items-center justify-between">
+			<!-- Left: Workspace Indicator -->
+			<div class="flex-1">
+				<WorkspaceIndicator />
+			</div>
+
+			<!-- Center: Keyboard Shortcuts -->
 			<button
 				type="button"
 				onclick={() => (keyboardShortcutsOpen = true)}
@@ -152,6 +159,9 @@
 			>
 				⌨️ Keyboard Shortcuts
 			</button>
+
+			<!-- Right: Empty space for balance -->
+			<div class="flex-1"></div>
 		</div>
 	</footer>
 </div>

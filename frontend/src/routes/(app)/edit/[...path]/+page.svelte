@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import Editor from '$lib/components/editor/Editor.svelte';
-	import MetadataEditor from '$lib/components/editor/MetadataEditor.svelte';
 	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
@@ -9,6 +8,7 @@
 	import { Check, Trash2, RotateCcw, CircleX } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
+	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
 
 	let { data }: { data: PageData } = $props();
 
@@ -18,9 +18,7 @@
 		content: ''
 	};
 
-	let title = $state(document.metaData.title);
 	let content = $state(document.content);
-	let tags = $state<string[]>(document.metaData.tags || []);
 	let isSaving = $state(false);
 	let saveError = $state('');
 	let isDeleting = $state(false);
@@ -28,11 +26,8 @@
 
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const originalTitle = document.metaData.title;
 	const originalContent = document.content;
-	const originalTags = JSON.stringify(document.metaData.tags || []);
 
-	let editorRef: Editor;
 	function replaceLastPathSegment(path: string, newSegment: string): string {
 		const parts = path.split('/').filter(Boolean);
 		if (parts.length === 0) return newSegment;
@@ -40,11 +35,6 @@
 		return parts.join('/');
 	}
 	async function handleSave() {
-		if (!title.trim()) {
-			saveError = 'Title is required';
-			return;
-		}
-
 		if (!content.trim()) {
 			saveError = 'Content is required';
 			return;
@@ -53,6 +43,8 @@
 		isSaving = true;
 		saveError = '';
 
+		const title = extractTitleFromContent(content);
+		const tags = extractHashtagsFromContent(content);
 		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
@@ -110,20 +102,12 @@
 		scheduleAutoSave();
 	}
 
-	function handleTagsChange(newTags: string[]) {
-		tags = newTags;
-		scheduleAutoSave();
-	}
-
 	function scheduleAutoSave() {
 		if (autoSaveTimer) {
 			clearTimeout(autoSaveTimer);
 		}
 
-		const hasChanges =
-			title !== originalTitle ||
-			content !== originalContent ||
-			JSON.stringify(tags) !== originalTags;
+		const hasChanges = content !== originalContent;
 
 		if (hasChanges) {
 			autoSaveTimer = setTimeout(async () => {
@@ -138,11 +122,6 @@
 	}
 
 	async function handleSaveWithoutNavigation() {
-		if (!title.trim()) {
-			saveError = 'Title is required';
-			return;
-		}
-
 		if (!content.trim()) {
 			saveError = 'Content is required';
 			return;
@@ -151,11 +130,9 @@
 		isSaving = true;
 		saveError = '';
 
-		const slug = title
-			.trim()
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-|-$/g, '');
+		const title = extractTitleFromContent(content);
+		const tags = extractHashtagsFromContent(content);
+		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
 		try {
 			await documentActions.updateDocumentByPath(
@@ -205,7 +182,7 @@
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-primary text-2xl font-bold">Edit Page</h1>
+				<h1 class="text-primary text-2xl font-bold">{extractTitleFromContent(content)}</h1>
 				<p class="text-secondary mt-1 text-sm">
 					Editing <span class="font-mono">/{data.path}</span>
 				</p>
@@ -230,7 +207,7 @@
 					variant="default"
 					data-testid="save-document-button"
 					onclick={handleSave}
-					disabled={isSaving || !title.trim() || !content.trim()}
+					disabled={isSaving || !content.trim()}
 				>
 					{#if isSaving}
 						<RotateCcw class="h-4 w-4 animate-spin" />
@@ -261,38 +238,16 @@
 		</div>
 	{/if}
 
-	<!-- Editor Form -->
-	<div class="bg-content ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
-		<!-- Enhanced Metadata Editor -->
-		<MetadataEditor
-			{title}
-			{tags}
-			slug={document.metaData.slug}
-			path={document.metaData.path}
-			created={document.metaData.created}
-			updated={document.metaData.updated}
-			onTitleChange={(newTitle) => {
-				title = newTitle;
-				scheduleAutoSave();
+	<!-- Content Editor -->
+	<div class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
+		<Editor
+			initialContent={content}
+			onContentChange={handleContentChange}
+			onSave={handleSaveFromEditor}
+			autoSave={{
+				enabled: false
 			}}
-			onTagsChange={handleTagsChange}
-			showAdvanced={false}
 		/>
-
-		<!-- Content Editor -->
-		<div class="flex-1">
-			<div class="w-full">
-				<Editor
-					bind:this={editorRef}
-					initialContent={content}
-					onContentChange={handleContentChange}
-					onSave={handleSaveFromEditor}
-					autoSave={{
-						enabled: false
-					}}
-				/>
-			</div>
-		</div>
 	</div>
 
 	<MarkdownInfoHelp />

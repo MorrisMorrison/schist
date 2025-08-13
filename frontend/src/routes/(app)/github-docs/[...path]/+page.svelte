@@ -53,8 +53,9 @@
 	}
 
 	function openOnGitHub() {
-		if (owner && repo && filePath) {
-			window.open(`https://github.com/${owner}/${repo}/blob/main/${filePath}`, '_blank');
+		if (owner && repo && filePath && gitHubDocument) {
+			const branch = gitHubDocument.branch || 'main';
+			window.open(`https://github.com/${owner}/${repo}/blob/${branch}/${filePath}`, '_blank');
 		}
 	}
 

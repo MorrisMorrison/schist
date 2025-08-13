@@ -18,6 +18,11 @@ import (
 	"github.com/MorrisMorrison/schist/internal/models"
 )
 
+const (
+	DefaultGitHubBranch = "main"
+	DefaultDocsFolder   = "docs"
+)
+
 type GitHubService struct {
 	config        *appconfig.Config
 	settings      *appconfig.Settings
@@ -137,6 +142,25 @@ func (gs *GitHubService) initializeClient() error {
 	gs.client = github.NewClient(tc)
 
 	return nil
+}
+
+func (gs *GitHubService) getEffectiveBranch(owner, repo string) (string, error) {
+	if gs.client == nil {
+		if err := gs.initializeClient(); err != nil {
+			return DefaultGitHubBranch, fmt.Errorf("failed to initialize github client: %w", err)
+		}
+	}
+
+	repoInfo, _, err := gs.client.Repositories.Get(gs.ctx, owner, repo)
+	if err != nil {
+		return DefaultGitHubBranch, nil
+	}
+
+	if repoInfo != nil && repoInfo.DefaultBranch != nil && *repoInfo.DefaultBranch != "" {
+		return *repoInfo.DefaultBranch, nil
+	}
+
+	return DefaultGitHubBranch, nil
 }
 
 func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoInfo, error) {
@@ -705,15 +729,12 @@ func (gs *GitHubService) GetRepositoryStructure(owner, repo, path string) (*mode
 		return nil, fmt.Errorf("repository name is required")
 	}
 	if path == "" {
-		path = "docs"
+		path = DefaultDocsFolder
 	}
 
-	branch := "main"
-
-	if gs.client == nil {
-		if err := gs.initializeClient(); err != nil {
-			return nil, fmt.Errorf("failed to initialize github client: %w", err)
-		}
+	branch, err := gs.getEffectiveBranch(owner, repo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get effective branch: %w", err)
 	}
 
 	options := &github.RepositoryContentGetOptions{
@@ -778,12 +799,9 @@ func (gs *GitHubService) GetDocumentContent(owner, repo, path string) (*models.G
 		return nil, fmt.Errorf("file path is required")
 	}
 
-	branch := "main"
-
-	if gs.client == nil {
-		if err := gs.initializeClient(); err != nil {
-			return nil, fmt.Errorf("failed to initialize github client: %w", err)
-		}
+	branch, err := gs.getEffectiveBranch(owner, repo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get effective branch: %w", err)
 	}
 
 	options := &github.RepositoryContentGetOptions{

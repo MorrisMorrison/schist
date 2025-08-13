@@ -14,6 +14,8 @@
 	} from 'lucide-svelte';
 	import type { GitHubRepoConfig, GitHubDocument } from '$lib/api/types';
 
+	const RELOAD_DEBOUNCE_MS = 1000;
+
 	let repositories = $state<GitHubRepoConfig[]>([]);
 	let expandedRepos = $state<Set<string>>(new Set());
 	let repoFiles = $state<Map<string, GitHubDocument[]>>(new Map());
@@ -29,7 +31,7 @@
 	$effect(() => {
 		// Reload when loading state changes from true to false (operation completed)
 		const currentTime = Date.now();
-		if ($isGitHubLoading === false && currentTime - lastLoadTime > 1000) {
+		if ($isGitHubLoading === false && currentTime - lastLoadTime > RELOAD_DEBOUNCE_MS) {
 			lastLoadTime = currentTime;
 			loadRepositories();
 		}

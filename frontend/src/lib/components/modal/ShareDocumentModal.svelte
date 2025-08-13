@@ -151,7 +151,7 @@
 			<!-- Create New Share -->
 			<div class="rounded-lg border p-4">
 				<h3 class="mb-3 font-medium">Create New Share Link</h3>
-				<div class="space-y-3">
+				<div class="space-y-4">
 					<div class="grid grid-cols-2 gap-3">
 						<div>
 							<Label for="expiry">Expiry</Label>
@@ -205,9 +205,9 @@
 						</p>
 					</div>
 				{:else}
-					<div class="max-h-80 space-y-3 overflow-y-auto">
+					<div class="max-h-80 space-y-2 overflow-y-auto">
 						{#each shares as share (share.id)}
-							<div class="space-y-3 rounded-lg border p-4">
+							<div class="space-y-2 rounded-lg border p-4">
 								<div class="flex items-center justify-between">
 									<div class="flex items-center gap-2">
 										<Clock class="text-muted-foreground h-4 w-4" />

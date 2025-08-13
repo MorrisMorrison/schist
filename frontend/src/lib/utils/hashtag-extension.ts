@@ -1,11 +1,9 @@
-import { EditorView, Decoration, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
+import { EditorView, Decoration, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import type { DecorationSet } from '@codemirror/view';
 import { EditorState, StateField, StateEffect } from '@codemirror/state';
 import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { autocompletion, CompletionContext } from '@codemirror/autocomplete';
-import type { CompletionResult } from '@codemirror/autocomplete';
 import { apiClient } from '$lib/api/client';
 import type { TagInfo } from '$lib/api/types';
 
@@ -29,36 +27,6 @@ async function getTags(): Promise<TagInfo[]> {
 }
 
 const hashtagRegex = /#([a-zA-Z0-9_-]+)(?!\w)/g;
-
-class HashtagWidget extends WidgetType {
-	constructor(
-		private tagName: string,
-		private exists: boolean
-	) {
-		super();
-	}
-
-	toDOM() {
-		const span = document.createElement('span');
-		span.className = this.exists ? 'hashtag cm-hashtag' : 'hashtag cm-hashtag cm-hashtag-new';
-		span.textContent = `#${this.tagName}`;
-		span.title = this.exists ? `Tag: ${this.tagName}` : `New tag: ${this.tagName}`;
-
-		span.style.cursor = 'pointer';
-		span.style.color = '#2563eb';
-		span.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
-		span.style.borderRadius = '4px';
-		span.style.padding = '1px 4px';
-		span.style.fontSize = '0.875rem';
-		span.style.fontWeight = '500';
-
-		return span;
-	}
-
-	eq(other: HashtagWidget) {
-		return this.tagName === other.tagName && this.exists === other.exists;
-	}
-}
 
 const updateHashtagsEffect = StateEffect.define<DecorationSet>();
 const hashtagsField = StateField.define<DecorationSet>({
@@ -94,12 +62,13 @@ async function findHashtags(state: EditorState): Promise<Range<Decoration>[]> {
 		if (!tagName?.trim()) continue;
 
 		const exists = existingTagNames.has(tagName.toLowerCase());
-		const widget = new HashtagWidget(tagName, exists);
 
 		decorations.push(
-			Decoration.replace({
-				widget,
-				inclusive: false
+			Decoration.mark({
+				class: exists ? 'cm-hashtag' : 'cm-hashtag cm-hashtag-new',
+				attributes: {
+					title: exists ? `Tag: ${tagName}` : `New tag: ${tagName}`
+				}
 			}).range(from, to)
 		);
 	}
@@ -150,51 +119,6 @@ const hashtagsPlugin = ViewPlugin.fromClass(
 	}
 );
 
-async function hashtagCompletion(context: CompletionContext): Promise<CompletionResult | null> {
-	const line = context.state.doc.lineAt(context.pos);
-	const lineText = line.text;
-	const lineStart = line.from;
-	const cursorInLine = context.pos - lineStart;
-
-	const beforeCursor = lineText.slice(0, cursorInLine);
-	const afterCursor = lineText.slice(cursorInLine);
-
-	// Look for hashtag pattern before cursor
-	const hashMatch = beforeCursor.match(/#([a-zA-Z0-9_-]*)$/);
-	if (!hashMatch) {
-		return null;
-	}
-
-	const [fullMatch, searchTerm] = hashMatch;
-	const hashStart = beforeCursor.lastIndexOf(fullMatch);
-
-	// Make sure we're not inside a word
-	if (afterCursor.match(/^[a-zA-Z0-9_-]/)) {
-		return null;
-	}
-
-	const existingTags = await getTags();
-	const options = existingTags
-		.filter((tag) => tag.name.toLowerCase().includes(searchTerm.toLowerCase()))
-		.slice(0, 10)
-		.map((tag) => ({
-			label: tag.name,
-			type: 'variable',
-			detail: `Used ${tag.count} time${tag.count !== 1 ? 's' : ''}`,
-			info: `#${tag.name}`
-		}));
-
-	if (options.length === 0) {
-		return null;
-	}
-
-	return {
-		from: lineStart + hashStart + 1, // +1 to skip the #
-		to: lineStart + cursorInLine,
-		options
-	};
-}
-
 const hashtagHighlight = syntaxHighlighting(
 	HighlightStyle.define([
 		{
@@ -211,16 +135,7 @@ export function hashtagExtension() {
 	return [
 		hashtagsField,
 		hashtagsPlugin,
-		autocompletion({
-			maxRenderedOptions: 10,
-			activateOnTyping: true,
-			override: [
-				(context) => {
-					const result = hashtagCompletion(context);
-					return result;
-				}
-			]
-		}),
+		// Autocompletion moved to combined-autocomplete.ts
 		hashtagHighlight,
 		EditorView.theme({
 			'.cm-hashtag': {

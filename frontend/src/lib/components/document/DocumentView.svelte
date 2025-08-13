@@ -19,6 +19,7 @@
 		replaceSecretPlaceholders,
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
+	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
 
 	interface Props {
 		document: Document;
@@ -72,6 +73,8 @@
 			processedText = processedText.replace(placeholder, indicator);
 		}
 
+		// Process hashtags after secret placeholders
+		processedText = processHashtags(processedText);
 		return processedText;
 	}
 
@@ -88,11 +91,13 @@
 				// Process secret placeholders
 				if ($secretsUnlocked) {
 					// Replace placeholders with actual values when unlocked
-					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
+					let processedText = await replaceSecretPlaceholders(content, async (key: string) => {
 						return await secretStore.getSecret(key);
 					});
+					// Also process hashtags when secrets are unlocked
+					processedContent = processHashtags(processedText);
 				} else {
-					// Add visual indicators for locked placeholders
+					// Add visual indicators for locked placeholders (this already includes hashtag processing)
 					processedContent = addSecretPlaceholderIndicators(content);
 				}
 			} catch (error) {

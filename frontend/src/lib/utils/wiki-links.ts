@@ -4,8 +4,6 @@ import { EditorState, StateField, StateEffect } from '@codemirror/state';
 import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { autocompletion, CompletionContext } from '@codemirror/autocomplete';
-import type { CompletionResult } from '@codemirror/autocomplete';
 import { apiClient } from '$lib/api/client';
 import { goto } from '$app/navigation';
 import type { Document } from '$lib/api/types';
@@ -217,52 +215,6 @@ const wikiLinksPlugin = ViewPlugin.fromClass(
 	}
 );
 
-async function wikiLinkCompletion(context: CompletionContext): Promise<CompletionResult | null> {
-	const line = context.state.doc.lineAt(context.pos);
-	const lineText = line.text;
-	const lineStart = line.from;
-	const cursorInLine = context.pos - lineStart;
-
-	const beforeCursor = lineText.slice(0, cursorInLine);
-	const afterCursor = lineText.slice(cursorInLine);
-
-	const openBrackets = beforeCursor.lastIndexOf('[[');
-	const closeBrackets = beforeCursor.lastIndexOf(']]');
-
-	if (openBrackets === -1 || closeBrackets > openBrackets) {
-		return null;
-	}
-
-	const nextCloseBrackets = afterCursor.indexOf(']]');
-	if (nextCloseBrackets === -1) {
-		return null;
-	}
-	const searchTerm = beforeCursor.slice(openBrackets + 2).split('|')[0];
-
-	const documents = await getDocuments();
-	const options = documents
-		.filter((document) =>
-			document.metaData?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-		)
-		.slice(0, 10)
-		.map((document) => ({
-			label: document.metaData?.title || 'Untitled',
-			type: 'variable',
-			detail: document.metaData?.path || '',
-			info: document.content ? document.content.slice(0, 100) + '...' : undefined
-		}));
-
-	if (options.length === 0) {
-		return null;
-	}
-
-	return {
-		from: lineStart + openBrackets + 2,
-		to: lineStart + cursorInLine,
-		options
-	};
-}
-
 const wikiLinkHighlight = syntaxHighlighting(
 	HighlightStyle.define([
 		{
@@ -277,16 +229,6 @@ export function wikiLinksExtension() {
 	return [
 		wikiLinksField,
 		wikiLinksPlugin,
-		autocompletion({
-			maxRenderedOptions: 10,
-			activateOnTyping: true,
-			override: [
-				(context) => {
-					const result = wikiLinkCompletion(context);
-					return result;
-				}
-			]
-		}),
 		wikiLinkHighlight,
 		EditorView.theme({
 			'.cm-wiki-link': {

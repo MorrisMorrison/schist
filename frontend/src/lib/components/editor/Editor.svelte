@@ -12,6 +12,7 @@
 	import { imagePasteExtension } from '$lib/utils/image-paste.js';
 	import { wikiLinksExtension } from '$lib/utils/wiki-links.js';
 	import { hashtagExtension } from '$lib/utils/hashtag-extension.js';
+	import { combinedAutocompletionExtension } from '$lib/utils/combined-autocomplete.js';
 	import type { Asset } from '$lib/api/types.js';
 
 	let {
@@ -251,7 +252,7 @@
 
 		autoSaveTimer = setTimeout(async () => {
 			await saveContent();
-		}, autoSaveConfig.intervalInMillis);
+		}, autoSaveConfig.interval);
 	}
 
 	async function saveContent() {
@@ -355,6 +356,7 @@
 				drawSelection(),
 				wikiLinksExtension(),
 				hashtagExtension(),
+				combinedAutocompletionExtension(),
 				createScrollSyncExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
@@ -527,6 +529,7 @@
 				drawSelection(),
 				wikiLinksExtension(),
 				hashtagExtension(),
+				combinedAutocompletionExtension(),
 				createScrollSyncExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {

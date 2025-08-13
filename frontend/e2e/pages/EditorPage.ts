@@ -2,9 +2,7 @@ import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class EditorPage extends BasePage {
-	readonly titleInput: Locator;
 	readonly contentEditor: Locator;
-	readonly tagsInput: Locator;
 	readonly saveButton: Locator;
 	readonly cancelButton: Locator;
 	readonly deleteButton: Locator;
@@ -16,21 +14,14 @@ export class EditorPage extends BasePage {
 	readonly imageUploadButton: Locator;
 	readonly fileUploadInput: Locator;
 
-	readonly saveStatus: Locator;
 	readonly errorMessage: Locator;
-	readonly loadingSpinner: Locator;
-
-	readonly documentPathInfo: Locator;
-	readonly breadcrumbs: Locator;
+	readonly documentTitle: Locator;
 
 	constructor(page: Page) {
 		super(page);
 
-		this.titleInput = page.getByTestId('document-title-input');
-		this.contentEditor = page
-			.locator('.cm-editor .cm-content, textarea[placeholder*="content"]')
-			.first();
-		this.tagsInput = page.getByTestId('tags-input');
+		this.contentEditor = page.locator('.cm-editor .cm-content').first();
+
 		this.saveButton = page.getByTestId('save-document-button');
 		this.cancelButton = page.getByTestId('cancel-button');
 		this.deleteButton = page.getByTestId('delete-document-button');
@@ -42,12 +33,8 @@ export class EditorPage extends BasePage {
 		this.imageUploadButton = page.getByTestId('image-upload-button');
 		this.fileUploadInput = page.locator('input[type="file"]');
 
-		this.saveStatus = page.getByTestId('save-status');
-		this.errorMessage = page.locator('[data-testid="error-message"], .error');
-		this.loadingSpinner = page.locator('[data-testid="loading"], .loading');
-
-		this.documentPathInfo = page.getByTestId('document-path');
-		this.breadcrumbs = page.getByTestId('breadcrumbs');
+		this.errorMessage = page.locator('.bg-red-muted, [data-testid="error-message"]');
+		this.documentTitle = page.locator('h1').first(); // Extracted title in header
 	}
 
 	async navigateToNew() {
@@ -61,29 +48,31 @@ export class EditorPage extends BasePage {
 	}
 
 	async verifyLoaded() {
-		await this.waitForVisible(this.titleInput);
+		// Wait for the essential elements of the simplified editor
 		await this.waitForVisible(this.contentEditor);
 		await this.waitForVisible(this.saveButton);
 	}
 
 	async fillDocumentDetails(title: string, content: string, tags: string[] = []) {
-		await this.fillInput(this.titleInput, title);
-
-		// Use proper CodeMirror interaction - clear existing content and type new content
-		await this.clearContent();
-		await this.typeContent(content);
+		let fullContent = `# ${title}\n\n${content}`;
 
 		if (tags.length > 0) {
-			await this.addTags(tags);
+			const hashtags = tags.map((tag) => `#${tag}`).join(' ');
+			fullContent += `\n\n${hashtags}`;
 		}
+
+		await this.setContent(fullContent);
 	}
 
-	async addTags(tags: string[]) {
-		for (const tag of tags) {
-			await this.tagsInput.clear();
-			await this.tagsInput.fill(tag);
-			await this.page.keyboard.press('Enter');
-			await expect(this.tagsInput).toHaveValue('');
+	async setContent(content: string) {
+		await this.clearContent();
+		await this.typeContent(content);
+	}
+
+	async addHashtags(tags: string[]) {
+		if (tags.length > 0) {
+			const hashtags = tags.map((tag) => `#${tag}`).join(' ');
+			await this.appendContent(`\n\n${hashtags}`);
 		}
 	}
 
@@ -182,10 +171,33 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Verify document title is displayed
+	 * Verify document title is displayed (extracted from content and shown in header)
 	 */
 	async verifyTitle(expectedTitle: string) {
-		await expect(this.titleInput).toHaveValue(expectedTitle);
+		await expect(this.documentTitle).toContainText(expectedTitle);
+	}
+
+	/**
+	 * Backwards compatibility - alias for addHashtags
+	 */
+	async addTags(tags: string[]) {
+		return this.addHashtags(tags);
+	}
+
+	/**
+	 * Verify hashtags are present in content
+	 */
+	async verifyHashtags(expectedTags: string[]) {
+		for (const tag of expectedTags) {
+			await expect(this.contentEditor).toContainText(`#${tag}`);
+		}
+	}
+
+	/**
+	 * Get the current content from the editor
+	 */
+	async getContent(): Promise<string> {
+		return (await this.contentEditor.textContent()) || '';
 	}
 
 	/**
@@ -230,11 +242,16 @@ export class EditorPage extends BasePage {
 	}
 
 	/**
-	 * Get current document path from UI
+	 * Get current document path from UI (path shown in header)
 	 */
 	async getCurrentPath(): Promise<string> {
-		if (await this.documentPathInfo.isVisible()) {
-			return (await this.documentPathInfo.textContent()) || '';
+		// Look for path info in the header - it shows as "Editing /path"
+		const pathElement = this.page.locator('p:has-text("Editing")').first();
+		if (await pathElement.isVisible()) {
+			const text = (await pathElement.textContent()) || '';
+			// Extract path from "Editing /path" text
+			const match = text.match(/Editing\s+(.+)/);
+			return match ? match[1] : '';
 		}
 		return '';
 	}
@@ -248,10 +265,5 @@ export class EditorPage extends BasePage {
 
 	async deletePage() {
 		return this.deleteDocument();
-	}
-
-	// Legacy property aliases
-	get pagePathInfo() {
-		return this.documentPathInfo;
 	}
 }

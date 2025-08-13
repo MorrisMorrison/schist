@@ -102,16 +102,30 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	{
 		github.POST("/setup", h.setupGitHub)
 		github.POST("/test", h.testGitHubConnection)
-		github.GET("/status", h.getGitHubStatus)
+		github.GET("/config", h.getGitHubConfig)                      // Non-sensitive config (no secret unlock required)
+		github.GET("/connection-status", h.getGitHubConnectionStatus) // Connection status (requires secret unlock)
 		github.POST("/sync", h.syncToGitHub)
 		github.PUT("/config", h.updateGitHubConfig)
 		github.POST("/disconnect", h.disconnectGitHub)
+
+		docs := github.Group("/docs")
+		{
+			docs.GET("/repositories", h.getDocsRepositories)
+			docs.POST("/repositories", h.addDocsRepository)
+			docs.DELETE("/repositories/:owner/:repo", h.removeDocsRepository)
+			docs.GET("/structure", h.getRepositoryStructure)
+			docs.GET("/content", h.getDocumentContent)
+			docs.GET("/files", h.listDocsFiles)
+			docs.POST("/sync/:owner/:repo", h.syncDocsRepository)
+			docs.POST("/sync", h.syncAllDocsRepositories)
+		}
 	}
 
 	git := routerGroup.Group("/git")
 	{
 		git.GET("/health", h.gitHealthCheck)
 		git.POST("/repair", h.repairGitRepository)
+
 	}
 
 	exportRoutes := routerGroup.Group("/export")

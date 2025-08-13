@@ -34,7 +34,7 @@ export class EditorPage extends BasePage {
 		this.fileUploadInput = page.locator('input[type="file"]');
 
 		this.errorMessage = page.locator('.bg-red-muted, [data-testid="error-message"]');
-		this.documentTitle = page.locator('h1').first(); // Extracted title in header
+		this.documentTitle = page.locator('h1').first();
 	}
 
 	async navigateToNew() {
@@ -48,7 +48,6 @@ export class EditorPage extends BasePage {
 	}
 
 	async verifyLoaded() {
-		// Wait for the essential elements of the simplified editor
 		await this.waitForVisible(this.contentEditor);
 		await this.waitForVisible(this.saveButton);
 	}
@@ -150,7 +149,7 @@ export class EditorPage extends BasePage {
 				timeout: 2000
 			});
 		} catch {
-			// Content might already be marked as dirty
+			void 0;
 		}
 
 		try {
@@ -163,107 +162,55 @@ export class EditorPage extends BasePage {
 		}
 	}
 
-	/**
-	 * Verify content is displayed in editor
-	 */
 	async verifyContent(expectedContent: string) {
 		await expect(this.contentEditor).toContainText(expectedContent);
 	}
 
-	/**
-	 * Verify document title is displayed (extracted from content and shown in header)
-	 */
 	async verifyTitle(expectedTitle: string) {
 		await expect(this.documentTitle).toContainText(expectedTitle);
 	}
 
-	/**
-	 * Backwards compatibility - alias for addHashtags
-	 */
-	async addTags(tags: string[]) {
-		return this.addHashtags(tags);
-	}
-
-	/**
-	 * Verify hashtags are present in content
-	 */
 	async verifyHashtags(expectedTags: string[]) {
 		for (const tag of expectedTags) {
 			await expect(this.contentEditor).toContainText(`#${tag}`);
 		}
 	}
 
-	/**
-	 * Get the current content from the editor
-	 */
 	async getContent(): Promise<string> {
 		return (await this.contentEditor.textContent()) || '';
 	}
 
-	/**
-	 * Check if document has unsaved changes
-	 */
 	async hasUnsavedChanges(): Promise<boolean> {
-		// This would depend on UI indicators for unsaved changes
 		return await this.elementExists('[data-testid="unsaved-changes"]');
 	}
 
-	/**
-	 * Verify error message is displayed
-	 */
 	async verifyError(expectedError: string) {
 		await this.waitForVisible(this.errorMessage);
 		await expect(this.errorMessage).toContainText(expectedError);
 	}
 
-	/**
-	 * Format text with bold
-	 */
 	async makeBold() {
-		// Select text and apply bold formatting
 		await this.contentEditor.selectText();
 		await this.page.keyboard.press('Control+b');
 	}
 
-	/**
-	 * Insert markdown heading
-	 */
 	async insertHeading(level: number, text: string) {
 		const headingMarkdown = '#'.repeat(level) + ' ' + text;
 		await this.typeContent(headingMarkdown);
 	}
 
-	/**
-	 * Insert markdown link
-	 */
 	async insertLink(linkText: string, url: string) {
 		const linkMarkdown = `[${linkText}](${url})`;
 		await this.typeContent(linkMarkdown);
 	}
 
-	/**
-	 * Get current document path from UI (path shown in header)
-	 */
 	async getCurrentPath(): Promise<string> {
-		// Look for path info in the header - it shows as "Editing /path"
 		const pathElement = this.page.locator('p:has-text("Editing")').first();
 		if (await pathElement.isVisible()) {
 			const text = (await pathElement.textContent()) || '';
-			// Extract path from "Editing /path" text
 			const match = text.match(/Editing\s+(.+)/);
 			return match ? match[1] : '';
 		}
 		return '';
-	}
-
-	/**
-	 * Legacy aliases for backwards compatibility
-	 */
-	async fillPageDetails(title: string, content: string, tags: string[] = []) {
-		return this.fillDocumentDetails(title, content, tags);
-	}
-
-	async deletePage() {
-		return this.deleteDocument();
 	}
 }

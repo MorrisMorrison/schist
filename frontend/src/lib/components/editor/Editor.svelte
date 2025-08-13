@@ -51,29 +51,29 @@
 
 	const lightTheme = EditorView.theme({
 		'&': {
-			backgroundColor: '#ffffff', // pure white
-			color: '#0f172a' // --gray-900
+			backgroundColor: 'var(--background)',
+			color: 'var(--foreground)'
 		},
 		'.cm-content': {
-			backgroundColor: '#ffffff',
-			color: '#0f172a'
+			backgroundColor: 'var(--background)',
+			color: 'var(--foreground)'
 		},
 		'.cm-focused': {
-			backgroundColor: '#ffffff'
+			backgroundColor: 'var(--background)'
 		},
 		'.cm-editor': {
-			backgroundColor: '#ffffff'
+			backgroundColor: 'var(--background)'
 		},
 		'.cm-scroller': {
-			backgroundColor: '#ffffff'
+			backgroundColor: 'var(--background)'
 		},
 		'.cm-gutters': {
-			backgroundColor: '#f1f5f9', // --gray-100
-			color: '#64748b', // --gray-500
+			backgroundColor: 'var(--muted)',
+			color: 'var(--muted-foreground)',
 			border: 'none'
 		},
 		'.cm-activeLine': {
-			backgroundColor: '#f1f5f9' // --gray-100
+			backgroundColor: 'var(--muted)'
 		},
 		'.cm-selectionBackground, ::selection': {
 			backgroundColor: '#60a5fa !important', // --blue-400 - brighter blue for light theme
@@ -96,29 +96,29 @@
 
 	const darkTheme = EditorView.theme({
 		'&': {
-			backgroundColor: '#0f172a', // --gray-900
-			color: '#f8fafc' // --gray-50
+			backgroundColor: 'var(--background)',
+			color: 'var(--foreground)'
 		},
 		'.cm-content': {
-			backgroundColor: '#0f172a',
-			color: '#f8fafc'
+			backgroundColor: 'var(--background)',
+			color: 'var(--foreground)'
 		},
 		'.cm-focused': {
-			backgroundColor: '#0f172a'
+			backgroundColor: 'var(--background)'
 		},
 		'.cm-editor': {
-			backgroundColor: '#0f172a'
+			backgroundColor: 'var(--background)'
 		},
 		'.cm-scroller': {
-			backgroundColor: '#0f172a'
+			backgroundColor: 'var(--background)'
 		},
 		'.cm-gutters': {
-			backgroundColor: '#1e293b', // --gray-800
-			color: '#94a3b8', // --gray-400
+			backgroundColor: 'var(--muted)',
+			color: 'var(--muted-foreground)',
 			border: 'none'
 		},
 		'.cm-activeLine': {
-			backgroundColor: '#1e293b' // --gray-800
+			backgroundColor: 'var(--muted)'
 		},
 		'.cm-selectionBackground, ::selection': {
 			backgroundColor: '#3b82f6 !important', // --blue-500 - good contrast for dark theme
@@ -611,7 +611,7 @@
 	});
 
 	const themeClasses = $derived(
-		currentTheme === 'dark' ? 'bg-gray-900 text-gray-50' : 'bg-gray-50 text-gray-900'
+		'bg-background text-foreground' + (currentTheme === 'dark' ? ' dark' : '')
 	);
 
 	// Public method for immediate content updates (e.g., template application)
@@ -657,10 +657,7 @@
 		>
 			<!-- Editor Controls -->
 			<div
-				class="border-primary flex min-h-[3rem] items-center justify-between border-b px-4 py-2 {currentTheme ===
-				'dark'
-					? 'bg-gray-800'
-					: 'bg-gray-50'}"
+				class="border-primary bg-background flex min-h-[3rem] items-center justify-between border-b px-4 py-2"
 			>
 				<div class="flex items-center gap-4">
 					<span class="text-sm font-medium">{isFullscreen ? 'Fullscreen Editor' : 'Editor'}</span>
@@ -673,24 +670,20 @@
 						</span>
 					{/if}
 					{#if lastSaved}
-						<span
-							class="text-xs {currentTheme === 'dark' ? 'text-gray-400' : 'text-gray-500'}"
-							data-testid="auto-saved"
-						>
+						<span class="text-muted-foreground text-xs" data-testid="auto-saved">
 							Saved {lastSaved.toLocaleTimeString()}
 						</span>
 					{/if}
 				</div>
 				<div class="flex items-center gap-2">
 					<button
-						class="border-secondary rounded border px-3 py-1 text-sm transition-colors
-							{currentTheme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}"
+						class="border-secondary text-foreground hover:bg-accent rounded border px-3 py-1 text-sm transition-colors"
 						onclick={togglePreview}
 					>
 						{isPreviewVisible ? 'Hide Preview' : 'Show Preview'}
 					</button>
 					{#if isFullscreen}
-						<span class="text-xs text-gray-500">Press F11 or Escape to exit</span>
+						<span class="text-muted-foreground text-xs">Press F11 or Escape to exit</span>
 					{/if}
 				</div>
 			</div>
@@ -705,10 +698,7 @@
 		{#if isPreviewVisible}
 			<div class="flex w-1/2 min-w-0 flex-col">
 				<div
-					class="border-primary flex min-h-[3rem] items-center justify-between border-b px-4 py-2 {currentTheme ===
-					'dark'
-						? 'bg-gray-800'
-						: 'bg-gray-50'}"
+					class="border-primary bg-background flex min-h-[3rem] items-center justify-between border-b px-4 py-2"
 				>
 					<span class="text-sm font-medium">Preview</span>
 				</div>
@@ -730,37 +720,29 @@
 
 	<!-- Image upload status -->
 	{#if isUploading || uploadMessage || uploadError}
-		<div
-			class="border-primary border-t px-4 py-2 {currentTheme === 'dark'
-				? 'bg-gray-800'
-				: 'bg-gray-50'}"
-		>
+		<div class="border-primary bg-background border-t px-4 py-2">
 			{#if isUploading}
 				<div class="flex items-center gap-3">
 					<div class="flex-1">
-						<div
-							class="h-2 overflow-hidden rounded-full {currentTheme === 'dark'
-								? 'bg-gray-700'
-								: 'bg-gray-200'}"
-						>
+						<div class="bg-muted h-2 overflow-hidden rounded-full">
 							<div
 								class="h-full bg-blue-500 transition-[width] duration-300"
 								style="width: {uploadProgress}%"
 							></div>
 						</div>
 					</div>
-					<span class="text-sm {currentTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}">
+					<span class="text-foreground text-sm">
 						{uploadMessage}
 					</span>
 				</div>
 			{/if}
 			{#if uploadMessage && !isUploading}
-				<div class="text-sm {currentTheme === 'dark' ? 'text-green-400' : 'text-green-600'}">
+				<div class="text-sm text-green-600 dark:text-green-400">
 					✓ {uploadMessage}
 				</div>
 			{/if}
 			{#if uploadError}
-				<div class="text-sm {currentTheme === 'dark' ? 'text-red-400' : 'text-red-600'}">
+				<div class="text-sm text-red-600 dark:text-red-400">
 					✗ {uploadError}
 				</div>
 			{/if}
@@ -769,8 +751,7 @@
 
 	<!-- Status Bar -->
 	<div
-		class="border-primary flex items-center justify-between border-t px-4 py-2 text-xs
-		{currentTheme === 'dark' ? 'bg-gray-800 text-gray-400' : 'bg-gray-50 text-gray-500'}"
+		class="border-primary bg-background text-muted-foreground flex items-center justify-between border-t px-4 py-2 text-xs"
 	>
 		<div class="flex items-center gap-4">
 			<span>Words: {currentContent.split(/\s+/).filter((w) => w.length > 0).length}</span>

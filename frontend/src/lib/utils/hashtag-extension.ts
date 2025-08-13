@@ -139,17 +139,20 @@ export function hashtagExtension() {
 		hashtagHighlight,
 		EditorView.theme({
 			'.cm-hashtag': {
-				color: '#2563eb !important',
-				backgroundColor: 'rgba(37, 99, 235, 0.1)',
-				borderRadius: '4px',
-				padding: '1px 4px',
-				fontSize: '0.875rem',
-				fontWeight: '500',
-				cursor: 'pointer'
+				color: 'var(--primary) !important',
+				backgroundColor: 'var(--secondary)',
+				border: '1px solid var(--border)',
+				borderRadius: '6px',
+				padding: '2px 6px',
+				fontSize: '0.75rem',
+				fontWeight: '600',
+				cursor: 'pointer',
+				textDecoration: 'none'
 			},
 			'.cm-hashtag-new': {
-				backgroundColor: 'rgba(37, 99, 235, 0.05)',
-				fontStyle: 'italic'
+				backgroundColor: 'var(--muted)',
+				fontStyle: 'italic',
+				border: '1px dashed var(--border)'
 			},
 			// Autocomplete dropdown styling to match existing design
 			'.cm-tooltip': {

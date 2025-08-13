@@ -213,4 +213,8 @@ export class EditorPage extends BasePage {
 		}
 		return '';
 	}
+
+	async fillPageDetails(title: string, content: string, tags: string[] = []) {
+		return this.fillDocumentDetails(title, content, tags);
+	}
 }

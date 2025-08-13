@@ -65,8 +65,8 @@ test.describe('Basic App Functionality', () => {
 		await editorPage.navigateToNew();
 		await editorPage.verifyLoaded();
 
-		// Basic form elements should be present
-		await expect(editorPage.titleInput).toBeVisible();
+		// Basic editor elements should be present
+		await expect(editorPage.contentEditor).toBeVisible();
 		await expect(editorPage.saveButton).toBeVisible();
 	});
 

@@ -27,11 +27,12 @@ function generateSlug(title: string): string {
 }
 export function createTestDocument(overrides: Partial<TestDocumentData> = {}): TestDocumentData {
 	const testId = generateTestId();
-	const slug = generateSlug(overrides.title!);
+	const title = overrides.title || `Test Document ${testId}`;
+	const slug = generateSlug(title);
 
 	return {
-		title: `Test Document ${testId}`,
-		content: `# Test Document ${testId}\n\nThis is a test document created for e2e testing.\n\n## Features\n\n- **Bold text**\n- *Italic text*\n- \`Inline code\`\n\n### Code Block\n\n\`\`\`javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n\`\`\`\n\n### Links\n\n[Test Link](https://example.com)\n\n### Image\n\n![Test Image](https://via.placeholder.com/300x200?text=Test+Image)\n\n---\n\nCreated at: ${new Date().toISOString()}`,
+		title: title,
+		content: `# ${title}\n\nThis is a test document created for e2e testing.\n\n## Features\n\n- **Bold text**\n- *Italic text*\n- \`Inline code\`\n\n### Code Block\n\n\`\`\`javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n\`\`\`\n\n### Links\n\n[Test Link](https://example.com)\n\n### Image\n\n![Test Image](https://via.placeholder.com/300x200?text=Test+Image)\n\n---\n\nCreated at: ${new Date().toISOString()}`,
 		tags: ['test', 'e2e'],
 		slug: slug,
 		...overrides
@@ -42,9 +43,10 @@ export function createSimpleTestDocument(
 	overrides: Partial<TestDocumentData> = {}
 ): TestDocumentData {
 	const testId = generateTestId();
+	const title = overrides.title || `Simple ${testId}`;
 	return {
-		title: `Simple ${testId}`,
-		content: `# Simple Test Document\n\nThis is a simple test document with minimal content.`,
+		title: title,
+		content: `# ${title}\n\nThis is a simple test document with minimal content.`,
 		tags: ['simple'],
 		...overrides
 	};
@@ -54,9 +56,10 @@ export function createComplexTestDocument(
 	overrides: Partial<TestDocumentData> = {}
 ): TestDocumentData {
 	const testId = generateTestId();
+	const title = overrides.title || `Complex Document ${testId}`;
 	return {
-		title: `Complex Document ${testId}`,
-		content: `# Complex Test Document ${testId}
+		title: title,
+		content: `# ${title}
 
 ## Table of Contents
 

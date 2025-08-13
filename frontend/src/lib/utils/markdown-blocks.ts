@@ -5,6 +5,7 @@ import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 import { goto } from '$app/navigation';
+import { processHashtags } from './hashtag-renderer.js';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -490,7 +491,8 @@ async function processInlineMarkdown(text: string): Promise<string> {
 
 	const promise = (async () => {
 		try {
-			const htmlResult = await configuredMarked.parse(text, { async: true });
+			const withHashtags = processHashtags(text);
+			const htmlResult = await configuredMarked.parse(withHashtags, { async: true });
 			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
 			return cleaned;
 		} catch (error) {

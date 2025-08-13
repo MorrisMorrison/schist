@@ -12,6 +12,7 @@
 	import SecretManager from '$lib/components/SecretManager.svelte';
 	import PasskeyManager from '$lib/components/PasskeyManager.svelte';
 	import UserManagement from '$lib/components/UserManagement.svelte';
+	import { isGitHubConnected } from '$lib/stores/github';
 </script>
 
 <svelte:head>
@@ -19,7 +20,7 @@
 	<meta name="description" content="Configure your Schist application settings" />
 </svelte:head>
 
-<div class="container mx-auto max-w-4xl space-y-8 px-4 py-8">
+<div class="mx-auto max-w-5xl space-y-8 p-6">
 	<div class="space-y-2">
 		<h1 class="text-foreground text-3xl font-bold tracking-tight">Settings</h1>
 		<p class="text-muted-foreground">Manage your application settings and integrations.</p>
@@ -50,8 +51,10 @@
 		</CardContent>
 	</Card>
 
-	<!-- GitHub Documentation Repositories -->
-	<GitHubDocsManager />
+	<!-- GitHub Documentation Repositories - Only show when GitHub is connected -->
+	{#if $isGitHubConnected}
+		<GitHubDocsManager />
+	{/if}
 
 	<!-- Future Settings Sections -->
 	<!-- <Card>

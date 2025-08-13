@@ -1,49 +1,26 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { githubActions, isGitHubLoading } from '$lib/stores/github';
+	import { githubActions, isGitHubLoading, docsRepositories } from '$lib/stores/github';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';
-	import {
-		ChevronRight,
-		ChevronDown,
-		Github,
-		FileText,
-		RefreshCw,
-		ExternalLink,
-		Eye
-	} from 'lucide-svelte';
-	import type { GitHubRepoConfig, GitHubDocument } from '$lib/api/types';
+	import { ChevronRight, ChevronDown, FileText, RefreshCw, ExternalLink, Eye } from 'lucide-svelte';
+	import { Github } from 'lucide-svelte/icons';
+	import type { GitHubDocument } from '$lib/api/types';
 
-	const RELOAD_DEBOUNCE_MS = 1000;
-
-	let repositories = $state<GitHubRepoConfig[]>([]);
+	// repositories now comes directly from the store via $docsRepositories
 	let expandedRepos = $state<Set<string>>(new Set());
 	let repoFiles = $state<Map<string, GitHubDocument[]>>(new Map());
 	let loadingFiles = $state<Set<string>>(new Set());
 
 	onMount(async () => {
-		await loadRepositories();
-	});
-
-	// Reactive effect to reload repositories when GitHub operations complete
-	let lastLoadTime = $state(0);
-
-	$effect(() => {
-		// Reload when loading state changes from true to false (operation completed)
-		const currentTime = Date.now();
-		if ($isGitHubLoading === false && currentTime - lastLoadTime > RELOAD_DEBOUNCE_MS) {
-			lastLoadTime = currentTime;
-			loadRepositories();
+		// Repositories are loaded automatically by the store
+		// But we can trigger a refresh if needed
+		if ($docsRepositories && $docsRepositories.length === 0) {
+			await githubActions.loadDocsRepositories();
 		}
 	});
 
-	async function loadRepositories() {
-		try {
-			repositories = await githubActions.getDocsRepositories();
-		} catch (error) {
-			console.error('Failed to load GitHub docs repositories:', error);
-		}
-	}
+	// No need for reactive effects - the store handles everything!
 
 	async function toggleRepository(owner: string, repo: string) {
 		const repoKey = `${owner}/${repo}`;
@@ -83,7 +60,7 @@
 		event.stopPropagation();
 		try {
 			await githubActions.syncDocsRepository(owner, repo);
-			await loadRepositories();
+			// Store is automatically updated by syncDocsRepository
 
 			// Reload files if currently expanded
 			const repoKey = `${owner}/${repo}`;
@@ -112,7 +89,7 @@
 	}
 </script>
 
-{#if repositories && repositories.length > 0}
+{#if $docsRepositories && $docsRepositories.length > 0}
 	<div class="border-border mt-4 border-t pt-4">
 		<div class="mb-2 px-3">
 			<h3 class="text-muted-foreground flex items-center gap-2 text-sm font-semibold">
@@ -122,7 +99,7 @@
 		</div>
 
 		<div class="space-y-1">
-			{#each repositories as repo (repo.owner + '/' + repo.repository)}
+			{#each $docsRepositories as repo (repo.owner + '/' + repo.repository)}
 				{@const repoKey = `${repo.owner}/${repo.repository}`}
 				{@const isExpanded = expandedRepos.has(repoKey)}
 				{@const files = repoFiles.get(repoKey) || []}

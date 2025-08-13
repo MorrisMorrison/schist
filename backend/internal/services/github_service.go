@@ -33,21 +33,21 @@ type GitHubService struct {
 	dataDir       string
 }
 
-type GitHubSyncStatus struct {
-	Enabled        bool      `json:"enabled"`
-	Connected      bool      `json:"connected"`
-	Owner          string    `json:"owner"`
-	Repository     string    `json:"repository"`
-	Branch         string    `json:"branch"`
-	AutoSync       bool      `json:"auto_sync"`
-	SyncOnSave     bool      `json:"sync_on_save"`
-	LastSync       time.Time `json:"last_sync,omitempty"`
-	LastSyncError  string    `json:"last_sync_error,omitempty"`
-	PendingChanges int       `json:"pending_changes"`
+type GitHubSettings struct {
+	Enabled       bool      `json:"enabled"`
+	Owner         string    `json:"owner"`
+	Repository    string    `json:"repository"`
+	Branch        string    `json:"branch"`
+	AutoSync      bool      `json:"auto_sync"`
+	SyncOnSave    bool      `json:"sync_on_save"`
+	LastSync      time.Time `json:"last_sync,omitempty"`
+	LastSyncError string    `json:"last_sync_error,omitempty"`
 }
 
-type GitHubConfig struct {
-	LastSyncTime time.Time `json:"last_sync_time"`
+type GitHubConnectionStatus struct {
+	Connected      bool `json:"connected"`
+	TokenExists    bool `json:"token_exists"`
+	PendingChanges int  `json:"pending_changes"`
 }
 
 type GitHubSetupRequest struct {
@@ -254,46 +254,55 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 	return repoInfo, nil
 }
 
-func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
+// GetGitHubSettings returns non-sensitive configuration without requiring secret unlock
+func (gs *GitHubService) GetGitHubSettings() *GitHubSettings {
 	githubSettings := gs.settings.GetGitHubSettings()
 
-	status := &GitHubSyncStatus{
-		Enabled:    githubSettings.Enabled,
-		Owner:      githubSettings.Owner,
-		Repository: githubSettings.Repository,
-		Branch:     githubSettings.Branch,
-		AutoSync:   githubSettings.AutoSync,
-		SyncOnSave: githubSettings.SyncOnSave,
-		LastSync:   githubSettings.LastSync,
+	return &GitHubSettings{
+		Enabled:       githubSettings.Enabled,
+		Owner:         githubSettings.Owner,
+		Repository:    githubSettings.Repository,
+		Branch:        githubSettings.Branch,
+		AutoSync:      githubSettings.AutoSync,
+		SyncOnSave:    githubSettings.SyncOnSave,
+		LastSync:      githubSettings.LastSync,
+		LastSyncError: "", // This field doesn't exist in config, handled separately
+	}
+}
+
+// GetGitHubConnectionStatus returns connection status requiring secret unlock
+func (gs *GitHubService) GetGitHubConnectionStatus() (*GitHubConnectionStatus, error) {
+	status := &GitHubConnectionStatus{
+		TokenExists:    gs.hasTokenNoDecrypt(),
+		Connected:      false,
+		PendingChanges: 0,
 	}
 
-	if !githubSettings.Enabled {
+	// If no token exists, we can't be connected
+	if !status.TokenExists {
 		return status, nil
 	}
 
+	// Try to initialize client (requires secret unlock)
 	if gs.client == nil && gs.hasToken() {
-		log.Printf("[GitHubService] Client is nil but we have token, attempting to initialize...")
 		if err := gs.initializeClient(); err != nil {
-			log.Printf("[GitHubService] Failed to initialize client: %v", err)
-			status.LastSyncError = fmt.Sprintf("failed to initialize GitHub client: %v", err)
-			return status, nil
+			return status, fmt.Errorf("failed to initialize GitHub client: %w", err)
 		}
-		log.Printf("[GitHubService] Client initialized successfully")
 	}
 
 	if gs.client == nil {
-		log.Printf("[GitHubService] Client is nil and no token available")
 		return status, nil
 	}
 
-	_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
-	status.Connected = err == nil
+	// Test connection to repository
+	githubSettings := gs.settings.GetGitHubSettings()
+	if githubSettings.Owner != "" && githubSettings.Repository != "" {
+		_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
+		status.Connected = err == nil
 
-	if err != nil {
-		log.Printf("[GitHubService] Repository access test failed: %v", err)
-		status.LastSyncError = fmt.Sprintf("connection error: %v", err)
-	} else {
-		log.Printf("[GitHubService] Repository access test succeeded - Connected: true")
+		if err != nil {
+			return status, fmt.Errorf("repository connection failed: %w", err)
+		}
 	}
 
 	if gs.gitService != nil {
@@ -301,6 +310,12 @@ func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
 	}
 
 	return status, nil
+}
+
+// hasTokenNoDecrypt checks if a token exists without decrypting it
+func (gs *GitHubService) hasTokenNoDecrypt() bool {
+	githubSettings := gs.settings.GetGitHubSettings()
+	return githubSettings.Token != nil
 }
 
 func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
@@ -934,16 +949,16 @@ func (gs *GitHubService) RemoveDocsRepository(owner, repo string) error {
 	return nil
 }
 
-func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubRepoConfig, error) {
+func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubDocsRepoConfig, error) {
 	settings := gs.settings.GetGitHubSettings()
-	var repos []models.GitHubRepoConfig
+	var repos []models.GitHubDocsRepoConfig
 
 	if settings.DocsRepos == nil {
 		return repos, nil
 	}
 
 	for _, repoSettings := range settings.DocsRepos {
-		repo := models.GitHubRepoConfig{
+		repo := models.GitHubDocsRepoConfig{
 			Owner:         repoSettings.Owner,
 			Repository:    repoSettings.Repository,
 			DocsFolder:    repoSettings.DocsFolder,

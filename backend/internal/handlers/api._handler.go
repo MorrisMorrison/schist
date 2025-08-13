@@ -102,18 +102,23 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 	{
 		github.POST("/setup", h.setupGitHub)
 		github.POST("/test", h.testGitHubConnection)
-		github.GET("/status", h.getGitHubStatus)
+		github.GET("/config", h.getGitHubConfig)                      // Non-sensitive config (no secret unlock required)
+		github.GET("/connection-status", h.getGitHubConnectionStatus) // Connection status (requires secret unlock)
 		github.POST("/sync", h.syncToGitHub)
 		github.PUT("/config", h.updateGitHubConfig)
 		github.POST("/disconnect", h.disconnectGitHub)
-		github.GET("/docs/repositories", h.getDocsRepositories)
-		github.POST("/docs/repositories", h.addDocsRepository)
-		github.DELETE("/docs/repositories/:owner/:repo", h.removeDocsRepository)
-		github.GET("/docs/structure", h.getRepositoryStructure)
-		github.GET("/docs/content", h.getDocumentContent)
-		github.GET("/docs/files", h.listDocsFiles)
-		github.POST("/docs/sync/:owner/:repo", h.syncDocsRepository)
-		github.POST("/docs/sync", h.syncAllDocsRepositories)
+
+		docs := github.Group("/docs")
+		{
+			docs.GET("/repositories", h.getDocsRepositories)
+			docs.POST("/repositories", h.addDocsRepository)
+			docs.DELETE("/repositories/:owner/:repo", h.removeDocsRepository)
+			docs.GET("/structure", h.getRepositoryStructure)
+			docs.GET("/content", h.getDocumentContent)
+			docs.GET("/files", h.listDocsFiles)
+			docs.POST("/sync/:owner/:repo", h.syncDocsRepository)
+			docs.POST("/sync", h.syncAllDocsRepositories)
+		}
 	}
 
 	git := routerGroup.Group("/git")

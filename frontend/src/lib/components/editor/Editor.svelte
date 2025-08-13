@@ -652,7 +652,9 @@
 	<!-- Editor and Preview Container -->
 	<div class="flex flex-1 overflow-hidden {isFullscreen ? '' : 'border-primary border-r border-l'}">
 		<!-- Editor Panel -->
-		<div class="border-primary flex flex-1 flex-col {isPreviewVisible ? 'border-r' : ''}">
+		<div
+			class="border-primary flex flex-col {isPreviewVisible ? 'w-1/2 border-r' : 'w-full'} min-w-0"
+		>
 			<!-- Editor Controls -->
 			<div
 				class="border-primary flex min-h-[3rem] items-center justify-between border-b px-4 py-2 {currentTheme ===
@@ -701,7 +703,7 @@
 
 		<!-- Preview Panel -->
 		{#if isPreviewVisible}
-			<div class="flex flex-1 flex-col">
+			<div class="flex w-1/2 min-w-0 flex-col">
 				<div
 					class="border-primary flex min-h-[3rem] items-center justify-between border-b px-4 py-2 {currentTheme ===
 					'dark'

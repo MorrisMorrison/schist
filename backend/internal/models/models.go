@@ -79,7 +79,6 @@ type ImportError struct {
 	Error        string `json:"error"`
 }
 
-// Export-related types
 type ExportType string
 
 const (
@@ -115,7 +114,7 @@ type GitHubFolder struct {
 	Folders    []GitHubFolder   `json:"folders"`
 }
 
-type GitHubRepoConfig struct {
+type GitHubDocsRepoConfig struct {
 	Owner         string    `json:"owner"`
 	Repository    string    `json:"repository"`
 	DocsFolder    string    `json:"docs_folder"`
@@ -125,7 +124,7 @@ type GitHubRepoConfig struct {
 	DocumentCount int       `json:"document_count"`
 }
 
-type GitHubRepoRequest struct {
+type GitHubDocsRepoRequest struct {
 	Owner      string `json:"owner" binding:"required"`
 	Repository string `json:"repository" binding:"required"`
 	DocsFolder string `json:"docs_folder"`

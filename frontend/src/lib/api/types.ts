@@ -220,27 +220,19 @@ export interface GitHubConfig {
 
 export interface GitHubSettings {
 	enabled: boolean;
-	config: GitHubConfig;
-	backupMode: 'manual' | 'auto';
-	syncInterval: number; // minutes
-	lastSync?: string;
-	lastError?: string;
-}
-
-export interface GitHubStatus {
-	enabled: boolean;
-	connected: boolean;
-	owner?: string;
-	repository?: string;
-	branch?: string;
-	auto_sync?: boolean;
-	sync_on_save?: boolean;
+	owner: string;
+	repository: string;
+	branch: string;
+	auto_sync: boolean;
+	sync_on_save: boolean;
 	last_sync?: string;
 	last_sync_error?: string;
-	syncInProgress?: boolean;
-	error?: string;
-	repositoryUrl?: string;
-	pending_changes?: number;
+}
+
+export interface GitHubConnectionStatus {
+	connected: boolean;
+	token_exists: boolean;
+	pending_changes: number;
 }
 
 export interface GitHubSyncResult {
@@ -284,13 +276,14 @@ export interface GitHubRepoInfo {
 export interface GitHubSetupResponse {
 	message: string;
 	repository: GitHubRepoInfo;
-	status?: GitHubStatus;
+	settings?: GitHubSettings;
+	connection?: GitHubConnectionStatus;
 	auto_sync: boolean;
 	sync_on_save: boolean;
 }
 
 // GitHub Docs types
-export interface GitHubRepoConfig {
+export interface GitHubDocsRepoConfig {
 	owner: string;
 	repository: string;
 	docs_folder: string;
@@ -322,7 +315,7 @@ export interface GitHubDocument {
 }
 
 export interface GitHubDocsRepositoriesResponse {
-	repositories: GitHubRepoConfig[];
+	repositories: GitHubDocsRepoConfig[];
 }
 
 export interface GitHubDocsFilesResponse {

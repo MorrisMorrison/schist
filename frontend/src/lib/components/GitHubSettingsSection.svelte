@@ -4,7 +4,7 @@
 		isGitHubLoading,
 		githubError,
 		githubSettings,
-		githubStatus,
+		githubConnectionStatus,
 		connectionTest,
 		isTestingConnection,
 		isGitHubSyncing,
@@ -37,32 +37,33 @@
 	let activeTab = $state<'setup' | 'sync'>('setup');
 
 	$effect(() => {
-		if ($githubStatus && $githubStatus.connected) {
+		if ($githubConnectionStatus && $githubConnectionStatus.connected && $githubSettings) {
 			token = '';
 
-			const status = $githubStatus;
-			owner = status.owner || '';
-			repository = status.repository || '';
-			branch = status.branch || 'main';
-			backupMode = status.auto_sync ? 'auto' : 'manual';
+			owner = $githubSettings.owner || '';
+			repository = $githubSettings.repository || '';
+			branch = $githubSettings.branch || 'main';
+			backupMode = $githubSettings.auto_sync ? 'auto' : 'manual';
 			syncInterval = 60;
 			tokenChanged = false;
 		}
 	});
 
-	const isConnected = $derived($githubStatus?.connected ?? false);
+	const isConnected = $derived($githubConnectionStatus?.connected ?? false);
 	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
 	const hasChanges = $derived(
-		$githubStatus && $githubStatus.connected
+		$githubConnectionStatus && $githubConnectionStatus.connected && $githubSettings
 			? (() => {
-					const status = $githubStatus;
-					return branch !== status.branch || (backupMode === 'auto') !== status.auto_sync;
+					return (
+						branch !== $githubSettings.branch ||
+						(backupMode === 'auto') !== $githubSettings.auto_sync
+					);
 				})()
 			: canTestConnection
 	);
 
 	onMount(() => {
-		if (!$githubStatus) {
+		if (!$githubSettings && !$githubConnectionStatus) {
 			githubActions.refresh();
 		}
 	});
@@ -121,9 +122,7 @@
 		if (!validateForm()) return;
 
 		try {
-			const tokenToUse = tokenChanged
-				? token.trim()
-				: $githubSettings?.config.token || token.trim();
+			const tokenToUse = tokenChanged ? token.trim() : ''; // Token is not accessible from settings (stored securely)
 
 			const setupRequest: GitHubSetupRequest = {
 				token: tokenToUse,
@@ -372,7 +371,7 @@
 				</div>
 			{/if}
 
-			{#if isConnected && $githubStatus}
+			{#if isConnected && $githubSettings}
 				<Separator />
 
 				<div class="space-y-4">
@@ -382,7 +381,7 @@
 						<div class="space-y-2">
 							<Label>Connection Status</Label>
 							<div class="flex items-center gap-2">
-								{#if $githubStatus?.connected}
+								{#if $githubConnectionStatus?.connected}
 									<CheckCircle class="h-4 w-4 text-green-500" />
 									<span data-testid="github-status-connected" class="text-sm text-green-600"
 										>Connected</span
@@ -399,30 +398,29 @@
 						<div class="space-y-2">
 							<Label>Last Sync</Label>
 							<div class="text-foreground text-sm">
-								{formatLastSync($githubStatus?.last_sync)}
+								{formatLastSync($githubSettings?.last_sync)}
 							</div>
 						</div>
 
-						{#if $githubStatus?.owner && $githubStatus?.repository}
-							{@const status = $githubStatus}
+						{#if $githubSettings?.owner && $githubSettings?.repository}
 							<div class="space-y-2">
 								<Label>Repository</Label>
 								<div class="flex items-center">
 									<a
-										href="https://github.com/{status.owner}/{status.repository}"
+										href="https://github.com/{$githubSettings.owner}/{$githubSettings.repository}"
 										target="_blank"
 										class="text-primary truncate text-sm hover:underline"
-										title="https://github.com/{status.owner}/{status.repository}"
+										title="https://github.com/{$githubSettings.owner}/{$githubSettings.repository}"
 									>
-										{status.owner}/{status.repository}
+										{$githubSettings.owner}/{$githubSettings.repository}
 									</a>
 								</div>
 							</div>
 						{/if}
 					</div>
 
-					{#if $githubStatus?.error}
-						<ErrorAlert error={$githubStatus.error} />
+					{#if $githubSettings?.last_sync_error}
+						<ErrorAlert error={$githubSettings.last_sync_error} />
 					{/if}
 				</div>
 			{/if}

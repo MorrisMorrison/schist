@@ -1,55 +1,89 @@
 /**
  * Test setup fixtures for e2e tests
+ * Only essential cleanup - removes complex DirectoryManager logic
  */
 
 import { test as base } from '@playwright/test';
-import { readFileSync } from 'fs';
+import { readFileSync, statSync } from 'fs';
+// @ts-expect-error - Node.js types may not be fully configured in e2e environment
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import * as path from 'path';
 import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { ApiHelper } from '../utils/api-helpers';
-import { DirectoryManager, createDirectoryManager } from '../utils/directory-manager';
-import { TestMonitor, createTestMonitor } from '../utils/test-monitor';
 import { generateTestId } from '../utils/test-data';
 
+const execFileAsync = promisify(execFile);
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
-const globalCleanupRegistry = new Map<number, DirectoryManager>();
 
-async function performGlobalCleanup() {
-	console.log('Performing global test data cleanup...');
-	for (const [workerIndex, manager] of globalCleanupRegistry.entries()) {
-		try {
-			console.log(`[Worker ${workerIndex}] Global cleanup...`);
-			await manager.emergencyCleanup();
-			console.log(`[Worker ${workerIndex}] Global cleanup completed`);
-		} catch (error) {
-			console.error(`[Worker ${workerIndex}] Global cleanup failed:`, error);
+async function runCleanupScript() {
+	try {
+		console.log('[Cleanup] Running E2E cleanup script...');
+		const scriptsDir = path.resolve(__dirname, '../../scripts');
+		const cleanupScript = path.resolve(scriptsDir, 'cleanup.sh');
+
+		// Validate that cleanupScript is inside scriptsDir
+		if (!cleanupScript.startsWith(scriptsDir + path.sep)) {
+			throw new Error('Cleanup script path is outside the expected scripts directory');
 		}
+
+		// Check that the file exists and is executable
+		let stat;
+		try {
+			stat = statSync(cleanupScript);
+		} catch (_err) {
+			throw new Error('Cleanup script does not exist');
+		}
+
+		if (!stat.isFile()) {
+			throw new Error('Cleanup script is not a file');
+		}
+
+		// Optionally check executable bit (Unix only)
+		if ((stat.mode & 0o111) === 0) {
+			throw new Error('Cleanup script is not executable');
+		}
+
+		const { stdout, stderr } = await execFileAsync(cleanupScript, ['--profile=e2e-only']);
+
+		if (stdout) {
+			console.log('[Cleanup] Output:', stdout);
+		}
+		if (stderr) {
+			console.warn('[Cleanup] Warnings:', stderr);
+		}
+
+		console.log('[Cleanup] ✅ Cleanup completed successfully');
+	} catch (error) {
+		console.warn('[Cleanup] ⚠️ Cleanup error:', error);
 	}
-	globalCleanupRegistry.clear();
 }
 
-if (typeof globalThis.process !== 'undefined') {
-	globalThis.process.on('exit', () => {
-		performGlobalCleanup().catch(() => {});
+if (typeof process !== 'undefined') {
+	process.on('exit', () => {
+		runCleanupScript().catch(() => {});
 	});
 
-	globalThis.process.on('SIGINT', async () => {
-		await performGlobalCleanup();
-		globalThis.process.exit(0);
+	process.on('SIGINT', async () => {
+		console.log('\n[Signal] CTRL+C detected - running cleanup...');
+		await runCleanupScript();
+		process.exit(0);
 	});
 
-	globalThis.process.on('SIGTERM', async () => {
-		await performGlobalCleanup();
-		globalThis.process.exit(0);
+	process.on('SIGTERM', async () => {
+		console.log('\n[Signal] SIGTERM detected - running cleanup...');
+		await runCleanupScript();
+		process.exit(0);
 	});
 
-	globalThis.process.on('uncaughtException', async (error: Error) => {
+	process.on('uncaughtException', async (error: Error) => {
 		console.error('Uncaught exception:', error);
-		await performGlobalCleanup();
-		globalThis.process.exit(1);
+		await runCleanupScript();
+		process.exit(1);
 	});
 }
 
@@ -60,8 +94,6 @@ export const test = base.extend<{
 	folderPage: FolderPage;
 	settingsPage: SettingsPage;
 	apiHelper: ApiHelper;
-	directoryManager: DirectoryManager;
-	testMonitor: TestMonitor;
 	testId: string;
 	workerBaseURL: string;
 }>({
@@ -96,41 +128,6 @@ export const test = base.extend<{
 		await use(settingsPage);
 	},
 
-	directoryManager: async ({ request }, use, testInfo) => {
-		const workerIndex = testInfo.parallelIndex || 0;
-		const directoryManager = createDirectoryManager(request, workerIndex);
-
-		globalCleanupRegistry.set(workerIndex, directoryManager);
-
-		try {
-			await use(directoryManager);
-
-			await directoryManager.logDirectoryState('Before cleanup');
-			await directoryManager.performAggressiveCleanup();
-
-			const isClean = await directoryManager.validateCleanState();
-			if (!isClean) {
-				console.warn(`Worker ${workerIndex} cleanup verification failed`);
-				await directoryManager.emergencyCleanup();
-			}
-
-			await directoryManager.logDirectoryState('After cleanup');
-		} finally {
-			globalCleanupRegistry.delete(workerIndex);
-		}
-	},
-
-	testMonitor: async ({ directoryManager }, use, testInfo) => {
-		const testMonitor = createTestMonitor(directoryManager, testInfo.parallelIndex || 0);
-
-		await testMonitor.recordState('Test started');
-		await testMonitor.assertIsolation();
-
-		await use(testMonitor);
-
-		testMonitor.logPerformanceSummary();
-	},
-
 	apiHelper: async ({ request }, use, testInfo) => {
 		let apiHelper: ApiHelper;
 
@@ -140,7 +137,6 @@ export const test = base.extend<{
 		} else if (projectName === 'auth-enabled') {
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 
-			// Read auth token from storage state for auth-enabled project
 			try {
 				const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
 				const token = authData.origins?.[0]?.localStorage?.find(
@@ -153,7 +149,6 @@ export const test = base.extend<{
 				console.warn('Failed to load auth token for API helper:', error);
 			}
 		} else {
-			// Default behavior for setup and other tests
 			apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 		}
 
@@ -162,7 +157,7 @@ export const test = base.extend<{
 		try {
 			await apiHelper.cleanupTestData();
 		} catch (error) {
-			console.error(`[ApiHelper] Cleanup failed for project ${projectName}:`, error);
+			console.warn(`[ApiHelper] Cleanup failed for project ${projectName}:`, error);
 		}
 	},
 

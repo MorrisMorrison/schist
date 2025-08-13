@@ -84,4 +84,56 @@ test.describe('Markdown Features', () => {
 		// Check the image has correct attributes (don't wait for loading)
 		await expect(image).toHaveAttribute('src', 'https://via.placeholder.com/200x150');
 	});
+
+	test('task lists render as checkboxes in preview', async ({ page }) => {
+		// Navigate to editor
+		await page.goto('/new');
+
+		// Add task list content with both checked and unchecked items
+		const taskListContent =
+			'# Task List Test\n\n' +
+			'## My Tasks\n\n' +
+			'- [x] Completed task\n' +
+			'- [ ] Uncompleted task\n' +
+			'- [X] Another completed task (uppercase)\n' +
+			'- Regular list item\n\n' +
+			'More tasks:\n' +
+			'- [ ] Task with **bold** text\n' +
+			'- [x] Task with *italic* text';
+
+		await page.fill('.cm-content', taskListContent);
+
+		// Check preview renders checkboxes correctly
+		const preview = page.locator('[data-testid="markdown-preview"]');
+
+		// Wait for preview to update (there's a 300ms delay in the editor)
+		await page.waitForTimeout(500);
+
+		// Wait for checkboxes to appear
+		const checkboxes = preview.locator('[data-testid="checkbox"]');
+		await expect(checkboxes).toHaveCount(5); // 5 checkbox items total
+
+		// Check that checked checkboxes have the checked state
+		const checkedBoxes = preview.locator('[data-testid="checkbox"][data-state="checked"]');
+		await expect(checkedBoxes).toHaveCount(3); // 3 checked items (x, X, x)
+
+		// Check that unchecked checkboxes have the unchecked state
+		const uncheckedBoxes = preview.locator('[data-testid="checkbox"][data-state="unchecked"]');
+		await expect(uncheckedBoxes).toHaveCount(2); // 2 unchecked items
+
+		// Verify checkboxes are disabled (read-only in preview)
+		const disabledBoxes = preview.locator('[data-testid="checkbox"][disabled]');
+		await expect(disabledBoxes).toHaveCount(5); // All checkboxes should be disabled
+
+		// Verify that regular list items don't have checkboxes
+		const listItems = preview.locator('ul li');
+		const regularListItem = listItems.filter({ hasText: 'Regular list item' });
+		const regularItemCheckbox = regularListItem.locator('[data-testid="checkbox"]');
+		await expect(regularItemCheckbox).toHaveCount(0); // Regular item has no checkbox
+
+		// Verify that task list items don't show bullet points
+		// (This tests our CSS styling that removes list-style-type)
+		const taskListItems = preview.locator('[data-testid="task-item"]');
+		await expect(taskListItems.first()).toHaveCSS('list-style-type', 'none');
+	});
 });

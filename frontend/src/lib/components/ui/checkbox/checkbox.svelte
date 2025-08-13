@@ -37,11 +37,12 @@
 	aria-disabled={disabled}
 	{disabled}
 	class={cn(
-		'peer border-primary ring-offset-background focus-visible:ring-ring data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground h-5 w-5 shrink-0 rounded-sm border-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+		'peer border-primary ring-offset-background focus-visible:ring-ring data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
 		checked && 'bg-primary text-primary-foreground border-primary',
 		className
 	)}
 	data-state={checked ? 'checked' : 'unchecked'}
+	data-testid="checkbox"
 	onclick={(e) => {
 		onclick?.(e);
 		handleChange();

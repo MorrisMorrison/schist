@@ -298,7 +298,7 @@ func (h *APIHandler) addDocsRepository(c *gin.Context) {
 		return
 	}
 
-	err := h.GitHubService.AddDocsRepository(req.Owner, req.Repository, req.DocsFolder)
+	err := h.GitHubService.AddDocsRepository(req.Owner, req.Repository, req.DocsFolder, req.Branch)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Sprintf("Failed to add docs repository: %v", err),

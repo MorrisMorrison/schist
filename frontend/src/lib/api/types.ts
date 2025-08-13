@@ -294,6 +294,7 @@ export interface GitHubRepoConfig {
 	owner: string;
 	repository: string;
 	docs_folder: string;
+	branch: string;
 	last_sync: string;
 	sync_error: string;
 	document_count: number;

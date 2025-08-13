@@ -360,11 +360,11 @@ export const githubActions = {
 		}
 	},
 
-	async addDocsRepository(owner: string, repo: string, docsFolder?: string) {
+	async addDocsRepository(owner: string, repo: string, docsFolder?: string, branch?: string) {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const result = await apiClient.addDocsRepository(owner, repo, docsFolder);
+			const result = await apiClient.addDocsRepository(owner, repo, docsFolder, branch);
 			githubStore.update((state) => ({
 				...state,
 				loading: false

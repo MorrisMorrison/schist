@@ -119,6 +119,7 @@ type GitHubRepoConfig struct {
 	Owner         string    `json:"owner"`
 	Repository    string    `json:"repository"`
 	DocsFolder    string    `json:"docs_folder"`
+	Branch        string    `json:"branch"`
 	LastSync      time.Time `json:"last_sync"`
 	SyncError     string    `json:"sync_error,omitempty"`
 	DocumentCount int       `json:"document_count"`
@@ -128,4 +129,5 @@ type GitHubRepoRequest struct {
 	Owner      string `json:"owner" binding:"required"`
 	Repository string `json:"repository" binding:"required"`
 	DocsFolder string `json:"docs_folder"`
+	Branch     string `json:"branch"`
 }

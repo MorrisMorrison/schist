@@ -624,11 +624,17 @@ class SchістApiClient {
 	async addDocsRepository(
 		owner: string,
 		repo: string,
-		docsFolder?: string
+		docsFolder?: string,
+		branch?: string
 	): Promise<{ message: string }> {
 		return this.request<{ message: string }>('/github/docs/repositories', {
 			method: 'POST',
-			body: JSON.stringify({ owner, repository: repo, docs_folder: docsFolder || 'docs' })
+			body: JSON.stringify({
+				owner,
+				repository: repo,
+				docs_folder: docsFolder || 'docs',
+				branch: branch || ''
+			})
 		});
 	}
 

@@ -145,6 +145,14 @@ func (gs *GitHubService) initializeClient() error {
 }
 
 func (gs *GitHubService) getEffectiveBranch(owner, repo string) (string, error) {
+	settings := gs.settings.GetGitHubSettings()
+	if settings.DocsRepos != nil {
+		repoKey := fmt.Sprintf("%s/%s", owner, repo)
+		if repoSettings, exists := settings.DocsRepos[repoKey]; exists && repoSettings.Branch != "" {
+			return repoSettings.Branch, nil
+		}
+	}
+
 	if gs.client == nil {
 		if err := gs.initializeClient(); err != nil {
 			return DefaultGitHubBranch, fmt.Errorf("failed to initialize github client: %w", err)
@@ -861,7 +869,7 @@ func (gs *GitHubService) ListDocsFiles(owner, repo string) ([]models.GitHubDocum
 	return allFiles, nil
 }
 
-func (gs *GitHubService) AddDocsRepository(owner, repo, docsFolder string) error {
+func (gs *GitHubService) AddDocsRepository(owner, repo, docsFolder, branch string) error {
 	if owner == "" {
 		return fmt.Errorf("repository owner is required")
 	}
@@ -869,7 +877,16 @@ func (gs *GitHubService) AddDocsRepository(owner, repo, docsFolder string) error
 		return fmt.Errorf("repository name is required")
 	}
 	if docsFolder == "" {
-		docsFolder = "docs"
+		docsFolder = DefaultDocsFolder
+	}
+
+	effectiveBranch := branch
+	if effectiveBranch == "" {
+		var err error
+		effectiveBranch, err = gs.getEffectiveBranch(owner, repo)
+		if err != nil {
+			effectiveBranch = DefaultGitHubBranch
+		}
 	}
 
 	if gs.client == nil {
@@ -889,6 +906,7 @@ func (gs *GitHubService) AddDocsRepository(owner, repo, docsFolder string) error
 		Owner:         owner,
 		Repository:    repo,
 		DocsFolder:    docsFolder,
+		Branch:        effectiveBranch,
 		LastSync:      time.Time{},
 		SyncError:     "",
 		DocumentCount: 0,
@@ -929,6 +947,7 @@ func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubRepoConfig, error
 			Owner:         repoSettings.Owner,
 			Repository:    repoSettings.Repository,
 			DocsFolder:    repoSettings.DocsFolder,
+			Branch:        repoSettings.Branch,
 			LastSync:      repoSettings.LastSync,
 			SyncError:     repoSettings.SyncError,
 			DocumentCount: repoSettings.DocumentCount,

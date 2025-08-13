@@ -18,6 +18,7 @@
 	let newOwner = $state('');
 	let newRepo = $state('');
 	let newDocsFolder = $state('docs');
+	let newBranch = $state('');
 	let showAddForm = $state(false);
 	let error = $state('');
 
@@ -54,7 +55,8 @@
 			await githubActions.addDocsRepository(
 				newOwner.trim(),
 				newRepo.trim(),
-				newDocsFolder.trim() || 'docs'
+				newDocsFolder.trim() || 'docs',
+				newBranch.trim()
 			);
 
 			// Automatically sync the newly added repository
@@ -66,6 +68,7 @@
 			newOwner = '';
 			newRepo = '';
 			newDocsFolder = 'docs';
+			newBranch = '';
 			showAddForm = false;
 			error = '';
 		} catch (err) {
@@ -194,6 +197,14 @@
 							</p>
 						</div>
 
+						<div class="space-y-2">
+							<Label for="branch">Branch</Label>
+							<Input id="branch" bind:value={newBranch} placeholder="main" />
+							<p class="text-muted-foreground text-sm">
+								The git branch to use (leave empty to auto-detect the default branch)
+							</p>
+						</div>
+
 						<div class="flex gap-3">
 							<Button type="submit" disabled={$isGitHubLoading}>
 								{#if $isGitHubLoading}
@@ -232,6 +243,11 @@
 											<p>
 												Docs folder: <code class="bg-muted rounded px-1 py-0.5 text-xs"
 													>{repo.docs_folder}</code
+												>
+											</p>
+											<p>
+												Branch: <code class="bg-muted rounded px-1 py-0.5 text-xs"
+													>{repo.branch || 'auto-detected'}</code
 												>
 											</p>
 											<p>Documents: {repo.document_count}</p>

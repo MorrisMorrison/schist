@@ -51,7 +51,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		const content = await documentViewPage.getDocumentContent();
-		expect(content).toContain('Simple Test Document');
+		expect(content).toContain(testDocument.title);
 
 		await page2.close();
 	});

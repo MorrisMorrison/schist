@@ -136,7 +136,9 @@
 		margin: 1rem 0;
 	}
 
-	:global(.markdown-preview ul li input[type='checkbox']) {
-		margin-right: 0.5rem;
+	/* Task list containers in preview should not have default list padding */
+	:global(.markdown-preview ul:not(:has(li:not(.list-none)))) {
+		list-style: none;
+		padding-left: 0;
 	}
 </style>

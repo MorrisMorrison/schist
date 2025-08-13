@@ -5,6 +5,7 @@ import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 import { goto } from '$app/navigation';
+import { processHashtags } from './hashtag-renderer.js';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -42,6 +43,8 @@ export interface ListItemBlock extends BaseBlock {
 	type: 'list_item';
 	text: string;
 	raw: string;
+	task?: boolean;
+	checked?: boolean;
 }
 
 export interface BlockquoteBlock extends BaseBlock {
@@ -109,6 +112,11 @@ export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBl
 
 	try {
 		sessionId = extractSessionId(processedContent);
+		// Enable GitHub Flavored Markdown for task list support
+		marked.setOptions({
+			gfm: true,
+			breaks: true
+		});
 		const tokens = marked.lexer(processedContent);
 		const blocks: MarkdownBlock[] = [];
 
@@ -325,13 +333,19 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			const itemToken = token as Tokens.ListItem;
 			let text = itemToken.text;
 
+			// Check if this is a task list item
+			const isTask = itemToken.task || false;
+			const isChecked = itemToken.checked || false;
+
 			text = await processInlineMarkdown(text);
 
 			return {
 				type: 'list_item',
 				id,
 				text,
-				raw: itemToken.raw
+				raw: itemToken.raw,
+				task: isTask,
+				checked: isChecked
 			} as ListItemBlock;
 		}
 

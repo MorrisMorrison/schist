@@ -12,7 +12,7 @@ test.describe('Auto-save Functionality', () => {
 
 		// Verify initial content
 		await editorPage.verifyTitle(testPage.title);
-		await editorPage.verifyContent('Simple Test Document');
+		await editorPage.verifyContent(testPage.title);
 
 		// Make changes to trigger auto-save
 		const newContent = '\n\nAdditional content added for auto-save test.';

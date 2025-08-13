@@ -1,54 +1,68 @@
 /**
  * Test setup fixtures for e2e tests
+ * Only essential cleanup - removes complex DirectoryManager logic
  */
 
 import { test as base } from '@playwright/test';
+// @ts-expect-error - Node.js modules work fine at runtime, IDE just needs better config
 import { readFileSync } from 'fs';
+// @ts-expect-error - Node.js module works at runtime
+import { exec } from 'child_process';
+// @ts-expect-error - Node.js module works at runtime
+import { promisify } from 'util';
+// @ts-expect-error - Node.js module works at runtime
+import path from 'path';
 import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { ApiHelper } from '../utils/api-helpers';
-import { DirectoryManager, createDirectoryManager } from '../utils/directory-manager';
-import { TestMonitor, createTestMonitor } from '../utils/test-monitor';
 import { generateTestId } from '../utils/test-data';
 
+const execAsync = promisify(exec);
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
-const globalCleanupRegistry = new Map<number, DirectoryManager>();
 
-async function performGlobalCleanup() {
-	console.log('Performing global test data cleanup...');
-	for (const [workerIndex, manager] of globalCleanupRegistry.entries()) {
-		try {
-			console.log(`[Worker ${workerIndex}] Global cleanup...`);
-			await manager.emergencyCleanup();
-			console.log(`[Worker ${workerIndex}] Global cleanup completed`);
-		} catch (error) {
-			console.error(`[Worker ${workerIndex}] Global cleanup failed:`, error);
+async function runCleanupScript() {
+	try {
+		console.log('[Cleanup] Running E2E cleanup script...');
+		// @ts-expect-error - process works at runtime in Node environment
+		const cleanupScript = path.resolve(process.cwd(), '../scripts/cleanup.sh');
+		const { stdout, stderr } = await execAsync(`"${cleanupScript}" --profile=e2e-only`);
+
+		if (stdout) {
+			console.log('[Cleanup] Output:', stdout);
 		}
+		if (stderr) {
+			console.warn('[Cleanup] Warnings:', stderr);
+		}
+
+		console.log('[Cleanup] ✅ Cleanup completed successfully');
+	} catch (error) {
+		console.warn('[Cleanup] ⚠️ Cleanup error:', error);
 	}
-	globalCleanupRegistry.clear();
 }
 
 if (typeof globalThis.process !== 'undefined') {
 	globalThis.process.on('exit', () => {
-		performGlobalCleanup().catch(() => {});
+		runCleanupScript().catch(() => {});
 	});
 
 	globalThis.process.on('SIGINT', async () => {
-		await performGlobalCleanup();
+		console.log('\n[Signal] CTRL+C detected - running cleanup...');
+		await runCleanupScript();
 		globalThis.process.exit(0);
 	});
 
 	globalThis.process.on('SIGTERM', async () => {
-		await performGlobalCleanup();
+		console.log('\n[Signal] SIGTERM detected - running cleanup...');
+		await runCleanupScript();
 		globalThis.process.exit(0);
 	});
 
 	globalThis.process.on('uncaughtException', async (error: Error) => {
 		console.error('Uncaught exception:', error);
-		await performGlobalCleanup();
+		await runCleanupScript();
 		globalThis.process.exit(1);
 	});
 }
@@ -60,8 +74,6 @@ export const test = base.extend<{
 	folderPage: FolderPage;
 	settingsPage: SettingsPage;
 	apiHelper: ApiHelper;
-	directoryManager: DirectoryManager;
-	testMonitor: TestMonitor;
 	testId: string;
 	workerBaseURL: string;
 }>({
@@ -96,41 +108,6 @@ export const test = base.extend<{
 		await use(settingsPage);
 	},
 
-	directoryManager: async ({ request }, use, testInfo) => {
-		const workerIndex = testInfo.parallelIndex || 0;
-		const directoryManager = createDirectoryManager(request, workerIndex);
-
-		globalCleanupRegistry.set(workerIndex, directoryManager);
-
-		try {
-			await use(directoryManager);
-
-			await directoryManager.logDirectoryState('Before cleanup');
-			await directoryManager.performAggressiveCleanup();
-
-			const isClean = await directoryManager.validateCleanState();
-			if (!isClean) {
-				console.warn(`Worker ${workerIndex} cleanup verification failed`);
-				await directoryManager.emergencyCleanup();
-			}
-
-			await directoryManager.logDirectoryState('After cleanup');
-		} finally {
-			globalCleanupRegistry.delete(workerIndex);
-		}
-	},
-
-	testMonitor: async ({ directoryManager }, use, testInfo) => {
-		const testMonitor = createTestMonitor(directoryManager, testInfo.parallelIndex || 0);
-
-		await testMonitor.recordState('Test started');
-		await testMonitor.assertIsolation();
-
-		await use(testMonitor);
-
-		testMonitor.logPerformanceSummary();
-	},
-
 	apiHelper: async ({ request }, use, testInfo) => {
 		let apiHelper: ApiHelper;
 
@@ -140,7 +117,6 @@ export const test = base.extend<{
 		} else if (projectName === 'auth-enabled') {
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 
-			// Read auth token from storage state for auth-enabled project
 			try {
 				const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
 				const token = authData.origins?.[0]?.localStorage?.find(
@@ -153,7 +129,6 @@ export const test = base.extend<{
 				console.warn('Failed to load auth token for API helper:', error);
 			}
 		} else {
-			// Default behavior for setup and other tests
 			apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 		}
 
@@ -162,7 +137,7 @@ export const test = base.extend<{
 		try {
 			await apiHelper.cleanupTestData();
 		} catch (error) {
-			console.error(`[ApiHelper] Cleanup failed for project ${projectName}:`, error);
+			console.warn(`[ApiHelper] Cleanup failed for project ${projectName}:`, error);
 		}
 	},
 

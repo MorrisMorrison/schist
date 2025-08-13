@@ -156,7 +156,10 @@
 		tabindex="-1"
 		data-testid="folder-tree-item"
 	>
-		<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {indentLevel * 16}px">
+		<div
+			class="flex w-full items-center gap-2 pr-8"
+			style="--indent-level: {indentLevel}; margin-left: calc(var(--indent-level) * 1rem);"
+		>
 			<button
 				type="button"
 				class="flex h-4 w-4 flex-shrink-0 cursor-pointer items-center justify-center rounded"

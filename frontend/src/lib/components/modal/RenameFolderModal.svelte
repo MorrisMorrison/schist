@@ -118,7 +118,7 @@
 					{/if}
 				</div>
 
-				<div class="space-y-3">
+				<div class="space-y-2">
 					<div class="bg-secondary rounded-lg border p-4">
 						<div class="space-y-2">
 							<span class="text-secondary text-sm font-medium">Current Path:</span>

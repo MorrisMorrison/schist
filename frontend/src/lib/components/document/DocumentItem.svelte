@@ -73,7 +73,10 @@
 	data-testid="document-item"
 	data-document-path={document.metaData.path}
 >
-	<div class="flex w-full items-center gap-2 pr-8" style="margin-left: {(depth + 1) * 16}px">
+	<div
+		class="flex w-full items-center gap-2 pr-8"
+		style="--indent-level: {depth + 1}; margin-left: calc(var(--indent-level) * 1rem);"
+	>
 		<div class="h-4 w-4"></div>
 		<button
 			type="button"

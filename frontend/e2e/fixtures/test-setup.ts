@@ -4,14 +4,11 @@
  */
 
 import { test as base } from '@playwright/test';
-// @ts-expect-error - Node.js modules work fine at runtime, IDE just needs better config
-import { readFileSync } from 'fs';
-// @ts-expect-error - Node.js module works at runtime
-import { exec } from 'child_process';
-// @ts-expect-error - Node.js module works at runtime
+import { readFileSync, statSync } from 'fs';
+// @ts-expect-error - Node.js types may not be fully configured in e2e environment
+import { execFile } from 'child_process';
 import { promisify } from 'util';
-// @ts-expect-error - Node.js module works at runtime
-import path from 'path';
+import * as path from 'path';
 import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
@@ -20,15 +17,38 @@ import { SettingsPage } from '../pages/SettingsPage';
 import { ApiHelper } from '../utils/api-helpers';
 import { generateTestId } from '../utils/test-data';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
 
 async function runCleanupScript() {
 	try {
 		console.log('[Cleanup] Running E2E cleanup script...');
-		// @ts-expect-error - process works at runtime in Node environment
-		const cleanupScript = path.resolve(process.cwd(), '../scripts/cleanup.sh');
-		const { stdout, stderr } = await execAsync(`"${cleanupScript}" --profile=e2e-only`);
+		const scriptsDir = path.resolve(__dirname, '../../scripts');
+		const cleanupScript = path.resolve(scriptsDir, 'cleanup.sh');
+
+		// Validate that cleanupScript is inside scriptsDir
+		if (!cleanupScript.startsWith(scriptsDir + path.sep)) {
+			throw new Error('Cleanup script path is outside the expected scripts directory');
+		}
+
+		// Check that the file exists and is executable
+		let stat;
+		try {
+			stat = statSync(cleanupScript);
+		} catch (_err) {
+			throw new Error('Cleanup script does not exist');
+		}
+
+		if (!stat.isFile()) {
+			throw new Error('Cleanup script is not a file');
+		}
+
+		// Optionally check executable bit (Unix only)
+		if ((stat.mode & 0o111) === 0) {
+			throw new Error('Cleanup script is not executable');
+		}
+
+		const { stdout, stderr } = await execFileAsync(cleanupScript, ['--profile=e2e-only']);
 
 		if (stdout) {
 			console.log('[Cleanup] Output:', stdout);
@@ -43,27 +63,27 @@ async function runCleanupScript() {
 	}
 }
 
-if (typeof globalThis.process !== 'undefined') {
-	globalThis.process.on('exit', () => {
+if (typeof process !== 'undefined') {
+	process.on('exit', () => {
 		runCleanupScript().catch(() => {});
 	});
 
-	globalThis.process.on('SIGINT', async () => {
+	process.on('SIGINT', async () => {
 		console.log('\n[Signal] CTRL+C detected - running cleanup...');
 		await runCleanupScript();
-		globalThis.process.exit(0);
+		process.exit(0);
 	});
 
-	globalThis.process.on('SIGTERM', async () => {
+	process.on('SIGTERM', async () => {
 		console.log('\n[Signal] SIGTERM detected - running cleanup...');
 		await runCleanupScript();
-		globalThis.process.exit(0);
+		process.exit(0);
 	});
 
-	globalThis.process.on('uncaughtException', async (error: Error) => {
+	process.on('uncaughtException', async (error: Error) => {
 		console.error('Uncaught exception:', error);
 		await runCleanupScript();
-		globalThis.process.exit(1);
+		process.exit(1);
 	});
 }
 

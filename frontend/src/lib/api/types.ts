@@ -220,27 +220,19 @@ export interface GitHubConfig {
 
 export interface GitHubSettings {
 	enabled: boolean;
-	config: GitHubConfig;
-	backupMode: 'manual' | 'auto';
-	syncInterval: number; // minutes
-	lastSync?: string;
-	lastError?: string;
-}
-
-export interface GitHubStatus {
-	enabled: boolean;
-	connected: boolean;
-	owner?: string;
-	repository?: string;
-	branch?: string;
-	auto_sync?: boolean;
-	sync_on_save?: boolean;
+	owner: string;
+	repository: string;
+	branch: string;
+	auto_sync: boolean;
+	sync_on_save: boolean;
 	last_sync?: string;
 	last_sync_error?: string;
-	syncInProgress?: boolean;
-	error?: string;
-	repositoryUrl?: string;
-	pending_changes?: number;
+}
+
+export interface GitHubConnectionStatus {
+	connected: boolean;
+	token_exists: boolean;
+	pending_changes: number;
 }
 
 export interface GitHubSyncResult {
@@ -284,9 +276,57 @@ export interface GitHubRepoInfo {
 export interface GitHubSetupResponse {
 	message: string;
 	repository: GitHubRepoInfo;
-	status?: GitHubStatus;
+	settings?: GitHubSettings;
+	connection?: GitHubConnectionStatus;
 	auto_sync: boolean;
 	sync_on_save: boolean;
+}
+
+// GitHub Docs types
+export interface GitHubDocsRepoConfig {
+	owner: string;
+	repository: string;
+	docs_folder: string;
+	branch: string;
+	last_sync: string;
+	sync_error: string;
+	document_count: number;
+}
+
+export interface GitHubFolder {
+	name: string;
+	path: string;
+	type: 'dir' | 'file';
+	children?: GitHubFolder[];
+}
+
+export interface GitHubDocument {
+	name: string;
+	path: string;
+	content: string;
+	sha: string;
+	repository: string;
+	owner: string;
+	branch: string;
+	size: number;
+	last_modified: string;
+	html_url?: string;
+	download_url?: string;
+}
+
+export interface GitHubDocsRepositoriesResponse {
+	repositories: GitHubDocsRepoConfig[];
+}
+
+export interface GitHubDocsFilesResponse {
+	files: GitHubDocument[];
+}
+
+export interface GitHubSyncResponse {
+	message: string;
+	success_count: number;
+	failure_count: number;
+	failures: string[];
 }
 
 // Authentication

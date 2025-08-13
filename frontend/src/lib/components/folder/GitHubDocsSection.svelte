@@ -23,9 +23,14 @@
 		await loadRepositories();
 	});
 
-	// Reactive effect to reload repositories when they change
+	// Reactive effect to reload repositories when GitHub operations complete
+	let lastLoadTime = $state(0);
+	
 	$effect(() => {
-		if ($isGitHubLoading === false) {
+		// Reload when loading state changes from true to false (operation completed)
+		const currentTime = Date.now();
+		if ($isGitHubLoading === false && currentTime - lastLoadTime > 1000) {
+			lastLoadTime = currentTime;
 			loadRepositories();
 		}
 	});
@@ -170,13 +175,14 @@
 								</div>
 							{:else if files.length > 0}
 								{#each files as file (file.path)}
-									{@const FileIcon = getFileIcon(file.name)}
+									{@const fileName = file.path.split('/').pop() || file.path}
+									{@const FileIcon = getFileIcon(fileName)}
 									<button
 										class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors"
 										onclick={() => viewDocument(repo.owner, repo.repository, file)}
 									>
 										<FileIcon class="text-muted-foreground h-4 w-4" />
-										<span class="flex-1 truncate text-left">{file.name}</span>
+										<span class="flex-1 truncate text-left">{fileName}</span>
 										<Eye class="text-muted-foreground h-3 w-3 opacity-0 group-hover:opacity-100" />
 									</button>
 								{/each}

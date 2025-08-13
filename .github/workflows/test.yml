@@ -2,18 +2,21 @@
 name: Test
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
   backend-tests:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'pull_request' }}
     name: Backend Tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -24,11 +27,11 @@ jobs:
         run: make run-backend-test
 
   frontend-tests:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'pull_request' }}
     name: Frontend Tests  
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
-      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,8 +42,8 @@ jobs:
       - name: Install frontend dependencies
         run: cd frontend && npm ci
       
-      # - name: Run frontend unit tests
-      #   run: cd frontend && npm run test:unit
+      - name: Run frontend unit tests
+        run: cd frontend && npm run test:unit
       
       - name: Run linting
         run: cd frontend && npm run lint

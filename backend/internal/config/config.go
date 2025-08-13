@@ -7,11 +7,12 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DataDir     string
-	Environment string
-	StaticDir   string
-	FrontendURL string
+	Port         string
+	DataDir      string
+	Environment  string
+	StaticDir    string
+	FrontendURL  string
+	TemplatesDir string
 
 	RateLimitEnabled bool
 	RateLimitRPM     int
@@ -27,11 +28,12 @@ type Config struct {
 
 func Load() *Config {
 	return &Config{
-		Port:        getEnv("SCHIST_PORT", "8080"),
-		DataDir:     getEnv("SCHIST_DATA_DIR", "data"),
-		Environment: getEnv("ENV", "development"),
-		StaticDir:   getEnv("SCHIST_STATIC_DIR", "./web"),
-		FrontendURL: getEnv("SCHIST_FRONTEND_URL", "http://localhost:5173"),
+		Port:         getEnv("SCHIST_PORT", "8080"),
+		DataDir:      getEnv("SCHIST_DATA_DIR", "data"),
+		Environment:  getEnv("ENV", "development"),
+		StaticDir:    getEnv("SCHIST_STATIC_DIR", "./web"),
+		FrontendURL:  getEnv("SCHIST_FRONTEND_URL", "http://localhost:5173"),
+		TemplatesDir: getEnv("SCHIST_TEMPLATES_DIR", "../../../templates"),
 
 		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
 		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),

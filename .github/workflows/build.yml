@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build All
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       PUBLIC_API_URL: http://localhost:8080/api
     
@@ -53,7 +53,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build
     
     steps:
@@ -65,7 +65,7 @@ jobs:
           
       - name: Test Docker image
         run: |
-          docker run --rm -d --name schist-test -p 8080:8080 \
+          docker run --rm -d --name schist-test -p 4001:8080 \
             -e ENV=production \
             -e SCHIST_DATA_DIR=/app/data \
             -e SCHIST_PORT=8080 \
@@ -74,8 +74,12 @@ jobs:
           # Wait for container to start
           sleep 10
           
-          # Test health endpoint
-          curl -f http://localhost:8080/api/health || exit 1
-          
-          # Clean up
-          docker stop schist-test
+          # Test health endpoint and clean up regardless of result
+          if curl -f http://localhost:4001/api/health; then
+            echo "Health check passed"
+            docker stop schist-test
+          else
+            echo "Health check failed"
+            docker stop schist-test
+            exit 1
+          fi

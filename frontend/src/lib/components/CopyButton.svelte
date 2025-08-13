@@ -81,7 +81,7 @@
 		disabled={copyState === 'copying'}
 		title="Copy"
 		aria-label={ariaLabel()}
-		class={`transition-all duration-200 ${className}`}
+		class={`transition-colors duration-200 ${className}`}
 	>
 		{#if copyState === 'copying'}
 			<LoadingSpinner size="sm" />

@@ -658,7 +658,7 @@
 					<span class="text-sm font-medium">{isFullscreen ? 'Fullscreen Editor' : 'Editor'}</span>
 					{#if isDirty}
 						<span
-							class="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+							class="bg-muted text-muted-foreground rounded px-2 py-1 text-xs"
 							data-testid="unsaved-indicator"
 						>
 							Unsaved changes
@@ -736,7 +736,7 @@
 								: 'bg-gray-200'}"
 						>
 							<div
-								class="h-full bg-blue-500 transition-all duration-300"
+								class="h-full bg-blue-500 transition-[width] duration-300"
 								style="width: {uploadProgress}%"
 							></div>
 						</div>
@@ -783,7 +783,7 @@
 	{#if !isFullscreen}
 		<!-- Resize Handle -->
 		<div
-			class="border-primary flex h-4 cursor-ns-resize items-center justify-center border-t bg-gray-100 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+			class="border-primary bg-muted hover:bg-accent flex h-4 cursor-ns-resize items-center justify-center border-t transition-colors"
 			onmousedown={handleResizeStart}
 			role="button"
 			tabindex="0"

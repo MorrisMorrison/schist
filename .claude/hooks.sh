@@ -18,8 +18,13 @@
 #   2 - ANY issues found - ALL must be fixed
 #
 # CONFIGURATION
-#   Project-specific overrides can be placed in .claude-hooks-config.sh
-#   See inline documentation for all available options.
+#   Project-specific overrides can be placed in .claude/hooks-config.sh or .claude-hooks-config.sh
+#   Available configuration variables:
+#     CLAUDE_HOOKS_GO_BASE_PATH     - Base path for Go project (e.g., "backend", "api")
+#     CLAUDE_HOOKS_JS_BASE_PATH     - Base path for JS/TS project (e.g., "frontend", "client") 
+#     CLAUDE_HOOKS_PYTHON_BASE_PATH - Base path for Python project (e.g., "api", "server")
+#     CLAUDE_HOOKS_RUST_BASE_PATH   - Base path for Rust project (e.g., "services", "core")
+#   See inline documentation for all other options.
 
 # Don't use set -e - we need to control exit codes carefully
 set +e
@@ -85,24 +90,80 @@ detect_project_type() {
     local types=()
     
     # Go project
-    if [[ -f "go.mod" ]] || [[ -f "go.sum" ]] || [[ -n "$(find . -maxdepth 3 -name "*.go" -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("go")
+    local go_detected=false
+    if [[ -f "go.mod" ]] || [[ -f "go.sum" ]]; then
+        go_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_GO_BASE_PATH:-}" ]]; then
+        local go_path="${CLAUDE_HOOKS_GO_BASE_PATH%/}"
+        if [[ -f "$go_path/go.mod" ]] || [[ -f "$go_path/go.sum" ]]; then
+            go_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "backend/go.mod" ]] || [[ -f "backend/go.sum" ]] || [[ -f "api/go.mod" ]] || [[ -f "server/go.mod" ]]; then
+            go_detected=true
+        elif [[ -n "$(find . -maxdepth 4 -name "*.go" -type f -print -quit 2>/dev/null)" ]]; then
+            go_detected=true
+        fi
     fi
+    [[ "$go_detected" == true ]] && types+=("go")
     
     # Python project
-    if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || [[ -n "$(find . -maxdepth 3 -name "*.py" -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("python")
+    local python_detected=false
+    if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]]; then
+        python_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_PYTHON_BASE_PATH:-}" ]]; then
+        local python_path="${CLAUDE_HOOKS_PYTHON_BASE_PATH%/}"
+        if [[ -f "$python_path/pyproject.toml" ]] || [[ -f "$python_path/setup.py" ]] || [[ -f "$python_path/requirements.txt" ]]; then
+            python_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "api/pyproject.toml" ]] || [[ -f "api/setup.py" ]] || [[ -f "api/requirements.txt" ]] || [[ -f "backend/pyproject.toml" ]] || [[ -f "backend/setup.py" ]] || [[ -f "backend/requirements.txt" ]] || [[ -f "server/pyproject.toml" ]] || [[ -f "server/setup.py" ]] || [[ -f "server/requirements.txt" ]]; then
+            python_detected=true
+        elif [[ -n "$(find . -maxdepth 3 -name "*.py" -type f -print -quit 2>/dev/null)" ]]; then
+            python_detected=true
+        fi
     fi
+    [[ "$python_detected" == true ]] && types+=("python")
     
     # JavaScript/TypeScript project
-    if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]] || [[ -n "$(find . -maxdepth 3 \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \) -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("javascript")
+    local js_detected=false
+    if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]]; then
+        js_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_JS_BASE_PATH:-}" ]]; then
+        local js_path="${CLAUDE_HOOKS_JS_BASE_PATH%/}"
+        if [[ -f "$js_path/package.json" ]] || [[ -f "$js_path/tsconfig.json" ]]; then
+            js_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "frontend/package.json" ]] || [[ -f "client/package.json" ]] || [[ -f "web/package.json" ]]; then
+            js_detected=true
+        elif [[ -n "$(find . -maxdepth 3 \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \) -type f -print -quit 2>/dev/null)" ]]; then
+            js_detected=true
+        fi
     fi
+    [[ "$js_detected" == true ]] && types+=("javascript")
     
     # Rust project
-    if [[ -f "Cargo.toml" ]] || [[ -n "$(find . -maxdepth 3 -name "*.rs" -type f -print -quit 2>/dev/null)" ]]; then
-        types+=("rust")
+    local rust_detected=false
+    if [[ -f "Cargo.toml" ]]; then
+        rust_detected=true
+    elif [[ -n "${CLAUDE_HOOKS_RUST_BASE_PATH:-}" ]]; then
+        local rust_path="${CLAUDE_HOOKS_RUST_BASE_PATH%/}"
+        if [[ -f "$rust_path/Cargo.toml" ]]; then
+            rust_detected=true
+        fi
+    else
+        # Auto-detect in common locations
+        if [[ -f "services/Cargo.toml" ]] || [[ -f "core/Cargo.toml" ]] || [[ -f "backend/Cargo.toml" ]]; then
+            rust_detected=true
+        elif [[ -n "$(find . -maxdepth 3 -name "*.rs" -type f -print -quit 2>/dev/null)" ]]; then
+            rust_detected=true
+        fi
     fi
+    [[ "$rust_detected" == true ]] && types+=("rust")
     
     # Nix project
     if [[ -f "flake.nix" ]] || [[ -f "default.nix" ]] || [[ -f "shell.nix" ]]; then
@@ -203,7 +264,12 @@ load_config() {
     export CLAUDE_HOOKS_NIX_ENABLED="${CLAUDE_HOOKS_NIX_ENABLED:-true}"
     
     # Project-specific overrides
-    if [[ -f ".claude-hooks-config.sh" ]]; then
+    if [[ -f ".claude/hooks-config.sh" ]]; then
+        source ".claude/hooks-config.sh" || {
+            log_error "Failed to load .claude/hooks-config.sh"
+            exit 2
+        }
+    elif [[ -f ".claude-hooks-config.sh" ]]; then
         source ".claude-hooks-config.sh" || {
             log_error "Failed to load .claude-hooks-config.sh"
             exit 2
@@ -229,6 +295,32 @@ lint_go() {
     
     log_info "Running Go formatting and linting..."
     
+    # Determine Go project directory
+    local go_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_GO_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_GO_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/go.mod" ]] || [[ -f "$configured_path/go.sum" ]]; then
+            go_dir="$configured_path"
+            log_debug "Go project found in configured path: $go_dir/"
+        else
+            log_debug "Configured Go path '$configured_path' doesn't contain Go project, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "backend/go.mod" ]]; then
+            go_dir="backend"
+            log_debug "Go project auto-detected in backend/ directory"
+        elif [[ -f "api/go.mod" ]]; then
+            go_dir="api"
+            log_debug "Go project auto-detected in api/ directory"
+        elif [[ -f "server/go.mod" ]]; then
+            go_dir="server"
+            log_debug "Go project auto-detected in server/ directory"
+        fi
+    fi
+    
     # Check if Makefile exists with fmt and lint targets
     if [[ -f "Makefile" ]]; then
         local has_fmt=$(grep -E "^fmt:" Makefile 2>/dev/null || echo "")
@@ -253,11 +345,11 @@ lint_go() {
             log_info "Using direct Go tools"
             
             # Format check
-            local unformatted_files=$(gofmt -l . 2>/dev/null | grep -v vendor/ || true)
+            local unformatted_files=$(gofmt -l "$go_dir" 2>/dev/null | grep -v vendor/ || true)
             
             if [[ -n "$unformatted_files" ]]; then
                 local fmt_output
-                if ! fmt_output=$(gofmt -w . 2>&1); then
+                if ! fmt_output=$(gofmt -w "$go_dir" 2>&1); then
                     add_error "Go formatting failed"
                     echo "$fmt_output" >&2
                 fi
@@ -266,13 +358,13 @@ lint_go() {
             # Linting
             if command_exists golangci-lint; then
                 local lint_output
-                if ! lint_output=$(golangci-lint run --timeout=2m 2>&1); then
+                if ! lint_output=$(cd "$go_dir" && golangci-lint run --timeout=2m 2>&1); then
                     add_error "golangci-lint found issues"
                     echo "$lint_output" >&2
                 fi
             elif command_exists go; then
                 local vet_output
-                if ! vet_output=$(go vet ./... 2>&1); then
+                if ! vet_output=$(cd "$go_dir" && go vet ./... 2>&1); then
                     add_error "go vet found issues"
                     echo "$vet_output" >&2
                 fi
@@ -285,11 +377,11 @@ lint_go() {
         log_info "Using direct Go tools"
         
         # Format check
-        local unformatted_files=$(gofmt -l . 2>/dev/null | grep -v vendor/ || true)
+        local unformatted_files=$(gofmt -l "$go_dir" 2>/dev/null | grep -v vendor/ || true)
         
         if [[ -n "$unformatted_files" ]]; then
             local fmt_output
-            if ! fmt_output=$(gofmt -w . 2>&1); then
+            if ! fmt_output=$(gofmt -w "$go_dir" 2>&1); then
                 add_error "Go formatting failed"
                 echo "$fmt_output" >&2
             fi
@@ -298,13 +390,13 @@ lint_go() {
         # Linting
         if command_exists golangci-lint; then
             local lint_output
-            if ! lint_output=$(golangci-lint run --timeout=2m 2>&1); then
+            if ! lint_output=$(cd "$go_dir" && golangci-lint run --timeout=2m 2>&1); then
                 add_error "golangci-lint found issues"
                 echo "$lint_output" >&2
             fi
         elif command_exists go; then
             local vet_output
-            if ! vet_output=$(go vet ./... 2>&1); then
+            if ! vet_output=$(cd "$go_dir" && go vet ./... 2>&1); then
                 add_error "go vet found issues"
                 echo "$vet_output" >&2
             fi
@@ -326,13 +418,39 @@ lint_python() {
     
     log_info "Running Python linters..."
     
+    # Determine Python project directory
+    local python_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_PYTHON_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_PYTHON_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/pyproject.toml" ]] || [[ -f "$configured_path/setup.py" ]] || [[ -f "$configured_path/requirements.txt" ]]; then
+            python_dir="$configured_path"
+            log_debug "Python project found in configured path: $python_dir/"
+        else
+            log_debug "Configured Python path '$configured_path' doesn't contain Python project, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "api/pyproject.toml" ]] || [[ -f "api/setup.py" ]] || [[ -f "api/requirements.txt" ]]; then
+            python_dir="api"
+            log_debug "Python project auto-detected in api/ directory"
+        elif [[ -f "backend/pyproject.toml" ]] || [[ -f "backend/setup.py" ]] || [[ -f "backend/requirements.txt" ]]; then
+            python_dir="backend"
+            log_debug "Python project auto-detected in backend/ directory"
+        elif [[ -f "server/pyproject.toml" ]] || [[ -f "server/setup.py" ]] || [[ -f "server/requirements.txt" ]]; then
+            python_dir="server"
+            log_debug "Python project auto-detected in server/ directory"
+        fi
+    fi
+    
     # Black formatting
     if command_exists black; then
         local black_output
-        if ! black_output=$(black . --check 2>&1); then
+        if ! black_output=$(cd "$python_dir" && black . --check 2>&1); then
             # Apply formatting and capture any errors
             local format_output
-            if ! format_output=$(black . 2>&1); then
+            if ! format_output=$(cd "$python_dir" && black . 2>&1); then
                 add_error "Python formatting failed"
                 echo "$format_output" >&2
             fi
@@ -342,13 +460,13 @@ lint_python() {
     # Linting
     if command_exists ruff; then
         local ruff_output
-        if ! ruff_output=$(ruff check --fix . 2>&1); then
+        if ! ruff_output=$(cd "$python_dir" && ruff check --fix . 2>&1); then
             add_error "Ruff found issues"
             echo "$ruff_output" >&2
         fi
     elif command_exists flake8; then
         local flake8_output
-        if ! flake8_output=$(flake8 . 2>&1); then
+        if ! flake8_output=$(cd "$python_dir" && flake8 . 2>&1); then
             add_error "Flake8 found issues"
             echo "$flake8_output" >&2
         fi
@@ -365,11 +483,37 @@ lint_javascript() {
     
     log_info "Running JavaScript/TypeScript linters..."
     
+    # Determine JS project directory
+    local js_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_JS_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_JS_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/package.json" ]]; then
+            js_dir="$configured_path"
+            log_debug "JavaScript project found in configured path: $js_dir/"
+        else
+            log_debug "Configured JS path '$configured_path' doesn't contain package.json, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "frontend/package.json" ]]; then
+            js_dir="frontend"
+            log_debug "JavaScript project auto-detected in frontend/ directory"
+        elif [[ -f "client/package.json" ]]; then
+            js_dir="client"
+            log_debug "JavaScript project auto-detected in client/ directory"
+        elif [[ -f "web/package.json" ]]; then
+            js_dir="web"
+            log_debug "JavaScript project auto-detected in web/ directory"
+        fi
+    fi
+    
     # Check for ESLint
-    if [[ -f "package.json" ]] && grep -q "eslint" package.json 2>/dev/null; then
+    if [[ -f "$js_dir/package.json" ]] && grep -q "eslint" "$js_dir/package.json" 2>/dev/null; then
         if command_exists npm; then
             local eslint_output
-            if ! eslint_output=$(npm run lint --if-present 2>&1); then
+            if ! eslint_output=$(cd "$js_dir" && npm run lint --if-present 2>&1); then
                 add_error "ESLint found issues"
                 echo "$eslint_output" >&2
             fi
@@ -377,23 +521,23 @@ lint_javascript() {
     fi
     
     # Prettier
-    if [[ -f ".prettierrc" ]] || [[ -f "prettier.config.js" ]] || [[ -f ".prettierrc.json" ]]; then
+    if [[ -f "$js_dir/.prettierrc" ]] || [[ -f "$js_dir/prettier.config.js" ]] || [[ -f "$js_dir/.prettierrc.json" ]]; then
         if command_exists prettier; then
             local prettier_output
-            if ! prettier_output=$(prettier --check . 2>&1); then
+            if ! prettier_output=$(cd "$js_dir" && prettier --check . 2>&1); then
                 # Apply formatting and capture any errors
                 local format_output
-                if ! format_output=$(prettier --write . 2>&1); then
+                if ! format_output=$(cd "$js_dir" && prettier --write . 2>&1); then
                     add_error "Prettier formatting failed"
                     echo "$format_output" >&2
                 fi
             fi
         elif command_exists npx; then
             local prettier_output
-            if ! prettier_output=$(npx prettier --check . 2>&1); then
+            if ! prettier_output=$(cd "$js_dir" && npx prettier --check . 2>&1); then
                 # Apply formatting and capture any errors
                 local format_output
-                if ! format_output=$(npx prettier --write . 2>&1); then
+                if ! format_output=$(cd "$js_dir" && npx prettier --write . 2>&1); then
                     add_error "Prettier formatting failed"
                     echo "$format_output" >&2
                 fi
@@ -412,19 +556,45 @@ lint_rust() {
     
     log_info "Running Rust linters..."
     
+    # Determine Rust project directory
+    local rust_dir="."
+    
+    # Use configured base path if available
+    if [[ -n "${CLAUDE_HOOKS_RUST_BASE_PATH:-}" ]]; then
+        local configured_path="${CLAUDE_HOOKS_RUST_BASE_PATH%/}"  # Remove trailing slash
+        if [[ -f "$configured_path/Cargo.toml" ]]; then
+            rust_dir="$configured_path"
+            log_debug "Rust project found in configured path: $rust_dir/"
+        else
+            log_debug "Configured Rust path '$configured_path' doesn't contain Cargo.toml, using root"
+        fi
+    else
+        # Fallback: auto-detect common locations
+        if [[ -f "services/Cargo.toml" ]]; then
+            rust_dir="services"
+            log_debug "Rust project auto-detected in services/ directory"
+        elif [[ -f "core/Cargo.toml" ]]; then
+            rust_dir="core"
+            log_debug "Rust project auto-detected in core/ directory"
+        elif [[ -f "backend/Cargo.toml" ]]; then
+            rust_dir="backend"
+            log_debug "Rust project auto-detected in backend/ directory"
+        fi
+    fi
+    
     if command_exists cargo; then
         local fmt_output
-        if ! fmt_output=$(cargo fmt -- --check 2>&1); then
+        if ! fmt_output=$(cd "$rust_dir" && cargo fmt -- --check 2>&1); then
             # Apply formatting and capture any errors
             local format_output
-            if ! format_output=$(cargo fmt 2>&1); then
+            if ! format_output=$(cd "$rust_dir" && cargo fmt 2>&1); then
                 add_error "Rust formatting failed"
                 echo "$format_output" >&2
             fi
         fi
         
         local clippy_output
-        if ! clippy_output=$(cargo clippy --quiet -- -D warnings 2>&1); then
+        if ! clippy_output=$(cd "$rust_dir" && cargo clippy --quiet -- -D warnings 2>&1); then
             add_error "Clippy found issues"
             echo "$clippy_output" >&2
         fi
@@ -586,7 +756,6 @@ if [[ $exit_code -eq 2 ]]; then
     echo -e "${YELLOW}  3. Continue with your original task${NC}" >&2
     exit 2
 else
-    # Always exit with 2 so Claude sees the continuation message
-    echo -e "\n${YELLOW}👉 Style clean. Continue with your task.${NC}" >&2
-    exit 2
+    echo -e "\n${GREEN}✅ All checks passed! Code is clean.${NC}" >&2
+    exit 0
 fi

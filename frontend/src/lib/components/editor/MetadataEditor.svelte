@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -108,7 +107,7 @@
 		</Button>
 
 		{#if showAdvancedMetadata}
-			<div class="mt-4 space-y-4">
+			<div class="mt-4 space-y-4" data-testid="advanced-metadata-section">
 				<Separator />
 
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -161,24 +160,6 @@
 						</div>
 					{/if}
 				</div>
-
-				<!-- Tags Summary -->
-				{#if tags.length > 0}
-					<div class="space-y-2">
-						<Label class="text-sm font-medium">Tag Summary</Label>
-						<div class="flex flex-wrap gap-2">
-							{#each tags as tag (tag)}
-								<Badge variant="default" class="text-xs">
-									<Tag class="mr-1 h-2 w-2" />
-									{tag}
-								</Badge>
-							{/each}
-						</div>
-						<p class="text-muted-foreground text-xs">
-							{tags.length} tag{tags.length !== 1 ? 's' : ''} total
-						</p>
-					</div>
-				{/if}
 			</div>
 		{/if}
 	</div>

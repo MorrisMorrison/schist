@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -14,6 +15,12 @@ import (
 
 	appconfig "github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/crypto"
+	"github.com/MorrisMorrison/schist/internal/models"
+)
+
+const (
+	DefaultGitHubBranch = "main"
+	DefaultDocsFolder   = "docs"
 )
 
 type GitHubService struct {
@@ -26,21 +33,21 @@ type GitHubService struct {
 	dataDir       string
 }
 
-type GitHubSyncStatus struct {
-	Enabled        bool      `json:"enabled"`
-	Connected      bool      `json:"connected"`
-	Owner          string    `json:"owner"`
-	Repository     string    `json:"repository"`
-	Branch         string    `json:"branch"`
-	AutoSync       bool      `json:"auto_sync"`
-	SyncOnSave     bool      `json:"sync_on_save"`
-	LastSync       time.Time `json:"last_sync,omitempty"`
-	LastSyncError  string    `json:"last_sync_error,omitempty"`
-	PendingChanges int       `json:"pending_changes"`
+type GitHubSettings struct {
+	Enabled       bool      `json:"enabled"`
+	Owner         string    `json:"owner"`
+	Repository    string    `json:"repository"`
+	Branch        string    `json:"branch"`
+	AutoSync      bool      `json:"auto_sync"`
+	SyncOnSave    bool      `json:"sync_on_save"`
+	LastSync      time.Time `json:"last_sync,omitempty"`
+	LastSyncError string    `json:"last_sync_error,omitempty"`
 }
 
-type GitHubConfig struct {
-	LastSyncTime time.Time `json:"last_sync_time"`
+type GitHubConnectionStatus struct {
+	Connected      bool `json:"connected"`
+	TokenExists    bool `json:"token_exists"`
+	PendingChanges int  `json:"pending_changes"`
 }
 
 type GitHubSetupRequest struct {
@@ -59,11 +66,11 @@ type GitHubConfigRequest struct {
 }
 
 type GitHubSyncResult struct {
-	Success       bool   `json:"success"`
-	FilesSync     int    `json:"files_synced"`
-	CommitsSynced int    `json:"commits_synced"`
-	Error         string `json:"error,omitempty"`
-	SyncTime      string `json:"sync_time"`
+	Success     bool     `json:"success"`
+	Message     string   `json:"message"`
+	SyncedFiles int      `json:"syncedFiles,omitempty"`
+	Errors      []string `json:"errors,omitempty"`
+	Timestamp   string   `json:"timestamp"`
 }
 
 type GitHubRepoInfo struct {
@@ -137,6 +144,33 @@ func (gs *GitHubService) initializeClient() error {
 	return nil
 }
 
+func (gs *GitHubService) getEffectiveBranch(owner, repo string) (string, error) {
+	settings := gs.settings.GetGitHubSettings()
+	if settings.DocsRepos != nil {
+		repoKey := fmt.Sprintf("%s/%s", owner, repo)
+		if repoSettings, exists := settings.DocsRepos[repoKey]; exists && repoSettings.Branch != "" {
+			return repoSettings.Branch, nil
+		}
+	}
+
+	if gs.client == nil {
+		if err := gs.initializeClient(); err != nil {
+			return DefaultGitHubBranch, fmt.Errorf("failed to initialize github client: %w", err)
+		}
+	}
+
+	repoInfo, _, err := gs.client.Repositories.Get(gs.ctx, owner, repo)
+	if err != nil {
+		return DefaultGitHubBranch, nil
+	}
+
+	if repoInfo != nil && repoInfo.DefaultBranch != nil && *repoInfo.DefaultBranch != "" {
+		return *repoInfo.DefaultBranch, nil
+	}
+
+	return DefaultGitHubBranch, nil
+}
+
 func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoInfo, error) {
 	if req.Token == "" {
 		return nil, fmt.Errorf("github token is required")
@@ -191,6 +225,9 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, fmt.Errorf("failed to encrypt GitHub token: %w", err)
 	}
 
+	currentSettings := gs.settings.GetGitHubSettings()
+	githubSettings.Token = currentSettings.Token
+
 	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
 		return nil, fmt.Errorf("failed to save GitHub config: %w", err)
 	}
@@ -217,28 +254,55 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 	return repoInfo, nil
 }
 
-func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
+// GetGitHubSettings returns non-sensitive configuration without requiring secret unlock
+func (gs *GitHubService) GetGitHubSettings() *GitHubSettings {
 	githubSettings := gs.settings.GetGitHubSettings()
 
-	status := &GitHubSyncStatus{
-		Enabled:    githubSettings.Enabled,
-		Owner:      githubSettings.Owner,
-		Repository: githubSettings.Repository,
-		Branch:     githubSettings.Branch,
-		AutoSync:   githubSettings.AutoSync,
-		SyncOnSave: githubSettings.SyncOnSave,
-		LastSync:   githubSettings.LastSync,
+	return &GitHubSettings{
+		Enabled:       githubSettings.Enabled,
+		Owner:         githubSettings.Owner,
+		Repository:    githubSettings.Repository,
+		Branch:        githubSettings.Branch,
+		AutoSync:      githubSettings.AutoSync,
+		SyncOnSave:    githubSettings.SyncOnSave,
+		LastSync:      githubSettings.LastSync,
+		LastSyncError: "", // This field doesn't exist in config, handled separately
+	}
+}
+
+// GetGitHubConnectionStatus returns connection status requiring secret unlock
+func (gs *GitHubService) GetGitHubConnectionStatus() (*GitHubConnectionStatus, error) {
+	status := &GitHubConnectionStatus{
+		TokenExists:    gs.hasTokenNoDecrypt(),
+		Connected:      false,
+		PendingChanges: 0,
 	}
 
-	if !githubSettings.Enabled || gs.client == nil {
+	// If no token exists, we can't be connected
+	if !status.TokenExists {
 		return status, nil
 	}
 
-	_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
-	status.Connected = err == nil
+	// Try to initialize client (requires secret unlock)
+	if gs.client == nil && gs.hasToken() {
+		if err := gs.initializeClient(); err != nil {
+			return status, fmt.Errorf("failed to initialize GitHub client: %w", err)
+		}
+	}
 
-	if err != nil {
-		status.LastSyncError = fmt.Sprintf("connection error: %v", err)
+	if gs.client == nil {
+		return status, nil
+	}
+
+	// Test connection to repository
+	githubSettings := gs.settings.GetGitHubSettings()
+	if githubSettings.Owner != "" && githubSettings.Repository != "" {
+		_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
+		status.Connected = err == nil
+
+		if err != nil {
+			return status, fmt.Errorf("repository connection failed: %w", err)
+		}
 	}
 
 	if gs.gitService != nil {
@@ -246,6 +310,12 @@ func (gs *GitHubService) GetSyncStatus() (*GitHubSyncStatus, error) {
 	}
 
 	return status, nil
+}
+
+// hasTokenNoDecrypt checks if a token exists without decrypting it
+func (gs *GitHubService) hasTokenNoDecrypt() bool {
+	githubSettings := gs.settings.GetGitHubSettings()
+	return githubSettings.Token != nil
 }
 
 func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
@@ -280,62 +350,103 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 }
 
 func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
+	log.Printf("[GitHubService] Starting GitHub sync process...")
+
 	githubSettings := gs.settings.GetGitHubSettings()
 
 	if !githubSettings.Enabled {
+		log.Printf("[GitHubService] ERROR: GitHub integration is not enabled")
 		return nil, fmt.Errorf("github integration is not enabled")
 	}
 
 	if gs.client == nil {
+		log.Printf("[GitHubService] GitHub client not initialized, attempting to initialize...")
 		if err := gs.initializeClient(); err != nil {
+			log.Printf("[GitHubService] ERROR: Failed to initialize GitHub client: %v", err)
 			return nil, fmt.Errorf("failed to initialize github client: %w", err)
 		}
+		log.Printf("[GitHubService] GitHub client initialized successfully")
 	}
 
 	if gs.gitService == nil {
+		log.Printf("[GitHubService] ERROR: Git service is not available")
 		return nil, fmt.Errorf("git service not available")
 	}
 
-	result := &GitHubSyncResult{
-		SyncTime: time.Now().Format(time.RFC3339),
+	log.Printf("[GitHubService] Running Git service health check...")
+	if err := gs.gitService.HealthCheckWithRepair(false); err != nil {
+		log.Printf("[GitHubService] Health check failed, attempting auto-repair...")
+		if repairErr := gs.gitService.HealthCheckWithRepair(true); repairErr != nil {
+			log.Printf("[GitHubService] ERROR: Git service health check failed even after repair: %v", repairErr)
+			return nil, fmt.Errorf("git repository could not be initialized or repaired: %w", repairErr)
+		}
+		log.Printf("[GitHubService] Git service health check passed after repair")
+	} else {
+		log.Printf("[GitHubService] Git service health check passed")
 	}
 
+	result := &GitHubSyncResult{
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	log.Printf("[GitHubService] Verifying GitHub repository access...")
 	_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
 	if err != nil {
-		result.Error = fmt.Sprintf("failed to connect to github repository: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to access GitHub repository %s/%s: %v",
+			githubSettings.Owner, githubSettings.Repository, err)
+		result.Message = "Failed to connect to GitHub repository"
+		result.Errors = []string{fmt.Sprintf("failed to connect to github repository: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] GitHub repository access verified")
 
+	log.Printf("[GitHubService] Setting up Git remote...")
 	if err := gs.setupGitRemote(); err != nil {
-		result.Error = fmt.Sprintf("failed to setup git remote: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to setup Git remote: %v", err)
+		result.Message = "Failed to setup Git remote"
+		result.Errors = []string{fmt.Sprintf("failed to setup git remote: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Git remote setup completed")
 
+	log.Printf("[GitHubService] Committing uncommitted changes...")
 	if err := gs.commitUncommittedChanges(); err != nil {
-		result.Error = fmt.Sprintf("failed to commit uncommitted changes: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to commit changes: %v", err)
+		result.Message = "Failed to commit uncommitted changes"
+		result.Errors = []string{fmt.Sprintf("failed to commit uncommitted changes: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Uncommitted changes committed")
 
+	log.Printf("[GitHubService] Counting local commits...")
 	commitsBefore, err := gs.countLocalCommits()
 	if err != nil {
-		result.Error = fmt.Sprintf("failed to count local commits: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to count commits: %v", err)
+		result.Message = "Failed to count local commits"
+		result.Errors = []string{fmt.Sprintf("failed to count local commits: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Found %d local commits", commitsBefore)
 
+	log.Printf("[GitHubService] Pushing to GitHub...")
 	if err := gs.pushToGitHub(); err != nil {
-		result.Error = fmt.Sprintf("failed to push to github: %v", err)
+		log.Printf("[GitHubService] ERROR: Failed to push to GitHub: %v", err)
+		result.Message = "Failed to push to GitHub"
+		result.Errors = []string{fmt.Sprintf("failed to push to github: %v", err)}
 		return result, nil
 	}
+	log.Printf("[GitHubService] Successfully pushed to GitHub")
 
 	githubSettings.LastSync = time.Now()
 	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
-		fmt.Printf("Warning: failed to update last sync time: %v\n", err)
+		log.Printf("[GitHubService] Warning: failed to update last sync time: %v", err)
 	}
 
 	result.Success = true
-	result.FilesSync = 0 // We sync the entire repository, not individual files
-	result.CommitsSynced = commitsBefore
+	result.Message = "GitHub sync completed successfully"
+	result.SyncedFiles = 0 // We sync the entire repository, not individual files
 
+	log.Printf("[GitHubService] GitHub sync completed successfully")
 	return result, nil
 }
 
@@ -562,6 +673,14 @@ func (gs *GitHubService) pushToGitHub() error {
 
 	githubSettings := gs.settings.GetGitHubSettings()
 
+	head, err := gs.gitService.repository.Head()
+	if err != nil {
+		return fmt.Errorf("failed to get current HEAD: %w", err)
+	}
+
+	currentBranch := head.Name().Short()
+	log.Printf("[GitHubService] Current local branch: %s, target branch: %s", currentBranch, githubSettings.Branch)
+
 	token, err := gs.getToken()
 	if err != nil {
 		return fmt.Errorf("failed to get GitHub token: %w", err)
@@ -572,10 +691,16 @@ func (gs *GitHubService) pushToGitHub() error {
 		Password: token,
 	}
 
+	remoteURL := fmt.Sprintf("https://github.com/%s/%s.git", githubSettings.Owner, githubSettings.Repository)
+	log.Printf("[GitHubService] Pushing to remote: %s", remoteURL)
+
+	refSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", currentBranch, githubSettings.Branch)
+	log.Printf("[GitHubService] Using refspec: %s", refSpec)
+
 	pushOptions := &git.PushOptions{
 		RemoteName: "origin",
 		RefSpecs: []config.RefSpec{
-			config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", githubSettings.Branch, githubSettings.Branch)),
+			config.RefSpec(refSpec),
 		},
 		Auth:  auth,
 		Force: true,
@@ -584,10 +709,330 @@ func (gs *GitHubService) pushToGitHub() error {
 	err = gs.gitService.repository.Push(pushOptions)
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
+			log.Printf("[GitHubService] Repository is already up to date")
 			return nil
 		}
+		log.Printf("[GitHubService] Push failed with error: %v", err)
 		return fmt.Errorf("failed to push to GitHub: %w", err)
 	}
 
+	log.Printf("[GitHubService] Push completed successfully to %s branch", githubSettings.Branch)
 	return nil
+}
+
+func (gs *GitHubService) Disconnect() error {
+	log.Printf("[GitHubService] Disconnecting GitHub integration...")
+
+	githubSettings := &appconfig.GitHubSettings{
+		Enabled:    false,
+		Owner:      "",
+		Repository: "",
+		Branch:     "",
+		AutoSync:   false,
+		SyncOnSave: false,
+		Token:      nil,
+	}
+
+	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
+		log.Printf("[GitHubService] Failed to clear GitHub settings: %v", err)
+		return fmt.Errorf("failed to clear GitHub settings: %w", err)
+	}
+
+	gs.client = nil
+
+	log.Printf("[GitHubService] Successfully disconnected GitHub integration")
+	return nil
+}
+
+func (gs *GitHubService) GetRepositoryStructure(owner, repo, path string) (*models.GitHubFolder, error) {
+	if owner == "" {
+		return nil, fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return nil, fmt.Errorf("repository name is required")
+	}
+	if path == "" {
+		path = DefaultDocsFolder
+	}
+
+	branch, err := gs.getEffectiveBranch(owner, repo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get effective branch: %w", err)
+	}
+
+	options := &github.RepositoryContentGetOptions{
+		Ref: branch,
+	}
+	_, dirContent, _, err := gs.client.Repositories.GetContents(gs.ctx, owner, repo, path, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository contents at %s: %w", path, err)
+	}
+
+	folder := &models.GitHubFolder{
+		Path:       path,
+		Repository: repo,
+		Owner:      owner,
+		Branch:     branch,
+		Files:      []models.GitHubDocument{},
+		Folders:    []models.GitHubFolder{},
+	}
+
+	for _, content := range dirContent {
+		if content.Type != nil {
+			switch *content.Type {
+			case "file":
+				if content.Name != nil && content.SHA != nil && content.Size != nil {
+					doc := models.GitHubDocument{
+						Path:       *content.Path,
+						SHA:        *content.SHA,
+						Repository: repo,
+						Owner:      owner,
+						Branch:     branch,
+						Size:       *content.Size,
+					}
+					folder.Files = append(folder.Files, doc)
+				}
+			case "dir":
+				if content.Name != nil {
+					subFolder := models.GitHubFolder{
+						Path:       *content.Path,
+						Repository: repo,
+						Owner:      owner,
+						Branch:     branch,
+						Files:      []models.GitHubDocument{},
+						Folders:    []models.GitHubFolder{},
+					}
+					folder.Folders = append(folder.Folders, subFolder)
+				}
+			}
+		}
+	}
+
+	return folder, nil
+}
+
+func (gs *GitHubService) GetDocumentContent(owner, repo, path string) (*models.GitHubDocument, error) {
+	if owner == "" {
+		return nil, fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return nil, fmt.Errorf("repository name is required")
+	}
+	if path == "" {
+		return nil, fmt.Errorf("file path is required")
+	}
+
+	branch, err := gs.getEffectiveBranch(owner, repo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get effective branch: %w", err)
+	}
+
+	options := &github.RepositoryContentGetOptions{
+		Ref: branch,
+	}
+	fileContent, _, _, err := gs.client.Repositories.GetContents(gs.ctx, owner, repo, path, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file content at %s: %w", path, err)
+	}
+
+	if fileContent == nil {
+		return nil, fmt.Errorf("file not found at path %s", path)
+	}
+
+	content, err := fileContent.GetContent()
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode file content: %w", err)
+	}
+
+	doc := &models.GitHubDocument{
+		Path:       path,
+		Content:    content,
+		SHA:        *fileContent.SHA,
+		Repository: repo,
+		Owner:      owner,
+		Branch:     branch,
+		Size:       *fileContent.Size,
+	}
+
+	return doc, nil
+}
+
+func (gs *GitHubService) ListDocsFiles(owner, repo string) ([]models.GitHubDocument, error) {
+	if owner == "" {
+		return nil, fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return nil, fmt.Errorf("repository name is required")
+	}
+
+	folder, err := gs.GetRepositoryStructure(owner, repo, "docs")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docs folder structure: %w", err)
+	}
+
+	var allFiles []models.GitHubDocument
+	allFiles = append(allFiles, folder.Files...)
+
+	for _, subFolder := range folder.Folders {
+		subFolderContents, err := gs.GetRepositoryStructure(owner, repo, subFolder.Path)
+		if err != nil {
+			continue
+		}
+		allFiles = append(allFiles, subFolderContents.Files...)
+	}
+
+	return allFiles, nil
+}
+
+func (gs *GitHubService) AddDocsRepository(owner, repo, docsFolder, branch string) error {
+	if owner == "" {
+		return fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return fmt.Errorf("repository name is required")
+	}
+	if docsFolder == "" {
+		docsFolder = DefaultDocsFolder
+	}
+
+	effectiveBranch := branch
+	if effectiveBranch == "" {
+		var err error
+		effectiveBranch, err = gs.getEffectiveBranch(owner, repo)
+		if err != nil {
+			effectiveBranch = DefaultGitHubBranch
+		}
+	}
+
+	if gs.client == nil {
+		if err := gs.initializeClient(); err != nil {
+			return fmt.Errorf("failed to initialize github client: %w", err)
+		}
+	}
+
+	repoKey := fmt.Sprintf("%s/%s", owner, repo)
+	settings := gs.settings.GetGitHubSettings()
+
+	if settings.DocsRepos == nil {
+		settings.DocsRepos = make(map[string]appconfig.GitHubRepoSettings)
+	}
+
+	settings.DocsRepos[repoKey] = appconfig.GitHubRepoSettings{
+		Owner:         owner,
+		Repository:    repo,
+		DocsFolder:    docsFolder,
+		Branch:        effectiveBranch,
+		LastSync:      time.Time{},
+		SyncError:     "",
+		DocumentCount: 0,
+	}
+
+	return gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+}
+
+func (gs *GitHubService) RemoveDocsRepository(owner, repo string) error {
+	if owner == "" {
+		return fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return fmt.Errorf("repository name is required")
+	}
+
+	repoKey := fmt.Sprintf("%s/%s", owner, repo)
+	settings := gs.settings.GetGitHubSettings()
+
+	if settings.DocsRepos != nil {
+		delete(settings.DocsRepos, repoKey)
+		return gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+	}
+
+	return nil
+}
+
+func (gs *GitHubService) GetDocsRepositories() ([]models.GitHubDocsRepoConfig, error) {
+	settings := gs.settings.GetGitHubSettings()
+	var repos []models.GitHubDocsRepoConfig
+
+	if settings.DocsRepos == nil {
+		return repos, nil
+	}
+
+	for _, repoSettings := range settings.DocsRepos {
+		repo := models.GitHubDocsRepoConfig{
+			Owner:         repoSettings.Owner,
+			Repository:    repoSettings.Repository,
+			DocsFolder:    repoSettings.DocsFolder,
+			Branch:        repoSettings.Branch,
+			LastSync:      repoSettings.LastSync,
+			SyncError:     repoSettings.SyncError,
+			DocumentCount: repoSettings.DocumentCount,
+		}
+		repos = append(repos, repo)
+	}
+
+	return repos, nil
+}
+
+func (gs *GitHubService) SyncDocsRepository(owner, repo string) error {
+	if gs.client == nil {
+		return fmt.Errorf("GitHub client not initialized")
+	}
+
+	if owner == "" || repo == "" {
+		return fmt.Errorf("owner and repository are required")
+	}
+
+	settings := gs.settings.GetGitHubSettings()
+	repoKey := fmt.Sprintf("%s/%s", owner, repo)
+
+	if settings.DocsRepos == nil {
+		return fmt.Errorf("repository %s not found in configured docs repositories", repoKey)
+	}
+
+	repoSettings, exists := settings.DocsRepos[repoKey]
+	if !exists {
+		return fmt.Errorf("repository %s not found in configured docs repositories", repoKey)
+	}
+
+	files, err := gs.ListDocsFiles(owner, repo)
+	if err != nil {
+		repoSettings.SyncError = err.Error()
+		repoSettings.LastSync = time.Now()
+		settings.DocsRepos[repoKey] = repoSettings
+		_ = gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+		return fmt.Errorf("failed to list docs files: %w", err)
+	}
+
+	repoSettings.DocumentCount = len(files)
+	repoSettings.SyncError = ""
+	repoSettings.LastSync = time.Now()
+	settings.DocsRepos[repoKey] = repoSettings
+
+	err = gs.settings.UpdateGitHubSettings(gs.dataDir, settings)
+	if err != nil {
+		return fmt.Errorf("failed to update sync status: %w", err)
+	}
+
+	return nil
+}
+
+func (gs *GitHubService) SyncAllDocsRepositories() (map[string]error, error) {
+	repos, err := gs.GetDocsRepositories()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docs repositories: %w", err)
+	}
+
+	results := make(map[string]error)
+
+	for _, repo := range repos {
+		repoKey := fmt.Sprintf("%s/%s", repo.Owner, repo.Repository)
+		err := gs.SyncDocsRepository(repo.Owner, repo.Repository)
+		if err != nil {
+			results[repoKey] = err
+		} else {
+			results[repoKey] = nil
+		}
+	}
+
+	return results, nil
 }

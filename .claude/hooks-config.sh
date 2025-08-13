@@ -16,6 +16,12 @@ export CLAUDE_HOOKS_JS_ENABLED=true
 export CLAUDE_HOOKS_PYTHON_ENABLED=false  # No Python in this project
 export CLAUDE_HOOKS_RUST_ENABLED=false    # No Rust in this project
 
+# Base paths for different project types (relative to project root)
+export CLAUDE_HOOKS_GO_BASE_PATH="backend"
+export CLAUDE_HOOKS_JS_BASE_PATH="frontend"
+export CLAUDE_HOOKS_PYTHON_BASE_PATH=""  # No Python in this project - leave empty to use auto-detection
+export CLAUDE_HOOKS_RUST_BASE_PATH=""    # No Rust in this project - leave empty to use auto-detection
+
 # Go-specific settings aligned with your CLAUDE.md rules
 export CLAUDE_HOOKS_GO_FORBIDDEN_PATTERNS=true
 export CLAUDE_HOOKS_GO_COMPLEXITY_THRESHOLD=10

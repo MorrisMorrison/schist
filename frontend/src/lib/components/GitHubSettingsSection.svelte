@@ -4,16 +4,21 @@
 		isGitHubLoading,
 		githubError,
 		githubSettings,
-		githubStatus,
+		githubConnectionStatus,
 		connectionTest,
 		isTestingConnection,
 		isGitHubSyncing,
-		lastSyncResult
+		lastSyncResult,
+		gitHealthStatus,
+		isCheckingHealth,
+		isRepairingRepository,
+		lastRepairResult
 	} from '$lib/stores/github';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-svelte';
 	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
@@ -32,32 +37,35 @@
 	let activeTab = $state<'setup' | 'sync'>('setup');
 
 	$effect(() => {
-		if ($githubStatus && $githubStatus.connected) {
+		if ($githubConnectionStatus && $githubConnectionStatus.connected && $githubSettings) {
 			token = '';
 
-			const status = $githubStatus;
-			owner = status.owner || '';
-			repository = status.repository || '';
-			branch = status.branch || 'main';
-			backupMode = status.auto_sync ? 'auto' : 'manual';
+			owner = $githubSettings.owner || '';
+			repository = $githubSettings.repository || '';
+			branch = $githubSettings.branch || 'main';
+			backupMode = $githubSettings.auto_sync ? 'auto' : 'manual';
 			syncInterval = 60;
 			tokenChanged = false;
 		}
 	});
 
-	const isConnected = $derived($githubStatus?.connected ?? false);
+	const isConnected = $derived($githubConnectionStatus?.connected ?? false);
 	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
 	const hasChanges = $derived(
-		$githubStatus && $githubStatus.connected
+		$githubConnectionStatus && $githubConnectionStatus.connected && $githubSettings
 			? (() => {
-					const status = $githubStatus;
-					return branch !== status.branch || (backupMode === 'auto') !== status.auto_sync;
+					return (
+						branch !== $githubSettings.branch ||
+						(backupMode === 'auto') !== $githubSettings.auto_sync
+					);
 				})()
 			: canTestConnection
 	);
 
 	onMount(() => {
-		githubActions.refresh();
+		if (!$githubSettings && !$githubConnectionStatus) {
+			githubActions.refresh();
+		}
 	});
 
 	function validateForm(): boolean {
@@ -114,9 +122,7 @@
 		if (!validateForm()) return;
 
 		try {
-			const tokenToUse = tokenChanged
-				? token.trim()
-				: $githubSettings?.config.token || token.trim();
+			const tokenToUse = tokenChanged ? token.trim() : ''; // Token is not accessible from settings (stored securely)
 
 			const setupRequest: GitHubSetupRequest = {
 				token: tokenToUse,
@@ -128,11 +134,6 @@
 			};
 
 			await githubActions.setupGitHub(setupRequest);
-
-			await githubActions.updateSettings({
-				auto_sync: backupMode === 'auto',
-				branch: branch.trim()
-			});
 		} catch {
 			console.error('Error setting up github');
 		}
@@ -183,31 +184,49 @@
 		formError = '';
 		githubActions.clearError();
 		githubActions.clearConnectionTest();
+		githubActions.clearHealthStatus();
+	}
+
+	async function checkGitHealth() {
+		try {
+			await githubActions.checkGitHealth();
+		} catch {
+			console.error('Error checking Git repository health');
+		}
+	}
+
+	async function repairRepository() {
+		try {
+			await githubActions.repairRepository();
+		} catch {
+			console.error('Error repairing Git repository');
+		}
 	}
 </script>
 
 <div class="space-y-6">
-	<!-- Tab Navigation -->
-	<div class="flex border-b border-gray-200 dark:border-gray-700">
+	<div class="border-border flex border-b">
 		<button
 			type="button"
+			data-testid="github-setup-tab"
 			onclick={() => {
 				activeTab = 'setup';
 				clearErrors();
 			}}
 			class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'setup'
-				? 'border-blue-500 text-blue-600 dark:text-blue-400'
-				: 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}"
+				? 'border-primary text-primary'
+				: 'text-muted-foreground hover:text-foreground border-transparent'}"
 		>
 			<Settings class="mr-1 inline h-4 w-4" />
 			Setup
 		</button>
 		<button
 			type="button"
+			data-testid="github-sync-tab"
 			onclick={() => (activeTab = 'sync')}
 			class="border-b-2 px-4 py-2 text-sm font-medium transition-colors {activeTab === 'sync'
-				? 'border-blue-500 text-blue-600 dark:text-blue-400'
-				: 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'} {!isConnected
+				? 'border-primary text-primary'
+				: 'text-muted-foreground hover:text-foreground border-transparent'} {!isConnected
 				? 'cursor-not-allowed opacity-50'
 				: 'cursor-pointer'}"
 			disabled={!isConnected}
@@ -217,7 +236,6 @@
 		</button>
 	</div>
 
-	<!-- Setup Tab -->
 	{#if activeTab === 'setup'}
 		<form
 			class="space-y-6"
@@ -235,13 +253,14 @@
 					<Label for="github-token">GitHub Personal Access Token</Label>
 					<Input
 						id="github-token"
+						data-testid="github-token-input"
 						type="password"
 						bind:value={token}
 						placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
 						required
 						oninput={() => (tokenChanged = true)}
 					/>
-					<p class="text-sm text-gray-600 dark:text-gray-400">
+					<p class="text-muted-foreground text-sm">
 						Create a token at <a
 							href="https://github.com/settings/tokens"
 							target="_blank"
@@ -253,13 +272,20 @@
 				<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div class="space-y-2">
 						<Label for="github-owner">Owner/Organization</Label>
-						<Input id="github-owner" bind:value={owner} placeholder="username or org" required />
+						<Input
+							id="github-owner"
+							data-testid="github-owner-input"
+							bind:value={owner}
+							placeholder="username or org"
+							required
+						/>
 					</div>
 
 					<div class="space-y-2">
 						<Label for="github-repository">Repository Name</Label>
 						<Input
 							id="github-repository"
+							data-testid="github-repository-input"
 							bind:value={repository}
 							placeholder="my-documents"
 							required
@@ -269,7 +295,13 @@
 
 				<div class="space-y-2">
 					<Label for="github-branch">Branch</Label>
-					<Input id="github-branch" bind:value={branch} placeholder="main" required />
+					<Input
+						id="github-branch"
+						data-testid="github-branch-input"
+						bind:value={branch}
+						placeholder="main"
+						required
+					/>
 				</div>
 
 				{#if !isConnected}
@@ -297,7 +329,7 @@
 						<Label for="backup-mode">Backup Mode</Label>
 						<select
 							bind:value={backupMode}
-							class="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
+							class="border-input bg-background w-full rounded-md border px-3 py-2"
 						>
 							<option value="manual">Manual</option>
 							<option value="auto">Automatic</option>
@@ -320,86 +352,75 @@
 			</div>
 
 			{#if formError || $githubError}
-				<div
-					class="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-300"
-				>
-					<AlertCircle class="h-4 w-4 flex-shrink-0" />
-					{formError || $githubError}
-				</div>
+				<ErrorAlert error={formError || $githubError || ''} class="[&_span]:space-y-1" />
 			{/if}
 
 			{#if $connectionTest}
 				<div
+					data-testid="github-connection-test-result"
 					class="flex items-center gap-2 rounded-md p-3 text-sm {$connectionTest.success
-						? 'bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-						: 'bg-red-50 text-red-700 dark:bg-red-900/50 dark:text-red-300'}"
+						? 'bg-accent/50 text-accent-foreground'
+						: 'bg-destructive/10 text-destructive'}"
 				>
 					{#if $connectionTest.success}
 						<CheckCircle class="h-4 w-4 flex-shrink-0" />
 					{:else}
 						<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					{/if}
-					{$connectionTest.message}
+					<span data-testid="github-connection-test-message">{$connectionTest.message}</span>
 				</div>
 			{/if}
 
-			<!-- Status Section (when connected) -->
-			{#if isConnected && $githubStatus}
+			{#if isConnected && $githubSettings}
 				<Separator />
 
 				<div class="space-y-4">
 					<h3 class="text-lg font-medium">Status</h3>
 
 					<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-						<!-- Connection Status -->
 						<div class="space-y-2">
 							<Label>Connection Status</Label>
 							<div class="flex items-center gap-2">
-								{#if $githubStatus?.connected}
+								{#if $githubConnectionStatus?.connected}
 									<CheckCircle class="h-4 w-4 text-green-500" />
-									<span class="text-sm text-green-600 dark:text-green-400">Connected</span>
+									<span data-testid="github-status-connected" class="text-sm text-green-600"
+										>Connected</span
+									>
 								{:else}
 									<AlertCircle class="h-4 w-4 text-red-500" />
-									<span class="text-sm text-red-600 dark:text-red-400">Disconnected</span>
+									<span data-testid="github-status-disconnected" class="text-destructive text-sm"
+										>Disconnected</span
+									>
 								{/if}
 							</div>
 						</div>
 
-						<!-- Last Sync -->
 						<div class="space-y-2">
 							<Label>Last Sync</Label>
-							<div class="text-sm text-gray-900 dark:text-gray-100">
-								{formatLastSync($githubStatus?.last_sync)}
+							<div class="text-foreground text-sm">
+								{formatLastSync($githubSettings?.last_sync)}
 							</div>
 						</div>
 
-						<!-- Repository Link -->
-						{#if $githubStatus?.owner && $githubStatus?.repository}
-							{@const status = $githubStatus}
+						{#if $githubSettings?.owner && $githubSettings?.repository}
 							<div class="space-y-2">
 								<Label>Repository</Label>
 								<div class="flex items-center">
 									<a
-										href="https://github.com/{status.owner}/{status.repository}"
+										href="https://github.com/{$githubSettings.owner}/{$githubSettings.repository}"
 										target="_blank"
-										class="truncate text-sm text-blue-600 hover:underline dark:text-blue-400"
-										title="https://github.com/{status.owner}/{status.repository}"
+										class="text-primary truncate text-sm hover:underline"
+										title="https://github.com/{$githubSettings.owner}/{$githubSettings.repository}"
 									>
-										{status.owner}/{status.repository}
+										{$githubSettings.owner}/{$githubSettings.repository}
 									</a>
 								</div>
 							</div>
 						{/if}
 					</div>
 
-					<!-- Error Display -->
-					{#if $githubStatus?.error}
-						<div
-							class="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/50 dark:text-red-300"
-						>
-							<AlertCircle class="h-4 w-4 flex-shrink-0" />
-							{$githubStatus.error}
-						</div>
+					{#if $githubSettings?.last_sync_error}
+						<ErrorAlert error={$githubSettings.last_sync_error} />
 					{/if}
 				</div>
 			{/if}
@@ -410,6 +431,7 @@
 				<div class="space-x-2">
 					<Button
 						type="button"
+						data-testid="github-test-connection-button"
 						variant="outline"
 						onclick={testConnection}
 						disabled={!canTestConnection || $isTestingConnection}
@@ -425,6 +447,7 @@
 					{#if isConnected}
 						<Button
 							type="button"
+							data-testid="github-disconnect-button"
 							variant="outline"
 							onclick={disconnect}
 							disabled={$isGitHubLoading}
@@ -434,6 +457,7 @@
 					{/if}
 					<Button
 						type="submit"
+						data-testid="github-setup-button"
 						disabled={isConnected
 							? !hasChanges || $isGitHubLoading
 							: !canTestConnection || !hasChanges || $isGitHubLoading}
@@ -448,21 +472,99 @@
 		</form>
 	{/if}
 
-	<!-- Sync Tab -->
 	{#if activeTab === 'sync'}
 		<div class="space-y-4">
 			{#if !isConnected}
-				<div
-					class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
-				>
+				<div class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
 					<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.
+				</div>
+			{/if}
+
+			{#if isConnected}
+				<div class="space-y-4 rounded-lg border p-4">
+					<div class="flex items-center justify-between">
+						<h4 class="font-medium">Git Repository Health</h4>
+						<div class="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={checkGitHealth}
+								disabled={$isCheckingHealth || $isRepairingRepository}
+							>
+								{#if $isCheckingHealth}
+									<Loader2 class="mr-1 h-3 w-3 animate-spin" />
+								{/if}
+								Check Health
+							</Button>
+							{#if $gitHealthStatus && !$gitHealthStatus.healthy}
+								<Button
+									variant="outline"
+									size="sm"
+									onclick={repairRepository}
+									disabled={$isRepairingRepository || $isCheckingHealth}
+									class="border-orange-300 text-orange-600 hover:bg-orange-50"
+								>
+									{#if $isRepairingRepository}
+										<Loader2 class="mr-1 h-3 w-3 animate-spin" />
+									{/if}
+									Repair
+								</Button>
+							{/if}
+						</div>
+					</div>
+
+					{#if $gitHealthStatus}
+						<div class="flex items-center gap-2">
+							{#if $gitHealthStatus.healthy}
+								<CheckCircle class="h-4 w-4 text-green-500" />
+								<span class="text-sm text-green-600">Repository is healthy</span>
+							{:else}
+								<AlertCircle class="h-4 w-4 text-red-500" />
+								<span class="text-sm text-red-600">Repository health issues detected</span>
+							{/if}
+						</div>
+
+						{#if !$gitHealthStatus.healthy && $gitHealthStatus.error}
+							<ErrorAlert
+								error={`Health Check Error: ${$gitHealthStatus.error}. 💡 Click the "Repair" button to attempt automatic repository repair.`}
+							/>
+						{/if}
+					{/if}
+
+					{#if $lastRepairResult}
+						<div
+							class="flex items-start gap-2 rounded-md p-3 text-sm {$lastRepairResult.success
+								? 'border border-green-200 bg-green-50 text-green-700'
+								: 'border border-red-200 bg-red-50 text-red-700'}"
+						>
+							{#if $lastRepairResult.success}
+								<CheckCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
+								<div>
+									<div class="font-medium">Repair Successful</div>
+									{$lastRepairResult.message}
+								</div>
+							{:else}
+								<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
+								<div>
+									<div class="font-medium">Repair Failed</div>
+									{$lastRepairResult.error}
+								</div>
+							{/if}
+						</div>
+					{/if}
+
+					<div class="text-muted-foreground text-sm">
+						Health checks verify that the local Git repository is properly initialized and
+						functional. If issues are detected, use the repair function to attempt automatic fixes.
+					</div>
 				</div>
 			{/if}
 
 			<div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 				<h3 class="text-lg font-medium">Manual Sync</h3>
 				<Button
+					data-testid="github-sync-now-button"
 					onclick={syncNow}
 					disabled={!isConnected || $isGitHubSyncing}
 					title={!isConnected ? 'Configure GitHub connection first' : 'Sync documents to GitHub'}
@@ -482,39 +584,37 @@
 					<div class="flex items-center gap-2">
 						{#if $lastSyncResult.success}
 							<CheckCircle class="h-4 w-4 text-green-500" />
-							<span class="font-medium text-green-600 dark:text-green-400"
-								>Last Sync Successful</span
-							>
+							<span class="font-medium text-green-600">Last Sync Successful</span>
 						{:else}
 							<AlertCircle class="h-4 w-4 text-red-500" />
-							<span class="font-medium text-red-600 dark:text-red-400">Last Sync Failed</span>
+							<span class="text-destructive font-medium">Last Sync Failed</span>
 						{/if}
 					</div>
 
-					<div class="text-sm text-gray-600 dark:text-gray-400">
+					<div class="text-muted-foreground text-sm">
 						{formatLastSync($lastSyncResult.timestamp)}
 					</div>
 
 					<div class="text-sm">{$lastSyncResult.message}</div>
 
 					{#if $lastSyncResult.syncedFiles !== undefined}
-						<div class="text-sm text-gray-600 dark:text-gray-400">
+						<div class="text-muted-foreground text-sm">
 							Files synced: {$lastSyncResult.syncedFiles}
 						</div>
 					{/if}
 
 					{#if $lastSyncResult.errors && $lastSyncResult.errors.length > 0}
 						<div class="space-y-1">
-							<div class="text-sm font-medium text-red-600 dark:text-red-400">Errors:</div>
+							<div class="text-destructive text-sm font-medium">Errors:</div>
 							{#each $lastSyncResult.errors as error, index (index)}
-								<div class="text-sm text-red-600 dark:text-red-400">• {error}</div>
+								<div class="text-destructive text-sm">• {error}</div>
 							{/each}
 						</div>
 					{/if}
 				</div>
 			{/if}
 
-			<div class="text-sm text-gray-600 dark:text-gray-400">
+			<div class="text-muted-foreground text-sm">
 				{#if isConnected}
 					<p>
 						Manual sync will immediately push all your documents to the configured GitHub

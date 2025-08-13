@@ -86,12 +86,12 @@
 				isOpen={$sidebarOpen}
 				onClick={sidebarActions.toggle}
 				size="lg"
-				class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+				class="text-muted-foreground hover:text-foreground"
 			/>
 		</div>
 
 		<div
-			class="mx-auto px-4 transition-all duration-300 ease-in-out sm:px-6 lg:px-8"
+			class="mx-auto px-4 transition-colors duration-300 ease-in-out sm:px-6 lg:px-8"
 			class:pl-16={showSidebarToggle}
 			class:md:ml-[280px]={isSidebarOpen}
 			class:max-w-7xl={!isSidebarOpen}
@@ -311,7 +311,7 @@
 
 					{#if $authStore.user}
 						<!-- User info and logout (mobile) -->
-						<div class="border-t border-gray-200 pt-3 pb-3 dark:border-gray-700">
+						<div class="border-border border-t pt-3 pb-3">
 							<div class="px-4 pb-2">
 								<div
 									class="text-muted-foreground flex items-center gap-2 text-sm"

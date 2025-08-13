@@ -555,7 +555,7 @@
 
 	/* Enhanced image styling for clickable images */
 	.prose img[data-lightbox='true'] {
-		@apply cursor-pointer transition-all duration-200;
+		@apply cursor-pointer transition-transform duration-200;
 	}
 
 	.prose img[data-lightbox='true']:hover {

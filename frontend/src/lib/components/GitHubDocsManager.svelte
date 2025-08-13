@@ -56,10 +56,10 @@
 				newRepo.trim(),
 				newDocsFolder.trim() || 'docs'
 			);
-			
+
 			// Automatically sync the newly added repository
 			await githubActions.syncDocsRepository(newOwner.trim(), newRepo.trim());
-			
+
 			await loadRepositories();
 
 			// Reset form

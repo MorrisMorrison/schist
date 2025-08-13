@@ -25,7 +25,7 @@
 
 	// Reactive effect to reload repositories when GitHub operations complete
 	let lastLoadTime = $state(0);
-	
+
 	$effect(() => {
 		// Reload when loading state changes from true to false (operation completed)
 		const currentTime = Date.now();

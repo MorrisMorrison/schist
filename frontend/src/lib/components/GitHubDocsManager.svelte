@@ -1,6 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { githubActions, isGitHubLoading, githubError, isGitHubSyncing } from '$lib/stores/github';
+	import {
+		githubActions,
+		isGitHubLoading,
+		githubError,
+		isGitHubSyncing,
+		docsRepositories
+	} from '$lib/stores/github';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -12,9 +18,8 @@
 		CardTitle
 	} from '$lib/components/ui/card';
 	import { AlertCircle, Plus, Trash2, RefreshCw, BookOpen, ExternalLink } from 'lucide-svelte';
-	import type { GitHubDocsRepoConfig } from '$lib/api/types';
 
-	let repositories = $state<GitHubDocsRepoConfig[]>([]);
+	// repositories now comes directly from the store via $docsRepositories
 	let newOwner = $state('');
 	let newRepo = $state('');
 	let newDocsFolder = $state('docs');
@@ -24,26 +29,15 @@
 
 	onMount(async () => {
 		try {
-			await loadRepositories();
+			// Repositories are loaded automatically by the store
+			if ($docsRepositories.length === 0) {
+				await githubActions.getDocsRepositories();
+			}
 		} catch (err) {
 			console.error('Failed to load repositories on mount:', err);
 			error = err instanceof Error ? err.message : 'Failed to initialize docs manager';
 		}
 	});
-
-	async function loadRepositories() {
-		try {
-			if (!githubActions || typeof githubActions.getDocsRepositories !== 'function') {
-				throw new Error('GitHub actions not available');
-			}
-			repositories = await githubActions.getDocsRepositories();
-			error = '';
-		} catch (err) {
-			console.error('loadRepositories error:', err);
-			error = err instanceof Error ? err.message : 'Failed to load repositories';
-			repositories = [];
-		}
-	}
 
 	async function addRepository() {
 		if (!newOwner.trim() || !newRepo.trim()) {
@@ -61,7 +55,7 @@
 
 			await githubActions.syncDocsRepository(newOwner.trim(), newRepo.trim());
 
-			await loadRepositories();
+			// Store is automatically updated
 
 			newOwner = '';
 			newRepo = '';
@@ -77,7 +71,7 @@
 	async function removeRepository(owner: string, repo: string) {
 		try {
 			await githubActions.removeDocsRepository(owner, repo);
-			await loadRepositories();
+			// Store is automatically updated
 			error = '';
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to remove repository';
@@ -87,7 +81,7 @@
 	async function syncRepository(owner: string, repo: string) {
 		try {
 			await githubActions.syncDocsRepository(owner, repo);
-			await loadRepositories();
+			// Store is automatically updated
 			error = '';
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to sync repository';
@@ -97,7 +91,7 @@
 	async function syncAllRepositories() {
 		try {
 			await githubActions.syncAllDocsRepositories();
-			await loadRepositories();
+			// Store is automatically updated
 			error = '';
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to sync all repositories';
@@ -144,7 +138,7 @@
 				Add Repository
 			</Button>
 
-			{#if repositories && repositories.length > 0}
+			{#if $docsRepositories && $docsRepositories.length > 0}
 				<Button
 					variant="outline"
 					onclick={syncAllRepositories}
@@ -214,11 +208,11 @@
 			</Card>
 		{/if}
 
-		{#if repositories && repositories.length > 0}
+		{#if $docsRepositories && $docsRepositories.length > 0}
 			<div class="space-y-3">
 				<h3 class="text-lg font-semibold">Configured Repositories</h3>
 				<div class="space-y-3">
-					{#each repositories as repo (repo.owner + '/' + repo.repository)}
+					{#each $docsRepositories as repo (repo.owner + '/' + repo.repository)}
 						<Card>
 							<CardContent class="p-4">
 								<div class="flex items-center justify-between">

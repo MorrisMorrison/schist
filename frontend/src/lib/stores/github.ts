@@ -6,7 +6,8 @@ import type {
 	GitHubSyncResult,
 	GitHubSetupRequest,
 	GitHubConnectionTest,
-	GitHubConfigRequest
+	GitHubConfigRequest,
+	GitHubDocsRepoConfig
 } from '../api/types.js';
 import { browser } from '$app/environment';
 
@@ -23,6 +24,7 @@ interface GitHubState {
 	checkingHealth: boolean;
 	repairingRepository: boolean;
 	lastRepairResult: { success: boolean; message?: string; error?: string } | null;
+	docsRepositories: GitHubDocsRepoConfig[];
 }
 
 const initialState: GitHubState = {
@@ -37,7 +39,8 @@ const initialState: GitHubState = {
 	gitHealthStatus: null,
 	checkingHealth: false,
 	repairingRepository: false,
-	lastRepairResult: null
+	lastRepairResult: null,
+	docsRepositories: []
 };
 
 export const githubStore = writable<GitHubState>(initialState);
@@ -54,6 +57,7 @@ export const gitHealthStatus = derived(githubStore, ($store) => $store.gitHealth
 export const isCheckingHealth = derived(githubStore, ($store) => $store.checkingHealth);
 export const isRepairingRepository = derived(githubStore, ($store) => $store.repairingRepository);
 export const lastRepairResult = derived(githubStore, ($store) => $store.lastRepairResult);
+export const docsRepositories = derived(githubStore, ($store) => $store.docsRepositories);
 
 export const isGitHubConnected = derived(githubStatus, ($status) => $status?.connected ?? false);
 export const isGitHubEnabled = derived(githubSettings, ($settings) => $settings?.enabled ?? false);
@@ -340,13 +344,14 @@ export const githubActions = {
 	},
 
 	// GitHub docs actions
-	async getDocsRepositories() {
+	async loadDocsRepositories() {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
 			const response = await apiClient.getDocsRepositories();
 			githubStore.update((state) => ({
 				...state,
+				docsRepositories: response.repositories,
 				loading: false
 			}));
 			return response.repositories;
@@ -354,10 +359,15 @@ export const githubActions = {
 			githubStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to get docs repositories'
+				error: error instanceof Error ? error.message : 'Failed to load docs repositories'
 			}));
 			throw error;
 		}
+	},
+
+	// Legacy method for backwards compatibility
+	async getDocsRepositories() {
+		return this.loadDocsRepositories();
 	},
 
 	async addDocsRepository(owner: string, repo: string, docsFolder?: string, branch?: string) {
@@ -365,10 +375,8 @@ export const githubActions = {
 
 		try {
 			const result = await apiClient.addDocsRepository(owner, repo, docsFolder, branch);
-			githubStore.update((state) => ({
-				...state,
-				loading: false
-			}));
+			// Reload repositories to get updated list with the new repo
+			await this.loadDocsRepositories();
 			return result;
 		} catch (error) {
 			githubStore.update((state) => ({
@@ -385,10 +393,8 @@ export const githubActions = {
 
 		try {
 			const result = await apiClient.removeDocsRepository(owner, repo);
-			githubStore.update((state) => ({
-				...state,
-				loading: false
-			}));
+			// Reload repositories to get updated list without the removed repo
+			await this.loadDocsRepositories();
 			return result;
 		} catch (error) {
 			githubStore.update((state) => ({
@@ -405,6 +411,8 @@ export const githubActions = {
 
 		try {
 			const result = await apiClient.syncDocsRepository(owner, repo);
+			// Reload repositories to get updated sync status and document counts
+			await this.loadDocsRepositories();
 			githubStore.update((state) => ({
 				...state,
 				syncing: false
@@ -425,6 +433,8 @@ export const githubActions = {
 
 		try {
 			const result = await apiClient.syncAllDocsRepositories();
+			// Reload repositories to get updated sync status and document counts
+			await this.loadDocsRepositories();
 			githubStore.update((state) => ({
 				...state,
 				syncing: false
@@ -445,5 +455,7 @@ if (browser) {
 	// Delay initial refresh to avoid interference with setup flows
 	setTimeout(() => {
 		githubActions.refresh().catch(console.error);
+		// Load docs repositories on initialization
+		githubActions.loadDocsRepositories().catch(console.error);
 	}, 500);
 }

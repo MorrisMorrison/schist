@@ -44,3 +44,4 @@ project/
 test-token
 docs/features
 frontend/playwright
+test-results/

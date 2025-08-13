@@ -11,6 +11,7 @@
 	import { theme } from '$lib/stores/theme.js';
 	import { imagePasteExtension } from '$lib/utils/image-paste.js';
 	import { wikiLinksExtension } from '$lib/utils/wiki-links.js';
+	import { hashtagExtension } from '$lib/utils/hashtag-extension.js';
 	import type { Asset } from '$lib/api/types.js';
 
 	let {
@@ -353,6 +354,7 @@
 				currentTheme === 'dark' ? darkTheme : lightTheme,
 				drawSelection(),
 				wikiLinksExtension(),
+				hashtagExtension(),
 				createScrollSyncExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
@@ -524,6 +526,7 @@
 				currentTheme === 'dark' ? darkTheme : lightTheme,
 				drawSelection(),
 				wikiLinksExtension(),
+				hashtagExtension(),
 				createScrollSyncExtension(),
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {

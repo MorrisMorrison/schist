@@ -1,65 +1,31 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
 	import Editor from '$lib/components/editor/Editor.svelte';
-	import TagInput from '$lib/components/editor/TagInput.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents';
 	import { generateSlug } from '$lib/utils/path';
 	import { Check, CircleX, Loader2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
-	import Input from '$lib/components/ui/input/input.svelte';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
+	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
 	import { templatesStore, templateActions } from '$lib/stores/templates';
 	import type { Template } from '$lib/api/types';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
-	const initialTitle = $derived(page.url.searchParams.get('title') || '');
-
 	let { data }: { data: PageData } = $props();
-	let title = $state('');
-	let content = $state('');
-	let tags = $state<string[]>([]);
-
-	$effect(() => {
-		if (initialTitle && !title) {
-			title = initialTitle;
-			content = '# ' + (initialTitle || 'New Page') + '\n\n';
-		} else if (!title && !content) {
-			content = '# New Page\n\n';
-		}
-		templateActions.loadTemplates();
-	});
+	let content = $state('# New Document\n\n');
 	let isCreating = $state(false);
 	let createError = $state('');
 
 	let editorRef = $state<Editor>();
 
-	$effect(() => {
-		if (title) {
-			// Update heading if content starts with a heading or is empty/default
-			const lines = content.split('\n');
-			const firstLine = lines[0] || '';
+	const title = $derived(extractTitleFromContent(content));
 
-			// Update heading if content is empty, starts with '# New Page', or starts with '# ' + old title
-			if (
-				!content.trim() ||
-				firstLine === '# New Page' ||
-				(firstLine.startsWith('# ') && !firstLine.includes(title))
-			) {
-				const newFirstLine = `# ${title}`;
-				const remainingContent = lines.slice(1).join('\n');
-				content = newFirstLine + remainingContent;
-			}
-		}
+	$effect(() => {
+		templateActions.loadTemplates();
 	});
 
 	async function handleCreate() {
-		if (!title.trim()) {
-			createError = 'Title is required';
-			return;
-		}
-
 		if (!content.trim()) {
 			createError = 'Content is required';
 			return;
@@ -69,6 +35,7 @@
 		createError = '';
 
 		try {
+			const tags = extractHashtagsFromContent(content);
 			const fullPath = generatePath(title);
 
 			const response = await documentActions.createDocument({
@@ -116,17 +83,15 @@
 	}
 
 	function applyTemplate(template: Template) {
-		if (!title.trim()) {
-			title = template.title;
-		}
-
 		let templateContent = template.content;
 
 		const now = new Date();
+		const title = extractTitleFromContent(content) || template.title;
+
 		templateContent = templateContent
 			.replace(/\{\{date\}\}/g, now.toISOString().split('T')[0])
 			.replace(/\{\{time\}\}/g, now.toTimeString().split(' ')[0])
-			.replace(/\{\{title\}\}/g, title || template.title)
+			.replace(/\{\{title\}\}/g, title)
 			.replace(
 				/\{\{next_date\}\}/g,
 				new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -137,10 +102,6 @@
 		// Force immediate preview update using the Editor's public method
 		if (editorRef) {
 			editorRef.setContentImmediate(templateContent);
-		}
-
-		if (template.tags && template.tags.length > 0) {
-			tags = [...template.tags];
 		}
 	}
 </script>
@@ -157,7 +118,7 @@
 	<div class="border-primary border-b pb-6">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-primary text-2xl font-bold">Create New Document</h1>
+				<h1 class="text-primary text-2xl font-bold">{title}</h1>
 				<p class="text-secondary mt-1 text-sm">Add a new document to your wiki</p>
 			</div>
 
@@ -166,7 +127,7 @@
 				<Button
 					data-testid="save-document-button"
 					onclick={handleCreate}
-					disabled={isCreating || !title.trim() || !content.trim()}
+					disabled={isCreating || !content.trim()}
 				>
 					{#if isCreating}
 						<Loader2 class="h-4 w-4 animate-spin"></Loader2>
@@ -197,49 +158,17 @@
 		</div>
 	{/if}
 
-	<!-- Editor Form -->
-	<div class="bg-primary ring-border-primary space-y-6 rounded-lg p-6 shadow-sm ring-1">
-		<!-- Title Input -->
-		<div>
-			<label for="title" class="text-secondary block text-sm font-medium">Document Title</label>
-			<div class="mt-1">
-				<Input
-					id="title"
-					data-testid="document-title-input"
-					type="text"
-					bind:value={title}
-					placeholder="Enter document title..."
-				></Input>
-			</div>
-			{#if title.trim()}
-				<p class="text-muted mt-1 text-sm">
-					URL will be: <span class="text-blue-primary font-mono">{generatePath(title)}</span>
-				</p>
-			{/if}
-		</div>
-
-		<!-- Tags Input (Compact) -->
-		<div>
-			<label for="tags" class="text-secondary mb-2 block text-sm font-medium">Tags</label>
-			<div data-testid="tags-input-container">
-				<TagInput {tags} onTagsChange={(newTags) => (tags = newTags)} placeholder="Add tags..." />
-			</div>
-		</div>
-
-		<!-- Content Editor -->
-		<div class="flex-1">
-			<div class="w-full">
-				<Editor
-					bind:this={editorRef}
-					initialContent={content}
-					onContentChange={handleContentChange}
-					onSave={handleSaveFromEditor}
-					autoSave={{
-						enabled: false
-					}}
-				/>
-			</div>
-		</div>
+	<!-- Content Editor -->
+	<div class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
+		<Editor
+			bind:this={editorRef}
+			initialContent={content}
+			onContentChange={handleContentChange}
+			onSave={handleSaveFromEditor}
+			autoSave={{
+				enabled: false
+			}}
+		/>
 	</div>
 
 	<!-- Template Suggestions -->

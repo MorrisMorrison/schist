@@ -52,7 +52,7 @@ test.describe.serial('Document Lifecycle', () => {
 		// Verify editor loaded with existing content
 		await editorPage.verifyLoaded();
 		await editorPage.verifyTitle(originalDocument.title);
-		await editorPage.verifyContent('Simple Test Document');
+		await editorPage.verifyContent(originalDocument.title); // Content should contain the dynamic title
 
 		// Modify the content
 		const updatedContent = '# Updated Content\n\nThis content has been edited via e2e test.';
@@ -107,7 +107,7 @@ test.describe.serial('Document Lifecycle', () => {
 		// Navigate to edit
 		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();
-		await editorPage.verifyContent('Simple Test Document');
+		await editorPage.verifyContent(testDocument.title);
 
 		// Navigate back to view without saving
 		await editorPage.cancel();
@@ -140,7 +140,7 @@ test.describe.serial('Document Lifecycle', () => {
 
 		// Verify markdown has been rendered to HTML
 		await documentViewPage.verifyMarkdownRendering();
-		await documentViewPage.verifyHeading('Complex Test Document', 1);
+		await documentViewPage.verifyHeading(testDocument.title, 1);
 		await documentViewPage.verifyHeading('Table of Contents', 2);
 
 		// Verify we have expected number of elements

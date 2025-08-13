@@ -133,6 +133,7 @@
 				<div class="flex-1"></div>
 
 				<div class="flex items-center space-x-4">
+					<!-- 1. Search -->
 					<div class="hidden md:block">
 						<button
 							type="button"
@@ -151,8 +152,48 @@
 						</button>
 					</div>
 
+					<!-- 2. Theme Toggle -->
+					<ThemeToggle />
+
+					<!-- 3. Secret Lock Toggle Button -->
+					{#if $authStore.user && !$secretsUnlocked}
+						<button
+							type="button"
+							onclick={handleQuickUnlock}
+							class="cursor-pointer rounded-md border border-orange-300 bg-orange-50 p-2 text-orange-600 transition-colors hover:bg-orange-100 hover:text-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:outline-none dark:border-orange-700 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30"
+							title="Quick unlock secrets"
+							aria-label="Unlock secrets using passkey authentication"
+							disabled={isUnlocking}
+							data-testid="quick-unlock-button"
+						>
+							{#if isUnlocking}
+								<LoadingSpinner size="sm" />
+							{:else}
+								<Lock class="h-4 w-4" />
+							{/if}
+						</button>
+					{:else if $authStore.user && $secretsUnlocked}
+						<!-- Show unlocked indicator -->
+						<div
+							class="rounded-md border border-green-300 bg-green-50 p-2 text-green-600 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400"
+							title="Secrets unlocked"
+							data-testid="secrets-unlocked-indicator"
+						>
+							<Unlock class="h-4 w-4" />
+						</div>
+					{/if}
+
+					<!-- 4. Settings Button -->
+					<a
+						href="/settings"
+						class="border-secondary bg-primary text-primary hover:bg-gray-hover text-sm' cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+						title="Settings"
+					>
+						<Settings class="h-4 w-4" />
+					</a>
+
+					<!-- 5. Username + Logout Button (Last) -->
 					{#if $authStore.user}
-						<!-- User info and logout (desktop) -->
 						<div class="hidden md:flex md:items-center md:gap-2">
 							<span
 								class="text-muted-foreground flex items-center gap-1 text-sm"
@@ -173,44 +214,6 @@
 							</button>
 						</div>
 					{/if}
-
-					<!-- Quick unlock button for secrets -->
-					{#if $authStore.user && !$secretsUnlocked}
-						<button
-							type="button"
-							onclick={handleQuickUnlock}
-							class="border-secondary bg-primary text-primary hover:bg-accent cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-							title="Quick unlock secrets"
-							aria-label="Unlock secrets using passkey authentication"
-							disabled={isUnlocking}
-							data-testid="quick-unlock-button"
-						>
-							{#if isUnlocking}
-								<LoadingSpinner size="sm" />
-							{:else}
-								<Lock class="h-4 w-4" />
-							{/if}
-						</button>
-					{:else if $authStore.user && $secretsUnlocked}
-						<!-- Show unlocked indicator -->
-						<div
-							class="border-secondary bg-success text-success-foreground rounded-md border p-2"
-							title="Secrets unlocked"
-							data-testid="secrets-unlocked-indicator"
-						>
-							<Unlock class="h-4 w-4" />
-						</div>
-					{/if}
-
-					<a
-						href="/settings"
-						class="border-secondary bg-primary text-primary hover:bg-gray-hover text-sm' cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-						title="Settings"
-					>
-						<Settings class="h-4 w-4" />
-					</a>
-
-					<ThemeToggle />
 
 					<button
 						type="button"
@@ -273,7 +276,7 @@
 									handleQuickUnlock();
 									closeMenu();
 								}}
-								class="text-secondary hover:text-primary flex w-full items-center space-x-2 text-left"
+								class="flex w-full items-center space-x-2 text-left text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
 								disabled={isUnlocking}
 								data-testid="quick-unlock-button-mobile"
 							>
@@ -287,7 +290,7 @@
 						</div>
 					{:else if $authStore.user && $secretsUnlocked}
 						<div class="px-4 pb-3">
-							<div class="text-success flex items-center space-x-2">
+							<div class="flex items-center space-x-2 text-green-600 dark:text-green-400">
 								<Unlock class="h-4 w-4" />
 								<span class="text-sm">Secrets Unlocked</span>
 							</div>

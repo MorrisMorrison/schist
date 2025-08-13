@@ -4,12 +4,12 @@
 	let { block }: { block: HeadingBlock } = $props();
 
 	const headingClasses = {
-		1: 'text-4xl font-bold mt-8 mb-4',
-		2: 'text-3xl font-bold mt-8 mb-4',
-		3: 'text-2xl font-bold mt-6 mb-3',
-		4: 'text-xl font-bold mt-6 mb-3',
-		5: 'text-lg font-bold mt-6 mb-3',
-		6: 'text-base font-bold mt-6 mb-3'
+		1: 'text-3xl font-bold mb-4',
+		2: 'text-2xl font-bold mb-4',
+		3: 'text-xl font-bold mb-3',
+		4: 'text-lg font-bold mb-3',
+		5: 'text-base font-bold mb-3',
+		6: 'text-sm font-bold mb-3'
 	};
 </script>
 

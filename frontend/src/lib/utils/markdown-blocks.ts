@@ -5,6 +5,7 @@ import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 import { goto } from '$app/navigation';
+import { processHashtags } from './hashtag-renderer.js';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -42,6 +43,8 @@ export interface ListItemBlock extends BaseBlock {
 	type: 'list_item';
 	text: string;
 	raw: string;
+	task?: boolean;
+	checked?: boolean;
 }
 
 export interface BlockquoteBlock extends BaseBlock {
@@ -109,6 +112,11 @@ export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBl
 
 	try {
 		sessionId = extractSessionId(processedContent);
+		// Enable GitHub Flavored Markdown for task list support
+		marked.setOptions({
+			gfm: true,
+			breaks: true
+		});
 		const tokens = marked.lexer(processedContent);
 		const blocks: MarkdownBlock[] = [];
 
@@ -246,12 +254,10 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		case 'paragraph': {
 			const paragraphToken = token as Tokens.Paragraph;
 			let text = paragraphToken.text;
-			console.log('DEBUG: Processing paragraph text:', JSON.stringify(text));
 
 			// Check if the paragraph contains ONLY an image (standalone image)
 			const standaloneImageMatch = text.match(/^!\[(.*?)\]\((.*?)(?:\s+"(.*?)")?\)\s*$/);
 			if (standaloneImageMatch) {
-				console.log('DEBUG: Converting standalone paragraph to ImageBlock:', text);
 				const [, altText, href, title] = standaloneImageMatch;
 
 				let cleanTitle: string | undefined = title;
@@ -327,13 +333,19 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			const itemToken = token as Tokens.ListItem;
 			let text = itemToken.text;
 
+			// Check if this is a task list item
+			const isTask = itemToken.task || false;
+			const isChecked = itemToken.checked || false;
+
 			text = await processInlineMarkdown(text);
 
 			return {
 				type: 'list_item',
 				id,
 				text,
-				raw: itemToken.raw
+				raw: itemToken.raw,
+				task: isTask,
+				checked: isChecked
 			} as ListItemBlock;
 		}
 
@@ -382,7 +394,6 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 		}
 
 		case 'image': {
-			console.log('DEBUG: Converting image token to ImageBlock:', token);
 			const imageToken = token as Tokens.Image;
 
 			let cleanTitle = imageToken.title;
@@ -480,7 +491,8 @@ async function processInlineMarkdown(text: string): Promise<string> {
 
 	const promise = (async () => {
 		try {
-			const htmlResult = await configuredMarked.parse(text, { async: true });
+			const withHashtags = processHashtags(text);
+			const htmlResult = await configuredMarked.parse(withHashtags, { async: true });
 			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
 			return cleaned;
 		} catch (error) {

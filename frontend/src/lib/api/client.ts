@@ -686,62 +686,6 @@ class SchістApiClient {
 		});
 	}
 
-	// GitHub docs methods
-	async getDocsRepositories(): Promise<GitHubDocsRepositoriesResponse> {
-		return this.request<GitHubDocsRepositoriesResponse>('/github/docs/repositories');
-	}
-
-	async addDocsRepository(
-		owner: string,
-		repo: string,
-		docsFolder?: string,
-		branch?: string
-	): Promise<{ message: string }> {
-		return this.request<{ message: string }>('/github/docs/repositories', {
-			method: 'POST',
-			body: JSON.stringify({
-				owner,
-				repository: repo,
-				docs_folder: docsFolder || 'docs',
-				branch: branch || ''
-			})
-		});
-	}
-
-	async removeDocsRepository(owner: string, repo: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/github/docs/repositories/${owner}/${repo}`, {
-			method: 'DELETE'
-		});
-	}
-
-	async getRepositoryStructure(owner: string, repo: string, path?: string): Promise<GitHubFolder> {
-		const params = new URLSearchParams({ owner, repo });
-		if (path) params.append('path', path);
-		return this.request<GitHubFolder>(`/github/docs/structure?${params}`);
-	}
-
-	async getDocumentContent(owner: string, repo: string, path: string): Promise<GitHubDocument> {
-		const params = new URLSearchParams({ owner, repo, path });
-		return this.request<GitHubDocument>(`/github/docs/content?${params}`);
-	}
-
-	async listDocsFiles(owner: string, repo: string): Promise<GitHubDocsFilesResponse> {
-		const params = new URLSearchParams({ owner, repo });
-		return this.request<GitHubDocsFilesResponse>(`/github/docs/files?${params}`);
-	}
-
-	async syncDocsRepository(owner: string, repo: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/github/docs/sync/${owner}/${repo}`, {
-			method: 'POST'
-		});
-	}
-
-	async syncAllDocsRepositories(): Promise<GitHubSyncResponse> {
-		return this.request<GitHubSyncResponse>('/github/docs/sync', {
-			method: 'POST'
-		});
-	}
-
 	// Share management
 	async createShare(request: CreateShareRequest): Promise<ShareToken> {
 		return this.request<ShareToken>('/shares', {

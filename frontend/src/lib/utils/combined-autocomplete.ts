@@ -35,7 +35,8 @@ async function getTags(): Promise<TagInfo[]> {
 	const now = Date.now();
 	if (now - tagsCacheTime > CACHE_DURATION || tagsCache.length === 0) {
 		try {
-			tagsCache = await apiClient.getTags();
+			const response = await apiClient.getAllTags();
+			tagsCache = response.tags;
 			tagsCacheTime = now;
 		} catch (error) {
 			console.warn('Failed to fetch tags for hashtag autocomplete:', error);

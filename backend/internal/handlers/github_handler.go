@@ -48,12 +48,21 @@ func (h *APIHandler) setupGitHub(c *gin.Context) {
 		return
 	}
 
-	status, err := h.GitHubService.GetSyncStatus()
+	config := h.GitHubService.GetGitHubSettings()
+	connectionStatus, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Setup completed but failed to get status: %v", err),
+			"error": fmt.Sprintf("Setup completed but failed to get connection status: %v", err),
 		})
 		return
+	}
+
+	status := struct {
+		*services.GitHubSettings
+		*services.GitHubConnectionStatus
+	}{
+		GitHubSettings:         config,
+		GitHubConnectionStatus: connectionStatus,
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -65,11 +74,18 @@ func (h *APIHandler) setupGitHub(c *gin.Context) {
 	})
 }
 
-func (h *APIHandler) getGitHubStatus(c *gin.Context) {
-	status, err := h.GitHubService.GetSyncStatus()
+// getGitHubConfig returns non-sensitive GitHub configuration (no secret unlock required)
+func (h *APIHandler) getGitHubConfig(c *gin.Context) {
+	config := h.GitHubService.GetGitHubSettings()
+	c.JSON(http.StatusOK, config)
+}
+
+// getGitHubConnectionStatus returns connection status (requires secret unlock)
+func (h *APIHandler) getGitHubConnectionStatus(c *gin.Context) {
+	status, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get GitHub status: %v", err),
+			"error": fmt.Sprintf("Failed to get GitHub connection status: %v", err),
 		})
 		return
 	}
@@ -126,12 +142,22 @@ func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 		return
 	}
 
-	status, err := h.GitHubService.GetSyncStatus()
+	config := h.GitHubService.GetGitHubSettings()
+	connectionStatus, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Configuration updated but failed to get status: %v", err),
+			"error": fmt.Sprintf("Configuration updated but failed to get connection status: %v", err),
 		})
 		return
+	}
+
+	// Return combined response for config update
+	status := struct {
+		*services.GitHubSettings
+		*services.GitHubConnectionStatus
+	}{
+		GitHubSettings:         config,
+		GitHubConnectionStatus: connectionStatus,
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -247,12 +273,19 @@ func (h *APIHandler) disconnectGitHub(c *gin.Context) {
 		return
 	}
 
-	status, err := h.GitHubService.GetSyncStatus()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Disconnected but failed to get updated status: %v", err),
-		})
-		return
+	config := h.GitHubService.GetGitHubSettings()
+	connectionStatus := &services.GitHubConnectionStatus{
+		TokenExists:    false,
+		Connected:      false,
+		PendingChanges: 0,
+	}
+
+	status := struct {
+		*services.GitHubSettings
+		*services.GitHubConnectionStatus
+	}{
+		GitHubSettings:         config,
+		GitHubConnectionStatus: connectionStatus,
 	}
 
 	c.JSON(http.StatusOK, gin.H{

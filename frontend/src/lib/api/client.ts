@@ -24,7 +24,8 @@ import type {
 	RestoreResponse,
 	ImportOptions,
 	ImportResult,
-	GitHubStatus,
+	GitHubSettings,
+	GitHubConnectionStatus,
 	GitHubSyncResult,
 	GitHubSetupRequest,
 	GitHubConfigRequest,
@@ -575,12 +576,17 @@ class SchістApiClient {
 		window.open(url, '_blank');
 	}
 
-	async getGitHubStatus(): Promise<GitHubStatus> {
-		return this.request<GitHubStatus>('/github/status');
+	// New separated GitHub API methods
+	async getGitHubSettings(): Promise<GitHubSettings> {
+		return this.request<GitHubSettings>('/github/config');
 	}
 
-	async updateGitHubSettings(settings: GitHubConfigRequest): Promise<GitHubStatus> {
-		return this.request<GitHubStatus>('/github/config', {
+	async getGitHubConnectionStatus(): Promise<GitHubConnectionStatus> {
+		return this.request<GitHubConnectionStatus>('/github/connection-status');
+	}
+
+	async updateGitHubSettings(settings: GitHubConfigRequest): Promise<GitHubSettings> {
+		return this.request<GitHubSettings>('/github/config', {
 			method: 'PUT',
 			body: JSON.stringify(settings)
 		});
@@ -610,8 +616,16 @@ class SchістApiClient {
 		});
 	}
 
-	async disconnectGitHub(): Promise<{ message: string; status: GitHubStatus }> {
-		return this.request<{ message: string; status: GitHubStatus }>('/github/disconnect', {
+	async disconnectGitHub(): Promise<{
+		message: string;
+		settings: GitHubSettings;
+		connection: GitHubConnectionStatus;
+	}> {
+		return this.request<{
+			message: string;
+			settings: GitHubSettings;
+			connection: GitHubConnectionStatus;
+		}>('/github/disconnect', {
 			method: 'POST'
 		});
 	}

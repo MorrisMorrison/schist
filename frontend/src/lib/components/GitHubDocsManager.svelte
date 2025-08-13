@@ -30,8 +30,8 @@
 	onMount(async () => {
 		try {
 			// Repositories are loaded automatically by the store
-			if ($docsRepositories.length === 0) {
-				await githubActions.getDocsRepositories();
+			if ($docsRepositories && $docsRepositories.length === 0) {
+				await githubActions.loadDocsRepositories();
 			}
 		} catch (err) {
 			console.error('Failed to load repositories on mount:', err);

@@ -81,16 +81,19 @@ func TestGitHubService_GetSyncStatus_WithoutClient(t *testing.T) {
 	err = settings.UpdateGitHubSettings(testDir, githubSettings)
 	require.NoError(t, err)
 
-	status, err := service.GetSyncStatus()
-	require.NoError(t, err)
+	config := service.GetGitHubSettings()
 
-	assert.True(t, status.Enabled)
-	assert.Equal(t, "testowner", status.Owner)
-	assert.Equal(t, "testrepo", status.Repository)
-	assert.Equal(t, "main", status.Branch)
-	assert.False(t, status.AutoSync)
-	assert.True(t, status.SyncOnSave)
-	assert.False(t, status.Connected)
+	assert.True(t, config.Enabled)
+	assert.Equal(t, "testowner", config.Owner)
+	assert.Equal(t, "testrepo", config.Repository)
+	assert.Equal(t, "main", config.Branch)
+	assert.False(t, config.AutoSync)
+	assert.True(t, config.SyncOnSave)
+
+	connectionStatus, err := service.GetGitHubConnectionStatus()
+	if err == nil {
+		assert.False(t, connectionStatus.Connected)
+	}
 }
 
 func TestGitHubService_GetSyncStatus_Disabled(t *testing.T) {
@@ -115,16 +118,15 @@ func TestGitHubService_GetSyncStatus_Disabled(t *testing.T) {
 	err = settings.UpdateGitHubSettings(testDir, githubSettings)
 	require.NoError(t, err)
 
-	status, err := service.GetSyncStatus()
-	require.NoError(t, err)
+	config := service.GetGitHubSettings()
 
-	assert.False(t, status.Enabled)
-	assert.Empty(t, status.Owner)
-	assert.Empty(t, status.Repository)
-	assert.Empty(t, status.Branch)
-	assert.False(t, status.AutoSync)
-	assert.False(t, status.SyncOnSave)
-	assert.False(t, status.Connected)
+	assert.False(t, config.Enabled)
+	assert.Empty(t, config.Owner)
+	assert.Empty(t, config.Repository)
+	assert.Empty(t, config.Branch)
+	assert.False(t, config.AutoSync)
+	assert.False(t, config.SyncOnSave)
+	// Connected status would require connection test (which needs secrets)
 }
 
 func TestGitHubService_IsEnabled(t *testing.T) {

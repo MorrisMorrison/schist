@@ -2,7 +2,7 @@ import { writable, derived } from 'svelte/store';
 import { apiClient } from '../api/client.js';
 import type {
 	GitHubSettings,
-	GitHubStatus,
+	GitHubConnectionStatus,
 	GitHubSyncResult,
 	GitHubSetupRequest,
 	GitHubConnectionTest,
@@ -13,7 +13,7 @@ import { browser } from '$app/environment';
 
 interface GitHubState {
 	settings: GitHubSettings | null;
-	status: GitHubStatus | null;
+	connectionStatus: GitHubConnectionStatus | null;
 	loading: boolean;
 	error: string | null;
 	syncing: boolean;
@@ -29,7 +29,7 @@ interface GitHubState {
 
 const initialState: GitHubState = {
 	settings: null,
-	status: null,
+	connectionStatus: null,
 	loading: false,
 	error: null,
 	syncing: false,
@@ -46,7 +46,7 @@ const initialState: GitHubState = {
 export const githubStore = writable<GitHubState>(initialState);
 
 export const githubSettings = derived(githubStore, ($store) => $store.settings);
-export const githubStatus = derived(githubStore, ($store) => $store.status);
+export const githubConnectionStatus = derived(githubStore, ($store) => $store.connectionStatus);
 export const isGitHubLoading = derived(githubStore, ($store) => $store.loading);
 export const githubError = derived(githubStore, ($store) => $store.error);
 export const isGitHubSyncing = derived(githubStore, ($store) => $store.syncing);
@@ -59,7 +59,10 @@ export const isRepairingRepository = derived(githubStore, ($store) => $store.rep
 export const lastRepairResult = derived(githubStore, ($store) => $store.lastRepairResult);
 export const docsRepositories = derived(githubStore, ($store) => $store.docsRepositories);
 
-export const isGitHubConnected = derived(githubStatus, ($status) => $status?.connected ?? false);
+export const isGitHubConnected = derived(
+	githubConnectionStatus,
+	($status) => $status?.connected ?? false
+);
 export const isGitHubEnabled = derived(githubSettings, ($settings) => $settings?.enabled ?? false);
 export const canSync = derived(
 	[isGitHubConnected, isGitHubSyncing],
@@ -67,26 +70,43 @@ export const canSync = derived(
 );
 
 export const githubActions = {
-	async loadSettings() {
-		return this.loadStatus();
-	},
-
-	async loadStatus() {
+	async loadGitHubSettings() {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const status = await apiClient.getGitHubStatus();
+			const settings = await apiClient.getGitHubSettings();
 			githubStore.update((state) => ({
 				...state,
-				status,
+				settings,
 				loading: false
 			}));
-			return status;
+			return settings;
 		} catch (error) {
 			githubStore.update((state) => ({
 				...state,
 				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to load GitHub status'
+				error: error instanceof Error ? error.message : 'Failed to load GitHub settings'
+			}));
+			throw error;
+		}
+	},
+
+	async loadConnectionStatus() {
+		githubStore.update((state) => ({ ...state, loading: true, error: null }));
+
+		try {
+			const connectionStatus = await apiClient.getGitHubConnectionStatus();
+			githubStore.update((state) => ({
+				...state,
+				connectionStatus,
+				loading: false
+			}));
+			return connectionStatus;
+		} catch (error) {
+			githubStore.update((state) => ({
+				...state,
+				loading: false,
+				error: error instanceof Error ? error.message : 'Failed to load GitHub connection status'
 			}));
 			throw error;
 		}
@@ -98,11 +118,14 @@ export const githubActions = {
 		try {
 			const setupResult = await apiClient.setupGitHub(setupRequest);
 
-			const status = setupResult.status || (await apiClient.getGitHubStatus());
+			const settings = setupResult.settings || (await apiClient.getGitHubSettings());
+			const connectionStatus =
+				setupResult.connection || (await apiClient.getGitHubConnectionStatus());
 
 			githubStore.update((state) => ({
 				...state,
-				status,
+				settings,
+				connectionStatus,
 				loading: false
 			}));
 
@@ -121,13 +144,16 @@ export const githubActions = {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const status = await apiClient.updateGitHubSettings(settingsUpdate);
+			await apiClient.updateGitHubSettings(settingsUpdate);
+			const settings = await apiClient.getGitHubSettings();
+			const connectionStatus = await apiClient.getGitHubConnectionStatus();
 			githubStore.update((state) => ({
 				...state,
-				status,
+				settings,
+				connectionStatus,
 				loading: false
 			}));
-			return status;
+			return { settings, connectionStatus };
 		} catch (error) {
 			githubStore.update((state) => ({
 				...state,
@@ -174,12 +200,12 @@ export const githubActions = {
 		try {
 			const result = await apiClient.syncToGitHub();
 
-			const status = await apiClient.getGitHubStatus();
+			const connectionStatus = await apiClient.getGitHubConnectionStatus();
 
 			githubStore.update((state) => ({
 				...state,
 				lastSyncResult: result,
-				status,
+				connectionStatus,
 				syncing: false
 			}));
 
@@ -226,8 +252,8 @@ export const githubActions = {
 			const result = await apiClient.disconnectGitHub();
 			githubStore.update((state) => ({
 				...state,
-				settings: null,
-				status: result.status,
+				settings: result.settings,
+				connectionStatus: result.connection,
 				loading: false,
 				connectionTest: null,
 				lastSyncResult: null
@@ -245,7 +271,13 @@ export const githubActions = {
 
 	async refresh() {
 		try {
-			await githubActions.loadStatus();
+			await githubActions.loadGitHubSettings();
+			try {
+				await githubActions.loadConnectionStatus();
+			} catch (error) {
+				// Connection status might fail if secrets are locked
+				console.debug('Connection status unavailable (secrets may be locked):', error);
+			}
 		} catch (error) {
 			console.error('Failed to refresh GitHub data:', error);
 		}
@@ -363,11 +395,6 @@ export const githubActions = {
 			}));
 			throw error;
 		}
-	},
-
-	// Legacy method for backwards compatibility
-	async getDocsRepositories() {
-		return this.loadDocsRepositories();
 	},
 
 	async addDocsRepository(owner: string, repo: string, docsFolder?: string, branch?: string) {

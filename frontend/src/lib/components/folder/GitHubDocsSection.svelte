@@ -15,8 +15,8 @@
 	onMount(async () => {
 		// Repositories are loaded automatically by the store
 		// But we can trigger a refresh if needed
-		if ($docsRepositories.length === 0) {
-			await githubActions.getDocsRepositories();
+		if ($docsRepositories && $docsRepositories.length === 0) {
+			await githubActions.loadDocsRepositories();
 		}
 	});
 

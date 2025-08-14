@@ -9,7 +9,11 @@ import { readFileSync, statSync } from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { HomePage } from '../pages/HomePage';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
@@ -23,8 +27,9 @@ const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
 async function runCleanupScript() {
 	try {
 		console.log('[Cleanup] Running E2E cleanup script...');
-		const scriptsDir = path.resolve(__dirname, '../../scripts');
+		const scriptsDir = path.resolve(__dirname, '../../../scripts');
 		const cleanupScript = path.resolve(scriptsDir, 'cleanup.sh');
+		console.log(`[Cleanup] Looking for cleanup script at: ${cleanupScript}`);
 
 		// Validate that cleanupScript is inside scriptsDir
 		if (!cleanupScript.startsWith(scriptsDir + path.sep)) {

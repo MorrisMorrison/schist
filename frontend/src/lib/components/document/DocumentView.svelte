@@ -13,6 +13,7 @@
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';
+	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 	import {
 		secretStore,
 		secretsUnlocked,
@@ -55,10 +56,10 @@
 	let processedContent = $state('');
 
 	let backlinks = $state<Document[]>([]);
-	let backlinkLoading = $state(false);
+	const backlinkLoader = useOptimizedLoading(200, 150);
 
 	let versionCount = $state<number | undefined>(undefined);
-	let versionLoading = $state(false);
+	const versionLoader = useOptimizedLoading(200, 150);
 
 	let showVersionHistory = $state(false);
 	let versions = $state<DocumentVersion[]>([]);
@@ -117,14 +118,14 @@
 		async function loadBacklinks() {
 			if (!documentPath) return;
 
-			backlinkLoading = true;
+			backlinkLoader.startLoading();
 			try {
 				backlinks = await apiClient.getDocumentBacklinks(documentPath);
 			} catch (error) {
 				console.error('Failed to load backlinks:', error);
 				backlinks = [];
 			} finally {
-				backlinkLoading = false;
+				backlinkLoader.stopLoading();
 			}
 		}
 
@@ -134,7 +135,7 @@
 	async function refreshVersionCount() {
 		if (!documentPath) return;
 
-		versionLoading = true;
+		versionLoader.startLoading();
 		try {
 			const versionsResponse = await apiClient.getDocumentVersions(documentPath);
 			versionCount = versionsResponse.total || 0;
@@ -142,7 +143,7 @@
 			console.error('Failed to load version count:', error);
 			versionCount = undefined;
 		} finally {
-			versionLoading = false;
+			versionLoader.stopLoading();
 		}
 	}
 
@@ -242,7 +243,7 @@
 					</div>
 				{/if}
 
-				{#if versionLoading}
+				{#if versionLoader.loading}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<GitBranch class="h-4 w-4" />
 						<span>Loading versions...</span>
@@ -337,11 +338,11 @@
 				<Link2 class="text-muted-foreground h-5 w-5" />
 				<h2 class="text-lg font-semibold">Backlinks</h2>
 				<Badge variant="secondary" class="text-xs">
-					{backlinkLoading ? '...' : backlinks?.length || 0}
+					{backlinkLoader.loading ? '...' : backlinks?.length || 0}
 				</Badge>
 			</div>
 
-			{#if backlinkLoading}
+			{#if backlinkLoader.loading}
 				<div class="flex items-center justify-center py-8">
 					<div class="text-muted-foreground text-sm">Loading backlinks...</div>
 				</div>

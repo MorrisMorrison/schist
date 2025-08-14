@@ -91,6 +91,8 @@
 			: $folders || []
 	);
 
+	let hasInitialized = $state(false);
+
 	$effect(() => {
 		// Only load data if auth is disabled OR user is authenticated
 		const loadData = async () => {
@@ -104,10 +106,13 @@
 				}
 			}
 
-			// Load folder and document data
-			folderActions.loadFolderTree().catch(console.error);
-			if (showPages) {
-				documentActions.loadDocuments().catch(console.error);
+			// Only load on first initialization
+			if (!hasInitialized) {
+				folderActions.loadFolderTree().catch(console.error);
+				if (showPages) {
+					documentActions.loadDocuments().catch(console.error);
+				}
+				hasInitialized = true;
 			}
 		};
 
@@ -257,7 +262,6 @@
 		}
 		return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
 	}
-
 
 	function expandAll() {
 		const getAllFolderPaths = (folders: FolderType[]): string[] => {

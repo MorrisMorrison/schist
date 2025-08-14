@@ -229,36 +229,6 @@
 			'calt' 1;
 	}
 
-	/* Professional Typography Scale */
-	h1,
-	h2,
-	h3,
-	h4,
-	h5,
-	h6 {
-		@apply text-foreground font-semibold tracking-tight;
-		line-height: 1.2;
-	}
-
-	h1 {
-		@apply text-4xl;
-	} /* 36px */
-	h2 {
-		@apply text-3xl;
-	} /* 30px */
-	h3 {
-		@apply text-2xl;
-	} /* 24px */
-	h4 {
-		@apply text-xl;
-	} /* 20px */
-	h5 {
-		@apply text-lg;
-	} /* 18px */
-	h6 {
-		@apply text-base;
-	} /* 16px */
-
 	p,
 	body {
 		@apply text-base leading-relaxed;
@@ -389,29 +359,7 @@
 		@apply leading-7 text-gray-900;
 	}
 
-	.prose h1 {
-		@apply mt-8 mb-4 text-3xl font-bold;
-	}
-
-	.prose h2 {
-		@apply mt-8 mb-4 text-2xl font-bold;
-	}
-
-	.prose h3 {
-		@apply mt-6 mb-3 text-xl font-bold;
-	}
-
-	.prose h4 {
-		@apply mt-6 mb-3 text-lg font-bold;
-	}
-
-	.prose h5 {
-		@apply mt-6 mb-3 text-base font-bold;
-	}
-
-	.prose h6 {
-		@apply mt-6 mb-3 text-sm font-bold;
-	}
+	/* Header styles removed - handled by HeadingBlock.svelte component */
 
 	.prose p {
 		@apply mb-4;

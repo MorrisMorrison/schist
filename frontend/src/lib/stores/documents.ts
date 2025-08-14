@@ -47,7 +47,7 @@ export const searchStore = writable<SearchState>({
 
 export const foldersStore = writable<FoldersState>({
 	folders: [],
-	loading: true,
+	loading: false,
 	error: null
 });
 
@@ -66,6 +66,13 @@ export const isFoldersLoading = derived(foldersStore, ($store) => $store.loading
 export const foldersError = derived(foldersStore, ($store) => $store.error);
 
 export const currentFolder = writable<string>('/');
+let lastFolderTreeLoad: number = 0;
+let cachedFolderData: Folder[] | null = null;
+
+function invalidateFolderCache() {
+	cachedFolderData = null;
+	lastFolderTreeLoad = 0;
+}
 
 export const currentFolderDocuments = derived(
 	[documentsStore, currentFolder],
@@ -161,7 +168,7 @@ export const documentActions = {
 			}
 
 			if (documentData.metaData.path) {
-				folderActions.loadFolderTree().catch(console.error);
+				folderActions.loadFolderTree(true).catch(console.error);
 			}
 
 			return newDocument;
@@ -187,6 +194,9 @@ export const documentActions = {
 					state.currentDocument?.metaData.slug === slug ? updatedDocument : state.currentDocument,
 				loading: false
 			}));
+
+			// Force folder tree refresh to update document counts and metadata
+			folderActions.loadFolderTree(true).catch(console.error);
 			return updatedDocument;
 		} catch (error) {
 			documentsStore.update((state) => ({
@@ -211,7 +221,7 @@ export const documentActions = {
 				loading: false
 			}));
 
-			folderActions.loadFolderTree().catch(console.error);
+			folderActions.loadFolderTree(true).catch(console.error);
 			documentActions.loadDocuments().catch(console.error);
 		} catch (error) {
 			documentsStore.update((state) => ({
@@ -261,7 +271,7 @@ export const documentActions = {
 			const pathChanged = updatedDocument.metaData.path !== path;
 
 			if (pathChanged) {
-				await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree()]);
+				await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree(true)]);
 			} else {
 				documentsStore.update((state) => ({
 					...state,
@@ -270,6 +280,9 @@ export const documentActions = {
 						state.currentDocument?.metaData.path === path ? updatedDocument : state.currentDocument,
 					loading: false
 				}));
+
+				// Force folder tree refresh to update document counts and metadata
+				folderActions.loadFolderTree(true).catch(console.error);
 			}
 
 			return updatedDocument;
@@ -296,7 +309,7 @@ export const documentActions = {
 				loading: false
 			}));
 
-			folderActions.loadFolderTree().catch(console.error);
+			folderActions.loadFolderTree(true).catch(console.error);
 		} catch (error) {
 			documentsStore.update((state) => ({
 				...state,
@@ -314,7 +327,7 @@ export const documentActions = {
 			const moveRequest: MoveDocumentRequest = { oldPath, newPath };
 			const result = await apiClient.moveDocument(moveRequest);
 
-			await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree()]);
+			await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree(true)]);
 
 			currentFolder.set(getParentPath(newPath));
 
@@ -464,11 +477,21 @@ export const searchActions = {
 };
 
 export const folderActions = {
-	async loadFolderTree() {
+	async loadFolderTree(force = false) {
+		if (force) {
+			invalidateFolderCache();
+		}
+
+		if (!force && cachedFolderData && Date.now() - lastFolderTreeLoad < 30000) {
+			return cachedFolderData;
+		}
+
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
 			const folders = await apiClient.getFolderTree();
+			cachedFolderData = folders;
+			lastFolderTreeLoad = Date.now();
 			foldersStore.update((state) => ({
 				...state,
 				folders,
@@ -491,7 +514,7 @@ export const folderActions = {
 		try {
 			const result = await apiClient.createFolder(path);
 
-			await folderActions.loadFolderTree();
+			await folderActions.loadFolderTree(true);
 
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;
@@ -509,7 +532,7 @@ export const folderActions = {
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 		try {
 			const result = await apiClient.renameFolder(path, newName);
-			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
+			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments()]);
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;
 		} catch (error) {
@@ -528,7 +551,7 @@ export const folderActions = {
 		try {
 			const result = await apiClient.deleteFolder(path);
 
-			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
+			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments()]);
 
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;
@@ -549,7 +572,7 @@ export const folderActions = {
 			const moveRequest: MoveDocumentRequest = { oldPath, newPath };
 			const result = await apiClient.moveFolder(moveRequest);
 
-			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
+			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments()]);
 
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;

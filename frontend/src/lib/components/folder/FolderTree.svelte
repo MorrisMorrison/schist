@@ -258,7 +258,6 @@
 		return currentPath === `/folders${path}` || currentPath === `/folders${path}/`;
 	}
 
-
 	function expandAll() {
 		const getAllFolderPaths = (folders: FolderType[]): string[] => {
 			let paths: string[] = [];

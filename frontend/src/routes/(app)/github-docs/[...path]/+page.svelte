@@ -153,7 +153,7 @@
 				</div>
 
 				<!-- Rendered Content -->
-				<div class="prose prose-slate max-w-none">
+				<div class="max-w-none">
 					<MarkdownRenderer {content} />
 				</div>
 			</main>

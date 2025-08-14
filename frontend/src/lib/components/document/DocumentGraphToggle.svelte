@@ -14,16 +14,6 @@
 <div class="view-toggle">
 	<div class="toggle-buttons">
 		<Button
-			variant={currentView === 'list' ? 'default' : 'outline'}
-			size="sm"
-			onclick={() => onToggle('list')}
-			{disabled}
-			class="toggle-button"
-		>
-			<List class="h-4 w-4" />
-			<span class="ml-2">List</span>
-		</Button>
-		<Button
 			variant={currentView === 'graph' ? 'default' : 'outline'}
 			size="sm"
 			onclick={() => onToggle('graph')}
@@ -32,6 +22,16 @@
 		>
 			<Network class="h-4 w-4" />
 			<span class="ml-2">Graph</span>
+		</Button>
+		<Button
+			variant={currentView === 'list' ? 'default' : 'outline'}
+			size="sm"
+			onclick={() => onToggle('list')}
+			{disabled}
+			class="toggle-button"
+		>
+			<List class="h-4 w-4" />
+			<span class="ml-2">List</span>
 		</Button>
 	</div>
 </div>

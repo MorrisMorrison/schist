@@ -17,6 +17,7 @@
 	let containerElement = $state<HTMLDivElement>();
 	let width = $state(800);
 	let height = $state(600);
+	let isInitialized = $state(false);
 
 	function createGraphData(): GraphData {
 		const nodes: GraphNode[] = [];
@@ -31,7 +32,7 @@
 		});
 
 		// Add backlink nodes and links
-		backlinks.forEach((doc) => {
+		(backlinks || []).forEach((doc) => {
 			nodes.push({
 				id: doc.metaData.path,
 				title: doc.metaData.title,
@@ -47,7 +48,7 @@
 		});
 
 		// Add outgoing link nodes and links
-		outgoingLinks.forEach((link) => {
+		(outgoingLinks || []).forEach((link) => {
 			// Only add valid links that don't already exist
 			if (link.is_valid && !nodes.find((n) => n.id === link.path)) {
 				nodes.push({
@@ -71,9 +72,27 @@
 	}
 
 	function initializeGraph() {
-		if (!svgElement) return;
+		if (!svgElement || !containerElement) return;
 
 		const graphData = createGraphData();
+		
+		// Set initial state
+		isInitialized = false;
+
+		// Wait for next tick to ensure the container is properly rendered
+		setTimeout(() => {
+			if (!containerElement) return;
+			
+			const rect = containerElement.getBoundingClientRect();
+			width = Math.max(400, rect.width || 800);
+			height = Math.max(300, Math.min(600, rect.height || 400));
+
+			renderGraph(graphData);
+		}, 0);
+	}
+
+	function renderGraph(graphData: GraphData) {
+		if (!svgElement) return;
 
 		// Clear existing content
 		d3.select(svgElement).selectAll('*').remove();
@@ -87,8 +106,8 @@
 		const zoom = d3
 			.zoom<SVGSVGElement, unknown>()
 			.scaleExtent([0.1, 4])
-			.on('zoom', (event) => {
-				container.attr('transform', event.transform);
+			.on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+				container.attr('transform', event.transform.toString());
 			});
 
 		svg.call(zoom);
@@ -100,7 +119,7 @@
 				'link',
 				d3
 					.forceLink<GraphNode, GraphLink>(graphData.links)
-					.id((d) => d.id)
+					.id((d: GraphNode) => d.id)
 					.distance(100)
 			)
 			.force('charge', d3.forceManyBody().strength(-300))
@@ -116,7 +135,7 @@
 			.enter()
 			.append('line')
 			.attr('class', 'graph-link')
-			.attr('stroke', (d) => (d.type === 'backlink' ? '#10b981' : '#3b82f6'))
+			.attr('stroke', (d: GraphLink) => (d.type === 'backlink' ? '#10b981' : '#3b82f6'))
 			.attr('stroke-width', 2)
 			.attr('stroke-opacity', 0.6);
 
@@ -134,8 +153,8 @@
 		// Add circles to nodes
 		node
 			.append('circle')
-			.attr('r', (d: any) => (d.type === 'current' ? 25 : 20))
-			.attr('fill', (d: any) => {
+			.attr('r', (d: GraphNode) => (d.type === 'current' ? 25 : 20))
+			.attr('fill', (d: GraphNode) => {
 				switch (d.type) {
 					case 'current':
 						return '#ef4444';
@@ -153,7 +172,7 @@
 		// Add labels to nodes
 		node
 			.append('text')
-			.text((d: any) => d.title)
+			.text((d: GraphNode) => d.title)
 			.attr('dy', -30)
 			.attr('text-anchor', 'middle')
 			.attr('font-size', '12px')
@@ -163,16 +182,16 @@
 		// Add drag behavior
 		const drag = d3
 			.drag<SVGGElement, GraphNode>()
-			.on('start', (event: any, d: any) => {
+			.on('start', (event: d3.D3DragEvent<SVGGElement, GraphNode, never>, d: GraphNode) => {
 				if (!event.active) simulation.alphaTarget(0.3).restart();
 				d.fx = d.x;
 				d.fy = d.y;
 			})
-			.on('drag', (event: any, d: any) => {
+			.on('drag', (event: d3.D3DragEvent<SVGGElement, GraphNode, never>, d: GraphNode) => {
 				d.fx = event.x;
 				d.fy = event.y;
 			})
-			.on('end', (event: any, d: any) => {
+			.on('end', (event: d3.D3DragEvent<SVGGElement, GraphNode, never>, d: GraphNode) => {
 				if (!event.active) simulation.alphaTarget(0);
 				d.fx = null;
 				d.fy = null;
@@ -181,7 +200,7 @@
 		node.call(drag);
 
 		// Add click behavior
-		node.on('click', (event: any, d: any) => {
+		node.on('click', (event: MouseEvent, d: GraphNode) => {
 			event.stopPropagation();
 			if (d.path !== currentDocument.metaData.path) {
 				goto(`/documents${d.path}`);
@@ -191,42 +210,43 @@
 		// Update positions on simulation tick
 		simulation.on('tick', () => {
 			link
-				.attr('x1', (d: any) => d.source.x)
-				.attr('y1', (d: any) => d.source.y)
-				.attr('x2', (d: any) => d.target.x)
-				.attr('y2', (d: any) => d.target.y);
+				.attr('x1', (d: d3.SimulationLinkDatum<GraphNode>) => (d.source as GraphNode).x || 0)
+				.attr('y1', (d: d3.SimulationLinkDatum<GraphNode>) => (d.source as GraphNode).y || 0)
+				.attr('x2', (d: d3.SimulationLinkDatum<GraphNode>) => (d.target as GraphNode).x || 0)
+				.attr('y2', (d: d3.SimulationLinkDatum<GraphNode>) => (d.target as GraphNode).y || 0);
 
-			node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+			node.attr('transform', (d: GraphNode) => `translate(${d.x || 0},${d.y || 0})`);
 		});
 
 		// Center on current document
 		const currentNode = graphData.nodes.find((n) => n.type === 'current');
-		if (currentNode && (currentNode as any).x && (currentNode as any).y) {
+		if (currentNode && currentNode.x && currentNode.y) {
 			const scale = 1;
 			const transform = d3.zoomIdentity
-				.translate(width / 2 - (currentNode as any).x * scale, height / 2 - (currentNode as any).y * scale)
+				.translate(width / 2 - currentNode.x * scale, height / 2 - currentNode.y * scale)
 				.scale(scale);
-			
-			svg.transition().duration(1000).call(zoom.transform as any, transform);
+
+			svg.transition().duration(1000).call(zoom.transform, transform);
 		}
+
+		isInitialized = true;
 	}
 
 	function handleResize() {
-		if (containerElement) {
+		if (containerElement && isInitialized) {
 			const rect = containerElement.getBoundingClientRect();
-			width = Math.max(400, rect.width);
-			height = Math.max(300, Math.min(600, rect.height));
-			
-			if (svgElement) {
+			const newWidth = Math.max(400, rect.width);
+			const newHeight = Math.max(300, Math.min(600, rect.height));
+
+			if (newWidth !== width || newHeight !== height) {
+				width = newWidth;
+				height = newHeight;
 				initializeGraph();
 			}
 		}
 	}
 
 	onMount(() => {
-		handleResize();
-		initializeGraph();
-
 		const resizeObserver = new ResizeObserver(handleResize);
 		if (containerElement) {
 			resizeObserver.observe(containerElement);
@@ -238,42 +258,69 @@
 	});
 
 	$effect(() => {
-		if (svgElement && (backlinks || outgoingLinks)) {
+		if (svgElement && containerElement && (backlinks || outgoingLinks)) {
 			initializeGraph();
 		}
 	});
 </script>
 
-<div bind:this={containerElement} class="relative w-full h-full min-h-[400px] border border-border rounded-lg bg-background overflow-hidden">
-	{#if backlinks.length === 0 && outgoingLinks.length === 0}
-		<div class="flex items-center justify-center h-full min-h-[400px]">
-			<div class="text-center py-8">
+<div
+	bind:this={containerElement}
+	class="border-border bg-background relative h-full min-h-[400px] w-full overflow-hidden rounded-lg border"
+>
+	{#if (backlinks?.length || 0) === 0 && ((outgoingLinks?.filter((l) => l.is_valid) || []).length === 0)}
+		<div class="flex h-full min-h-[400px] items-center justify-center">
+			<div class="py-8 text-center">
 				<div class="text-muted-foreground mb-2">
 					<Network class="mx-auto h-12 w-12" />
 				</div>
-				<p class="text-muted-foreground text-sm">No connections found</p>
+				<p class="text-muted-foreground text-sm">No links found</p>
 				<p class="text-muted-foreground text-xs">
-					Create [[wiki links]] to other documents to build your knowledge graph
+					Create [[wiki links]] to other documents to see connections
 				</p>
 			</div>
 		</div>
 	{:else}
-		<svg bind:this={svgElement} class="w-full h-full"></svg>
-		
-		<div class="absolute top-4 right-4 bg-card border border-border rounded-md p-3 text-xs shadow-sm">
-			<div class="flex items-center gap-2 mb-1">
-				<div class="w-3 h-3 rounded-full border border-white" style="background-color: #ef4444;"></div>
+		<div class="relative h-full w-full">
+			<svg 
+				bind:this={svgElement} 
+				class="h-full w-full transition-opacity duration-300" 
+				class:opacity-0={!isInitialized}
+			></svg>
+			
+			{#if !isInitialized}
+				<div class="absolute inset-0 flex items-center justify-center">
+					<div class="text-muted-foreground text-sm">Initializing graph...</div>
+				</div>
+			{/if}
+		</div>
+
+		<div
+			class="bg-card border-border absolute top-4 right-4 rounded-md border p-3 text-xs shadow-sm"
+		>
+			<div class="mb-1 flex items-center gap-2">
+				<div
+					class="h-3 w-3 rounded-full border border-white"
+					style="background-color: #ef4444;"
+				></div>
 				<span class="text-muted-foreground">Current Document</span>
 			</div>
-			<div class="flex items-center gap-2 mb-1">
-				<div class="w-3 h-3 rounded-full border border-white" style="background-color: #10b981;"></div>
-				<span class="text-muted-foreground">Backlinks ({backlinks.length})</span>
+			<div class="mb-1 flex items-center gap-2">
+				<div
+					class="h-3 w-3 rounded-full border border-white"
+					style="background-color: #10b981;"
+				></div>
+				<span class="text-muted-foreground">Backlinks ({backlinks?.length || 0})</span>
 			</div>
 			<div class="flex items-center gap-2">
-				<div class="w-3 h-3 rounded-full border border-white" style="background-color: #3b82f6;"></div>
-				<span class="text-muted-foreground">Outgoing Links ({outgoingLinks.filter(l => l.is_valid).length})</span>
+				<div
+					class="h-3 w-3 rounded-full border border-white"
+					style="background-color: #3b82f6;"
+				></div>
+				<span class="text-muted-foreground"
+					>Outgoing Links ({(outgoingLinks?.filter((l) => l.is_valid) || []).length})</span
+				>
 			</div>
 		</div>
 	{/if}
 </div>
-

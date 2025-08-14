@@ -21,6 +21,15 @@
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
+	import DocumentGraphView from './DocumentGraphView.svelte';
+	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
+	import {
+		documentActions,
+		backlinks,
+		outgoingLinks,
+		isBacklinksLoading,
+		isOutgoingLinksLoading
+	} from '$lib/stores/documents';
 
 	interface Props {
 		document: Document;
@@ -55,7 +64,7 @@
 
 	let processedContent = $state('');
 
-	let backlinks = $state<Document[]>([]);
+	let graphViewMode = $state<'list' | 'graph'>('graph');
 	const backlinkLoader = useOptimizedLoading(200, 150);
 
 	let versionCount = $state<number | undefined>(undefined);
@@ -115,21 +124,14 @@
 	});
 
 	$effect(() => {
-		async function loadBacklinks() {
-			if (!documentPath) return;
-
+		if (documentPath) {
 			backlinkLoader.startLoading();
-			try {
-				backlinks = await apiClient.getDocumentBacklinks(documentPath);
-			} catch (error) {
-				console.error('Failed to load backlinks:', error);
-				backlinks = [];
-			} finally {
+			documentActions.loadBacklinks(documentPath).finally(() => {
 				backlinkLoader.stopLoading();
-			}
-		}
+			});
 
-		loadBacklinks();
+			documentActions.loadOutgoingLinks(documentPath);
+		}
 	});
 
 	async function refreshVersionCount() {
@@ -328,54 +330,113 @@
 		{/if}
 	</main>
 
-	{#if backlinks && backlinks.length > 0}
+	{#if ($backlinks?.length || 0) > 0 || $outgoingLinks?.some((l) => l.is_valid) || false}
 		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
-			<div class="mb-4 flex items-center gap-2">
-				<Link2 class="text-muted-foreground h-5 w-5" />
-				<h2 class="text-lg font-semibold">Backlinks</h2>
-				<Badge variant="secondary" class="text-xs">
-					{backlinkLoader.loading ? '...' : backlinks?.length || 0}
-				</Badge>
+			<div class="mb-4 flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					<Link2 class="text-muted-foreground h-5 w-5" />
+					<h2 class="text-lg font-semibold">Links</h2>
+					<Badge variant="secondary" class="text-xs">
+						{$isBacklinksLoading || $isOutgoingLinksLoading
+							? '...'
+							: ($backlinks?.length || 0) + ($outgoingLinks?.filter((l) => l.is_valid).length || 0)}
+					</Badge>
+				</div>
+				<DocumentGraphToggle
+					currentView={graphViewMode}
+					onToggle={(view) => (graphViewMode = view)}
+					disabled={$isBacklinksLoading || $isOutgoingLinksLoading}
+				/>
 			</div>
 
-			{#if backlinkLoader.loading}
+			{#if $isBacklinksLoading || $isOutgoingLinksLoading}
 				<div class="flex items-center justify-center py-8">
-					<div class="text-muted-foreground text-sm">Loading backlinks...</div>
+					<div class="text-muted-foreground text-sm">Loading links...</div>
 				</div>
-			{:else if backlinks.length > 0}
-				<div class="space-y-3">
-					{#each backlinks as backlinkDocument (backlinkDocument.metaData.path)}
-						<button
-							class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
-							onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
-							aria-label={`Navigate to document: ${backlinkDocument.metaData.title}`}
-						>
-							<div class="mb-2 flex items-start justify-between">
-								<h3 class="group-hover:text-primary font-medium transition-colors">
-									{backlinkDocument.metaData.title}
-								</h3>
-								<span class="text-muted-foreground text-xs">
-									{formatDate(backlinkDocument.metaData.updated)}
-								</span>
-							</div>
-
-							{#if backlinkDocument.metaData.path}
-								<p class="text-muted-foreground mb-2 text-sm">
-									{backlinkDocument.metaData.path}
-								</p>
-							{/if}
-
-							{#if backlinkDocument.content}
-								<p class="text-muted-foreground line-clamp-2 text-sm">
-									{backlinkDocument.content.slice(0, 150)}...
-								</p>
-							{/if}
-						</button>
-					{/each}
+			{:else if graphViewMode === 'graph'}
+				<div class="h-[400px] w-full">
+					<DocumentGraphView
+						currentDocument={document}
+						backlinks={$backlinks}
+						outgoingLinks={$outgoingLinks}
+					/>
 				</div>
 			{:else}
-				<div class="flex flex-col items-center justify-center py-8 text-center">
-					<p class="text-muted-foreground text-sm">No documents link to this document yet.</p>
+				<div class="space-y-4">
+					{#if ($backlinks?.length || 0) > 0}
+						<div>
+							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
+								Backlinks ({$backlinks.length})
+							</h3>
+							<div class="space-y-3">
+								{#each $backlinks as backlinkDocument (backlinkDocument.metaData.path)}
+									<button
+										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
+										onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
+										aria-label={`Navigate to document: ${backlinkDocument.metaData.title}`}
+									>
+										<div class="mb-2 flex items-start justify-between">
+											<h4 class="group-hover:text-primary font-medium transition-colors">
+												{backlinkDocument.metaData.title}
+											</h4>
+											<span class="text-muted-foreground text-xs">
+												{formatDate(backlinkDocument.metaData.updated)}
+											</span>
+										</div>
+
+										{#if backlinkDocument.metaData.path}
+											<p class="text-muted-foreground mb-2 text-sm">
+												{backlinkDocument.metaData.path}
+											</p>
+										{/if}
+
+										{#if backlinkDocument.content}
+											<p class="text-muted-foreground line-clamp-2 text-sm">
+												{backlinkDocument.content.slice(0, 150)}...
+											</p>
+										{/if}
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					{#if ($outgoingLinks?.filter((l) => l.is_valid).length || 0) > 0}
+						<div>
+							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
+								Outgoing Links ({$outgoingLinks.filter((l) => l.is_valid).length})
+							</h3>
+							<div class="space-y-3">
+								{#each $outgoingLinks.filter((l) => l.is_valid) as outgoingLink (outgoingLink.path)}
+									<button
+										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
+										onclick={() => goto(`/documents${outgoingLink.path}`)}
+										aria-label={`Navigate to document: ${outgoingLink.display_text}`}
+									>
+										<div class="mb-2 flex items-start justify-between">
+											<h4 class="group-hover:text-primary font-medium transition-colors">
+												{outgoingLink.display_text}
+											</h4>
+											<span class="text-muted-foreground text-xs"> Link </span>
+										</div>
+
+										<p class="text-muted-foreground text-sm">
+											{outgoingLink.path}
+										</p>
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					{#if ($backlinks?.length || 0) === 0 && ($outgoingLinks?.filter((l) => l.is_valid).length || 0) === 0}
+						<div class="flex flex-col items-center justify-center py-8 text-center">
+							<p class="text-muted-foreground text-sm">No links found.</p>
+							<p class="text-muted-foreground mt-1 text-xs">
+								Create [[wiki links]] to other documents to see connections.
+							</p>
+						</div>
+					{/if}
 				</div>
 			{/if}
 		</section>

@@ -2,15 +2,13 @@
 name: Test
 
 on:
-  workflow_run:
-    workflows: ["Build"]
-    types:
-      - completed
+  push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
   backend-tests:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Backend Tests
     runs-on: self-hosted
     steps:
@@ -25,7 +23,6 @@ jobs:
         run: make run-backend-test
 
   frontend-tests:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Frontend Tests  
     runs-on: self-hosted
     steps:

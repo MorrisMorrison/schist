@@ -63,7 +63,9 @@ import type {
 	GenerateInviteTokenResponse,
 	CreateUserFromInviteRequest,
 	CreateFirstUserRequest,
-	UserInfo
+	UserInfo,
+	WikiLink,
+	OutgoingLinksResponse
 } from './types.js';
 import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
 import { parseError } from '$lib/utils/error';
@@ -409,6 +411,13 @@ class SchістApiClient {
 			buildApiEndpoint('/links/backlinks', path)
 		);
 		return response.backlinks;
+	}
+
+	async getDocumentOutgoingLinks(path: string): Promise<WikiLink[]> {
+		const response = await this.request<OutgoingLinksResponse>(
+			buildApiEndpoint('/links/outgoing', path)
+		);
+		return response.links;
 	}
 
 	async getDocumentVersions(path: string, options?: RequestInit): Promise<VersionsResponse> {

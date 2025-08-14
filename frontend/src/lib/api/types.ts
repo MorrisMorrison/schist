@@ -48,6 +48,41 @@ export interface TagsResponse {
 	total: number;
 }
 
+export interface WikiLink {
+	target: string;
+	display_text: string;
+	path: string;
+	is_valid: boolean;
+}
+
+export interface OutgoingLinksResponse {
+	path: string;
+	links: WikiLink[];
+	total: number;
+}
+
+export interface GraphNode {
+	id: string;
+	title: string;
+	path: string;
+	type: 'current' | 'backlink' | 'outgoing';
+	x?: number;
+	y?: number;
+	fx?: number | null;
+	fy?: number | null;
+}
+
+export interface GraphLink {
+	source: string;
+	target: string;
+	type: 'backlink' | 'outgoing';
+}
+
+export interface GraphData {
+	nodes: GraphNode[];
+	links: GraphLink[];
+}
+
 export interface Template {
 	id: string;
 	title: string;

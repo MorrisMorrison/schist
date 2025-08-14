@@ -5,7 +5,8 @@ import type {
 	CreateDocumentRequest,
 	UpdateDocumentRequest,
 	Folder,
-	MoveDocumentRequest
+	MoveDocumentRequest,
+	WikiLink
 } from '../api/types.js';
 import { getParentPath } from '../utils/path.js';
 
@@ -30,6 +31,14 @@ interface FoldersState {
 	error: string | null;
 }
 
+interface LinksState {
+	backlinks: Document[];
+	outgoingLinks: WikiLink[];
+	backlinksLoading: boolean;
+	outgoingLinksLoading: boolean;
+	error: string | null;
+}
+
 export const documentsStore = writable<DocumentsState>({
 	documents: [],
 	currentDocument: null,
@@ -51,6 +60,14 @@ export const foldersStore = writable<FoldersState>({
 	error: null
 });
 
+export const linksStore = writable<LinksState>({
+	backlinks: [],
+	outgoingLinks: [],
+	backlinksLoading: false,
+	outgoingLinksLoading: false,
+	error: null
+});
+
 export const documents = derived(documentsStore, ($store) => $store.documents);
 export const currentDocument = derived(documentsStore, ($store) => $store.currentDocument);
 export const isLoading = derived(documentsStore, ($store) => $store.loading);
@@ -64,6 +81,12 @@ export const isSearching = derived(searchStore, ($store) => $store.loading);
 export const folders = derived(foldersStore, ($store) => $store.folders);
 export const isFoldersLoading = derived(foldersStore, ($store) => $store.loading);
 export const foldersError = derived(foldersStore, ($store) => $store.error);
+
+export const backlinks = derived(linksStore, ($store) => $store.backlinks);
+export const outgoingLinks = derived(linksStore, ($store) => $store.outgoingLinks);
+export const isBacklinksLoading = derived(linksStore, ($store) => $store.backlinksLoading);
+export const isOutgoingLinksLoading = derived(linksStore, ($store) => $store.outgoingLinksLoading);
+export const linksError = derived(linksStore, ($store) => $store.error);
 
 export const currentFolder = writable<string>('/');
 let lastFolderTreeLoad: number = 0;
@@ -349,6 +372,44 @@ export const documentActions = {
 
 	clearError() {
 		documentsStore.update((state) => ({ ...state, error: null }));
+	},
+
+	async loadBacklinks(documentPath: string) {
+		linksStore.update((state) => ({ ...state, backlinksLoading: true, error: null }));
+
+		try {
+			const backlinks = await apiClient.getDocumentBacklinks(documentPath);
+			linksStore.update((state) => ({
+				...state,
+				backlinks,
+				backlinksLoading: false
+			}));
+		} catch (error) {
+			linksStore.update((state) => ({
+				...state,
+				backlinksLoading: false,
+				error: error instanceof Error ? error.message : 'Failed to load backlinks'
+			}));
+		}
+	},
+
+	async loadOutgoingLinks(documentPath: string) {
+		linksStore.update((state) => ({ ...state, outgoingLinksLoading: true, error: null }));
+
+		try {
+			const outgoingLinks = await apiClient.getDocumentOutgoingLinks(documentPath);
+			linksStore.update((state) => ({
+				...state,
+				outgoingLinks,
+				outgoingLinksLoading: false
+			}));
+		} catch (error) {
+			linksStore.update((state) => ({
+				...state,
+				outgoingLinksLoading: false,
+				error: error instanceof Error ? error.message : 'Failed to load outgoing links'
+			}));
+		}
 	}
 };
 

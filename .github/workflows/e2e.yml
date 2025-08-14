@@ -6,7 +6,6 @@ on:
     workflows: ["Test"]
     types:
       - completed
-    branches: [ main ]
 
 jobs:
   e2e:

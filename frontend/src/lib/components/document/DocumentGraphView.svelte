@@ -75,14 +75,14 @@
 		if (!svgElement || !containerElement) return;
 
 		const graphData = createGraphData();
-		
+
 		// Set initial state
 		isInitialized = false;
 
 		// Wait for next tick to ensure the container is properly rendered
 		setTimeout(() => {
 			if (!containerElement) return;
-			
+
 			const rect = containerElement.getBoundingClientRect();
 			width = Math.max(400, rect.width || 800);
 			height = Math.max(300, Math.min(600, rect.height || 400));
@@ -268,7 +268,7 @@
 	bind:this={containerElement}
 	class="border-border bg-background relative h-full min-h-[400px] w-full overflow-hidden rounded-lg border"
 >
-	{#if (backlinks?.length || 0) === 0 && ((outgoingLinks?.filter((l) => l.is_valid) || []).length === 0)}
+	{#if (backlinks?.length || 0) === 0 && (outgoingLinks?.filter((l) => l.is_valid) || []).length === 0}
 		<div class="flex h-full min-h-[400px] items-center justify-center">
 			<div class="py-8 text-center">
 				<div class="text-muted-foreground mb-2">
@@ -282,12 +282,12 @@
 		</div>
 	{:else}
 		<div class="relative h-full w-full">
-			<svg 
-				bind:this={svgElement} 
-				class="h-full w-full transition-opacity duration-300" 
+			<svg
+				bind:this={svgElement}
+				class="h-full w-full transition-opacity duration-300"
 				class:opacity-0={!isInitialized}
 			></svg>
-			
+
 			{#if !isInitialized}
 				<div class="absolute inset-0 flex items-center justify-center">
 					<div class="text-muted-foreground text-sm">Initializing graph...</div>

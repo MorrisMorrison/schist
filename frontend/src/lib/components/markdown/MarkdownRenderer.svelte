@@ -54,7 +54,7 @@
 {:else if blocks.length === 0}
 	<div class="text-muted-foreground p-4">No content to display</div>
 {:else}
-	<div class="prose max-w-none">
+	<div class="max-w-none">
 		{#each blocks as block (block.id)}
 			{#if block.type === 'heading'}
 				<HeadingBlock {block} />

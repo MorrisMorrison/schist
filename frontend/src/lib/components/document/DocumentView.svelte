@@ -8,7 +8,7 @@
 	import ShareDocumentModal from '../modal/ShareDocumentModal.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
-	import type { Document, DocumentVersion } from '$lib/api/types';
+	import type { Document, DocumentVersion, WikiLink } from '$lib/api/types';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
@@ -20,6 +20,8 @@
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
+	import KnowledgeGraphView from './KnowledgeGraphView.svelte';
+	import GraphViewToggle from './GraphViewToggle.svelte';
 
 	interface Props {
 		document: Document;
@@ -55,7 +57,10 @@
 	let processedContent = $state('');
 
 	let backlinks = $state<Document[]>([]);
+	let outgoingLinks = $state<WikiLink[]>([]);
+	let graphViewMode = $state<'list' | 'graph'>('list');
 	let backlinkLoading = $state(false);
+	let outgoingLinksLoading = $state(false);
 
 	let versionCount = $state<number | undefined>(undefined);
 	let versionLoading = $state(false);
@@ -128,7 +133,22 @@
 			}
 		}
 
+		async function loadOutgoingLinks() {
+			if (!documentPath) return;
+
+			outgoingLinksLoading = true;
+			try {
+				outgoingLinks = await apiClient.getDocumentOutgoingLinks(documentPath);
+			} catch (error) {
+				console.error('Failed to load outgoing links:', error);
+				outgoingLinks = [];
+			} finally {
+				outgoingLinksLoading = false;
+			}
+		}
+
 		loadBacklinks();
+		loadOutgoingLinks();
 	});
 
 	async function refreshVersionCount() {
@@ -331,19 +351,34 @@
 		{/if}
 	</main>
 
-	{#if backlinks && backlinks.length > 0}
+	{#if backlinks.length > 0 || outgoingLinks.some(l => l.is_valid)}
 		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
-			<div class="mb-4 flex items-center gap-2">
-				<Link2 class="text-muted-foreground h-5 w-5" />
-				<h2 class="text-lg font-semibold">Backlinks</h2>
-				<Badge variant="secondary" class="text-xs">
-					{backlinkLoading ? '...' : backlinks?.length || 0}
-				</Badge>
+			<div class="mb-4 flex items-center justify-between">
+				<div class="flex items-center gap-2">
+					<Link2 class="text-muted-foreground h-5 w-5" />
+					<h2 class="text-lg font-semibold">Knowledge Graph</h2>
+					<Badge variant="secondary" class="text-xs">
+						{backlinkLoading || outgoingLinksLoading ? '...' : (backlinks?.length || 0) + (outgoingLinks?.filter(l => l.is_valid).length || 0)}
+					</Badge>
+				</div>
+				<GraphViewToggle 
+					currentView={graphViewMode} 
+					onToggle={(view) => graphViewMode = view}
+					disabled={backlinkLoading || outgoingLinksLoading}
+				/>
 			</div>
 
-			{#if backlinkLoading}
+			{#if backlinkLoading || outgoingLinksLoading}
 				<div class="flex items-center justify-center py-8">
-					<div class="text-muted-foreground text-sm">Loading backlinks...</div>
+					<div class="text-muted-foreground text-sm">Loading knowledge graph...</div>
+				</div>
+			{:else if graphViewMode === 'graph'}
+				<div class="knowledge-graph-container">
+					<KnowledgeGraphView 
+						currentDocument={document}
+						{backlinks}
+						{outgoingLinks}
+					/>
 				</div>
 			{:else if backlinks.length > 0}
 				<div class="space-y-3">
@@ -378,7 +413,8 @@
 				</div>
 			{:else}
 				<div class="flex flex-col items-center justify-center py-8 text-center">
-					<p class="text-muted-foreground text-sm">No documents link to this document yet.</p>
+					<p class="text-muted-foreground text-sm">No connections found.</p>
+					<p class="text-muted-foreground text-xs mt-1">Create [[wiki links]] to other documents to build connections.</p>
 				</div>
 			{/if}
 		</section>

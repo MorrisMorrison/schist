@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import * as d3 from 'd3';
 	import { Network } from 'lucide-svelte';
 	import type { Document, WikiLink, GraphData, GraphNode, GraphLink } from '$lib/api/types';
@@ -20,11 +20,11 @@
 	let isInitialized = $state(false);
 
 	function createGraphData(): GraphData {
-		const nodes: GraphNode[] = [];
+		const graphNodes: GraphNode[] = [];
 		const links: GraphLink[] = [];
 
 		// Add current document as central node
-		nodes.push({
+		graphNodes.push({
 			id: currentDocument.metaData.path,
 			title: currentDocument.metaData.title,
 			path: currentDocument.metaData.path,
@@ -33,7 +33,7 @@
 
 		// Add backlink nodes and links
 		(backlinks || []).forEach((doc) => {
-			nodes.push({
+			graphNodes.push({
 				id: doc.metaData.path,
 				title: doc.metaData.title,
 				path: doc.metaData.path,
@@ -50,8 +50,8 @@
 		// Add outgoing link nodes and links
 		(outgoingLinks || []).forEach((link) => {
 			// Only add valid links that don't already exist
-			if (link.is_valid && !nodes.find((n) => n.id === link.path)) {
-				nodes.push({
+			if (link.is_valid && !graphNodes.find((n) => n.id === link.path)) {
+				graphNodes.push({
 					id: link.path,
 					title: link.display_text,
 					path: link.path,
@@ -68,10 +68,10 @@
 			}
 		});
 
-		return { nodes, links };
+		return { nodes: graphNodes, links };
 	}
 
-	function initializeGraph() {
+	async function initializeGraph() {
 		if (!svgElement || !containerElement) return;
 
 		const graphData = createGraphData();
@@ -80,15 +80,14 @@
 		isInitialized = false;
 
 		// Wait for next tick to ensure the container is properly rendered
-		setTimeout(() => {
-			if (!containerElement) return;
+		await tick();
+		if (!containerElement) return;
 
-			const rect = containerElement.getBoundingClientRect();
-			width = Math.max(400, rect.width || 800);
-			height = Math.max(300, Math.min(600, rect.height || 400));
+		const rect = containerElement.getBoundingClientRect();
+		width = Math.max(400, rect.width || 800);
+		height = Math.max(300, Math.min(600, rect.height || 400));
 
-			renderGraph(graphData);
-		}, 0);
+		renderGraph(graphData);
 	}
 
 	function renderGraph(graphData: GraphData) {
@@ -202,9 +201,7 @@
 		// Add click behavior
 		node.on('click', (event: MouseEvent, d: GraphNode) => {
 			event.stopPropagation();
-			if (d.path !== currentDocument.metaData.path) {
-				goto(`/documents${d.path}`);
-			}
+			navigateToNode(d);
 		});
 
 		// Update positions on simulation tick
@@ -230,6 +227,12 @@
 		}
 
 		isInitialized = true;
+	}
+
+	function navigateToNode(nodeData: GraphNode) {
+		if (nodeData.path !== currentDocument.metaData.path) {
+			goto(`/documents${nodeData.path}`);
+		}
 	}
 
 	function handleResize() {

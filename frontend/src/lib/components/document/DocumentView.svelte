@@ -8,7 +8,7 @@
 	import ShareDocumentModal from '../modal/ShareDocumentModal.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
-	import type { Document, DocumentVersion, WikiLink } from '$lib/api/types';
+	import type { Document, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
@@ -23,12 +23,12 @@
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
 	import DocumentGraphView from './DocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
-	import { 
-		documentActions, 
-		backlinks, 
-		outgoingLinks, 
-		isBacklinksLoading, 
-		isOutgoingLinksLoading 
+	import {
+		documentActions,
+		backlinks,
+		outgoingLinks,
+		isBacklinksLoading,
+		isOutgoingLinksLoading
 	} from '$lib/stores/documents';
 
 	interface Props {
@@ -129,7 +129,7 @@
 			documentActions.loadBacklinks(documentPath).finally(() => {
 				backlinkLoader.stopLoading();
 			});
-			
+
 			documentActions.loadOutgoingLinks(documentPath);
 		}
 	});
@@ -355,7 +355,11 @@
 				</div>
 			{:else if graphViewMode === 'graph'}
 				<div class="h-[400px] w-full">
-					<DocumentGraphView currentDocument={document} backlinks={$backlinks} outgoingLinks={$outgoingLinks} />
+					<DocumentGraphView
+						currentDocument={document}
+						backlinks={$backlinks}
+						outgoingLinks={$outgoingLinks}
+					/>
 				</div>
 			{:else}
 				<div class="space-y-4">

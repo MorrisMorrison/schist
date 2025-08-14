@@ -483,16 +483,39 @@ const inlineMarkdownCache = new Map<string, Promise<string>>();
 
 /**
  * Removes paragraph wrapper tags while preserving inner HTML formatting.
+ * Uses DOMParser for more reliable HTML manipulation compared to regex.
  * This handles various cases where marked.js wraps content in <p> tags but we need
  * just the inner content for inline usage (like in headers).
  */
 function removeParagraphWrappers(html: string): string {
-	return html
-		.replace(/^<p[^>]*>(.*)<\/p>$/s, '$1') // Remove p with attributes
-		.replace(/^<p>(.*)<\/p>$/s, '$1') // Remove simple p tags
-		.replace(/<\/p>\s*<p[^>]*>/g, ' ') // Replace p breaks with spaces
-		.replace(/<\/?p[^>]*>/g, '') // Remove any remaining p tags
-		.trim();
+	try {
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(html, 'text/html');
+		const body = doc.body;
+
+		// If the HTML is just a single <p>, get its innerHTML; otherwise, join all child nodes
+		if (body.childNodes.length === 1 && body.firstChild?.nodeName === 'P') {
+			return (body.firstChild as HTMLElement).innerHTML?.trim() ?? '';
+		} else {
+			return Array.from(body.childNodes)
+				.map((node) => {
+					if (node.nodeName === 'P') {
+						return (node as HTMLElement).innerHTML;
+					}
+					return node.textContent;
+				})
+				.join(' ')
+				.trim();
+		}
+	} catch (_error) {
+		// Fallback to regex if DOMParser fails
+		return html
+			.replace(/^<p[^>]*>(.*)<\/p>$/s, '$1') // Remove p with attributes
+			.replace(/^<p>(.*)<\/p>$/s, '$1') // Remove simple p tags
+			.replace(/<\/p>\s*<p[^>]*>/g, ' ') // Replace p breaks with spaces
+			.replace(/<\/?p[^>]*>/g, '') // Remove any remaining p tags
+			.trim();
+	}
 }
 async function processInlineMarkdown(text: string): Promise<string> {
 	if (inlineMarkdownCache.has(text)) {

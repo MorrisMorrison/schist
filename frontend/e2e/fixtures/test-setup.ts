@@ -32,10 +32,12 @@ function findProjectRoot(startDir: string): string {
 			const makefilePath = path.join(currentDir, 'Makefile');
 			const scriptsPath = path.join(currentDir, 'scripts');
 			const backendPath = path.join(currentDir, 'backend');
-			
-			if (statSync(makefilePath).isFile() && 
-				statSync(scriptsPath).isDirectory() && 
-				statSync(backendPath).isDirectory()) {
+
+			if (
+				statSync(makefilePath).isFile() &&
+				statSync(scriptsPath).isDirectory() &&
+				statSync(backendPath).isDirectory()
+			) {
 				return currentDir;
 			}
 		} catch {
@@ -49,7 +51,7 @@ function findProjectRoot(startDir: string): string {
 async function runCleanupScript() {
 	try {
 		console.log('[Cleanup] Running E2E cleanup script...');
-		
+
 		// Find project root reliably
 		const projectRoot = findProjectRoot(__dirname);
 		const cleanupScript = path.join(projectRoot, 'scripts', 'cleanup.sh');
@@ -89,7 +91,6 @@ async function runCleanupScript() {
 }
 
 if (typeof process !== 'undefined') {
-
 	process.on('SIGINT', async () => {
 		console.log('\n[Signal] CTRL+C detected - running cleanup...');
 		await runCleanupScript();

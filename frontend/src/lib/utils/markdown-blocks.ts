@@ -5,7 +5,6 @@ import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 import { goto } from '$app/navigation';
-import { processHashtags } from './hashtag-renderer.js';
 export interface BaseBlock {
 	type: string;
 	id: string;

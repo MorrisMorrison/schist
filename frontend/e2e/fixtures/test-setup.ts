@@ -3,13 +3,18 @@
  * Only essential cleanup - removes complex DirectoryManager logic
  */
 
+/// <reference types="node" />
+
 import { test as base } from '@playwright/test';
 import { readFileSync, statSync } from 'fs';
-// @ts-expect-error - Node.js types may not be fully configured in e2e environment
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { HomePage } from '../pages/HomePage';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
@@ -20,23 +25,45 @@ import { generateTestId } from '../utils/test-data';
 const execFileAsync = promisify(execFile);
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
 
+function findProjectRoot(startDir: string): string {
+	let currentDir = startDir;
+	while (currentDir !== path.dirname(currentDir)) {
+		try {
+			const makefilePath = path.join(currentDir, 'Makefile');
+			const scriptsPath = path.join(currentDir, 'scripts');
+			const backendPath = path.join(currentDir, 'backend');
+
+			if (
+				statSync(makefilePath).isFile() &&
+				statSync(scriptsPath).isDirectory() &&
+				statSync(backendPath).isDirectory()
+			) {
+				return currentDir;
+			}
+		} catch {
+			// Continue searching
+		}
+		currentDir = path.dirname(currentDir);
+	}
+	throw new Error('Could not find schist project root');
+}
+
 async function runCleanupScript() {
 	try {
 		console.log('[Cleanup] Running E2E cleanup script...');
-		const scriptsDir = path.resolve(__dirname, '../../scripts');
-		const cleanupScript = path.resolve(scriptsDir, 'cleanup.sh');
 
-		// Validate that cleanupScript is inside scriptsDir
-		if (!cleanupScript.startsWith(scriptsDir + path.sep)) {
-			throw new Error('Cleanup script path is outside the expected scripts directory');
-		}
+		// Find project root reliably
+		const projectRoot = findProjectRoot(__dirname);
+		const cleanupScript = path.join(projectRoot, 'scripts', 'cleanup.sh');
+		console.log(`[Cleanup] Looking for cleanup script at: ${cleanupScript}`);
 
 		// Check that the file exists and is executable
-		let stat;
+		let stat: ReturnType<typeof statSync>;
 		try {
 			stat = statSync(cleanupScript);
-		} catch (_err) {
-			throw new Error('Cleanup script does not exist');
+		} catch (err) {
+			console.warn(`[Cleanup] Script not found: ${err}`);
+			throw new Error(`Cleanup script does not exist at: ${cleanupScript}`);
 		}
 
 		if (!stat.isFile()) {
@@ -45,7 +72,7 @@ async function runCleanupScript() {
 
 		// Optionally check executable bit (Unix only)
 		if ((stat.mode & 0o111) === 0) {
-			throw new Error('Cleanup script is not executable');
+			console.warn('[Cleanup] Script is not executable, attempting to run anyway...');
 		}
 
 		const { stdout, stderr } = await execFileAsync(cleanupScript, ['--profile=e2e-only']);
@@ -64,10 +91,6 @@ async function runCleanupScript() {
 }
 
 if (typeof process !== 'undefined') {
-	process.on('exit', () => {
-		runCleanupScript().catch(() => {});
-	});
-
 	process.on('SIGINT', async () => {
 		console.log('\n[Signal] CTRL+C detected - running cleanup...');
 		await runCleanupScript();

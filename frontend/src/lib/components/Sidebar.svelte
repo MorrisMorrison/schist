@@ -43,7 +43,7 @@
 	}
 
 	function handleCreateDocument(event: { parentPath: string }) {
-		const path = event.parentPath === '/' ? '/new' : `${event.parentPath}/new`;
+		const path = event.parentPath === '/' ? '/new' : `/new${event.parentPath}`;
 		goto(path);
 	}
 

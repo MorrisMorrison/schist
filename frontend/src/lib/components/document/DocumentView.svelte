@@ -13,6 +13,7 @@
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';
+	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 	import {
 		secretStore,
 		secretsUnlocked,
@@ -59,11 +60,11 @@
 	let backlinks = $state<Document[]>([]);
 	let outgoingLinks = $state<WikiLink[]>([]);
 	let graphViewMode = $state<'list' | 'graph'>('graph');
-	let backlinkLoading = $state(false);
+	const backlinkLoader = useOptimizedLoading(200, 150);
 	let outgoingLinksLoading = $state(false);
 
 	let versionCount = $state<number | undefined>(undefined);
-	let versionLoading = $state(false);
+	const versionLoader = useOptimizedLoading(200, 150);
 
 	let showVersionHistory = $state(false);
 	let versions = $state<DocumentVersion[]>([]);
@@ -122,14 +123,14 @@
 		async function loadBacklinks() {
 			if (!documentPath) return;
 
-			backlinkLoading = true;
+			backlinkLoader.startLoading();
 			try {
 				backlinks = await apiClient.getDocumentBacklinks(documentPath);
 			} catch (error) {
 				console.error('Failed to load backlinks:', error);
 				backlinks = [];
 			} finally {
-				backlinkLoading = false;
+				backlinkLoader.stopLoading();
 			}
 		}
 
@@ -154,7 +155,7 @@
 	async function refreshVersionCount() {
 		if (!documentPath) return;
 
-		versionLoading = true;
+		versionLoader.startLoading();
 		try {
 			const versionsResponse = await apiClient.getDocumentVersions(documentPath);
 			versionCount = versionsResponse.total || 0;
@@ -162,7 +163,7 @@
 			console.error('Failed to load version count:', error);
 			versionCount = undefined;
 		} finally {
-			versionLoading = false;
+			versionLoader.stopLoading();
 		}
 	}
 
@@ -262,7 +263,7 @@
 					</div>
 				{/if}
 
-				{#if versionLoading}
+				{#if versionLoader.loading}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<GitBranch class="h-4 w-4" />
 						<span>Loading versions...</span>
@@ -333,11 +334,7 @@
 
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
-			<div
-				bind:this={contentContainer}
-				class="prose prose-slate max-w-none"
-				data-testid="document-content"
-			>
+			<div bind:this={contentContainer} class="max-w-none" data-testid="document-content">
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
@@ -351,14 +348,14 @@
 		{/if}
 	</main>
 
-	{#if (backlinks?.length || 0) > 0 || (outgoingLinks?.some((l) => l.is_valid) || false)}
+	{#if (backlinks?.length || 0) > 0 || outgoingLinks?.some((l) => l.is_valid) || false}
 		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<Link2 class="text-muted-foreground h-5 w-5" />
 					<h2 class="text-lg font-semibold">Links</h2>
 					<Badge variant="secondary" class="text-xs">
-						{backlinkLoading || outgoingLinksLoading
+						{backlinkLoader.loading || outgoingLinksLoading
 							? '...'
 							: (backlinks?.length || 0) + (outgoingLinks?.filter((l) => l.is_valid).length || 0)}
 					</Badge>
@@ -366,11 +363,11 @@
 				<DocumentGraphToggle
 					currentView={graphViewMode}
 					onToggle={(view) => (graphViewMode = view)}
-					disabled={backlinkLoading || outgoingLinksLoading}
+					disabled={backlinkLoader.loading || outgoingLinksLoading}
 				/>
 			</div>
 
-			{#if backlinkLoading || outgoingLinksLoading}
+			{#if backlinkLoader.loading || outgoingLinksLoading}
 				<div class="flex items-center justify-center py-8">
 					<div class="text-muted-foreground text-sm">Loading links...</div>
 				</div>
@@ -382,7 +379,9 @@
 				<div class="space-y-4">
 					{#if (backlinks?.length || 0) > 0}
 						<div>
-							<h3 class="text-muted-foreground mb-3 text-sm font-medium">Backlinks ({backlinks.length})</h3>
+							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
+								Backlinks ({backlinks.length})
+							</h3>
 							<div class="space-y-3">
 								{#each backlinks as backlinkDocument (backlinkDocument.metaData.path)}
 									<button
@@ -432,9 +431,7 @@
 											<h4 class="group-hover:text-primary font-medium transition-colors">
 												{outgoingLink.display_text}
 											</h4>
-											<span class="text-muted-foreground text-xs">
-												Link
-											</span>
+											<span class="text-muted-foreground text-xs"> Link </span>
 										</div>
 
 										<p class="text-muted-foreground text-sm">

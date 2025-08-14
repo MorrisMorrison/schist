@@ -5,7 +5,6 @@ import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 import { goto } from '$app/navigation';
-import { processHashtags } from './hashtag-renderer.js';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -481,6 +480,20 @@ async function resolveWikiLink(target: string): Promise<WikiLink> {
 }
 const INLINE_MARKDOWN_CACHE_SIZE = 200;
 const inlineMarkdownCache = new Map<string, Promise<string>>();
+
+/**
+ * Removes paragraph wrapper tags while preserving inner HTML formatting.
+ * This handles various cases where marked.js wraps content in <p> tags but we need
+ * just the inner content for inline usage (like in headers).
+ */
+function removeParagraphWrappers(html: string): string {
+	return html
+		.replace(/^<p[^>]*>(.*)<\/p>$/s, '$1') // Remove p with attributes
+		.replace(/^<p>(.*)<\/p>$/s, '$1') // Remove simple p tags
+		.replace(/<\/p>\s*<p[^>]*>/g, ' ') // Replace p breaks with spaces
+		.replace(/<\/?p[^>]*>/g, '') // Remove any remaining p tags
+		.trim();
+}
 async function processInlineMarkdown(text: string): Promise<string> {
 	if (inlineMarkdownCache.has(text)) {
 		const cached = inlineMarkdownCache.get(text)!;
@@ -491,9 +504,12 @@ async function processInlineMarkdown(text: string): Promise<string> {
 
 	const promise = (async () => {
 		try {
-			const withHashtags = processHashtags(text);
-			const htmlResult = await configuredMarked.parse(withHashtags, { async: true });
-			const cleaned = htmlResult.replace(/^<p>(.*)<\/p>$/s, '$1').trim();
+			const htmlResult = await configuredMarked.parse(text, { async: true });
+
+			// Remove paragraph tags while preserving inner HTML formatting
+			// This is necessary because marked.js wraps content in <p> tags, but for inline
+			// content (like headers), we want just the inner HTML without the wrapper
+			const cleaned = removeParagraphWrappers(htmlResult);
 			return cleaned;
 		} catch (error) {
 			console.warn('Failed to process inline markdown:', error);

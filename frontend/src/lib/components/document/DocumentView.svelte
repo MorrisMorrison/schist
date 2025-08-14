@@ -23,6 +23,13 @@
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
 	import DocumentGraphView from './DocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
+	import { 
+		documentActions, 
+		backlinks, 
+		outgoingLinks, 
+		isBacklinksLoading, 
+		isOutgoingLinksLoading 
+	} from '$lib/stores/documents';
 
 	interface Props {
 		document: Document;
@@ -57,11 +64,8 @@
 
 	let processedContent = $state('');
 
-	let backlinks = $state<Document[]>([]);
-	let outgoingLinks = $state<WikiLink[]>([]);
 	let graphViewMode = $state<'list' | 'graph'>('graph');
 	const backlinkLoader = useOptimizedLoading(200, 150);
-	let outgoingLinksLoading = $state(false);
 
 	let versionCount = $state<number | undefined>(undefined);
 	const versionLoader = useOptimizedLoading(200, 150);
@@ -120,36 +124,14 @@
 	});
 
 	$effect(() => {
-		async function loadBacklinks() {
-			if (!documentPath) return;
-
+		if (documentPath) {
 			backlinkLoader.startLoading();
-			try {
-				backlinks = await apiClient.getDocumentBacklinks(documentPath);
-			} catch (error) {
-				console.error('Failed to load backlinks:', error);
-				backlinks = [];
-			} finally {
+			documentActions.loadBacklinks(documentPath).finally(() => {
 				backlinkLoader.stopLoading();
-			}
+			});
+			
+			documentActions.loadOutgoingLinks(documentPath);
 		}
-
-		async function loadOutgoingLinks() {
-			if (!documentPath) return;
-
-			outgoingLinksLoading = true;
-			try {
-				outgoingLinks = await apiClient.getDocumentOutgoingLinks(documentPath);
-			} catch (error) {
-				console.error('Failed to load outgoing links:', error);
-				outgoingLinks = [];
-			} finally {
-				outgoingLinksLoading = false;
-			}
-		}
-
-		loadBacklinks();
-		loadOutgoingLinks();
 	});
 
 	async function refreshVersionCount() {
@@ -348,42 +330,42 @@
 		{/if}
 	</main>
 
-	{#if (backlinks?.length || 0) > 0 || outgoingLinks?.some((l) => l.is_valid) || false}
+	{#if ($backlinks?.length || 0) > 0 || $outgoingLinks?.some((l) => l.is_valid) || false}
 		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<Link2 class="text-muted-foreground h-5 w-5" />
 					<h2 class="text-lg font-semibold">Links</h2>
 					<Badge variant="secondary" class="text-xs">
-						{backlinkLoader.loading || outgoingLinksLoading
+						{$isBacklinksLoading || $isOutgoingLinksLoading
 							? '...'
-							: (backlinks?.length || 0) + (outgoingLinks?.filter((l) => l.is_valid).length || 0)}
+							: ($backlinks?.length || 0) + ($outgoingLinks?.filter((l) => l.is_valid).length || 0)}
 					</Badge>
 				</div>
 				<DocumentGraphToggle
 					currentView={graphViewMode}
 					onToggle={(view) => (graphViewMode = view)}
-					disabled={backlinkLoader.loading || outgoingLinksLoading}
+					disabled={$isBacklinksLoading || $isOutgoingLinksLoading}
 				/>
 			</div>
 
-			{#if backlinkLoader.loading || outgoingLinksLoading}
+			{#if $isBacklinksLoading || $isOutgoingLinksLoading}
 				<div class="flex items-center justify-center py-8">
 					<div class="text-muted-foreground text-sm">Loading links...</div>
 				</div>
 			{:else if graphViewMode === 'graph'}
 				<div class="h-[400px] w-full">
-					<DocumentGraphView currentDocument={document} {backlinks} {outgoingLinks} />
+					<DocumentGraphView currentDocument={document} backlinks={$backlinks} outgoingLinks={$outgoingLinks} />
 				</div>
 			{:else}
 				<div class="space-y-4">
-					{#if (backlinks?.length || 0) > 0}
+					{#if ($backlinks?.length || 0) > 0}
 						<div>
 							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
-								Backlinks ({backlinks.length})
+								Backlinks ({$backlinks.length})
 							</h3>
 							<div class="space-y-3">
-								{#each backlinks as backlinkDocument (backlinkDocument.metaData.path)}
+								{#each $backlinks as backlinkDocument (backlinkDocument.metaData.path)}
 									<button
 										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
 										onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
@@ -415,13 +397,13 @@
 						</div>
 					{/if}
 
-					{#if (outgoingLinks?.filter((l) => l.is_valid).length || 0) > 0}
+					{#if ($outgoingLinks?.filter((l) => l.is_valid).length || 0) > 0}
 						<div>
 							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
-								Outgoing Links ({outgoingLinks.filter((l) => l.is_valid).length})
+								Outgoing Links ({$outgoingLinks.filter((l) => l.is_valid).length})
 							</h3>
 							<div class="space-y-3">
-								{#each outgoingLinks.filter((l) => l.is_valid) as outgoingLink (outgoingLink.path)}
+								{#each $outgoingLinks.filter((l) => l.is_valid) as outgoingLink (outgoingLink.path)}
 									<button
 										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
 										onclick={() => goto(`/documents${outgoingLink.path}`)}
@@ -443,7 +425,7 @@
 						</div>
 					{/if}
 
-					{#if (backlinks?.length || 0) === 0 && (outgoingLinks?.filter((l) => l.is_valid).length || 0) === 0}
+					{#if ($backlinks?.length || 0) === 0 && ($outgoingLinks?.filter((l) => l.is_valid).length || 0) === 0}
 						<div class="flex flex-col items-center justify-center py-8 text-center">
 							<p class="text-muted-foreground text-sm">No links found.</p>
 							<p class="text-muted-foreground mt-1 text-xs">

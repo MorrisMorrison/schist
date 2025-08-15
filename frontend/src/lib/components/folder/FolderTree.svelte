@@ -21,6 +21,8 @@
 	import { cn } from '$lib/utils.js';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 	import { authService } from '$lib/auth/auth-service';
+	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
+	import { onDestroy } from 'svelte';
 
 	interface Props {
 		selectedPath?: string;
@@ -76,6 +78,8 @@
 
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
 	let contextMenuOpen = $state<string | null>(null);
+
+	const folderLoader = useOptimizedLoading(200, 150);
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let pageContextMenuOpen = $state<string | null>(null);
 	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -117,6 +121,19 @@
 		};
 
 		loadData();
+	});
+
+	// Sync the optimized loader with the store's loading state
+	$effect(() => {
+		if ($isFoldersLoading) {
+			folderLoader.startLoading();
+		} else {
+			folderLoader.stopLoading();
+		}
+	});
+
+	onDestroy(() => {
+		folderLoader.cleanup();
 	});
 
 	$effect(() => {
@@ -529,11 +546,11 @@
 		<ErrorAlert error={$foldersError} onDismiss={() => folderActions.clearError()} />
 	{/if}
 
-	{#if $isFoldersLoading}
+	{#if folderLoader.loading}
 		<div class="flex items-center justify-center py-8">
 			<LoadingSpinner size="md" />
 		</div>
-	{:else if !$isFoldersLoading && $folders !== null && filteredFolders.length === 0}
+	{:else if !folderLoader.loading && $folders !== null && filteredFolders.length === 0}
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>

@@ -69,6 +69,7 @@ import type {
 } from './types.js';
 import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
 import { parseError } from '$lib/utils/error';
+import { requestDeduplicator, createRequestKey } from '$lib/utils/request-deduplication';
 
 class SchістApiClient {
 	private baseUrl: string;
@@ -154,31 +155,37 @@ class SchістApiClient {
 		return encodePath(path);
 	}
 
-	private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-		const url = `${this.getApiUrl()}${endpoint}`;
+	private async request<T>(
+		endpoint: string,
+		options: RequestInit = {},
+		deduplicateOptions: { enableDeduplication?: boolean; force?: boolean } = {}
+	): Promise<T> {
+		const { enableDeduplication = false, force = false } = deduplicateOptions;
 
-		const defaultHeaders: Record<string, string> = {
-			'Content-Type': 'application/json',
-			Accept: 'application/json'
-		};
+		const executeRequest = async (): Promise<T> => {
+			const url = `${this.getApiUrl()}${endpoint}`;
 
-		if (this.authToken) {
-			defaultHeaders.Authorization = `Bearer ${this.authToken}`;
-		}
+			const defaultHeaders: Record<string, string> = {
+				'Content-Type': 'application/json',
+				Accept: 'application/json'
+			};
 
-		const config: RequestInit = {
-			...options,
-			headers: {
-				...defaultHeaders,
-				...options.headers
+			if (this.authToken) {
+				defaultHeaders.Authorization = `Bearer ${this.authToken}`;
 			}
-		};
 
-		if (options.body instanceof FormData) {
-			delete (config.headers as Record<string, string>)['Content-Type'];
-		}
+			const config: RequestInit = {
+				...options,
+				headers: {
+					...defaultHeaders,
+					...options.headers
+				}
+			};
 
-		try {
+			if (options.body instanceof FormData) {
+				delete (config.headers as Record<string, string>)['Content-Type'];
+			}
+
 			const response = await fetch(url, config);
 
 			if (!response.ok) {
@@ -218,9 +225,19 @@ class SchістApiClient {
 
 			const data = await response.json();
 			return data;
+		};
+
+		if (enableDeduplication) {
+			const cacheKey = createRequestKey(endpoint, options);
+			return requestDeduplicator.deduplicate(cacheKey, executeRequest, { force });
+		}
+
+		try {
+			return await executeRequest();
 		} catch (error) {
 			if (browser) {
 				const parsedError = parseError(error);
+				const url = `${this.getApiUrl()}${endpoint}`;
 				console.error('API Request error', {
 					url,
 					error: parsedError.message,
@@ -234,6 +251,14 @@ class SchістApiClient {
 			// Re-throw the error to preserve its structure
 			throw error;
 		}
+	}
+
+	private async deduplicatedRequest<T>(
+		endpoint: string,
+		options: RequestInit = {},
+		force = false
+	): Promise<T> {
+		return this.request<T>(endpoint, options, { enableDeduplication: true, force });
 	}
 
 	async health(): Promise<HealthResponse> {
@@ -274,8 +299,8 @@ class SchістApiClient {
 		return this.request<User>('/auth/me');
 	}
 
-	async getDocuments(): Promise<Document[]> {
-		const response = await this.request<DocumentListResponse>('/documents');
+	async getDocuments(force = false): Promise<Document[]> {
+		const response = await this.deduplicatedRequest<DocumentListResponse>('/documents', {}, force);
 		return response.documents;
 	}
 
@@ -349,8 +374,8 @@ class SchістApiClient {
 		});
 	}
 
-	async getFolderTree(): Promise<Folder[]> {
-		const response = await this.request<FolderTreeResponse>('/folders');
+	async getFolderTree(force = false): Promise<Folder[]> {
+		const response = await this.deduplicatedRequest<FolderTreeResponse>('/folders', {}, force);
 		return response.folders;
 	}
 
@@ -586,12 +611,12 @@ class SchістApiClient {
 	}
 
 	// New separated GitHub API methods
-	async getGitHubSettings(): Promise<GitHubSettings> {
-		return this.request<GitHubSettings>('/github/config');
+	async getGitHubSettings(force = false): Promise<GitHubSettings> {
+		return this.deduplicatedRequest<GitHubSettings>('/github/config', {}, force);
 	}
 
-	async getGitHubConnectionStatus(): Promise<GitHubConnectionStatus> {
-		return this.request<GitHubConnectionStatus>('/github/connection-status');
+	async getGitHubConnectionStatus(force = false): Promise<GitHubConnectionStatus> {
+		return this.deduplicatedRequest<GitHubConnectionStatus>('/github/connection-status', {}, force);
 	}
 
 	async updateGitHubSettings(settings: GitHubConfigRequest): Promise<GitHubSettings> {
@@ -640,8 +665,12 @@ class SchістApiClient {
 	}
 
 	// GitHub docs methods
-	async getDocsRepositories(): Promise<GitHubDocsRepositoriesResponse> {
-		return this.request<GitHubDocsRepositoriesResponse>('/github/docs/repositories');
+	async getDocsRepositories(force = false): Promise<GitHubDocsRepositoriesResponse> {
+		return this.deduplicatedRequest<GitHubDocsRepositoriesResponse>(
+			'/github/docs/repositories',
+			{},
+			force
+		);
 	}
 
 	async addDocsRepository(
@@ -722,12 +751,12 @@ class SchістApiClient {
 	}
 
 	// Passkey management methods
-	async getPasskeyStatus(): Promise<PasskeyStatus> {
-		return this.request<PasskeyStatus>('/passkeys/status');
+	async getPasskeyStatus(force = false): Promise<PasskeyStatus> {
+		return this.deduplicatedRequest<PasskeyStatus>('/passkeys/status', {}, force);
 	}
 
-	async listPasskeys(): Promise<PasskeyListResponse> {
-		return this.request<PasskeyListResponse>('/passkeys');
+	async listPasskeys(force = false): Promise<PasskeyListResponse> {
+		return this.deduplicatedRequest<PasskeyListResponse>('/passkeys', {}, force);
 	}
 
 	async createPasskey(request: PasskeyCreateRequest): Promise<PasskeyCreateResponse> {
@@ -785,8 +814,8 @@ class SchістApiClient {
 	}
 
 	// Secret management methods
-	async getSecretsStatus(): Promise<SecretsStatus> {
-		return this.request<SecretsStatus>('/secrets/status');
+	async getSecretsStatus(force = false): Promise<SecretsStatus> {
+		return this.deduplicatedRequest<SecretsStatus>('/secrets/status', {}, force);
 	}
 
 	// Password-based unlock removed - secrets unlocked via passkey authentication
@@ -797,8 +826,8 @@ class SchістApiClient {
 		});
 	}
 
-	async listSecrets(): Promise<SecretListResponse> {
-		return this.request<SecretListResponse>('/secrets');
+	async listSecrets(force = false): Promise<SecretListResponse> {
+		return this.deduplicatedRequest<SecretListResponse>('/secrets', {}, force);
 	}
 
 	async createSecret(request: CreateSecretRequest): Promise<{ message: string }> {
@@ -876,8 +905,8 @@ class SchістApiClient {
 		});
 	}
 
-	async getTemplates(): Promise<Template[]> {
-		const response = await this.request<TemplatesResponse>('/templates');
+	async getTemplates(force = false): Promise<Template[]> {
+		const response = await this.deduplicatedRequest<TemplatesResponse>('/templates', {}, force);
 		return response.templates;
 	}
 

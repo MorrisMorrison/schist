@@ -70,11 +70,11 @@ export const canSync = derived(
 );
 
 export const githubActions = {
-	async loadGitHubSettings() {
+	async loadGitHubSettings(force = false) {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const settings = await apiClient.getGitHubSettings();
+			const settings = await apiClient.getGitHubSettings(force);
 			githubStore.update((state) => ({
 				...state,
 				settings,
@@ -91,11 +91,11 @@ export const githubActions = {
 		}
 	},
 
-	async loadConnectionStatus() {
+	async loadConnectionStatus(force = false) {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const connectionStatus = await apiClient.getGitHubConnectionStatus();
+			const connectionStatus = await apiClient.getGitHubConnectionStatus(force);
 			githubStore.update((state) => ({
 				...state,
 				connectionStatus,
@@ -118,9 +118,9 @@ export const githubActions = {
 		try {
 			const setupResult = await apiClient.setupGitHub(setupRequest);
 
-			const settings = setupResult.settings || (await apiClient.getGitHubSettings());
+			const settings = setupResult.settings || (await apiClient.getGitHubSettings(true));
 			const connectionStatus =
-				setupResult.connection || (await apiClient.getGitHubConnectionStatus());
+				setupResult.connection || (await apiClient.getGitHubConnectionStatus(true));
 
 			githubStore.update((state) => ({
 				...state,
@@ -145,8 +145,8 @@ export const githubActions = {
 
 		try {
 			await apiClient.updateGitHubSettings(settingsUpdate);
-			const settings = await apiClient.getGitHubSettings();
-			const connectionStatus = await apiClient.getGitHubConnectionStatus();
+			const settings = await apiClient.getGitHubSettings(true);
+			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
 			githubStore.update((state) => ({
 				...state,
 				settings,
@@ -200,7 +200,7 @@ export const githubActions = {
 		try {
 			const result = await apiClient.syncToGitHub();
 
-			const connectionStatus = await apiClient.getGitHubConnectionStatus();
+			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
 
 			githubStore.update((state) => ({
 				...state,
@@ -376,11 +376,11 @@ export const githubActions = {
 	},
 
 	// GitHub docs actions
-	async loadDocsRepositories() {
+	async loadDocsRepositories(force = false) {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const response = await apiClient.getDocsRepositories();
+			const response = await apiClient.getDocsRepositories(force);
 			githubStore.update((state) => ({
 				...state,
 				docsRepositories: response.repositories,

@@ -20,28 +20,16 @@ export const templatesStore = writable<TemplatesState>(initialState);
 
 export const templateActions = {
 	async loadTemplates(force: boolean = false): Promise<void> {
-		const store = templatesStore;
-
-		const currentState = get(store);
-
-		if (currentState.loaded && !force) {
-			return;
-		}
-
-		if (currentState.loading) {
-			return;
-		}
-
-		store.update((state) => ({
+		templatesStore.update((state) => ({
 			...state,
 			loading: true,
 			error: null
 		}));
 
 		try {
-			const templates = await apiClient.getTemplates();
+			const templates = await apiClient.getTemplates(force);
 
-			store.update((state) => ({
+			templatesStore.update((state) => ({
 				...state,
 				templates,
 				loading: false,
@@ -52,7 +40,7 @@ export const templateActions = {
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load templates';
 			console.error('Failed to load templates:', error);
 
-			store.update((state) => ({
+			templatesStore.update((state) => ({
 				...state,
 				templates: [],
 				loading: false,

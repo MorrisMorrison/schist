@@ -410,6 +410,15 @@ export const documentActions = {
 				error: error instanceof Error ? error.message : 'Failed to load outgoing links'
 			}));
 		}
+	},
+
+	async checkDocumentExists(path: string): Promise<boolean> {
+		try {
+			return await apiClient.checkDocumentExists(path);
+		} catch (error) {
+			console.debug('Document existence check failed:', error);
+			return false;
+		}
 	}
 };
 

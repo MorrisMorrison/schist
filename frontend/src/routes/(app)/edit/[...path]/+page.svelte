@@ -9,6 +9,7 @@
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -23,12 +24,60 @@
 	let saveError = $state('');
 	let isDeleting = $state(false);
 	let showDeleteModal = $state(false);
+	let existenceWarning = $state('');
+	let documentExists = $state(false);
 
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	const originalContent = document.content;
 
 	const titleFromContent = $derived(extractTitleFromContent(content));
+
+	$effect(() => {
+		const title = titleFromContent;
+		if (title.trim()) {
+			// Clear previous timeout
+			if (debounceTimeout) {
+				clearTimeout(debounceTimeout);
+			}
+
+			existenceWarning = '';
+
+			debounceTimeout = setTimeout(async () => {
+				const slug = generateSlug(title);
+				const newPath = replaceLastPathSegment(data.path, slug);
+				
+				if (newPath !== data.path) {
+					try {
+						const exists = await documentActions.checkDocumentExists(newPath);
+						documentExists = exists;
+						if (exists) {
+							existenceWarning = `A document already exists at "${newPath}". Please choose a different title.`;
+						} else {
+							existenceWarning = '';
+						}
+					} catch (error) {
+						console.debug('Existence check failed:', error);
+						documentExists = false;
+						existenceWarning = '';
+					}
+				} else {
+					documentExists = false;
+					existenceWarning = '';
+				}
+			}, 500);
+		} else {
+			existenceWarning = '';
+			documentExists = false;
+		}
+
+		return () => {
+			if (debounceTimeout) {
+				clearTimeout(debounceTimeout);
+			}
+		};
+	});
 
 	function replaceLastPathSegment(path: string, newSegment: string): string {
 		const parts = path.split('/').filter(Boolean);
@@ -49,6 +98,15 @@
 		const tags = extractHashtagsFromContent(content);
 		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
+
+		if (newPath !== data.path) {
+			const exists = await documentActions.checkDocumentExists(newPath);
+			if (exists) {
+				saveError = `A document already exists at "${newPath}". Please choose a different title.`;
+				return;
+			}
+		}
+
 		try {
 			await documentActions.updateDocumentByPath(
 				data.path,
@@ -209,7 +267,7 @@
 					variant="default"
 					data-testid="save-document-button"
 					onclick={handleSave}
-					disabled={isSaving || !content.trim()}
+					disabled={isSaving || !content.trim() || documentExists}
 				>
 					{#if isSaving}
 						<RotateCcw class="h-4 w-4 animate-spin" />
@@ -225,19 +283,16 @@
 
 	<!-- Error Message -->
 	{#if saveError}
-		<div class="bg-red-muted rounded-md p-4">
-			<div class="flex">
-				<div class="flex-shrink-0">
-					<CircleX class="text-red-primary h-5 w-5"></CircleX>
-				</div>
-				<div class="ml-3">
-					<h3 class="text-red-primary text-sm font-medium">Error</h3>
-					<div class="text-red-secondary mt-2 text-sm">
-						<p>{saveError}</p>
-					</div>
-				</div>
-			</div>
-		</div>
+		<ErrorAlert error={saveError} onDismiss={() => saveError = ''} />
+	{/if}
+
+	<!-- Existence Warning -->
+	{#if existenceWarning}
+		<ErrorAlert 
+			error={existenceWarning} 
+			variant="warning"
+			onDismiss={() => existenceWarning = ''} 
+		/>
 	{/if}
 
 	<!-- Content Editor -->

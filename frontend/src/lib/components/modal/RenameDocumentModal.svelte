@@ -63,6 +63,14 @@
 			pathParts[pathParts.length - 1] = slug;
 			const newPath = pathParts.join('/');
 
+			if (newPath !== currentPath) {
+				const exists = await documentActions.checkDocumentExists(newPath);
+				if (exists) {
+					error = `A document already exists at "${newPath}". Please choose a different title.`;
+					return;
+				}
+			}
+
 			const updatedDocument = await documentActions.updateDocumentByPath(currentPath, {
 				metaData: {
 					...document.metaData,

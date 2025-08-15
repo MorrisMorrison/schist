@@ -31,36 +31,42 @@
 	:global(.markdown-heading-1) {
 		font-size: 2rem;
 		font-weight: bold;
+		margin-top: 2rem;
 		margin-bottom: 1rem;
 	}
 
 	:global(.markdown-heading-2) {
 		font-size: 1.625rem;
 		font-weight: bold;
+		margin-top: 2rem;
 		margin-bottom: 1rem;
 	}
 
 	:global(.markdown-heading-3) {
 		font-size: 1.375rem;
 		font-weight: bold;
+		margin-top: 1.5rem;
 		margin-bottom: 0.75rem;
 	}
 
 	:global(.markdown-heading-4) {
 		font-size: 1.125rem;
 		font-weight: bold;
+		margin-top: 1.5rem;
 		margin-bottom: 0.75rem;
 	}
 
 	:global(.markdown-heading-5) {
 		font-size: 1rem;
 		font-weight: bold;
+		margin-top: 1.5rem;
 		margin-bottom: 0.75rem;
 	}
 
 	:global(.markdown-heading-6) {
 		font-size: 0.875rem;
 		font-weight: bold;
+		margin-top: 1.5rem;
 		margin-bottom: 0.75rem;
 	}
 </style>

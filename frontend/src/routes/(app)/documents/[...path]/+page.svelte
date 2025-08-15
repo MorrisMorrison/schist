@@ -11,14 +11,12 @@
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
 	import { isNotFoundError } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
+	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 	let isNotFound = $state(false);
-
-	const contentLoader = useOptimizedLoading(200, 150);
 
 	const path = $derived(page.params.path || '');
 	const decodedPath = $derived(decodeURIComponent(path));
@@ -35,7 +33,7 @@
 	});
 
 	async function loadContent() {
-		contentLoader.startLoading();
+		isLoading = true;
 		error = null;
 		currentDocument = null;
 		isFolder = false;
@@ -62,7 +60,7 @@
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load content';
 		} finally {
-			contentLoader.stopLoading();
+			isLoading = false;
 		}
 	}
 
@@ -88,7 +86,7 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	{#if contentLoader.loading}
+	{#if isLoading}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
 			<div class="mb-4">
 				<LoadingSpinner size="lg" />

@@ -46,21 +46,9 @@ class AuthService {
 				authActions.setLoading(true);
 				const user = await apiClient.getCurrentUser();
 				authActions.updateUser(user);
-			} catch (_error) {
+			} catch {
 				authActions.clearAuth();
 				apiClient.setAuthToken(null);
-				
-				if (browser && typeof window !== 'undefined') {
-					const isPublicRoute = 
-						window.location.pathname === '/login' || 
-						window.location.pathname === '/setup' ||
-						window.location.pathname.startsWith('/share/');
-					
-					if (!isPublicRoute) {
-						const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-						await goto(`/login?returnUrl=${returnUrl}`);
-					}
-				}
 			} finally {
 				authActions.setLoading(false);
 			}

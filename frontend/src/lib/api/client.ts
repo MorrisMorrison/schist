@@ -134,13 +134,19 @@ class SchістApiClient {
 		this.setAuthToken(null);
 
 		const isPublicRoute =
-			window.location.pathname === '/login' || 
-			window.location.pathname === '/setup' ||
-			window.location.pathname.startsWith('/share/');
+			window.location.pathname === '/login' || window.location.pathname.startsWith('/share/');
 
-		if (!isPublicRoute && !window.location.search.includes('returnUrl')) {
-			const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-			await goto(`/login?returnUrl=${returnUrl}`);
+		if (!isPublicRoute) {
+			try {
+				const config = await this.getConfig();
+				if (config.auth_enabled) {
+					const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+					await goto(`/login?returnUrl=${returnUrl}`);
+				}
+			} catch {
+				const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+				await goto(`/login?returnUrl=${returnUrl}`);
+			}
 		}
 	}
 

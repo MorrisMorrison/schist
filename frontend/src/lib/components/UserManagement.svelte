@@ -15,13 +15,15 @@
 	import { apiClient } from '$lib/api/client';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { UserInfo } from '$lib/api/types';
+	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 
 	let users: UserInfo[] = [];
-	let loading = true;
 	let error = '';
 	let showInviteDialog = false;
 	let inviteURL = '';
 	let generatingInvite = false;
+
+	const userLoader = useOptimizedLoading(200, 150);
 
 	onMount(() => {
 		loadUsers();
@@ -29,14 +31,14 @@
 
 	async function loadUsers() {
 		try {
-			loading = true;
+			userLoader.startLoading();
 			const response = await apiClient.listUsers();
 			users = response.users || [];
 		} catch (err) {
 			console.error('Failed to load users:', err);
 			error = 'Failed to load users';
 		} finally {
-			loading = false;
+			userLoader.stopLoading();
 		}
 	}
 
@@ -112,7 +114,7 @@
 			</div>
 		{/if}
 
-		{#if loading}
+		{#if userLoader.loading}
 			<div class="flex items-center justify-center py-8">
 				<LoadingSpinner size="md" />
 				<span class="text-muted-foreground ml-2 text-sm">Loading users...</span>

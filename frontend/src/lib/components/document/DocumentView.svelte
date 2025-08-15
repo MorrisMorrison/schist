@@ -245,12 +245,7 @@
 					</div>
 				{/if}
 
-				{#if versionLoader.loading}
-					<div class="text-muted-foreground flex items-center gap-2 text-sm">
-						<GitBranch class="h-4 w-4" />
-						<span>Loading versions...</span>
-					</div>
-				{:else if versionCount !== undefined && versionCount >= 0}
+				{#if versionCount !== undefined && versionCount >= 0}
 					<button
 						class="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-2 text-sm transition-colors"
 						onclick={handleVersionHistoryClick}
@@ -258,8 +253,13 @@
 						aria-label="View document version history"
 					>
 						<History class="h-4 w-4" />
-						<span>Versions: {versionCount}</span>
+						<span>Versions: {versionLoader.loading ? '...' : versionCount}</span>
 					</button>
+				{:else if versionLoader.loading}
+					<div class="text-muted-foreground flex items-center gap-2 text-sm">
+						<GitBranch class="h-4 w-4" />
+						<span>Loading versions...</span>
+					</div>
 				{/if}
 
 				{#if documentTags.length > 0}

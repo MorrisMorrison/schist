@@ -15,6 +15,7 @@
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { Document, Folder as FolderType } from '$lib/api/types';
+	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 
 	interface Props {
 		path?: string;
@@ -35,10 +36,11 @@
 	}: Props = $props();
 
 	let showCreateFolderModal = $state(false);
-	let isLoadingFolderData = $state(false);
 	let multiSelectMode = $state(false);
 	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name');
 	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc');
+
+	const folderDataLoader = useOptimizedLoading(200, 150);
 
 	const currentFolderDocuments = $derived(() => {
 		let filteredDocuments;
@@ -101,12 +103,12 @@
 
 	async function loadFolderData() {
 		try {
-			isLoadingFolderData = true;
+			folderDataLoader.startLoading();
 			await Promise.all([folderActions.loadFolderTree(), documentActions.loadDocuments()]);
 		} catch (error) {
 			console.error('Failed to load folder data:', error);
 		} finally {
-			isLoadingFolderData = false;
+			folderDataLoader.stopLoading();
 		}
 	}
 
@@ -165,7 +167,7 @@
 				{/if}
 			</div>
 
-			{#if isLoadingFolderData}
+			{#if folderDataLoader.loading}
 				<div class="text-secondary flex items-center gap-2 text-sm">
 					<LoadingSpinner size="sm" />
 					<span>Loading...</span>

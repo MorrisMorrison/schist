@@ -11,12 +11,14 @@
 	import HrBlock from './HrBlock.svelte';
 	import HtmlBlock from './HtmlBlock.svelte';
 	import ImageBlock from './ImageBlock.svelte';
+	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 
 	let { content = '' }: { content: string } = $props();
 
 	let blocks: MarkdownBlock[] = $state([]);
-	let loading = $state(false);
 	let error = $state<string | null>(null);
+
+	const markdownLoader = useOptimizedLoading(200, 150);
 
 	// Parse markdown content into blocks
 	$effect(() => {
@@ -25,7 +27,7 @@
 			return;
 		}
 
-		loading = true;
+		markdownLoader.startLoading();
 		error = null;
 
 		parseMarkdownToBlocks(content)
@@ -38,12 +40,12 @@
 				blocks = [];
 			})
 			.finally(() => {
-				loading = false;
+				markdownLoader.stopLoading();
 			});
 	});
 </script>
 
-{#if loading}
+{#if markdownLoader.loading}
 	<div class="flex items-center justify-center p-4">
 		<div class="text-muted-foreground">Loading...</div>
 	</div>

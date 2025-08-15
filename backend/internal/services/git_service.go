@@ -359,13 +359,21 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 
 	filePath := gs.getRelativeFilePath(documentPath)
 
+	// Check if the document file exists in the filesystem first
+	fullPath := filepath.Join(gs.dataDir, filePath)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		// Document doesn't exist, return empty versions (not an error)
+		return []*DocumentVersion{}, nil
+	}
+
 	logOptions := &git.LogOptions{
 		FileName: &filePath,
 	}
 
 	commitIter, err := gs.repository.Log(logOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get commit history: %w", err)
+		// If there are no commits yet, return empty versions (not an error)
+		return []*DocumentVersion{}, nil
 	}
 	defer commitIter.Close()
 
@@ -378,6 +386,7 @@ func (gs *GitService) GetDocumentVersions(documentPath string) ([]*DocumentVersi
 
 		_, err = tree.File(filePath)
 		if err != nil {
+			// File doesn't exist in this commit, skip
 			return nil
 		}
 

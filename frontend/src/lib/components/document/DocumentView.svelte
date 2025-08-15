@@ -143,7 +143,8 @@
 			versionCount = versionsResponse.total || 0;
 		} catch (error) {
 			console.error('Failed to load version count:', error);
-			versionCount = undefined;
+			// Set to 0 for new documents or when versions can't be loaded
+			versionCount = 0;
 		} finally {
 			versionLoader.stopLoading();
 		}

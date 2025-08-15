@@ -92,7 +92,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 
 	versions := routerGroup.Group("/versions")
 	{
-		versions.GET("/", h.getDocumentVersions)
+		versions.GET("", h.getDocumentVersions)
 		versions.GET("/document", h.getDocumentAtVersion)
 		versions.GET("/diff", h.compareDocumentVersions)
 		versions.POST("/restore", h.restoreDocumentVersion)

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { documentActions } from '$lib/stores/documents';
 	import { goto } from '$app/navigation';
@@ -11,12 +11,15 @@
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
 	import { isNotFoundError } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
-	let isLoading = $state(true);
 	let error = $state<string | null>(null);
 	let isNotFound = $state(false);
+	let isLoadingContent = $state(false);
+
+	const documentLoader = useOptimizedLoading(200, 150);
 
 	const path = $derived(page.params.path || '');
 	const decodedPath = $derived(decodeURIComponent(path));
@@ -26,6 +29,10 @@
 		loadContent();
 	});
 
+	onDestroy(() => {
+		documentLoader.cleanup();
+	});
+
 	$effect(() => {
 		if (path !== undefined) {
 			loadContent();
@@ -33,7 +40,8 @@
 	});
 
 	async function loadContent() {
-		isLoading = true;
+		documentLoader.startLoading();
+		isLoadingContent = true;
 		error = null;
 		currentDocument = null;
 		isFolder = false;
@@ -60,7 +68,8 @@
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load content';
 		} finally {
-			isLoading = false;
+			isLoadingContent = false;
+			documentLoader.stopLoading();
 		}
 	}
 
@@ -86,7 +95,7 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	{#if isLoading}
+	{#if documentLoader.loading}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
 			<div class="mb-4">
 				<LoadingSpinner size="lg" />
@@ -141,7 +150,7 @@
 				>
 			</div>
 		</div>
-	{:else}
+	{:else if !isLoadingContent}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">
 			<h1 class="text-foreground mb-4 text-2xl font-semibold">Something Went Wrong</h1>
 			<p class="text-muted-foreground mb-8 max-w-2xl">

@@ -170,6 +170,7 @@ export const KEYBOARD_SHORTCUTS = {
 	},
 	document: {
 		'Cmd/Ctrl + E': 'Edit current document',
+		'Cmd/Ctrl + S': 'Save document (silent save in editor)',
 		'Cmd/Ctrl + Alt + D': 'Delete current document',
 		'Cmd/Ctrl + J': 'Download current document'
 	},

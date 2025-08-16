@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import Editor from '$lib/components/editor/Editor.svelte';
 	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
+	import UnsavedChangesModal from '$lib/components/modal/UnsavedChangesModal.svelte';
+	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
 	import { generateSlug } from '$lib/utils/path';
@@ -23,12 +26,22 @@
 	let saveError = $state('');
 	let isDeleting = $state(false);
 	let showDeleteModal = $state(false);
+	let showUnsavedChangesModal = $state(false);
 
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const originalContent = document.content;
+	let originalContent = $state(document.content);
 
 	const titleFromContent = $derived(extractTitleFromContent(content));
+	const isDirty = $derived(content !== originalContent);
+
+	// Navigation guard for unsaved changes
+	const navigationGuard = useUnsavedChangesGuard({
+		isDirty: () => isDirty,
+		onSave: handleSave,
+		onShowModal: () => { showUnsavedChangesModal = true; },
+		onHideModal: () => { showUnsavedChangesModal = false; }
+	});
 
 	function replaceLastPathSegment(path: string, newSegment: string): string {
 		const parts = path.split('/').filter(Boolean);
@@ -66,6 +79,9 @@
 				'manual'
 			);
 
+			// Update originalContent to mark as saved
+			originalContent = content;
+			
 			await goto(`/documents/${newPath}`);
 		} catch (error) {
 			console.error('Failed to save document:', error);
@@ -152,6 +168,9 @@
 				},
 				'auto'
 			);
+			
+			// Update originalContent to mark as saved
+			originalContent = content;
 		} catch (error) {
 			console.error('Failed to auto-save page:', error);
 			saveError = error instanceof Error ? error.message : 'Failed to auto-save page';
@@ -164,7 +183,19 @@
 		if (event.key === 'Escape' && showDeleteModal) {
 			showDeleteModal = false;
 		}
+		if (event.key === 'Escape' && showUnsavedChangesModal) {
+			navigationGuard.handleCancel();
+		}
 	}
+
+	// Set up browser protection for page close/reload
+	onMount(() => {
+		navigationGuard.setupBrowserProtection();
+	});
+
+	onDestroy(() => {
+		navigationGuard.cleanupBrowserProtection();
+	});
 </script>
 
 <svelte:head>
@@ -256,4 +287,14 @@
 	{isDeleting}
 	onConfirm={handleDeleteConfirm}
 	onCancel={handleDeleteCancel}
+/>
+
+<!-- Unsaved Changes Modal -->
+<UnsavedChangesModal
+	open={navigationGuard.showModal}
+	documentTitle={titleFromContent}
+	onSave={navigationGuard.handleSave}
+	onDiscard={navigationGuard.handleDiscard}
+	onCancel={navigationGuard.handleCancel}
+	isSaving={navigationGuard.isSaving}
 />

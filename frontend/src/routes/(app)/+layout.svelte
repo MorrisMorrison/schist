@@ -108,10 +108,10 @@
 	}
 </script>
 
-<div class="bg-background min-h-screen border-0 transition-colors">
+<div class="bg-background flex min-h-screen flex-col border-0 transition-colors">
 	<Navigation isSidebarOpen={$sidebarOpen} />
 
-	<div class="app-container border-0" class:with-sidebar={sidebarVisible}>
+	<div class="app-container flex-1 border-0" class:with-sidebar={sidebarVisible}>
 		<!-- Mobile backdrop -->
 		{#if showSidebarComponent && $sidebarOpen}
 			<div
@@ -144,7 +144,7 @@
 	</div>
 
 	<!-- Footer -->
-	<footer class="border-border bg-background border-t px-4 py-3">
+	<footer class="border-border bg-background sticky bottom-0 z-40 border-t px-4 py-3">
 		<div class="flex items-center justify-between">
 			<!-- Left: Workspace Indicator -->
 			<div class="flex-1">
@@ -175,36 +175,59 @@
 <style>
 	.app-container {
 		display: flex;
-		height: calc(100vh - 4rem - 3rem); /* Navigation height + footer height */
+		min-height: calc(100vh - 4rem - 4rem); /* Viewport height minus nav (4rem) and footer (4rem) */
 		position: relative;
 	}
 
 	.sidebar-container {
 		width: 280px; /* w-70 = 17.5rem = 280px */
-		height: 100%;
+		height: calc(100vh - 4rem - 4rem); /* Full viewport height minus navigation and footer */
+		position: sticky;
+		top: 4rem; /* Height of navigation */
 		transition: transform 0.3s ease-in-out;
 		z-index: 20;
 	}
 
-	/* Desktop sidebar behavior */
+	/* Desktop sidebar behavior - dynamic space allocation based on sidebar visibility */
 	@media (min-width: 768px) {
+		.app-container.with-sidebar {
+			padding-left: 280px; /* Reserve space only when sidebar is visible */
+		}
+
+		.app-container:not(.with-sidebar) {
+			padding-left: 0; /* Use full width when sidebar is hidden */
+		}
+
+		.sidebar-container {
+			position: fixed; /* Use fixed positioning to overlay the reserved space */
+			left: 0;
+			top: 4rem;
+		}
+
 		.sidebar-container.sidebar-closed {
+			opacity: 0;
+			pointer-events: none;
 			transform: translateX(-100%);
-			margin-left: -280px;
 		}
 
 		.sidebar-container.sidebar-open {
+			opacity: 1;
+			pointer-events: auto;
 			transform: translateX(0);
-			margin-left: 0;
 		}
 	}
 
 	/* Mobile sidebar behavior - overlay */
 	@media (max-width: 767px) {
+		.app-container {
+			padding-left: 0; /* No reserved space on mobile */
+		}
+
 		.sidebar-container {
 			position: fixed;
 			top: 4rem; /* Navigation height */
 			left: 0;
+			height: calc(100vh - 4rem - 4rem); /* Full viewport height minus navigation and footer */
 			background: var(--color-primary);
 			border-right: 1px solid var(--color-border);
 			box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
@@ -222,27 +245,13 @@
 	.main-content {
 		flex: 1;
 		padding: 2rem;
-		transition: padding 0.3s ease-in-out;
-	}
-
-	/* Only add overflow when sidebar is visible */
-	.main-content.sidebar-open {
-		overflow-y: auto;
-	}
-
-	/* When sidebar is not shown, center the content with max-width */
-	.app-container:not(.with-sidebar) .main-content {
-		max-width: 1200px;
-		margin: 0 auto;
+		min-height: 0; /* Allow flex item to shrink */
+		overflow-y: auto; /* Enable scrolling when content exceeds container */
+		max-width: 100%; /* Ensure content doesn't overflow */
 	}
 
 	/* Mobile styles */
 	@media (max-width: 767px) {
-		.app-container {
-			flex-direction: column;
-			height: auto;
-		}
-
 		.main-content {
 			padding: 0.5rem;
 			/* On mobile, main content always takes full width */

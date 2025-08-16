@@ -154,7 +154,7 @@
 </script>
 
 <aside class="bg-primary border-border flex h-full w-full flex-col overflow-hidden border-r">
-	<div class="flex-1 overflow-x-hidden overflow-y-auto">
+	<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
 		<FolderTree
 			{currentPath}
 			showPages={true}
@@ -178,7 +178,7 @@
 		<GitHubDocsSection />
 	</div>
 
-	<div class="border-border border-t p-4">
+	<div class="border-border flex-shrink-0 border-t p-4">
 		<Button onclick={handleImportDocuments} class="w-full">
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path

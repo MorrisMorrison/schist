@@ -29,7 +29,6 @@ function createSecretStore() {
 	return {
 		subscribe,
 
-		// Load secrets status from server
 		async loadStatus(): Promise<SecretsStatus> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
@@ -45,7 +44,6 @@ function createSecretStore() {
 			}
 		},
 
-		// Load list of secret keys (not values for security)
 		async loadSecrets(): Promise<SecretInfo[]> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
@@ -65,9 +63,6 @@ function createSecretStore() {
 			}
 		},
 
-		// Password-based unlock removed - secrets are unlocked via passkey authentication
-
-		// Lock secrets
 		async lock(): Promise<void> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
@@ -84,14 +79,12 @@ function createSecretStore() {
 			}
 		},
 
-		// Create a new secret
 		async createSecret(request: CreateSecretRequest): Promise<void> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
 			try {
 				await apiClient.createSecret(request);
 
-				// Reload secrets and status
 				await this.loadSecrets();
 				await this.loadStatus();
 
@@ -103,13 +96,11 @@ function createSecretStore() {
 			}
 		},
 
-		// Get a secret value (returns promise to avoid storing in state)
 		async getSecret(key: string): Promise<string> {
 			const response = await apiClient.getSecret(key);
 			return response.value;
 		},
 
-		// Update a secret
 		async updateSecret(key: string, request: UpdateSecretRequest): Promise<void> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
@@ -126,7 +117,6 @@ function createSecretStore() {
 			}
 		},
 
-		// Delete a secret
 		async deleteSecret(key: string): Promise<void> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
@@ -145,12 +135,10 @@ function createSecretStore() {
 			}
 		},
 
-		// Clear error state
 		clearError() {
 			update((state) => ({ ...state, error: null }));
 		},
 
-		// Reset store to initial state
 		reset() {
 			set(initialState);
 		}
@@ -184,9 +172,6 @@ export const requiresSetup = derived(
 	($store) => $store.status?.requires_setup ?? false
 );
 
-// Note: Removed automatic cross-store auth sync to prevent infinite loading loops
-// The SecretManager component now handles unlock state properly
-
 // Helper function to process secret placeholders in text
 export function parseSecretPlaceholders(text: string): { placeholder: string; key: string }[] {
 	const placeholderRegex = /\{\{secret:([^}]+)\}\}/g;
@@ -216,7 +201,6 @@ export async function replaceSecretPlaceholders(
 			const value = await getSecretValue(key);
 			processedText = processedText.replace(placeholder, value);
 		} catch (error) {
-			// Keep placeholder if secret not found or error occurred
 			console.warn(`Failed to replace secret placeholder ${placeholder}:`, error);
 		}
 	}
@@ -227,7 +211,7 @@ export async function replaceSecretPlaceholders(
 // Helper function to add visual indicators for locked secret placeholders
 export function addSecretPlaceholderIndicators(text: string, isUnlocked: boolean): string {
 	if (isUnlocked) {
-		return text; // Don't add indicators if unlocked (secrets will be replaced)
+		return text;
 	}
 
 	const placeholders = parseSecretPlaceholders(text);

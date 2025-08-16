@@ -14,6 +14,7 @@
 	import { hashtagExtension } from '$lib/utils/hashtag-extension.js';
 	import { combinedAutocompletionExtension } from '$lib/utils/combined-autocomplete.js';
 	import type { Asset } from '$lib/api/types.js';
+	import { appSettings } from '$lib/stores/settings.js';
 
 	let {
 		initialContent = '',
@@ -34,8 +35,8 @@
 	let previewContent = $state(initialContent);
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
-	let isPreviewVisible = $state(true);
-	let isFullscreen = $state(fullscreen);
+	let isPreviewVisible = $state(!$appSettings.alwaysHidePreview);
+	let isFullscreen = $state(fullscreen || $appSettings.alwaysOpenFullscreen);
 
 	let editorHeight = $state(700);
 	let isResizing = $state(false);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import Editor from '$lib/components/editor/Editor.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents';
@@ -11,15 +12,30 @@
 	import { templatesStore, templateActions } from '$lib/stores/templates';
 	import type { Template } from '$lib/api/types';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import UnsavedChangesModal from '$lib/components/modal/UnsavedChangesModal.svelte';
+	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
 
 	let { data }: { data: PageData } = $props();
 	let content = $state('# New Document\n\n');
 	let isCreating = $state(false);
 	let createError = $state('');
+	let showUnsavedChangesModal = $state(false);
 
 	let editorRef = $state<Editor>();
 
+	// Track original content for dirty state
+	let originalContent = $state('# New Document\n\n');
+
 	const title = $derived(extractTitleFromContent(content));
+	const isDirty = $derived(content !== originalContent);
+
+	// Navigation guard for unsaved changes
+	const navigationGuard = useUnsavedChangesGuard({
+		isDirty: () => isDirty,
+		onSave: handleCreate,
+		onShowModal: () => { showUnsavedChangesModal = true; },
+		onHideModal: () => { showUnsavedChangesModal = false; }
+	});
 
 	$effect(() => {
 		templateActions.loadTemplates();
@@ -47,6 +63,9 @@
 				content: content.trim()
 			});
 
+			// Update originalContent to mark as saved
+			originalContent = content;
+
 			goto(`/documents${response.metaData.path}`);
 		} catch (error) {
 			console.error('Failed to create page:', error);
@@ -70,7 +89,19 @@
 			event.preventDefault();
 			handleCreate();
 		}
+		if (event.key === 'Escape' && showUnsavedChangesModal) {
+			navigationGuard.handleCancel();
+		}
 	}
+
+	// Set up browser protection for page close/reload
+	onMount(() => {
+		navigationGuard.setupBrowserProtection();
+	});
+
+	onDestroy(() => {
+		navigationGuard.cleanupBrowserProtection();
+	});
 
 	function generatePath(title: string): string {
 		const slug = generateSlug(title);
@@ -98,6 +129,8 @@
 			);
 
 		content = templateContent;
+		// Update originalContent to reflect the new template as baseline
+		originalContent = templateContent;
 
 		// Force immediate preview update using the Editor's public method
 		if (editorRef) {
@@ -224,3 +257,13 @@
 
 	<MarkdownInfoHelp showTaskExample={true} />
 </div>
+
+<!-- Unsaved Changes Modal -->
+<UnsavedChangesModal
+	open={navigationGuard.showModal}
+	documentTitle={title}
+	onSave={navigationGuard.handleSave}
+	onDiscard={navigationGuard.handleDiscard}
+	onCancel={navigationGuard.handleCancel}
+	isSaving={navigationGuard.isSaving}
+/>

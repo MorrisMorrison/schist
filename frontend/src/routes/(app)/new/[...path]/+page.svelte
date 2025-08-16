@@ -16,15 +16,16 @@
 	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
 
 	let { data }: { data: PageData } = $props();
-	let content = $state('# New Document\n\n');
+	
+	const initialContent = '# New Document\n\n';
+	let content = $state(initialContent);
 	let isCreating = $state(false);
 	let createError = $state('');
-	let showUnsavedChangesModal = $state(false);
 
 	let editorRef = $state<Editor>();
 
-	// Track original content for dirty state
-	let originalContent = $state('# New Document\n\n');
+	// Track original content for dirty state - tracks what was last "saved"
+	let originalContent = $state(initialContent);
 
 	const title = $derived(extractTitleFromContent(content));
 	const isDirty = $derived(content !== originalContent);
@@ -34,10 +35,10 @@
 		isDirty: () => isDirty,
 		onSave: handleCreate,
 		onShowModal: () => {
-			showUnsavedChangesModal = true;
+			// Modal state is managed by the guard
 		},
 		onHideModal: () => {
-			showUnsavedChangesModal = false;
+			// Modal state is managed by the guard
 		}
 	});
 
@@ -93,7 +94,7 @@
 			event.preventDefault();
 			handleCreate();
 		}
-		if (event.key === 'Escape' && showUnsavedChangesModal) {
+		if (event.key === 'Escape' && navigationGuard.showModal) {
 			navigationGuard.handleCancel();
 		}
 	}

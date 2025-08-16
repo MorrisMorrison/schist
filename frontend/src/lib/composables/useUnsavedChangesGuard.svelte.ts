@@ -61,6 +61,7 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions) {
 			if (pendingNavigation.to?.url) {
 				await goto(pendingNavigation.to.url);
 			}
+			pendingNavigation = null;
 		} catch (error) {
 			console.error('Failed to save before navigation:', error);
 			// Keep modal open on save error

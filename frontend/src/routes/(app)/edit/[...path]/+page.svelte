@@ -26,11 +26,10 @@
 	let saveError = $state('');
 	let isDeleting = $state(false);
 	let showDeleteModal = $state(false);
-	let showUnsavedChangesModal = $state(false);
 
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	let originalContent = $state(document.content);
+	let originalContent = document.content;
 
 	const titleFromContent = $derived(extractTitleFromContent(content));
 	const isDirty = $derived(content !== originalContent);
@@ -40,10 +39,10 @@
 		isDirty: () => isDirty,
 		onSave: handleSave,
 		onShowModal: () => {
-			showUnsavedChangesModal = true;
+			// Modal state is managed by the guard
 		},
 		onHideModal: () => {
-			showUnsavedChangesModal = false;
+			// Modal state is managed by the guard
 		}
 	});
 
@@ -187,7 +186,7 @@
 		if (event.key === 'Escape' && showDeleteModal) {
 			showDeleteModal = false;
 		}
-		if (event.key === 'Escape' && showUnsavedChangesModal) {
+		if (event.key === 'Escape' && navigationGuard.showModal) {
 			navigationGuard.handleCancel();
 		}
 	}

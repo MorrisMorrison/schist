@@ -1,4 +1,4 @@
-.PHONY: all install build build-frontend build-backend test run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui e2e-test e2e-test-dev e2e-grep check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
+.PHONY: all install build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui e2e-test e2e-test-dev e2e-grep check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
 
 all: build
 
@@ -17,7 +17,14 @@ build-backend:
 	cd backend/cmd/schist && go build
 
 test: install
+	make test-backend
+	make test-frontend
+
+test-backend:
 	cd backend && go test ./...
+
+test-frontend:
+	cd frontend && npm run test:unit
 
 run-backend-test:
 	cd backend && go test ./...

@@ -102,6 +102,46 @@ export const requestDeduplicator = new RequestDeduplicator();
  */
 export function createRequestKey(endpoint: string, options: RequestInit = {}): string {
 	const method = options.method || 'GET';
-	const body = options.body ? (typeof options.body === 'string' ? options.body : '[FormData]') : '';
+
+	let body = '';
+	if (options.body) {
+		if (typeof options.body === 'string') {
+			body = options.body;
+		} else if (options.body instanceof FormData) {
+			body = serializeFormData(options.body);
+		} else if (options.body instanceof URLSearchParams) {
+			body = options.body.toString();
+		} else if (options.body instanceof Blob) {
+			body = `[Blob:${options.body.type}:${options.body.size}]`;
+		} else if (options.body instanceof ArrayBuffer) {
+			body = `[ArrayBuffer:${options.body.byteLength}]`;
+		} else if (typeof options.body === 'object') {
+			try {
+				body = JSON.stringify(options.body);
+			} catch {
+				body = '[Object]';
+			}
+		} else {
+			body = `[UnknownBodyType:${typeof options.body}]`;
+		}
+	}
 	return `${method}:${endpoint}:${body}`;
+}
+
+/**
+ * Serialize FormData to a deterministic string for cache key generation
+ */
+function serializeFormData(formData: FormData): string {
+	const entries: Array<[string, string]> = [];
+	for (const [key, value] of formData.entries()) {
+		if (typeof value === 'string') {
+			entries.push([key, value]);
+		} else if (value instanceof File) {
+			entries.push([key, `[File:${value.name}:${value.size}:${value.type}]`]);
+		} else {
+			entries.push([key, `[Unknown:${typeof value}]`]);
+		}
+	}
+	entries.sort((a, b) => a[0].localeCompare(b[0]));
+	return entries.map(([k, v]) => `${k}=${v}`).join('&');
 }

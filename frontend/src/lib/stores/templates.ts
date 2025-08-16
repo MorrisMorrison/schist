@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { apiClient } from '$lib/api/client';
 import type { Template } from '$lib/api/types';
 
@@ -20,6 +20,11 @@ export const templatesStore = writable<TemplatesState>(initialState);
 
 export const templateActions = {
 	async loadTemplates(force: boolean = false): Promise<void> {
+		const state = get(templatesStore);
+		if (!force && (state.loaded || state.loading)) {
+			return;
+		}
+
 		templatesStore.update((state) => ({
 			...state,
 			loading: true,

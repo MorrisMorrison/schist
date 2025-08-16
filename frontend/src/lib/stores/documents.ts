@@ -126,10 +126,11 @@ export const documentActions = {
 		} catch (error) {
 			documentsStore.update((state) => ({
 				...state,
+				documents: [],
 				loading: false,
 				error: error instanceof Error ? error.message : 'Failed to load documents'
 			}));
-			throw error;
+			return [];
 		}
 	},
 

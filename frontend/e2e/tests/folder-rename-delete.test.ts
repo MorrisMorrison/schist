@@ -164,7 +164,7 @@ test.describe.serial('Folder Rename and Delete', () => {
 		}
 
 		await page.waitForLoadState('networkidle');
-		
+
 		await page.waitForTimeout(300);
 
 		// Verify folder no longer appears in sidebar

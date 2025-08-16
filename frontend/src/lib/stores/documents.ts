@@ -415,8 +415,7 @@ export const documentActions = {
 	async checkDocumentExists(path: string): Promise<boolean> {
 		try {
 			return await apiClient.checkDocumentExists(path);
-		} catch (error) {
-			console.debug('Document existence check failed:', error);
+		} catch {
 			return false;
 		}
 	}

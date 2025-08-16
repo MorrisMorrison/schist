@@ -12,16 +12,15 @@
 	import type { Template } from '$lib/api/types';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let content = $state('# New Document\n\n');
 	let isCreating = $state(false);
 	let createError = $state('');
-	let existenceWarning = $state('');
-	let documentExists = $state(false);
-
 	let editorRef = $state<Editor>();
-	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	const documentExistence = useDocumentExistence();
 
 	const title = $derived(extractTitleFromContent(content));
 
@@ -31,38 +30,14 @@
 
 	$effect(() => {
 		if (title.trim()) {
-			if (debounceTimeout) {
-				clearTimeout(debounceTimeout);
-			}
-
-			existenceWarning = '';
-
-			debounceTimeout = setTimeout(async () => {
-				const fullPath = generatePath(title);
-				
-				try {
-					const exists = await documentActions.checkDocumentExists(fullPath);
-					documentExists = exists;
-					if (exists) {
-						existenceWarning = `A document already exists at "${fullPath}". Please choose a different title.`;
-					} else {
-						existenceWarning = '';
-					}
-				} catch (error) {
-					console.debug('Existence check failed:', error);
-					documentExists = false;
-					existenceWarning = '';
-				}
-			}, 500);
+			const fullPath = generatePath(title);
+			documentExistence.checkExistence(fullPath);
 		} else {
-			existenceWarning = '';
-			documentExists = false;
+			documentExistence.reset();
 		}
 
 		return () => {
-			if (debounceTimeout) {
-				clearTimeout(debounceTimeout);
-			}
+			documentExistence.cleanup();
 		};
 	});
 
@@ -82,6 +57,7 @@
 			const exists = await documentActions.checkDocumentExists(fullPath);
 			if (exists) {
 				createError = `A document already exists at "${fullPath}". Please choose a different title.`;
+				isCreating = false;
 				return;
 			}
 
@@ -174,7 +150,7 @@
 				<Button
 					data-testid="save-document-button"
 					onclick={handleCreate}
-					disabled={isCreating || !content.trim() || documentExists}
+					disabled={isCreating || !content.trim() || documentExistence.exists}
 				>
 					{#if isCreating}
 						<Loader2 class="h-4 w-4 animate-spin"></Loader2>
@@ -190,15 +166,15 @@
 
 	<!-- Error Message -->
 	{#if createError}
-		<ErrorAlert error={createError} onDismiss={() => createError = ''} />
+		<ErrorAlert error={createError} onDismiss={() => (createError = '')} />
 	{/if}
 
 	<!-- Existence Warning -->
-	{#if existenceWarning}
-		<ErrorAlert 
-			error={existenceWarning} 
+	{#if documentExistence.warning}
+		<ErrorAlert
+			error={documentExistence.warning}
 			variant="warning"
-			onDismiss={() => existenceWarning = ''} 
+			onDismiss={() => documentExistence.reset()}
 		/>
 	{/if}
 

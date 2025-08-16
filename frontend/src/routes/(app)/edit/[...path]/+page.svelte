@@ -5,11 +5,12 @@
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
 	import { generateSlug } from '$lib/utils/path';
-	import { Check, Trash2, RotateCcw, CircleX } from 'lucide-svelte';
+	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -24,11 +25,9 @@
 	let saveError = $state('');
 	let isDeleting = $state(false);
 	let showDeleteModal = $state(false);
-	let existenceWarning = $state('');
-	let documentExists = $state(false);
-
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-	let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	const documentExistence = useDocumentExistence();
 
 	const originalContent = document.content;
 
@@ -37,45 +36,15 @@
 	$effect(() => {
 		const title = titleFromContent;
 		if (title.trim()) {
-			// Clear previous timeout
-			if (debounceTimeout) {
-				clearTimeout(debounceTimeout);
-			}
-
-			existenceWarning = '';
-
-			debounceTimeout = setTimeout(async () => {
-				const slug = generateSlug(title);
-				const newPath = replaceLastPathSegment(data.path, slug);
-				
-				if (newPath !== data.path) {
-					try {
-						const exists = await documentActions.checkDocumentExists(newPath);
-						documentExists = exists;
-						if (exists) {
-							existenceWarning = `A document already exists at "${newPath}". Please choose a different title.`;
-						} else {
-							existenceWarning = '';
-						}
-					} catch (error) {
-						console.debug('Existence check failed:', error);
-						documentExists = false;
-						existenceWarning = '';
-					}
-				} else {
-					documentExists = false;
-					existenceWarning = '';
-				}
-			}, 500);
+			const slug = generateSlug(title);
+			const newPath = replaceLastPathSegment(data.path, slug);
+			documentExistence.checkExistence(newPath, data.path);
 		} else {
-			existenceWarning = '';
-			documentExists = false;
+			documentExistence.reset();
 		}
 
 		return () => {
-			if (debounceTimeout) {
-				clearTimeout(debounceTimeout);
-			}
+			documentExistence.cleanup();
 		};
 	});
 
@@ -103,6 +72,7 @@
 			const exists = await documentActions.checkDocumentExists(newPath);
 			if (exists) {
 				saveError = `A document already exists at "${newPath}". Please choose a different title.`;
+				isSaving = false;
 				return;
 			}
 		}
@@ -267,7 +237,7 @@
 					variant="default"
 					data-testid="save-document-button"
 					onclick={handleSave}
-					disabled={isSaving || !content.trim() || documentExists}
+					disabled={isSaving || !content.trim() || documentExistence.exists}
 				>
 					{#if isSaving}
 						<RotateCcw class="h-4 w-4 animate-spin" />
@@ -283,15 +253,15 @@
 
 	<!-- Error Message -->
 	{#if saveError}
-		<ErrorAlert error={saveError} onDismiss={() => saveError = ''} />
+		<ErrorAlert error={saveError} onDismiss={() => (saveError = '')} />
 	{/if}
 
 	<!-- Existence Warning -->
-	{#if existenceWarning}
-		<ErrorAlert 
-			error={existenceWarning} 
+	{#if documentExistence.warning}
+		<ErrorAlert
+			error={documentExistence.warning}
 			variant="warning"
-			onDismiss={() => existenceWarning = ''} 
+			onDismiss={() => documentExistence.reset()}
 		/>
 	{/if}
 

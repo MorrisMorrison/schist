@@ -281,7 +281,7 @@ The links should remain functional after edits.`,
 		await documentViewPage.clickContentLink('New link to target');
 		await documentViewPage.verifyDocumentLoaded(`Target Document ${testId}`);
 	});
-	
+
 	test('should prevent creating documents with duplicate names', async ({
 		editorPage,
 		documentViewPage,
@@ -315,9 +315,11 @@ The links should remain functional after edits.`,
 
 		// Wait for debounced validation and verify warning appears
 		await editorPage.page.waitForTimeout(600); // Wait for 500ms debounce + buffer
-		
+
 		// Look for ErrorAlert with warning variant containing the expected text
-		const warningAlert = editorPage.page.locator('[class*="border-amber"]').filter({ hasText: 'A document already exists' });
+		const warningAlert = editorPage.page
+			.locator('[class*="border-amber"]')
+			.filter({ hasText: 'A document already exists' });
 		await expect(warningAlert).toBeVisible();
 
 		// Verify save button is disabled when duplicate exists

@@ -165,6 +165,11 @@ test.describe.serial('Folder Rename and Delete', () => {
 
 		await page.waitForLoadState('networkidle');
 
+		// Wait for the folder to disappear from the sidebar tree
+		await expect(
+			folderPage.folderTree.getByTestId('folder-tree-item').filter({ hasText: testFolderName })
+		).not.toBeVisible();
+
 		// Verify folder no longer appears in sidebar
 		const folderExists = await folderPage.folderExistsInSidebar(testFolderName);
 		expect(folderExists).toBe(false);

@@ -33,8 +33,12 @@
 	const navigationGuard = useUnsavedChangesGuard({
 		isDirty: () => isDirty,
 		onSave: handleCreate,
-		onShowModal: () => { showUnsavedChangesModal = true; },
-		onHideModal: () => { showUnsavedChangesModal = false; }
+		onShowModal: () => {
+			showUnsavedChangesModal = true;
+		},
+		onHideModal: () => {
+			showUnsavedChangesModal = false;
+		}
 	});
 
 	$effect(() => {

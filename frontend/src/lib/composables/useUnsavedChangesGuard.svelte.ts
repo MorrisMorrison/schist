@@ -52,11 +52,11 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions) {
 		try {
 			isSaving = true;
 			await options.onSave();
-			
+
 			// After successful save, proceed with the navigation
 			showModal = false;
 			options.onHideModal();
-			
+
 			// Use goto to navigate to the target URL
 			if (pendingNavigation.to?.url) {
 				await goto(pendingNavigation.to.url);
@@ -75,7 +75,7 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions) {
 		// Proceed with navigation without saving
 		showModal = false;
 		options.onHideModal();
-		
+
 		// Use goto to navigate to the target URL
 		if (pendingNavigation.to?.url) {
 			await goto(pendingNavigation.to.url);
@@ -92,14 +92,18 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions) {
 
 	return {
 		// State
-		get showModal() { return showModal; },
-		get isSaving() { return isSaving; },
-		
+		get showModal() {
+			return showModal;
+		},
+		get isSaving() {
+			return isSaving;
+		},
+
 		// Actions
 		handleSave,
 		handleDiscard,
 		handleCancel,
-		
+
 		// Lifecycle
 		setupBrowserProtection,
 		cleanupBrowserProtection

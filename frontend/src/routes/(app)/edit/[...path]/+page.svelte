@@ -39,8 +39,12 @@
 	const navigationGuard = useUnsavedChangesGuard({
 		isDirty: () => isDirty,
 		onSave: handleSave,
-		onShowModal: () => { showUnsavedChangesModal = true; },
-		onHideModal: () => { showUnsavedChangesModal = false; }
+		onShowModal: () => {
+			showUnsavedChangesModal = true;
+		},
+		onHideModal: () => {
+			showUnsavedChangesModal = false;
+		}
 	});
 
 	function replaceLastPathSegment(path: string, newSegment: string): string {
@@ -81,7 +85,7 @@
 
 			// Update originalContent to mark as saved
 			originalContent = content;
-			
+
 			await goto(`/documents/${newPath}`);
 		} catch (error) {
 			console.error('Failed to save document:', error);
@@ -168,7 +172,7 @@
 				},
 				'auto'
 			);
-			
+
 			// Update originalContent to mark as saved
 			originalContent = content;
 		} catch (error) {

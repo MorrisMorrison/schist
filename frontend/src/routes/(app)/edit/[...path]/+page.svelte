@@ -148,7 +148,7 @@
 
 	async function handleSaveFromEditor(newContent: string) {
 		content = newContent;
-		await handleSave();
+		await handleSaveWithoutNavigation();
 	}
 
 	async function handleSaveWithoutNavigation() {
@@ -189,11 +189,6 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-			event.preventDefault();
-			handleSave();
-		}
-
 		if (event.key === 'Escape' && showDeleteModal) {
 			showDeleteModal = false;
 		}

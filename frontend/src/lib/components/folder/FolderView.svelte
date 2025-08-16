@@ -201,7 +201,11 @@
 
 			{#if showCreateButtons}
 				<div class="flex w-full justify-start gap-2 md:w-auto">
-					<Button variant="outline" onclick={() => (showCreateFolderModal = true)}>
+					<Button
+						variant="outline"
+						onclick={() => (showCreateFolderModal = true)}
+						data-testid="create-folder-header"
+					>
 						<FolderPlus class="h-4 w-4" />
 						New Folder
 					</Button>
@@ -281,7 +285,11 @@
 								<Plus class="h-4 w-4" />
 								Create Document
 							</Button>
-							<Button variant="outline" onclick={() => (showCreateFolderModal = true)}>
+							<Button
+								variant="outline"
+								onclick={() => (showCreateFolderModal = true)}
+								data-testid="create-folder-empty"
+							>
 								<FolderPlus class="h-4 w-4" />
 								Create Folder
 							</Button>

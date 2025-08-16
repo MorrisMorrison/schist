@@ -49,6 +49,29 @@
 
 	const currentTheme = $derived($theme);
 
+	const editorLayoutTheme = EditorView.theme({
+		'&': {
+			height: '100%',
+			fontSize: '16px',
+			fontFamily:
+				'-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
+			lineHeight: '1.625'
+		},
+		'.cm-content': {
+			padding: '16px',
+			minHeight: '100%'
+		},
+		'.cm-focused': {
+			outline: 'none'
+		},
+		'.cm-editor': {
+			height: '100%'
+		},
+		'.cm-scroller': {
+			height: '100%'
+		}
+	});
+
 	const lightTheme = EditorView.theme({
 		'&': {
 			backgroundColor: 'var(--background)',
@@ -395,25 +418,7 @@
 						}, 5000);
 					}
 				}),
-				EditorView.theme({
-					'&': {
-						height: '100%',
-						fontSize: '14px'
-					},
-					'.cm-content': {
-						padding: '16px',
-						minHeight: '100%'
-					},
-					'.cm-focused': {
-						outline: 'none'
-					},
-					'.cm-editor': {
-						height: '100%'
-					},
-					'.cm-scroller': {
-						height: '100%'
-					}
-				})
+				editorLayoutTheme
 			]
 		});
 
@@ -568,25 +573,7 @@
 						}, 5000);
 					}
 				}),
-				EditorView.theme({
-					'&': {
-						height: '100%',
-						fontSize: '14px'
-					},
-					'.cm-content': {
-						padding: '16px',
-						minHeight: '100%'
-					},
-					'.cm-focused': {
-						outline: 'none'
-					},
-					'.cm-editor': {
-						height: '100%'
-					},
-					'.cm-scroller': {
-						height: '100%'
-					}
-				})
+				editorLayoutTheme
 			];
 
 			editorView.dispatch({

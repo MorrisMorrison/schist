@@ -77,6 +77,7 @@
 	}: Props = $props();
 
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
+	let userCollapsedFolders = $state<Set<string>>(new Set()); // Track folders user manually collapsed
 	let contextMenuOpen = $state<string | null>(null);
 
 	const folderLoader = useOptimizedLoading(200, 150);
@@ -351,10 +352,13 @@
 	function toggleExpanded(path: string) {
 		if (expandedFolders.has(path)) {
 			expandedFolders.delete(path);
+			userCollapsedFolders.add(path);
 		} else {
 			expandedFolders.add(path);
+			userCollapsedFolders.delete(path);
 		}
 		expandedFolders = new Set(expandedFolders);
+		userCollapsedFolders = new Set(userCollapsedFolders);
 		saveExpandedFolders();
 	}
 
@@ -370,7 +374,7 @@
 
 	$effect(() => {
 		const current = $currentFolder;
-		if (current && current !== '/') {
+		if (current && current !== '/' && !userCollapsedFolders.has(current)) {
 			expandFolder(current);
 		}
 	});

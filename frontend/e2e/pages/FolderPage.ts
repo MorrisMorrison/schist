@@ -45,7 +45,8 @@ export class FolderPage extends BasePage {
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
 		this.createFolderButton = page
-			.getByRole('button', { name: /new folder|create folder/i })
+			.getByTestId('create-folder-header')
+			.or(page.getByTestId('create-folder-empty'))
 			.first();
 		this.createDocumentButton = page
 			.getByRole('button', { name: /new page|create page|new document|create document/i })

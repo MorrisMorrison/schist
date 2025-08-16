@@ -22,6 +22,7 @@
 	import PasskeyUnlockModal from './modal/PasskeyUnlockModal.svelte';
 	import SecretEditModal from './modal/SecretEditModal.svelte';
 	import InfoBox from '$lib/components/ui/info-box.svelte';
+	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
 	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from 'lucide-svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
@@ -60,6 +61,14 @@
 			await secretStore.lock();
 		} catch (error) {
 			console.error('Failed to lock secrets:', error);
+		}
+	}
+
+	function handleToggleUnlock(checked: boolean) {
+		if (checked) {
+			handleUnlock();
+		} else {
+			handleLock();
 		}
 	}
 
@@ -155,14 +164,12 @@
 
 			<div class="flex items-center space-x-2">
 				{#if $secretsUnlocked}
-					<Button size="sm" variant="outline" onclick={handleLock}>Lock</Button>
 					<Button size="sm" onclick={() => (showCreateModal = true)}>
 						<Plus class="mr-1 h-3 w-3" />
 						Add Secret
 					</Button>
-				{:else}
-					<Button size="sm" onclick={handleUnlock}>Unlock to Manage</Button>
 				{/if}
+				<ToggleSlider checked={$secretsUnlocked} onCheckedChange={handleToggleUnlock} size="sm" />
 			</div>
 		</div>
 

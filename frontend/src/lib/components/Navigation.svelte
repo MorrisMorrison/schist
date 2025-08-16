@@ -79,7 +79,7 @@
 	});
 </script>
 
-<nav class="border-primary bg-primary border-b shadow-sm transition-colors">
+<nav class="border-primary bg-primary sticky top-0 z-50 border-b shadow-sm transition-colors">
 	<div class="relative">
 		<div class="absolute top-1/2 left-4 z-10 -translate-y-1/2 transform">
 			<BurgerIcon
@@ -91,22 +91,20 @@
 		</div>
 
 		<div
-			class="mx-auto px-4 transition-colors duration-300 ease-in-out sm:px-6 lg:px-8"
+			class="mx-auto ml-6 max-w-none px-4 transition-colors duration-300 ease-in-out sm:px-6 lg:px-8"
 			class:pl-16={showSidebarToggle}
 			class:md:ml-[280px]={isSidebarOpen}
-			class:max-w-7xl={!isSidebarOpen}
-			class:max-w-none={isSidebarOpen}
 		>
 			<div class="flex h-16 justify-between">
 				<div class="flex items-center">
 					<div class="flex-shrink-0">
-						<a href="/" class="flex items-center space-x-3">
-							<img src="/icon-128x128.png" alt="Schist Logo" class="h-16 w-16" />
+						<a href="/" class="flex items-center">
+							<img src="/icon-128x128.png" alt="Schist Logo" class="h-10 w-10 object-contain" />
 							<span class="text-foreground text-xl font-semibold tracking-tight">Schist</span>
 						</a>
 					</div>
 
-					<div class="hidden md:ml-6 md:flex md:space-x-8">
+					<div class="hidden md:ml-6 md:flex md:space-x-6">
 						<a
 							href="/"
 							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page

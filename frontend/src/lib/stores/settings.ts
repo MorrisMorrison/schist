@@ -9,6 +9,8 @@ interface AppSettings {
 	editorTheme: 'light' | 'dark' | 'auto';
 	showPreview: boolean;
 	defaultNewDocumentPath: string;
+	alwaysHidePreview: boolean;
+	alwaysOpenFullscreen: boolean;
 }
 
 interface ExportSettings {
@@ -30,7 +32,9 @@ const defaultSettings: Settings = {
 		wordWrap: true,
 		editorTheme: 'auto',
 		showPreview: true,
-		defaultNewDocumentPath: '/'
+		defaultNewDocumentPath: '/',
+		alwaysHidePreview: false,
+		alwaysOpenFullscreen: false
 	},
 	export: {
 		defaultFormat: 'markdown',

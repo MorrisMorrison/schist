@@ -62,6 +62,7 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		documents.POST("", h.createDocument)
 		documents.POST("/move", h.moveDocument)
 		documents.GET("/*path", h.getDocumentByPath)
+		documents.HEAD("/*path", h.checkDocumentExists)
 		documents.PUT("/*path", h.updateDocumentByPath)
 		documents.DELETE("/*path", h.deleteDocumentByPath)
 	}
@@ -146,7 +147,6 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 
 	secrets := routerGroup.Group("/secrets")
 	{
-		// Password-based unlock removed - secrets are unlocked via passkey authentication
 		secrets.POST("/lock", LockSecretsHandler(h.Services))
 		secrets.GET("/status", SecretsStatusHandler(h.Services))
 		secrets.GET("", ListSecretsHandler(h.Services))

@@ -281,4 +281,67 @@ The links should remain functional after edits.`,
 		await documentViewPage.clickContentLink('New link to target');
 		await documentViewPage.verifyDocumentLoaded(`Target Document ${testId}`);
 	});
+
+	test('should prevent creating documents with duplicate names', async ({
+		editorPage,
+		documentViewPage,
+		testId
+	}) => {
+		const testDocument = createTestDocument({
+			title: `Duplicate Test ${testId}`,
+			content: `# Duplicate Test ${testId}\n\nThis is the first document.`,
+			tags: ['test', 'duplicate']
+		});
+
+		// Create the first document
+		await editorPage.navigateToNew();
+		await editorPage.verifyLoaded();
+		await editorPage.fillDocumentDetails(
+			testDocument.title,
+			testDocument.content,
+			testDocument.tags!
+		);
+		await editorPage.saveAndExpectNavigation();
+
+		// Verify first document was created
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+
+		// Try to create a second document with the same name
+		await editorPage.navigateToNew();
+		await editorPage.verifyLoaded();
+
+		// Type the same title (this should trigger the warning)
+		await editorPage.fillTitle(testDocument.title);
+
+		// Wait for debounced validation and verify warning appears
+		await editorPage.page.waitForTimeout(600); // Wait for 500ms debounce + buffer
+
+		// Look for ErrorAlert with warning variant containing the expected text
+		const warningAlert = editorPage.page
+			.locator('[class*="border-amber"]')
+			.filter({ hasText: 'A document already exists' });
+		await expect(warningAlert).toBeVisible();
+
+		// Verify save button is disabled when duplicate exists
+		const saveButton = editorPage.page.getByTestId('save-document-button');
+		await expect(saveButton).toBeDisabled();
+
+		// Change title to something unique
+		const uniqueTitle = `${testDocument.title} Unique`;
+		await editorPage.fillTitle(uniqueTitle);
+
+		// Wait for debounced validation and verify warning disappears
+		await editorPage.page.waitForTimeout(600);
+		await expect(warningAlert).not.toBeVisible();
+
+		// Verify save button is enabled again
+		await expect(saveButton).toBeEnabled();
+
+		// Fill content and save successfully
+		await editorPage.fillContent('This is a unique document.');
+		await editorPage.saveAndExpectNavigation();
+
+		// Verify the unique document was created
+		await documentViewPage.verifyDocumentLoaded(uniqueTitle);
+	});
 });

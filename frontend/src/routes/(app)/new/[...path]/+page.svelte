@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
-	import Editor from '$lib/components/editor/Editor.svelte';
+	import LazyEditor from '$lib/components/editor/LazyEditor.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents';
 	import { generateSlug, normalizePath } from '$lib/utils/path';
@@ -23,7 +23,7 @@
 	let content = $state(initialContent);
 	let isCreating = $state(false);
 	let createError = $state('');
-	let editorRef = $state<Editor>();
+	let editorRef = $state<LazyEditor>();
 
 	const documentExistence = useDocumentExistence();
 
@@ -218,7 +218,7 @@
 
 	<!-- Content Editor -->
 	<div class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
-		<Editor
+		<LazyEditor
 			bind:this={editorRef}
 			initialContent={content}
 			onContentChange={handleContentChange}

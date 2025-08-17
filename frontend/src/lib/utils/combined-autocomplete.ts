@@ -1,5 +1,5 @@
-import { autocompletion, CompletionContext } from '@codemirror/autocomplete';
-import type { CompletionResult } from '@codemirror/autocomplete';
+import { autocompletion } from '@codemirror/autocomplete';
+import type { CompletionResult, CompletionContext } from '@codemirror/autocomplete';
 
 import { apiClient } from '$lib/api/client';
 import type { TagInfo, Document } from '$lib/api/types';

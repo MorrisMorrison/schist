@@ -8,7 +8,6 @@
 	import { wikiLinksExtension } from '$lib/utils/wiki-links.js';
 	import { hashtagExtension } from '$lib/utils/hashtag-extension.js';
 	import { combinedAutocompletionExtension } from '$lib/utils/combined-autocomplete.js';
-	import type { Asset } from '$lib/api/types.js';
 	import type { FormattingType, EditorContentProps } from '$lib/types/editor';
 
 	let {

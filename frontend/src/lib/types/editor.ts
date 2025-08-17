@@ -1,3 +1,5 @@
+import type { Asset } from '$lib/api/types';
+
 export type EditorTheme = 'light' | 'dark';
 
 export interface ToolbarButton {
@@ -50,7 +52,7 @@ export interface EditorContentProps {
 	onScrollSync?: () => void;
 	onUploadStart?: () => void;
 	onUploadProgress?: (progress: number) => void;
-	onUploadComplete?: (asset: unknown) => void;
+	onUploadComplete?: (asset: Asset) => void;
 	onUploadError?: (error: string) => void;
 }
 

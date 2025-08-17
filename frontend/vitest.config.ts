@@ -6,6 +6,9 @@ export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
-		exclude: ['e2e/**/*', 'node_modules/**/*']
+		exclude: ['e2e/**/*', 'node_modules/**/*'],
+		environment: 'jsdom',
+		globals: true,
+		setupFiles: ['src/lib/test/setup.ts']
 	}
 });

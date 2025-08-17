@@ -108,7 +108,6 @@
 			: managerState.folders
 	);
 
-
 	function getFilteredRootPages() {
 		return filtering.getFilteredRootPages(managerState.documents, unifiedSearchQuery);
 	}

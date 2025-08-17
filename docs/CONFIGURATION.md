@@ -1,6 +1,6 @@
 # Configuration
 
-Schist is designed with minimal configuration using environment variables and sensible defaults. No external configuration files are required.
+Schist is designed with minimal configuration using environment variables and sensible defaults. 
 
 ## Environment Variables
 
@@ -16,7 +16,6 @@ Schist is designed with minimal configuration using environment variables and se
 | `SCHIST_RATE_LIMIT_ENABLED` | `false` | Enable/disable rate limiting |
 | `SCHIST_RATE_LIMIT_RPM` | `100` | Rate limit: requests per minute per IP |
 | `SCHIST_AUTH_ENABLED` | `false` | Enable/disable JWT authentication |
-| `SCHIST_AUTH_USERS` | `""` | User credentials (format: `user1:hash1,user2:hash2`) |
 | `SCHIST_JWT_SECRET` | `""` | JWT signing secret (required when auth is enabled) |
 | `SCHIST_JWT_EXPIRY_HOURS` | `24` | JWT token expiry time in hours |
 
@@ -40,7 +39,7 @@ Schist is designed with minimal configuration using environment variables and se
 **Setup:**
 ```bash
 # Terminal 1: Start backend
-ENV=development make run-backend
+make run-backend
 
 # Terminal 2: Start frontend dev server
 make run-frontend
@@ -90,9 +89,6 @@ SCHIST_RATE_LIMIT_RPM=60
 # Enable JWT authentication for all endpoints
 SCHIST_AUTH_ENABLED=true
 
-# Set username:password_hash pairs
-SCHIST_AUTH_USERS="admin:$2a$10$hash1,editor:$2a$10$hash2"
-
 # JWT secret key (REQUIRED when auth is enabled)
 SCHIST_JWT_SECRET="your-secret-key-here"
 
@@ -104,18 +100,6 @@ SCHIST_JWT_EXPIRY_HOURS=24
 - `SCHIST_JWT_SECRET` must be set when authentication is enabled
 - Use a strong, randomly generated secret (minimum 32 characters)
 - Keep the JWT secret secure and never commit it to version control
-
-**Password Hash Generation:**
-```bash
-# Using the provided utility
-cd backend && go build -o generate-hash ./cmd/generate-hash
-./generate-hash mypassword
-
-# Output:
-# Password hash: $2a$10$VPt/2dQPJTfeef0XPrBq8OhcifyVejXctDUSpPdvfQ7kl2BjKLsr6
-# Environment variable example:
-# SCHIST_AUTH_USERS="admin:$2a$10$VPt/2dQPJTfeef0XPrBq8OhcifyVejXctDUSpPdvfQ7kl2BjKLsr6"
-```
 
 ## Logging Configuration
 
@@ -143,28 +127,3 @@ SCHIST_DATA_DIR=/var/lib/schist/production make run-backend
 SCHIST_DATA_DIR=/var/lib/schist/staging make run-backend
 ```
 
-### Reverse Proxy Configuration
-
-For production deployments behind nginx/Apache:
-
-```nginx
-# nginx.conf
-location /wiki/ {
-    proxy_pass http://localhost:8080/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-}
-```
-
-### Container Resource Limits
-
-```yaml
-# docker-compose.yml
-services:
-  schist:
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-```

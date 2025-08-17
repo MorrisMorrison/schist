@@ -36,20 +36,6 @@ jobs:
       - name: Install dependencies and build
         run: make build
       
-      # Upload build artifacts
-      - name: Upload frontend build
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/build/
-          retention-days: 7
-      
-      - name: Upload backend binary
-        uses: actions/upload-artifact@v4  
-        with:
-          name: backend-binary
-          path: backend/cmd/schist/schist
-          retention-days: 7
 
   docker-build:
     name: Docker Build
@@ -69,17 +55,32 @@ jobs:
             -e ENV=production \
             -e SCHIST_DATA_DIR=/app/data \
             -e SCHIST_PORT=8080 \
+            -e SCHIST_JWT_SECRET="aB3\$5fG8*9kL2&mN7@pQ4#rS6%tU1!vW0^xY5+zA8-bC3=dE7_fG2~hI4" \
             schist:latest
           
-          # Wait for container to start
-          sleep 10
+          # Wait for container to be ready with proper retry mechanism
+          echo "Waiting for container to start..."
+          for i in {1..30}; do
+            if curl -f http://localhost:4001/api/health >/dev/null 2>&1; then
+              echo "Health check passed after $i attempts"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Health check failed after 30 attempts"
+              docker logs schist-test
+              docker stop schist-test
+              exit 1
+            fi
+            sleep 1
+          done
           
-          # Test health endpoint and clean up regardless of result
+          # Final health check and cleanup
           if curl -f http://localhost:4001/api/health; then
-            echo "Health check passed"
+            echo "Final health check passed"
             docker stop schist-test
           else
-            echo "Health check failed"
+            echo "Final health check failed"
+            docker logs schist-test
             docker stop schist-test
             exit 1
           fi

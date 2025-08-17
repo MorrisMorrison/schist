@@ -42,6 +42,51 @@ export interface EditorProps {
 	placeholder?: string;
 }
 
+export interface EditorContentProps {
+	content: string;
+	theme: EditorTheme;
+	readonly?: boolean;
+	onContentChange?: (content: string) => void;
+	onScrollSync?: () => void;
+	onUploadStart?: () => void;
+	onUploadProgress?: (progress: number) => void;
+	onUploadComplete?: (asset: any) => void;
+	onUploadError?: (error: string) => void;
+}
+
+export interface EditorControlsProps {
+	isFullscreen: boolean;
+	isDirty: boolean;
+	lastSaved: Date | null;
+	isPreviewVisible: boolean;
+	onTogglePreview: () => void;
+}
+
+export interface PreviewPanelProps {
+	content: string;
+	theme: EditorTheme;
+	container?: HTMLElement | null;
+	onScroll?: () => void;
+}
+
+export interface EditorStatusBarProps {
+	content: string;
+	theme: EditorTheme;
+	autoSaveEnabled: boolean;
+	isFullscreen: boolean;
+}
+
+export interface UploadStatusProps {
+	isUploading: boolean;
+	uploadProgress: number;
+	uploadMessage: string | null;
+	uploadError: string | null;
+}
+
+export interface ResizeHandleProps {
+	onResizeStart: (event: MouseEvent) => void;
+}
+
 export interface PreviewProps {
 	content: string;
 	theme?: EditorTheme;

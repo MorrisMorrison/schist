@@ -2,7 +2,6 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import FolderTree from './folder/FolderTree.svelte';
-	import GitHubDocsSection from './folder/GitHubDocsSection.svelte';
 	import CreateFolderModal from './modal/CreateFolderModal.svelte';
 	import RenameFolderModal from './modal/RenameFolderModal.svelte';
 	import RenameDocumentModal from './modal/RenameDocumentModal.svelte';
@@ -173,9 +172,6 @@
 			ondocumentexport={handleDocumentExport}
 			onexportall={handleExportAll}
 		/>
-
-		<!-- GitHub Docs Section -->
-		<GitHubDocsSection />
 	</div>
 
 	<div class="border-border flex-shrink-0 border-t p-4">

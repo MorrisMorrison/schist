@@ -108,17 +108,6 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		github.PUT("/config", h.updateGitHubConfig)
 		github.POST("/disconnect", h.disconnectGitHub)
 
-		docs := github.Group("/docs")
-		{
-			docs.GET("/repositories", h.getDocsRepositories)
-			docs.POST("/repositories", h.addDocsRepository)
-			docs.DELETE("/repositories/:owner/:repo", h.removeDocsRepository)
-			docs.GET("/structure", h.getRepositoryStructure)
-			docs.GET("/content", h.getDocumentContent)
-			docs.GET("/files", h.listDocsFiles)
-			docs.POST("/sync/:owner/:repo", h.syncDocsRepository)
-			docs.POST("/sync", h.syncAllDocsRepositories)
-		}
 	}
 
 	git := routerGroup.Group("/git")

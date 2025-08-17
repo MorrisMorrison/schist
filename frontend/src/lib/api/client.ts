@@ -1,6 +1,5 @@
 import { env } from '$env/dynamic/public';
 import { browser } from '$app/environment';
-import { goto } from '$app/navigation';
 import type {
 	Document,
 	CreateDocumentRequest,
@@ -127,23 +126,14 @@ class SchістApiClient {
 	}
 
 	private async handleAuthenticationError() {
-		this.setAuthToken(null);
+		// Clear auth state through the store (will automatically clear API client token)
+		const { authActions } = await import('$lib/stores/auth');
+		authActions.clearAuth();
 
-		const isPublicRoute =
-			window.location.pathname === '/login' || window.location.pathname.startsWith('/share/');
-
-		if (!isPublicRoute) {
-			try {
-				const config = await this.getConfig();
-				if (config.auth_enabled) {
-					const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-					await goto(`/login?returnUrl=${returnUrl}`);
-				}
-			} catch {
-				const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-				await goto(`/login?returnUrl=${returnUrl}`);
-			}
-		}
+		// Use centralized auth service for redirect logic (includes public route check)
+		const { authService } = await import('$lib/auth/auth-service');
+		const returnUrl = window.location.pathname + window.location.search;
+		await authService.requireAuth(returnUrl);
 	}
 
 	private encodePath(path: string): string {

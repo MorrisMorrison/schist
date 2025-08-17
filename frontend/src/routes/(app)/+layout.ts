@@ -5,16 +5,10 @@ import type { LayoutLoad } from './$types';
 export const load: LayoutLoad = async ({ url }) => {
 	await authService.initialize();
 
-	// Skip authentication for public routes
-	if (url.pathname === '/login' || url.pathname.startsWith('/share/')) {
-		return {};
-	}
-
-	if (authService.isAuthEnabled()) {
-		const isAuthenticated = await authService.requireAuth(url.pathname);
-		if (!isAuthenticated) {
-			throw redirect(303, `/login?returnUrl=${encodeURIComponent(url.pathname)}`);
-		}
+	const isAuthenticated = await authService.requireAuth(url.pathname + url.search);
+	if (!isAuthenticated) {
+		// requireAuth handles the redirect internally, but SvelteKit layout needs explicit redirect
+		throw redirect(303, `/login?returnUrl=${encodeURIComponent(url.pathname + url.search)}`);
 	}
 
 	// Layout only handles auth - components handle their own data loading

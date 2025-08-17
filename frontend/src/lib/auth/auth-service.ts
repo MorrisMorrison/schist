@@ -4,6 +4,9 @@ import { apiClient } from '$lib/api/client';
 import { authActions, authStore } from '$lib/stores/auth';
 import { get } from 'svelte/store';
 
+const PUBLIC_ROUTES = ['/login', '/setup'];
+const PUBLIC_ROUTE_PREFIXES = ['/share/'];
+
 class AuthService {
 	private initialized = false;
 	private authEnabled: boolean | null = null;
@@ -27,8 +30,6 @@ class AuthService {
 			this.authEnabled = config.auth_enabled;
 		} catch (error) {
 			console.warn('Failed to get config:', error);
-			// If we can't get config, assume auth might be enabled
-			// This prevents the chicken-and-egg problem where auth blocks config
 			this.authEnabled = true;
 		}
 
@@ -40,15 +41,19 @@ class AuthService {
 		const currentAuth = get(authStore);
 
 		if (currentAuth.token) {
-			apiClient.setAuthToken(currentAuth.token);
-
 			try {
 				authActions.setLoading(true);
 				const user = await apiClient.getCurrentUser();
 				authActions.updateUser(user);
-			} catch {
+			} catch (error) {
 				authActions.clearAuth();
-				apiClient.setAuthToken(null);
+
+				if (error instanceof Error) {
+					const errorData = JSON.parse(error.message);
+					if (errorData.code === 'UNAUTHORIZED') {
+						return;
+					}
+				}
 			} finally {
 				authActions.setLoading(false);
 			}
@@ -63,8 +68,6 @@ class AuthService {
 
 		try {
 			const response = await apiClient.loginWithPasskey(credentialId);
-			// Set the token in the API client immediately after successful login
-			apiClient.setAuthToken(response.token);
 			authActions.setAuth(response.token, response.user);
 
 			// Trigger secrets store sync after successful auth
@@ -98,7 +101,6 @@ class AuthService {
 			console.warn('Logout request failed:', error);
 		} finally {
 			authActions.clearAuth();
-			apiClient.setAuthToken(null);
 			authActions.setLoading(false);
 			await goto('/login');
 		}
@@ -132,7 +134,6 @@ class AuthService {
 			return true;
 		} catch {
 			authActions.clearAuth();
-			apiClient.setAuthToken(null);
 			return false;
 		}
 	}
@@ -146,18 +147,52 @@ class AuthService {
 			return true;
 		}
 
+		if (this.isPublicRoute(returnUrl)) {
+			return true;
+		}
+
 		const isAuthenticated = await this.checkAuthStatus();
 
 		if (!isAuthenticated) {
 			// In browser environment, redirect using goto
 			if (browser) {
-				const loginUrl = returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login';
-				await goto(loginUrl);
+				await this.redirectToAuthPage(returnUrl);
 			}
 			return false;
 		}
 
 		return true;
+	}
+
+	private isPublicRoute(path?: string): boolean {
+		if (!path) {
+			if (browser) {
+				path = window.location.pathname;
+			} else {
+				return false;
+			}
+		}
+
+		if (PUBLIC_ROUTES.includes(path)) {
+			return true;
+		}
+
+		return PUBLIC_ROUTE_PREFIXES.some((prefix) => path!.startsWith(prefix));
+	}
+
+	private async redirectToAuthPage(returnUrl?: string) {
+		try {
+			const setupStatus = await apiClient.checkSetupRequired();
+			if (setupStatus.requires_setup) {
+				await goto('/setup');
+				return;
+			}
+		} catch (setupError) {
+			console.warn('Setup status check failed, redirecting to login:', setupError);
+		}
+
+		const loginUrl = returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : '/login';
+		await goto(loginUrl);
 	}
 }
 

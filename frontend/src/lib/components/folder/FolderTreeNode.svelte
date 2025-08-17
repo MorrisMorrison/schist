@@ -226,30 +226,7 @@
 
 	{#if isExpanded}
 		<div class="mt-1">
-			{#if showPages}
-				{#each filteredPages as page (page.metaData?.slug || page.metaData?.path)}
-					<DocumentItem
-						document={page}
-						{depth}
-						{isDragging}
-						{draggedItem}
-						{dropTarget}
-						{dragOverTarget}
-						isSelected={isSelectedFile(page.metaData.path)}
-						isCurrent={isCurrentFile(page.metaData.path)}
-						{enableContextMenu}
-						onSelect={() => onDocumentSelect?.({ document: page })}
-						onContextMenu={(e) => onDocumentContextMenu?.(e, page)}
-						{onDragStart}
-						{onDragEnd}
-						onDragOver={(e) => onDragOver(e, folder.path)}
-						onDragEnter={(e) => onDragEnter(e, folder.path)}
-						onDragLeave={(e) => onDragLeave(e, folder.path)}
-						onDrop={(e) => onDrop(e, folder.path)}
-					/>
-				{/each}
-			{/if}
-
+			<!-- Render subfolders first (consistent with file system conventions) -->
 			{#if hasSubFolders}
 				{#each folder.sub_folders as subFolder (subFolder.path)}
 					<FolderTreeNode
@@ -282,6 +259,31 @@
 						{onDocumentSelect}
 						{onDocumentContextMenu}
 						{getFilteredPagesForFolder}
+					/>
+				{/each}
+			{/if}
+
+			<!-- Render documents after folders to prevent name collision issues -->
+			{#if showPages}
+				{#each filteredPages as page (`doc-${page.metaData?.path || page.metaData?.slug}`)}
+					<DocumentItem
+						document={page}
+						{depth}
+						{isDragging}
+						{draggedItem}
+						{dropTarget}
+						{dragOverTarget}
+						isSelected={isSelectedFile(page.metaData.path)}
+						isCurrent={isCurrentFile(page.metaData.path)}
+						{enableContextMenu}
+						onSelect={() => onDocumentSelect?.({ document: page })}
+						onContextMenu={(e) => onDocumentContextMenu?.(e, page)}
+						{onDragStart}
+						{onDragEnd}
+						onDragOver={(e) => onDragOver(e, folder.path)}
+						onDragEnter={(e) => onDragEnter(e, folder.path)}
+						onDragLeave={(e) => onDragLeave(e, folder.path)}
+						onDrop={(e) => onDrop(e, folder.path)}
 					/>
 				{/each}
 			{/if}

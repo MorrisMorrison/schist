@@ -21,7 +21,7 @@
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
-	import DocumentGraphView from './DocumentGraphView.svelte';
+	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
 	import {
 		documentActions,
@@ -356,7 +356,7 @@
 				</div>
 			{:else if graphViewMode === 'graph'}
 				<div class="h-[400px] w-full">
-					<DocumentGraphView
+					<LazyDocumentGraphView
 						currentDocument={document}
 						backlinks={$backlinks}
 						outgoingLinks={$outgoingLinks}

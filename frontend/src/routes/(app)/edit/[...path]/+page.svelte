@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import Editor from '$lib/components/editor/Editor.svelte';
+	import LazyEditor from '$lib/components/editor/LazyEditor.svelte';
 	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
@@ -262,7 +262,7 @@
 
 	<!-- Content Editor -->
 	<div class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
-		<Editor
+		<LazyEditor
 			initialContent={content}
 			onContentChange={handleContentChange}
 			onSave={handleSaveFromEditor}

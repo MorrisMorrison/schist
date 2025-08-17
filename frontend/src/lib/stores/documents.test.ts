@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-import { 
-	documentsStore, 
-	searchStore, 
-	foldersStore, 
-	documentActions, 
+import {
+	documentsStore,
+	searchStore,
+	foldersStore,
+	documentActions,
 	searchActions,
 	folderActions,
 	currentFolderDocuments,
@@ -109,7 +109,7 @@ describe('Documents Store', () => {
 
 				expect(apiClient.getDocuments).toHaveBeenCalledWith(false);
 				expect(result).toEqual(mockDocuments);
-				
+
 				const state = get(documentsStore);
 				expect(state.documents).toEqual(mockDocuments);
 				expect(state.loading).toBe(false);
@@ -123,7 +123,7 @@ describe('Documents Store', () => {
 				const result = await documentActions.loadDocuments();
 
 				expect(result).toEqual([]);
-				
+
 				const state = get(documentsStore);
 				expect(state.documents).toEqual([]);
 				expect(state.loading).toBe(false);
@@ -141,7 +141,10 @@ describe('Documents Store', () => {
 
 		describe('loadDocument', () => {
 			it('should load document by path and set current folder', async () => {
-				const mockDocument = { ...testData.document, metaData: { ...testData.document.metaData, path: '/folder/document' } };
+				const mockDocument = {
+					...testData.document,
+					metaData: { ...testData.document.metaData, path: '/folder/document' }
+				};
 				vi.mocked(apiClient.getDocumentByPath).mockResolvedValue(mockDocument);
 
 				const result = await documentActions.loadDocument('/folder/document');
@@ -149,7 +152,7 @@ describe('Documents Store', () => {
 				expect(apiClient.getDocumentByPath).toHaveBeenCalledWith('/folder/document');
 				expect(result).toEqual(mockDocument);
 				expect(get(currentFolder)).toBe('/folder');
-				
+
 				const state = get(documentsStore);
 				expect(state.currentDocument).toEqual(mockDocument);
 				expect(state.loading).toBe(false);
@@ -157,7 +160,10 @@ describe('Documents Store', () => {
 			});
 
 			it('should load document by ID', async () => {
-				const mockDocument = { ...testData.document, metaData: { ...testData.document.metaData, path: '/folder/document' } };
+				const mockDocument = {
+					...testData.document,
+					metaData: { ...testData.document.metaData, path: '/folder/document' }
+				};
 				vi.mocked(apiClient.getDocument).mockResolvedValue(mockDocument);
 
 				const result = await documentActions.loadDocument('doc-id');
@@ -172,7 +178,7 @@ describe('Documents Store', () => {
 				vi.mocked(apiClient.getDocumentByPath).mockRejectedValue(new Error(errorMessage));
 
 				await expect(documentActions.loadDocument('/missing')).rejects.toThrow(errorMessage);
-				
+
 				const state = get(documentsStore);
 				expect(state.currentDocument).toBeNull();
 				expect(state.loading).toBe(false);
@@ -189,7 +195,7 @@ describe('Documents Store', () => {
 					},
 					content: '# New Document'
 				};
-				
+
 				const createdDocument = { ...testData.document, ...createRequest };
 				vi.mocked(apiClient.createDocument).mockResolvedValue({ path: '/folder/new-document' });
 				vi.mocked(apiClient.getDocumentByPath).mockResolvedValue(createdDocument);
@@ -200,7 +206,7 @@ describe('Documents Store', () => {
 				expect(apiClient.getDocumentByPath).toHaveBeenCalledWith('/folder/new-document');
 				expect(result).toEqual(createdDocument);
 				expect(get(currentFolder)).toBe('/folder');
-				
+
 				const state = get(documentsStore);
 				expect(state.documents).toContain(createdDocument);
 				expect(state.currentDocument).toEqual(createdDocument);
@@ -212,12 +218,12 @@ describe('Documents Store', () => {
 					metaData: { title: 'New Document' },
 					content: '# New Document'
 				};
-				
+
 				const errorMessage = 'Failed to create document';
 				vi.mocked(apiClient.createDocument).mockRejectedValue(new Error(errorMessage));
 
 				await expect(documentActions.createDocument(createRequest)).rejects.toThrow(errorMessage);
-				
+
 				const state = get(documentsStore);
 				expect(state.documents).toEqual([]);
 				expect(state.loading).toBe(false);
@@ -239,15 +245,21 @@ describe('Documents Store', () => {
 					metaData: { title: 'Updated Title' },
 					content: '# Updated Content'
 				};
-				
+
 				const updatedDocument = { ...existingDoc, ...updateRequest };
 				vi.mocked(apiClient.updateDocument).mockResolvedValue(updatedDocument);
 
-				const result = await documentActions.updateDocument(existingDoc.metaData.slug, updateRequest);
+				const result = await documentActions.updateDocument(
+					existingDoc.metaData.slug,
+					updateRequest
+				);
 
-				expect(apiClient.updateDocument).toHaveBeenCalledWith(existingDoc.metaData.slug, updateRequest);
+				expect(apiClient.updateDocument).toHaveBeenCalledWith(
+					existingDoc.metaData.slug,
+					updateRequest
+				);
 				expect(result).toEqual(updatedDocument);
-				
+
 				const state = get(documentsStore);
 				expect(state.documents[0]).toEqual(updatedDocument);
 				expect(state.currentDocument).toEqual(updatedDocument);
@@ -269,7 +281,7 @@ describe('Documents Store', () => {
 				await documentActions.deleteDocument(docToDelete.metaData.path);
 
 				expect(apiClient.deleteDocumentByPath).toHaveBeenCalledWith(docToDelete.metaData.path);
-				
+
 				const state = get(documentsStore);
 				expect(state.documents).toEqual([]);
 				expect(state.currentDocument).toBeNull();
@@ -288,7 +300,7 @@ describe('Documents Store', () => {
 
 				expect(apiClient.searchDocuments).toHaveBeenCalledWith('test query tag:tag1');
 				expect(result.documents).toEqual(mockResults);
-				
+
 				const state = get(searchStore);
 				expect(state.query).toBe('test query');
 				expect(state.selectedTags).toEqual(['tag1']);
@@ -301,7 +313,7 @@ describe('Documents Store', () => {
 				vi.mocked(apiClient.searchDocuments).mockRejectedValue(new Error(errorMessage));
 
 				await expect(searchActions.search('query')).rejects.toThrow(errorMessage);
-				
+
 				const state = get(searchStore);
 				expect(state.loading).toBe(false);
 				expect(state.error).toBe(errorMessage);
@@ -394,14 +406,14 @@ describe('Documents Store', () => {
 				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/folder/doc2' } },
 				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/' } }
 			];
-			
+
 			documentsStore.set({
 				documents: docs,
 				currentDocument: null,
 				loading: false,
 				error: null
 			});
-			
+
 			currentFolder.set('/');
 
 			const folderDocs = get(currentFolderDocuments);
@@ -411,22 +423,25 @@ describe('Documents Store', () => {
 		it('should filter documents for specific folder', () => {
 			const docs = [
 				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/folder/doc1' } },
-				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/folder/subfolder/doc2' } },
+				{
+					...testData.document,
+					metaData: { ...testData.document.metaData, path: '/folder/subfolder/doc2' }
+				},
 				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/other/doc3' } }
 			];
-			
+
 			documentsStore.set({
 				documents: docs,
 				currentDocument: null,
 				loading: false,
 				error: null
 			});
-			
+
 			currentFolder.set('/folder');
 
 			const folderDocs = get(currentFolderDocuments);
 			expect(folderDocs).toHaveLength(2); // Should include docs in /folder and subfolders
-			expect(folderDocs.every(doc => doc.metaData.path?.startsWith('/folder'))).toBe(true);
+			expect(folderDocs.every((doc) => doc.metaData.path?.startsWith('/folder'))).toBe(true);
 		});
 	});
 

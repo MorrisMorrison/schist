@@ -35,11 +35,6 @@
 		<span class="text-sm font-medium">Preview</span>
 	</div>
 	<div class="flex-1 overflow-hidden">
-		<MarkdownPreview
-			{content}
-			{theme}
-			bind:container={previewContainer}
-			{onScroll}
-		/>
+		<MarkdownPreview {content} {theme} bind:container={previewContainer} {onScroll} />
 	</div>
 </div>

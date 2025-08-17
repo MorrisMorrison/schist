@@ -382,12 +382,7 @@
 	</div>
 
 	<!-- Image upload status -->
-	<UploadStatus
-		{isUploading}
-		{uploadProgress}
-		{uploadMessage}
-		{uploadError}
-	/>
+	<UploadStatus {isUploading} {uploadProgress} {uploadMessage} {uploadError} />
 
 	<!-- Status Bar -->
 	<EditorStatusBar

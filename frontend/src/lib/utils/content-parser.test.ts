@@ -208,7 +208,7 @@ describe('Content Parser', () => {
 		it('should parse title and tags from content', () => {
 			const content = '# My Document\n\nThis is content with #tag1 and #tag2.';
 			const metadata = parseDocumentMetadata(content);
-			
+
 			expect(metadata).toEqual({
 				title: 'My Document',
 				tags: ['tag1', 'tag2']
@@ -218,7 +218,7 @@ describe('Content Parser', () => {
 		it('should handle content with title but no tags', () => {
 			const content = '# Document Title\n\nContent without hashtags.';
 			const metadata = parseDocumentMetadata(content);
-			
+
 			expect(metadata).toEqual({
 				title: 'Document Title',
 				tags: []
@@ -228,7 +228,7 @@ describe('Content Parser', () => {
 		it('should handle content with tags but no title', () => {
 			const content = 'Content with #tag1 but no heading.';
 			const metadata = parseDocumentMetadata(content);
-			
+
 			expect(metadata).toEqual({
 				title: 'Untitled Document',
 				tags: ['tag1']
@@ -237,7 +237,7 @@ describe('Content Parser', () => {
 
 		it('should handle empty content', () => {
 			const metadata = parseDocumentMetadata('');
-			
+
 			expect(metadata).toEqual({
 				title: 'Untitled Document',
 				tags: []
@@ -247,7 +247,7 @@ describe('Content Parser', () => {
 		it('should exclude hashtags from code blocks', () => {
 			const content = '# Title\n\nContent with #realtag and ```\n#faketag\n```';
 			const metadata = parseDocumentMetadata(content);
-			
+
 			expect(metadata).toEqual({
 				title: 'Title',
 				tags: ['realtag']

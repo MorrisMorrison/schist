@@ -99,8 +99,9 @@ func loadSecurityHeadersConfig() SecurityHeadersConfig {
 		HSTSPreload:           getEnvBool("SCHIST_HSTS_PRELOAD", false),
 
 		// CSP directives - Svelte-compatible defaults
+		// Note: 'unsafe-inline' for script-src is required for SvelteKit's inline scripts
 		CSPDefaultSrc: getEnv("SCHIST_CSP_DEFAULT_SRC", "'self'"),
-		CSPScriptSrc:  getEnv("SCHIST_CSP_SCRIPT_SRC", "'self'"),
+		CSPScriptSrc:  getEnv("SCHIST_CSP_SCRIPT_SRC", "'self' 'unsafe-inline'"),
 		CSPStyleSrc:   getEnv("SCHIST_CSP_STYLE_SRC", "'self' 'unsafe-inline'"),
 		CSPImgSrc:     getEnv("SCHIST_CSP_IMG_SRC", "'self' data: https:"),
 		CSPFontSrc:    getEnv("SCHIST_CSP_FONT_SRC", "'self' data:"),

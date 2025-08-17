@@ -28,7 +28,7 @@ func TestSecurityHeaders_DefaultConfiguration(t *testing.T) {
 			HSTSIncludeSubdomains: true,
 			HSTSPreload:           false,
 			CSPDefaultSrc:         "'self'",
-			CSPScriptSrc:          "'self'",
+			CSPScriptSrc:          "'self' 'unsafe-inline'",
 			CSPStyleSrc:           "'self' 'unsafe-inline'",
 			CSPImgSrc:             "'self' data: https:",
 			CSPFontSrc:            "'self' data:",
@@ -74,7 +74,7 @@ func TestSecurityHeaders_DefaultConfiguration(t *testing.T) {
 
 	expectedDirectives := []string{
 		"default-src 'self'",
-		"script-src 'self'",
+		"script-src 'self' 'unsafe-inline'",
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data: https:",
 		"object-src 'none'",

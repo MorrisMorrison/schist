@@ -81,12 +81,14 @@ func setupCORS(router *gin.Engine, config *config.Config) {
 }
 
 func setupMiddleware(router *gin.Engine, services *services.Services) {
+	router.Use(middleware.SecurityMiddleware(services.Config))
+	log.Printf("Security headers enabled")
+
 	if services.Config.RateLimitEnabled {
 		router.Use(middleware.RateLimitMiddleware(services.Config.RateLimitRPM))
 		log.Printf("Rate limiting enabled: %d requests per minute", services.Config.RateLimitRPM)
 	}
 
-	// Always add auth middleware - it handles both enabled/disabled cases
 	router.Use(middleware.JWTMiddleware(services.AuthService, services.Config))
 	if services.Config.AuthEnabled {
 		log.Printf("JWT authentication enabled for all endpoints")

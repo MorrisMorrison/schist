@@ -18,7 +18,7 @@
 	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
 
 	let { data }: { data: PageData } = $props();
-	
+
 	const initialContent = '# New Document\n\n';
 	let content = $state(initialContent);
 	let isCreating = $state(false);

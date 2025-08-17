@@ -9,11 +9,9 @@
 	import { Github, FileEdit } from 'lucide-svelte';
 	import EditorSettingsSection from '$lib/components/EditorSettingsSection.svelte';
 	import GitHubSettingsSection from '$lib/components/GitHubSettingsSection.svelte';
-	import GitHubDocsManager from '$lib/components/GitHubDocsManager.svelte';
 	import SecretManager from '$lib/components/SecretManager.svelte';
 	import PasskeyManager from '$lib/components/PasskeyManager.svelte';
 	import UserManagement from '$lib/components/UserManagement.svelte';
-	import { isGitHubConnected } from '$lib/stores/github';
 </script>
 
 <svelte:head>
@@ -67,11 +65,6 @@
 			<GitHubSettingsSection />
 		</CardContent>
 	</Card>
-
-	<!-- GitHub Documentation Repositories - Only show when GitHub is connected -->
-	{#if $isGitHubConnected}
-		<GitHubDocsManager />
-	{/if}
 
 	<!-- Future Settings Sections -->
 	<!-- <Card>

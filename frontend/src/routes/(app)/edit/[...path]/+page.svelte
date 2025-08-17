@@ -5,10 +5,12 @@
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.js';
 	import { generateSlug } from '$lib/utils/path';
-	import { Check, Trash2, RotateCcw, CircleX } from 'lucide-svelte';
+	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -23,12 +25,28 @@
 	let saveError = $state('');
 	let isDeleting = $state(false);
 	let showDeleteModal = $state(false);
-
 	let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+	const documentExistence = useDocumentExistence();
 
 	const originalContent = document.content;
 
 	const titleFromContent = $derived(extractTitleFromContent(content));
+
+	$effect(() => {
+		const title = titleFromContent;
+		if (title.trim()) {
+			const slug = generateSlug(title);
+			const newPath = replaceLastPathSegment(data.path, slug);
+			documentExistence.checkExistence(newPath, data.path);
+		} else {
+			documentExistence.reset();
+		}
+
+		return () => {
+			documentExistence.cleanup();
+		};
+	});
 
 	function replaceLastPathSegment(path: string, newSegment: string): string {
 		const parts = path.split('/').filter(Boolean);
@@ -49,6 +67,16 @@
 		const tags = extractHashtagsFromContent(content);
 		const slug = generateSlug(title);
 		const newPath = replaceLastPathSegment(data.path, slug);
+
+		if (newPath !== data.path) {
+			const exists = await documentActions.checkDocumentExists(newPath);
+			if (exists) {
+				saveError = `A document already exists at "${newPath}". Please choose a different title.`;
+				isSaving = false;
+				return;
+			}
+		}
+
 		try {
 			await documentActions.updateDocumentByPath(
 				data.path,
@@ -204,7 +232,7 @@
 					variant="default"
 					data-testid="save-document-button"
 					onclick={handleSave}
-					disabled={isSaving || !content.trim()}
+					disabled={isSaving || !content.trim() || documentExistence.exists}
 				>
 					{#if isSaving}
 						<RotateCcw class="h-4 w-4 animate-spin" />
@@ -220,19 +248,16 @@
 
 	<!-- Error Message -->
 	{#if saveError}
-		<div class="bg-red-muted rounded-md p-4">
-			<div class="flex">
-				<div class="flex-shrink-0">
-					<CircleX class="text-red-primary h-5 w-5"></CircleX>
-				</div>
-				<div class="ml-3">
-					<h3 class="text-red-primary text-sm font-medium">Error</h3>
-					<div class="text-red-secondary mt-2 text-sm">
-						<p>{saveError}</p>
-					</div>
-				</div>
-			</div>
-		</div>
+		<ErrorAlert error={saveError} onDismiss={() => (saveError = '')} />
+	{/if}
+
+	<!-- Existence Warning -->
+	{#if documentExistence.warning}
+		<ErrorAlert
+			error={documentExistence.warning}
+			variant="warning"
+			onDismiss={() => documentExistence.reset()}
+		/>
 	{/if}
 
 	<!-- Content Editor -->

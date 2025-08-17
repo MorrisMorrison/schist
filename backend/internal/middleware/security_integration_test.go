@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/MorrisMorrison/schist/internal/config"
@@ -134,26 +135,7 @@ func validateSecurityHeaders(t *testing.T, resp *httptest.ResponseRecorder) {
 }
 
 func containsDirective(csp, directive string) bool {
-	// Simple check - in production you might want more sophisticated parsing
-	return len(csp) > 0 && len(directive) > 0 &&
-		(csp == directive ||
-			csp[0:len(directive)] == directive ||
-			csp[len(csp)-len(directive):] == directive ||
-			containsSubstring(csp, "; "+directive) ||
-			containsSubstring(csp, directive+";"))
-}
-
-func containsSubstring(s, substr string) bool {
-	return len(s) >= len(substr) && findSubstring(s, substr) >= 0
-}
-
-func findSubstring(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
+	return strings.Contains(csp, directive)
 }
 
 // TestSecurityHeadersPerformance ensures security headers don't significantly impact performance

@@ -11,7 +11,6 @@ import (
 )
 
 type SecurityHeadersConfig struct {
-	// General security headers
 	CSPEnabled          bool
 	XFrameOptions       string
 	XContentTypeOptions bool
@@ -19,13 +18,11 @@ type SecurityHeadersConfig struct {
 	ReferrerPolicy      string
 	PermissionsPolicy   string
 
-	// HSTS configuration
 	HSTSEnabled           bool
 	HSTSMaxAge            int
 	HSTSIncludeSubdomains bool
 	HSTSPreload           bool
 
-	// CSP directives
 	CSPDefaultSrc string
 	CSPScriptSrc  string
 	CSPStyleSrc   string
@@ -104,7 +101,7 @@ func loadSecurityHeadersConfig() SecurityHeadersConfig {
 		// CSP directives - Svelte-compatible defaults
 		CSPDefaultSrc: getEnv("SCHIST_CSP_DEFAULT_SRC", "'self'"),
 		CSPScriptSrc:  getEnv("SCHIST_CSP_SCRIPT_SRC", "'self'"),
-		CSPStyleSrc:   getEnv("SCHIST_CSP_STYLE_SRC", "'self' 'unsafe-inline'"), // Svelte needs inline styles
+		CSPStyleSrc:   getEnv("SCHIST_CSP_STYLE_SRC", "'self' 'unsafe-inline'"),
 		CSPImgSrc:     getEnv("SCHIST_CSP_IMG_SRC", "'self' data: https:"),
 		CSPFontSrc:    getEnv("SCHIST_CSP_FONT_SRC", "'self' data:"),
 		CSPConnectSrc: getEnv("SCHIST_CSP_CONNECT_SRC", "'self'"),
@@ -113,7 +110,6 @@ func loadSecurityHeadersConfig() SecurityHeadersConfig {
 	}
 }
 
-// loadJWTSecret loads and validates the JWT secret with secure fallbacks
 func loadJWTSecret(environment string) string {
 	result, err := validateAndLoadJWTSecret(environment)
 	if err != nil {
@@ -122,19 +118,16 @@ func loadJWTSecret(environment string) string {
 	return result.Secret
 }
 
-// JWTSecretResult holds the result of JWT secret validation
 type JWTSecretResult struct {
 	Secret    string
 	Generated bool
 	Warning   string
 }
 
-// validateAndLoadJWTSecret validates and loads JWT secret (testable version)
 func validateAndLoadJWTSecret(environment string) (*JWTSecretResult, error) {
 	secret := os.Getenv("SCHIST_JWT_SECRET")
 	isProduction := environment != "development"
 
-	// If no secret is provided, generate a secure one
 	if secret == "" {
 		generated, err := crypto.GenerateJWTSecret()
 		if err != nil {
@@ -152,13 +145,11 @@ func validateAndLoadJWTSecret(environment string) (*JWTSecretResult, error) {
 		}, nil
 	}
 
-	// Validate the provided secret
 	if err := crypto.ValidateJWTSecret(secret, isProduction); err != nil {
 		if isProduction {
 			return nil, fmt.Errorf("invalid JWT secret in production: %w", err)
 		}
 
-		// If it's the old default "secret", replace it with a secure one
 		if secret == "secret" {
 			generated, genErr := crypto.GenerateJWTSecret()
 			if genErr != nil {
@@ -171,7 +162,6 @@ func validateAndLoadJWTSecret(environment string) (*JWTSecretResult, error) {
 			}, nil
 		}
 
-		// For other validation failures in development, warn but allow
 		return &JWTSecretResult{
 			Secret:  secret,
 			Warning: fmt.Sprintf("JWT secret validation failed: %v", err),

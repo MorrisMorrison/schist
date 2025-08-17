@@ -39,12 +39,11 @@ function createPasskeyStore() {
 	return {
 		subscribe,
 
-		// Load passkey status from server
-		async loadStatus(): Promise<PasskeyStatus> {
+		async loadStatus(force = false): Promise<PasskeyStatus> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
 			try {
-				const status = await apiClient.getPasskeyStatus();
+				const status = await apiClient.getPasskeyStatus(force);
 
 				update((state) => ({ ...state, status, loading: false }));
 				return status;
@@ -55,12 +54,11 @@ function createPasskeyStore() {
 			}
 		},
 
-		// Load list of registered passkeys
-		async loadPasskeys(): Promise<PasskeyInfo[]> {
+		async loadPasskeys(force = false): Promise<PasskeyInfo[]> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
 			try {
-				const response = await apiClient.listPasskeys();
+				const response = await apiClient.listPasskeys(force);
 				const passkeys = response.passkeys;
 
 				update((state) => ({ ...state, passkeys, loading: false }));
@@ -72,7 +70,6 @@ function createPasskeyStore() {
 			}
 		},
 
-		// Create a new passkey using WebAuthn
 		async createPasskey(name: string): Promise<string> {
 			if (!isWebAuthnSupported()) {
 				const errorMsg =
@@ -86,7 +83,6 @@ function createPasskeyStore() {
 			try {
 				const credentialId = await registerPasskey(name);
 
-				// Reload passkeys and status
 				await this.loadPasskeys();
 				await this.loadStatus();
 
@@ -121,14 +117,12 @@ function createPasskeyStore() {
 			}
 		},
 
-		// Delete a passkey
 		async deletePasskey(credentialId: string): Promise<void> {
 			update((state) => ({ ...state, loading: true, error: null }));
 
 			try {
 				await apiClient.deletePasskey(credentialId);
 
-				// Reload passkeys and status
 				await this.loadPasskeys();
 				await this.loadStatus();
 
@@ -140,7 +134,6 @@ function createPasskeyStore() {
 			}
 		},
 
-		// Authenticate with WebAuthn and unlock secrets
 		async authenticateWithPasskey(): Promise<string> {
 			if (!isWebAuthnSupported()) {
 				const errorMsg =
@@ -154,10 +147,8 @@ function createPasskeyStore() {
 			try {
 				const credentialId = await webAuthnAuthenticate();
 
-				// Now unlock secrets with the authenticated credential
 				await apiClient.unlockWithPasskey({ credentialId });
 
-				// Update status to reflect unlocked state
 				await this.loadStatus();
 
 				update((state) => ({ ...state, loading: false }));

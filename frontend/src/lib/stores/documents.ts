@@ -89,13 +89,6 @@ export const isOutgoingLinksLoading = derived(linksStore, ($store) => $store.out
 export const linksError = derived(linksStore, ($store) => $store.error);
 
 export const currentFolder = writable<string>('/');
-let lastFolderTreeLoad: number = 0;
-let cachedFolderData: Folder[] | null = null;
-
-function invalidateFolderCache() {
-	cachedFolderData = null;
-	lastFolderTreeLoad = 0;
-}
 
 export const currentFolderDocuments = derived(
 	[documentsStore, currentFolder],
@@ -119,22 +112,25 @@ export const currentFolderDocuments = derived(
 );
 
 export const documentActions = {
-	async loadDocuments() {
+	async loadDocuments(force = false) {
 		documentsStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const documents = (await apiClient.getDocuments()) ?? [];
+			const documents = (await apiClient.getDocuments(force)) ?? [];
 			documentsStore.update((state) => ({
 				...state,
 				documents,
 				loading: false
 			}));
+			return documents;
 		} catch (error) {
 			documentsStore.update((state) => ({
 				...state,
+				documents: [],
 				loading: false,
 				error: error instanceof Error ? error.message : 'Failed to load documents'
 			}));
+			return [];
 		}
 	},
 
@@ -245,7 +241,7 @@ export const documentActions = {
 			}));
 
 			folderActions.loadFolderTree(true).catch(console.error);
-			documentActions.loadDocuments().catch(console.error);
+			documentActions.loadDocuments(true).catch(console.error);
 		} catch (error) {
 			documentsStore.update((state) => ({
 				...state,
@@ -294,7 +290,10 @@ export const documentActions = {
 			const pathChanged = updatedDocument.metaData.path !== path;
 
 			if (pathChanged) {
-				await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree(true)]);
+				await Promise.all([
+					documentActions.loadDocuments(true),
+					folderActions.loadFolderTree(true)
+				]);
 			} else {
 				documentsStore.update((state) => ({
 					...state,
@@ -350,7 +349,7 @@ export const documentActions = {
 			const moveRequest: MoveDocumentRequest = { oldPath, newPath };
 			const result = await apiClient.moveDocument(moveRequest);
 
-			await Promise.all([documentActions.loadDocuments(), folderActions.loadFolderTree(true)]);
+			await Promise.all([documentActions.loadDocuments(true), folderActions.loadFolderTree(true)]);
 
 			currentFolder.set(getParentPath(newPath));
 
@@ -409,6 +408,14 @@ export const documentActions = {
 				outgoingLinksLoading: false,
 				error: error instanceof Error ? error.message : 'Failed to load outgoing links'
 			}));
+		}
+	},
+
+	async checkDocumentExists(path: string): Promise<boolean> {
+		try {
+			return await apiClient.checkDocumentExists(path);
+		} catch {
+			return false;
 		}
 	}
 };
@@ -539,20 +546,10 @@ export const searchActions = {
 
 export const folderActions = {
 	async loadFolderTree(force = false) {
-		if (force) {
-			invalidateFolderCache();
-		}
-
-		if (!force && cachedFolderData && Date.now() - lastFolderTreeLoad < 30000) {
-			return cachedFolderData;
-		}
-
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const folders = await apiClient.getFolderTree();
-			cachedFolderData = folders;
-			lastFolderTreeLoad = Date.now();
+			const folders = await apiClient.getFolderTree(force);
 			foldersStore.update((state) => ({
 				...state,
 				folders,
@@ -593,7 +590,7 @@ export const folderActions = {
 		foldersStore.update((state) => ({ ...state, loading: true, error: null }));
 		try {
 			const result = await apiClient.renameFolder(path, newName);
-			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments()]);
+			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments(true)]);
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;
 		} catch (error) {
@@ -612,7 +609,7 @@ export const folderActions = {
 		try {
 			const result = await apiClient.deleteFolder(path);
 
-			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments()]);
+			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments(true)]);
 
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;
@@ -633,7 +630,7 @@ export const folderActions = {
 			const moveRequest: MoveDocumentRequest = { oldPath, newPath };
 			const result = await apiClient.moveFolder(moveRequest);
 
-			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments()]);
+			await Promise.all([folderActions.loadFolderTree(true), documentActions.loadDocuments(true)]);
 
 			foldersStore.update((state) => ({ ...state, loading: false }));
 			return result;

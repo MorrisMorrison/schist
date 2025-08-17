@@ -73,6 +73,27 @@ func (h *APIHandler) getDocumentByPath(c *gin.Context) {
 	c.JSON(http.StatusOK, document)
 }
 
+func (h *APIHandler) checkDocumentExists(c *gin.Context) {
+	path, apiErr := ValidatePathParameter(c, "path")
+	if apiErr != nil {
+		HandleError(c, apiErr)
+		return
+	}
+	path = utils.EnsureLeadingSlash(path)
+
+	_, err := h.DocumentService.GetDocumentByPath(path)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no such file or directory") {
+			HandleError(c, errors.NewNotFoundError("document", path))
+		} else {
+			HandleError(c, errors.NewDatabaseError("get document", err))
+		}
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	path, apiErr := ValidatePathParameter(c, "path")
 	if apiErr != nil {

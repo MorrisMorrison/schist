@@ -6,13 +6,12 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { Github } from 'lucide-svelte';
+	import { Github, FileEdit } from 'lucide-svelte';
+	import EditorSettingsSection from '$lib/components/EditorSettingsSection.svelte';
 	import GitHubSettingsSection from '$lib/components/GitHubSettingsSection.svelte';
-	import GitHubDocsManager from '$lib/components/GitHubDocsManager.svelte';
 	import SecretManager from '$lib/components/SecretManager.svelte';
 	import PasskeyManager from '$lib/components/PasskeyManager.svelte';
 	import UserManagement from '$lib/components/UserManagement.svelte';
-	import { isGitHubConnected } from '$lib/stores/github';
 </script>
 
 <svelte:head>
@@ -25,6 +24,22 @@
 		<h1 class="text-foreground text-3xl font-bold tracking-tight">Settings</h1>
 		<p class="text-muted-foreground">Manage your application settings and integrations.</p>
 	</div>
+
+	<!-- Editor Settings Section -->
+	<Card>
+		<CardHeader>
+			<CardTitle class="flex items-center gap-3" data-testid="editor-settings-title">
+				<FileEdit class="h-6 w-6 text-[--muted-foreground]" />
+				Editor Settings
+			</CardTitle>
+			<CardDescription>
+				Configure your markdown editor preferences and default behavior.
+			</CardDescription>
+		</CardHeader>
+		<CardContent>
+			<EditorSettingsSection />
+		</CardContent>
+	</Card>
 
 	<!-- User Management Section -->
 	<UserManagement />
@@ -50,11 +65,6 @@
 			<GitHubSettingsSection />
 		</CardContent>
 	</Card>
-
-	<!-- GitHub Documentation Repositories - Only show when GitHub is connected -->
-	{#if $isGitHubConnected}
-		<GitHubDocsManager />
-	{/if}
 
 	<!-- Future Settings Sections -->
 	<!-- <Card>

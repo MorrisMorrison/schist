@@ -17,13 +17,12 @@ Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like fun
 ### **Authentication & Security**
 - **Passkey authentication** - Modern passwordless login using WebAuthn
 - **JWT-based security** - Secure token-based authentication
-- **Secret storage** - Encrypted personal secrets protected by passkeys
+- **Secret storage** - Optional encrypted personal secrets protected by passkeys
 
 ### **Simple User Management**
 - **Shared workspace** - All authenticated users have admin access
 - **Invite system** - Generate invitation links to onboard new users
 - **No complex permissions** - Simplified collaboration model
-- **User dashboard** - Manage users and generate invites
 
 ### **Public Sharing**
 - **Share documents publicly** - Create public read-only links

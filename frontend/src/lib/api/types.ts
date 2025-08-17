@@ -317,46 +317,6 @@ export interface GitHubSetupResponse {
 	sync_on_save: boolean;
 }
 
-// GitHub Docs types
-export interface GitHubDocsRepoConfig {
-	owner: string;
-	repository: string;
-	docs_folder: string;
-	branch: string;
-	last_sync: string;
-	sync_error: string;
-	document_count: number;
-}
-
-export interface GitHubFolder {
-	name: string;
-	path: string;
-	type: 'dir' | 'file';
-	children?: GitHubFolder[];
-}
-
-export interface GitHubDocument {
-	name: string;
-	path: string;
-	content: string;
-	sha: string;
-	repository: string;
-	owner: string;
-	branch: string;
-	size: number;
-	last_modified: string;
-	html_url?: string;
-	download_url?: string;
-}
-
-export interface GitHubDocsRepositoriesResponse {
-	repositories: GitHubDocsRepoConfig[];
-}
-
-export interface GitHubDocsFilesResponse {
-	files: GitHubDocument[];
-}
-
 export interface GitHubSyncResponse {
 	message: string;
 	success_count: number;

@@ -217,4 +217,15 @@ export class EditorPage extends BasePage {
 	async fillPageDetails(title: string, content: string, tags: string[] = []) {
 		return this.fillDocumentDetails(title, content, tags);
 	}
+
+	async fillTitle(title: string) {
+		await this.clearContent();
+		await this.typeContent(`# ${title}\n\n`);
+	}
+
+	async fillContent(content: string) {
+		await this.contentEditor.click();
+		await this.page.keyboard.press('Control+End');
+		await this.contentEditor.pressSequentially(content);
+	}
 }

@@ -6,8 +6,7 @@ import type {
 	GitHubSyncResult,
 	GitHubSetupRequest,
 	GitHubConnectionTest,
-	GitHubConfigRequest,
-	GitHubDocsRepoConfig
+	GitHubConfigRequest
 } from '../api/types.js';
 import { browser } from '$app/environment';
 
@@ -24,7 +23,6 @@ interface GitHubState {
 	checkingHealth: boolean;
 	repairingRepository: boolean;
 	lastRepairResult: { success: boolean; message?: string; error?: string } | null;
-	docsRepositories: GitHubDocsRepoConfig[];
 }
 
 const initialState: GitHubState = {
@@ -39,8 +37,7 @@ const initialState: GitHubState = {
 	gitHealthStatus: null,
 	checkingHealth: false,
 	repairingRepository: false,
-	lastRepairResult: null,
-	docsRepositories: []
+	lastRepairResult: null
 };
 
 export const githubStore = writable<GitHubState>(initialState);
@@ -57,7 +54,6 @@ export const gitHealthStatus = derived(githubStore, ($store) => $store.gitHealth
 export const isCheckingHealth = derived(githubStore, ($store) => $store.checkingHealth);
 export const isRepairingRepository = derived(githubStore, ($store) => $store.repairingRepository);
 export const lastRepairResult = derived(githubStore, ($store) => $store.lastRepairResult);
-export const docsRepositories = derived(githubStore, ($store) => $store.docsRepositories);
 
 export const isGitHubConnected = derived(
 	githubConnectionStatus,
@@ -70,11 +66,11 @@ export const canSync = derived(
 );
 
 export const githubActions = {
-	async loadGitHubSettings() {
+	async loadGitHubSettings(force = false) {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const settings = await apiClient.getGitHubSettings();
+			const settings = await apiClient.getGitHubSettings(force);
 			githubStore.update((state) => ({
 				...state,
 				settings,
@@ -91,11 +87,11 @@ export const githubActions = {
 		}
 	},
 
-	async loadConnectionStatus() {
+	async loadConnectionStatus(force = false) {
 		githubStore.update((state) => ({ ...state, loading: true, error: null }));
 
 		try {
-			const connectionStatus = await apiClient.getGitHubConnectionStatus();
+			const connectionStatus = await apiClient.getGitHubConnectionStatus(force);
 			githubStore.update((state) => ({
 				...state,
 				connectionStatus,
@@ -118,9 +114,9 @@ export const githubActions = {
 		try {
 			const setupResult = await apiClient.setupGitHub(setupRequest);
 
-			const settings = setupResult.settings || (await apiClient.getGitHubSettings());
+			const settings = setupResult.settings || (await apiClient.getGitHubSettings(true));
 			const connectionStatus =
-				setupResult.connection || (await apiClient.getGitHubConnectionStatus());
+				setupResult.connection || (await apiClient.getGitHubConnectionStatus(true));
 
 			githubStore.update((state) => ({
 				...state,
@@ -145,8 +141,8 @@ export const githubActions = {
 
 		try {
 			await apiClient.updateGitHubSettings(settingsUpdate);
-			const settings = await apiClient.getGitHubSettings();
-			const connectionStatus = await apiClient.getGitHubConnectionStatus();
+			const settings = await apiClient.getGitHubSettings(true);
+			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
 			githubStore.update((state) => ({
 				...state,
 				settings,
@@ -200,7 +196,7 @@ export const githubActions = {
 		try {
 			const result = await apiClient.syncToGitHub();
 
-			const connectionStatus = await apiClient.getGitHubConnectionStatus();
+			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
 
 			githubStore.update((state) => ({
 				...state,
@@ -373,108 +369,6 @@ export const githubActions = {
 
 	clearRepairResult() {
 		githubStore.update((state) => ({ ...state, lastRepairResult: null }));
-	},
-
-	// GitHub docs actions
-	async loadDocsRepositories() {
-		githubStore.update((state) => ({ ...state, loading: true, error: null }));
-
-		try {
-			const response = await apiClient.getDocsRepositories();
-			githubStore.update((state) => ({
-				...state,
-				docsRepositories: response.repositories,
-				loading: false
-			}));
-			return response.repositories;
-		} catch (error) {
-			githubStore.update((state) => ({
-				...state,
-				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to load docs repositories'
-			}));
-			throw error;
-		}
-	},
-
-	async addDocsRepository(owner: string, repo: string, docsFolder?: string, branch?: string) {
-		githubStore.update((state) => ({ ...state, loading: true, error: null }));
-
-		try {
-			const result = await apiClient.addDocsRepository(owner, repo, docsFolder, branch);
-			// Reload repositories to get updated list with the new repo
-			await this.loadDocsRepositories();
-			return result;
-		} catch (error) {
-			githubStore.update((state) => ({
-				...state,
-				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to add docs repository'
-			}));
-			throw error;
-		}
-	},
-
-	async removeDocsRepository(owner: string, repo: string) {
-		githubStore.update((state) => ({ ...state, loading: true, error: null }));
-
-		try {
-			const result = await apiClient.removeDocsRepository(owner, repo);
-			// Reload repositories to get updated list without the removed repo
-			await this.loadDocsRepositories();
-			return result;
-		} catch (error) {
-			githubStore.update((state) => ({
-				...state,
-				loading: false,
-				error: error instanceof Error ? error.message : 'Failed to remove docs repository'
-			}));
-			throw error;
-		}
-	},
-
-	async syncDocsRepository(owner: string, repo: string) {
-		githubStore.update((state) => ({ ...state, syncing: true, error: null }));
-
-		try {
-			const result = await apiClient.syncDocsRepository(owner, repo);
-			// Reload repositories to get updated sync status and document counts
-			await this.loadDocsRepositories();
-			githubStore.update((state) => ({
-				...state,
-				syncing: false
-			}));
-			return result;
-		} catch (error) {
-			githubStore.update((state) => ({
-				...state,
-				syncing: false,
-				error: error instanceof Error ? error.message : 'Failed to sync docs repository'
-			}));
-			throw error;
-		}
-	},
-
-	async syncAllDocsRepositories() {
-		githubStore.update((state) => ({ ...state, syncing: true, error: null }));
-
-		try {
-			const result = await apiClient.syncAllDocsRepositories();
-			// Reload repositories to get updated sync status and document counts
-			await this.loadDocsRepositories();
-			githubStore.update((state) => ({
-				...state,
-				syncing: false
-			}));
-			return result;
-		} catch (error) {
-			githubStore.update((state) => ({
-				...state,
-				syncing: false,
-				error: error instanceof Error ? error.message : 'Failed to sync all docs repositories'
-			}));
-			throw error;
-		}
 	}
 };
 
@@ -482,7 +376,5 @@ if (browser) {
 	// Delay initial refresh to avoid interference with setup flows
 	setTimeout(() => {
 		githubActions.refresh().catch(console.error);
-		// Load docs repositories on initialization
-		githubActions.loadDocsRepositories().catch(console.error);
 	}, 500);
 }

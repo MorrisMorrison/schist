@@ -348,6 +348,46 @@ class SchістApiClient {
 		return this.request<Document>(buildApiEndpoint('/documents', path));
 	}
 
+	async checkDocumentExists(path: string): Promise<boolean> {
+		const url = `${this.getApiUrl()}${buildApiEndpoint('/documents', path)}`;
+
+		const headers: Record<string, string> = {};
+		if (this.authToken) {
+			headers.Authorization = `Bearer ${this.authToken}`;
+		}
+
+		try {
+			const response = await fetch(url, {
+				method: 'HEAD',
+				headers
+			});
+
+			if (response.status === 200) {
+				return true;
+			} else if (response.status === 404) {
+				return false;
+			} else if (response.status === 401 && browser) {
+				await this.handleAuthenticationError();
+				throw new Error('Authentication required');
+			} else {
+				throw new Error(
+					`Failed to check document existence: ${response.status} ${response.statusText}`
+				);
+			}
+		} catch (error) {
+			if (error instanceof Error && error.message === 'Authentication required') {
+				throw error;
+			}
+			if (error instanceof TypeError) {
+				// TypeError is thrown by fetch for network errors
+				throw new Error(`Network error while checking document existence: ${error.message}`);
+			}
+			throw new Error(
+				`Unexpected error while checking document existence: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
 	async updateDocumentByPath(
 		path: string,
 		documentData: UpdateDocumentRequest,

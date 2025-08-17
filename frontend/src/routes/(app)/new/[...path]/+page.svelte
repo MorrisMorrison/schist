@@ -3,26 +3,42 @@
 	import Editor from '$lib/components/editor/Editor.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents';
-	import { generateSlug } from '$lib/utils/path';
-	import { Check, CircleX, Loader2 } from 'lucide-svelte';
+	import { generateSlug, normalizePath } from '$lib/utils/path';
+	import { Check, Loader2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
 	import { templatesStore, templateActions } from '$lib/stores/templates';
 	import type { Template } from '$lib/api/types';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
 
 	let { data }: { data: PageData } = $props();
 	let content = $state('# New Document\n\n');
 	let isCreating = $state(false);
 	let createError = $state('');
-
 	let editorRef = $state<Editor>();
+
+	const documentExistence = useDocumentExistence();
 
 	const title = $derived(extractTitleFromContent(content));
 
 	$effect(() => {
 		templateActions.loadTemplates();
+	});
+
+	$effect(() => {
+		if (title.trim()) {
+			const fullPath = generatePath(title);
+			documentExistence.checkExistence(fullPath);
+		} else {
+			documentExistence.reset();
+		}
+
+		return () => {
+			documentExistence.cleanup();
+		};
 	});
 
 	async function handleCreate() {
@@ -38,9 +54,16 @@
 			const tags = extractHashtagsFromContent(content);
 			const fullPath = generatePath(title);
 
+			const exists = await documentActions.checkDocumentExists(fullPath);
+			if (exists) {
+				createError = `A document already exists at "${fullPath}". Please choose a different title.`;
+				isCreating = false;
+				return;
+			}
+
 			const response = await documentActions.createDocument({
 				metaData: {
-					path: fullPath,
+					path: normalizePath(fullPath),
 					title: title.trim(),
 					tags: tags
 				},
@@ -127,7 +150,7 @@
 				<Button
 					data-testid="save-document-button"
 					onclick={handleCreate}
-					disabled={isCreating || !content.trim()}
+					disabled={isCreating || !content.trim() || documentExistence.exists}
 				>
 					{#if isCreating}
 						<Loader2 class="h-4 w-4 animate-spin"></Loader2>
@@ -143,19 +166,16 @@
 
 	<!-- Error Message -->
 	{#if createError}
-		<div class="bg-red-muted rounded-md p-4">
-			<div class="flex">
-				<div class="flex-shrink-0">
-					<CircleX class="h-5 w-5 text-red-400"></CircleX>
-				</div>
-				<div class="ml-3">
-					<h3 class="text-red-primary text-sm font-medium">Error</h3>
-					<div class="text-red-secondary mt-2 text-sm">
-						<p>{createError}</p>
-					</div>
-				</div>
-			</div>
-		</div>
+		<ErrorAlert error={createError} onDismiss={() => (createError = '')} />
+	{/if}
+
+	<!-- Existence Warning -->
+	{#if documentExistence.warning}
+		<ErrorAlert
+			error={documentExistence.warning}
+			variant="warning"
+			onDismiss={() => documentExistence.reset()}
+		/>
 	{/if}
 
 	<!-- Content Editor -->

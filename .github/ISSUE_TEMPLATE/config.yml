@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/MorrisMorrison/schist/tree/main/docs
+    about: Check the documentation for guides, API reference, and configuration help
+  - name: 💬 Discussions
+    url: https://github.com/MorrisMorrison/schist/discussions
+    about: Ask questions, share ideas, or discuss Schist with the community
+  - name: 🚀 Quick Start Guide
+    url: https://github.com/MorrisMorrison/schist/blob/main/docs/QUICK_START.md
+    about: New to Schist? Start here for installation and setup instructions
+  - name: ⚙️ Configuration Help
+    url: https://github.com/MorrisMorrison/schist/blob/main/docs/CONFIGURATION.md
+    about: Having trouble with configuration? Check the configuration guide
+  - name: 🛠️ Development Guide
+    url: https://github.com/MorrisMorrison/schist/blob/main/docs/DEVELOPMENT.md
+    about: Want to contribute? Check the development setup and contribution guidelines

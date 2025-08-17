@@ -1,7 +1,5 @@
 <script lang="ts">
-	interface ResizeHandleProps {
-		onResizeStart: (event: MouseEvent) => void;
-	}
+	import type { ResizeHandleProps } from '$lib/types/editor';
 
 	let { onResizeStart }: ResizeHandleProps = $props();
 </script>

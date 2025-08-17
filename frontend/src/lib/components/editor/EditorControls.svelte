@@ -1,11 +1,5 @@
 <script lang="ts">
-	interface EditorControlsProps {
-		isFullscreen: boolean;
-		isDirty: boolean;
-		lastSaved: Date | null;
-		isPreviewVisible: boolean;
-		onTogglePreview: () => void;
-	}
+	import type { EditorControlsProps } from '$lib/types/editor';
 
 	let {
 		isFullscreen = false,

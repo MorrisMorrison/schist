@@ -9,19 +9,7 @@
 	import { hashtagExtension } from '$lib/utils/hashtag-extension.js';
 	import { combinedAutocompletionExtension } from '$lib/utils/combined-autocomplete.js';
 	import type { Asset } from '$lib/api/types.js';
-	import type { FormattingType } from '$lib/types/editor';
-
-	interface EditorContentProps {
-		content: string;
-		theme: 'light' | 'dark';
-		readonly?: boolean;
-		onContentChange?: (content: string) => void;
-		onScrollSync?: () => void;
-		onUploadStart?: () => void;
-		onUploadProgress?: (progress: number) => void;
-		onUploadComplete?: (asset: Asset) => void;
-		onUploadError?: (error: string) => void;
-	}
+	import type { FormattingType, EditorContentProps } from '$lib/types/editor';
 
 	let {
 		content = '',

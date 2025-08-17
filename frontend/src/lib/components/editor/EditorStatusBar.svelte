@@ -1,10 +1,5 @@
 <script lang="ts">
-	interface EditorStatusBarProps {
-		content: string;
-		theme: 'light' | 'dark';
-		autoSaveEnabled: boolean;
-		isFullscreen: boolean;
-	}
+	import type { EditorStatusBarProps } from '$lib/types/editor';
 
 	let {
 		content = '',

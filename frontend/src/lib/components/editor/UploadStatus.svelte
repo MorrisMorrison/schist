@@ -1,10 +1,5 @@
 <script lang="ts">
-	interface UploadStatusProps {
-		isUploading: boolean;
-		uploadProgress: number;
-		uploadMessage: string | null;
-		uploadError: string | null;
-	}
+	import type { UploadStatusProps } from '$lib/types/editor';
 
 	let {
 		isUploading = false,

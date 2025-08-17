@@ -1,12 +1,6 @@
 <script lang="ts">
 	import MarkdownPreview from './MarkdownPreview.svelte';
-
-	interface PreviewPanelProps {
-		content: string;
-		theme: 'light' | 'dark';
-		container?: HTMLElement | null;
-		onScroll?: () => void;
-	}
+	import type { PreviewPanelProps } from '$lib/types/editor';
 
 	let {
 		content = '',

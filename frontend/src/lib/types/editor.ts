@@ -50,7 +50,7 @@ export interface EditorContentProps {
 	onScrollSync?: () => void;
 	onUploadStart?: () => void;
 	onUploadProgress?: (progress: number) => void;
-	onUploadComplete?: (asset: any) => void;
+	onUploadComplete?: (asset: unknown) => void;
 	onUploadError?: (error: string) => void;
 }
 

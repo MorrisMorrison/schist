@@ -21,7 +21,7 @@
 		container = previewContainer;
 	});
 
-	function handleScroll() {
+	function _handleScroll() {
 		if (onScroll) {
 			onScroll();
 		}

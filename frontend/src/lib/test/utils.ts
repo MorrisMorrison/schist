@@ -1,17 +1,16 @@
-import { vi, type MockedFunction } from 'vitest';
-import type { ComponentType, SvelteComponent } from 'svelte';
+import { vi, expect, type MockedFunction } from 'vitest';
 
 /**
  * Create a mock function with better typing for events
  */
-export function createMockEventHandler<T = any>(): MockedFunction<(event: T) => void> {
+export function createMockEventHandler<T = unknown>(): MockedFunction<(event: T) => void> {
 	return vi.fn();
 }
 
 /**
  * Create mock props for common component patterns
  */
-export function createMockProps(overrides: Record<string, any> = {}): Record<string, any> {
+export function createMockProps(overrides: Record<string, unknown> = {}): Record<string, unknown> {
 	return {
 		class: '',
 		...overrides
@@ -28,7 +27,7 @@ export async function waitForNextTick(): Promise<void> {
 /**
  * Fire a custom event on an element
  */
-export function fireCustomEvent(element: Element, eventName: string, detail?: any) {
+export function fireCustomEvent(element: Element, eventName: string, detail?: unknown) {
 	const event = new CustomEvent(eventName, { detail });
 	element.dispatchEvent(event);
 }

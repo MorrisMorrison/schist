@@ -6,12 +6,11 @@ import {
 	foldersStore,
 	documentActions,
 	searchActions,
-	folderActions,
 	currentFolderDocuments,
 	currentFolder
 } from './documents';
 import { apiClient } from '../api/client';
-import type { Document, CreateDocumentRequest, UpdateDocumentRequest } from '../api/types';
+import type { CreateDocumentRequest, UpdateDocumentRequest } from '../api/types';
 import { testData } from '../test/utils';
 
 // Mock the API client
@@ -196,8 +195,20 @@ describe('Documents Store', () => {
 					content: '# New Document'
 				};
 
-				const createdDocument = { ...testData.document, ...createRequest };
-				vi.mocked(apiClient.createDocument).mockResolvedValue({ path: '/folder/new-document' });
+				const createdDocument = {
+					metaData: {
+						...createRequest.metaData,
+						path: '/folder/new-document',
+						slug: 'new-document',
+						created: '2024-01-01T00:00:00Z',
+						updated: '2024-01-01T00:00:00Z'
+					},
+					content: createRequest.content
+				};
+				vi.mocked(apiClient.createDocument).mockResolvedValue({
+					message: 'Document created successfully',
+					path: '/folder/new-document'
+				});
 				vi.mocked(apiClient.getDocumentByPath).mockResolvedValue(createdDocument);
 
 				const result = await documentActions.createDocument(createRequest);
@@ -242,7 +253,10 @@ describe('Documents Store', () => {
 				});
 
 				const updateRequest: UpdateDocumentRequest = {
-					metaData: { title: 'Updated Title' },
+					metaData: {
+						title: 'Updated Title',
+						path: existingDoc.metaData.path
+					},
 					content: '# Updated Content'
 				};
 
@@ -294,7 +308,11 @@ describe('Documents Store', () => {
 		describe('search', () => {
 			it('should perform search successfully', async () => {
 				const mockResults = [testData.document];
-				vi.mocked(apiClient.searchDocuments).mockResolvedValue({ documents: mockResults });
+				vi.mocked(apiClient.searchDocuments).mockResolvedValue({
+					documents: mockResults,
+					query: 'test query tag:tag1',
+					total: mockResults.length
+				});
 
 				const result = await searchActions.search('test query', ['tag1']);
 

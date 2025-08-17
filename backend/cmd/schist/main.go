@@ -81,6 +81,10 @@ func setupCORS(router *gin.Engine, config *config.Config) {
 }
 
 func setupMiddleware(router *gin.Engine, services *services.Services) {
+	// Security headers middleware - always enabled for security
+	router.Use(middleware.SecurityMiddleware(services.Config))
+	log.Printf("Security headers enabled")
+
 	if services.Config.RateLimitEnabled {
 		router.Use(middleware.RateLimitMiddleware(services.Config.RateLimitRPM))
 		log.Printf("Rate limiting enabled: %d requests per minute", services.Config.RateLimitRPM)

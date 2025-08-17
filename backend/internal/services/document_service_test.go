@@ -676,8 +676,8 @@ func TestDocumentService_RenameFolder(t *testing.T) {
 		require.NoError(t, err)
 		originalUpdated := originalPage.MetaData.Updated
 
-		// Small delay to ensure timestamp difference
-		time.Sleep(10 * time.Millisecond)
+		// Capture time before rename operation
+		beforeRename := time.Now()
 
 		// Rename folder
 		err = documentService.RenameFolder("/timestest", "renamed-timestest")
@@ -687,6 +687,7 @@ func TestDocumentService_RenameFolder(t *testing.T) {
 		updatedPage, err := documentService.GetDocumentByPath("/renamed-timestest/page")
 		assert.NoError(t, err)
 		assert.True(t, updatedPage.MetaData.Updated.After(originalUpdated))
+		assert.True(t, updatedPage.MetaData.Updated.After(beforeRename) || updatedPage.MetaData.Updated.Equal(beforeRename))
 	})
 
 	t.Run("handles folder with subfolder correctly", func(t *testing.T) {

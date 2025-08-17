@@ -5,9 +5,17 @@
 
 	const props: Omit<EditorProps, 'theme'> = $props();
 
-	let EditorComponent = $state<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+	let EditorComponent = $state<typeof import('./Editor.svelte').default | null>(null);
 	let isLoading = $state(true);
 	let loadError = $state<string | null>(null);
+	let editorInstance = $state<{ setContentImmediate: (content: string) => void } | null>(null);
+
+	// Export the setContentImmediate method to forward to the actual editor
+	export function setContentImmediate(content: string) {
+		if (editorInstance && editorInstance.setContentImmediate) {
+			editorInstance.setContentImmediate(content);
+		}
+	}
 
 	onMount(async () => {
 		try {
@@ -43,5 +51,5 @@
 		</div>
 	</div>
 {:else if EditorComponent}
-	<EditorComponent {...props} />
+	<EditorComponent {...props} bind:this={editorInstance} />
 {/if}

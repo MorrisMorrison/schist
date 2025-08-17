@@ -23,7 +23,7 @@
 	let content = $state(initialContent);
 	let isCreating = $state(false);
 	let createError = $state('');
-	let editorRef = $state<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
+	let editorRef = $state<LazyEditor>();
 
 	const documentExistence = useDocumentExistence();
 

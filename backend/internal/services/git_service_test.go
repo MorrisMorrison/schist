@@ -268,17 +268,12 @@ func TestGitService_GetDocumentVersions(t *testing.T) {
 			{"# Version 3\n\nFinal content", "Final version"},
 		}
 
-		for i, version := range versions {
+		for _, version := range versions {
 			page := createTestDocument(docPath, "Version History Test", version.content)
 			writeTestDocumentToFile(t, testDir, "version-history-test", page)
 
 			err := gitService.CommitDocument(docPath, version.message)
 			require.NoError(t, err)
-
-			// Small delay to ensure different timestamps
-			if i < len(versions)-1 {
-				time.Sleep(10 * time.Millisecond)
-			}
 		}
 
 		// Retrieve version history
@@ -586,7 +581,7 @@ func TestGitService_Integration(t *testing.T) {
 		}
 
 		// Create and commit all documents
-		for i, doc := range documents {
+		for _, doc := range documents {
 			page := createTestDocument(doc.path, doc.title, doc.content)
 
 			// Handle nested paths
@@ -595,16 +590,11 @@ func TestGitService_Integration(t *testing.T) {
 
 			err := gitService.CommitDocument(doc.path, fmt.Sprintf("Add %s", doc.title))
 			assert.NoError(t, err)
-
-			// Small delay to ensure different timestamps
-			if i < len(documents)-1 {
-				time.Sleep(10 * time.Millisecond)
-			}
 		}
 
 		// Update documents in different order
 		updateOrder := []int{1, 0, 2} // B, A, C
-		for i, docIndex := range updateOrder {
+		for _, docIndex := range updateOrder {
 			doc := documents[docIndex]
 			updatedPage := createTestDocument(doc.path, doc.title+" Updated", doc.content+" - Updated")
 
@@ -613,10 +603,6 @@ func TestGitService_Integration(t *testing.T) {
 
 			err := gitService.CommitDocument(doc.path, fmt.Sprintf("Update %s", doc.title))
 			assert.NoError(t, err)
-
-			if i < len(updateOrder)-1 {
-				time.Sleep(10 * time.Millisecond)
-			}
 		}
 
 		// Verify each document has correct version history
@@ -658,8 +644,6 @@ func TestGitService_Integration(t *testing.T) {
 
 			err := gitService.CommitDocument(doc.path, fmt.Sprintf("Add %s", doc.title))
 			assert.NoError(t, err)
-
-			time.Sleep(5 * time.Millisecond) // Small delay for timestamp differences
 		}
 
 		// Verify all documents are tracked and retrievable

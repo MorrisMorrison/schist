@@ -44,7 +44,7 @@
 	let isPreviewScrolling = $state(false);
 	let scrollSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	const currentTheme = $derived(theme.value);
+	const currentTheme = $derived(theme.current);
 
 	const autoSaveConfig = {
 		enabled: true,

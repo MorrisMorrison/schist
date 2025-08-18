@@ -38,9 +38,7 @@ class AuthService {
 			return;
 		}
 
-		const currentAuth = get(authStore);
-
-		if (currentAuth.token) {
+		if (authStore.token) {
 			try {
 				authActions.setLoading(true);
 				const user = await apiClient.getCurrentUser();
@@ -123,9 +121,7 @@ class AuthService {
 	}
 
 	private async doCheckAuthStatus(): Promise<boolean> {
-		const currentAuth = get(authStore);
-
-		if (!currentAuth.token) {
+		if (!authStore.token) {
 			return false;
 		}
 

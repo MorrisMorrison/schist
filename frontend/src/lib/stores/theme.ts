@@ -21,30 +21,38 @@ function getInitialTheme(): Theme {
 	return getSystemTheme();
 }
 
-// Svelte 5 runes-based theme store state
-let currentTheme = $state<Theme>(getInitialTheme());
+function createThemeStore() {
+	let currentTheme = $state<Theme>(getInitialTheme());
 
-// Effect to persist theme to localStorage and update DOM
-$effect(() => {
 	if (browser) {
-		localStorage.setItem('theme', currentTheme);
-		document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+		$effect(() => {
+			localStorage.setItem('theme', currentTheme);
+			document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+		});
 	}
-});
 
-// Export the reactive state directly for use in components
-export const theme = {
-	get current() {
-		return currentTheme;
-	}
-};
+	return {
+		get current() {
+			return currentTheme;
+		},
+		set: (newTheme: Theme) => {
+			currentTheme = newTheme;
+		},
+		toggle: () => {
+			currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+		}
+	};
+}
 
+export const themeStore = createThemeStore();
+
+// Export actions for backward compatibility and cleaner API
 export const themeActions = {
 	setTheme: (newTheme: Theme) => {
-		currentTheme = newTheme;
+		themeStore.set(newTheme);
 	},
 
 	toggleTheme: () => {
-		currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+		themeStore.toggle();
 	}
 };

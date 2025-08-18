@@ -539,6 +539,12 @@ class SchістApiClient {
 			});
 
 			xhr.open('POST', url);
+
+			// Add authorization header if we have a token
+			if (this.authToken) {
+				xhr.setRequestHeader('Authorization', `Bearer ${this.authToken}`);
+			}
+
 			xhr.send(formData);
 		});
 	}

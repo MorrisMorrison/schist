@@ -282,14 +282,7 @@
 <svelte:window onclick={handleOutsideClick} />
 
 <!-- Initialize manager -->
-<FolderTreeManager
-	bind:this={manager}
-	{showPages}
-	{storageKey}
-	onCurrentFolderChange={(_path) => {
-		// Handle current folder changes if needed
-	}}
-/>
+<FolderTreeManager bind:this={manager} {showPages} {storageKey} />
 
 <div class={cn('select-none', className)}>
 	{#if showActions}

@@ -43,6 +43,13 @@ export class FolderTreeState {
 	}
 
 	/**
+	 * Refresh a Set to trigger reactivity (private helper)
+	 */
+	private _refreshSet<T>(set: Set<T>): Set<T> {
+		return new Set(set);
+	}
+
+	/**
 	 * Toggle expansion state of a folder
 	 */
 	toggleExpanded(path: string): void {
@@ -54,9 +61,8 @@ export class FolderTreeState {
 			this.userCollapsedFolders.delete(path);
 		}
 
-		// Trigger reactivity
-		this.expandedFolders = new Set(this.expandedFolders);
-		this.userCollapsedFolders = new Set(this.userCollapsedFolders);
+		this.expandedFolders = this._refreshSet(this.expandedFolders);
+		this.userCollapsedFolders = this._refreshSet(this.userCollapsedFolders);
 
 		this.saveToStorage();
 	}
@@ -67,7 +73,7 @@ export class FolderTreeState {
 	expandFolder(path: string): void {
 		if (!this.expandedFolders.has(path)) {
 			this.expandedFolders.add(path);
-			this.expandedFolders = new Set(this.expandedFolders);
+			this.expandedFolders = this._refreshSet(this.expandedFolders);
 			this.saveToStorage();
 		}
 	}

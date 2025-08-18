@@ -6,8 +6,7 @@
 		folders,
 		isFoldersLoading,
 		documentsStore,
-		documentActions,
-		currentFolder
+		documentActions
 	} from '$lib/stores/documents';
 	import { folderActions } from '$lib/stores/documents';
 	import type { Folder, Document } from '$lib/api/types.js';
@@ -16,14 +15,9 @@
 	interface Props {
 		showPages?: boolean;
 		storageKey?: string;
-		onCurrentFolderChange?: (path: string) => void;
 	}
 
-	let {
-		showPages = false,
-		storageKey: _storageKey = 'folder-tree-expanded',
-		onCurrentFolderChange
-	}: Props = $props();
+	let { showPages = false, storageKey: _storageKey = 'folder-tree-expanded' }: Props = $props();
 
 	const folderLoader = useOptimizedLoading(200, 150);
 	const dragAndDrop = useDragAndDrop(showPages);
@@ -83,14 +77,6 @@
 			folderLoader.startLoading();
 		} else {
 			folderLoader.stopLoading();
-		}
-	});
-
-	// Handle current folder changes
-	$effect(() => {
-		const current = $currentFolder;
-		if (current) {
-			onCurrentFolderChange?.(current);
 		}
 	});
 

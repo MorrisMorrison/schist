@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { browser } from '$app/environment';
 import { apiClient } from '$lib/api/client';
 import {
 	registerPasskey,
@@ -26,46 +26,66 @@ interface PasskeyStoreState {
 	error: string | null;
 }
 
-const initialState: PasskeyStoreState = {
+const defaultPasskeyState: PasskeyStoreState = {
 	passkeys: [],
 	status: null,
 	loading: false,
 	error: null
 };
 
+let passkeyState: PasskeyStoreState = defaultPasskeyState;
+
+if (browser) {
+	passkeyState = $state<PasskeyStoreState>(defaultPasskeyState);
+}
+
 function createPasskeyStore() {
-	const { subscribe, set, update } = writable<PasskeyStoreState>(initialState);
-
 	return {
-		subscribe,
-
 		async loadStatus(force = false): Promise<PasskeyStatus> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			if (browser) {
+				passkeyState.loading = true;
+				passkeyState.error = null;
+			}
 
 			try {
 				const status = await apiClient.getPasskeyStatus(force);
 
-				update((state) => ({ ...state, status, loading: false }));
+				if (browser) {
+					passkeyState.status = status;
+					passkeyState.loading = false;
+				}
 				return status;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load passkey status';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+					passkeyState.loading = false;
+				}
 				throw error;
 			}
 		},
 
 		async loadPasskeys(force = false): Promise<PasskeyInfo[]> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			if (browser) {
+				passkeyState.loading = true;
+				passkeyState.error = null;
+			}
 
 			try {
 				const response = await apiClient.listPasskeys(force);
 				const passkeys = response.passkeys;
 
-				update((state) => ({ ...state, passkeys, loading: false }));
+				if (browser) {
+					passkeyState.passkeys = passkeys;
+					passkeyState.loading = false;
+				}
 				return passkeys;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load passkeys';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+					passkeyState.loading = false;
+				}
 				throw error;
 			}
 		},
@@ -74,11 +94,16 @@ function createPasskeyStore() {
 			if (!isWebAuthnSupported()) {
 				const errorMsg =
 					'WebAuthn is not supported in this browser. Please use a modern browser with passkey support.';
-				update((state) => ({ ...state, error: errorMsg }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+				}
 				throw new WebAuthnError(errorMsg, 'NOT_SUPPORTED');
 			}
 
-			update((state) => ({ ...state, loading: true, error: null }));
+			if (browser) {
+				passkeyState.loading = true;
+				passkeyState.error = null;
+			}
 
 			try {
 				const credentialId = await registerPasskey(name);
@@ -86,7 +111,9 @@ function createPasskeyStore() {
 				await this.loadPasskeys();
 				await this.loadStatus();
 
-				update((state) => ({ ...state, loading: false }));
+				if (browser) {
+					passkeyState.loading = false;
+				}
 				return credentialId;
 			} catch (error) {
 				let errorMsg = 'Failed to create passkey';
@@ -112,13 +139,19 @@ function createPasskeyStore() {
 					errorMsg = error.message;
 				}
 
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+					passkeyState.loading = false;
+				}
 				throw error;
 			}
 		},
 
 		async deletePasskey(credentialId: string): Promise<void> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			if (browser) {
+				passkeyState.loading = true;
+				passkeyState.error = null;
+			}
 
 			try {
 				await apiClient.deletePasskey(credentialId);
@@ -126,10 +159,15 @@ function createPasskeyStore() {
 				await this.loadPasskeys();
 				await this.loadStatus();
 
-				update((state) => ({ ...state, loading: false }));
+				if (browser) {
+					passkeyState.loading = false;
+				}
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to delete passkey';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+					passkeyState.loading = false;
+				}
 				throw error;
 			}
 		},
@@ -138,11 +176,16 @@ function createPasskeyStore() {
 			if (!isWebAuthnSupported()) {
 				const errorMsg =
 					'WebAuthn is not supported in this browser. Please use a modern browser with passkey support.';
-				update((state) => ({ ...state, error: errorMsg }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+				}
 				throw new WebAuthnError(errorMsg, 'NOT_SUPPORTED');
 			}
 
-			update((state) => ({ ...state, loading: true, error: null }));
+			if (browser) {
+				passkeyState.loading = true;
+				passkeyState.error = null;
+			}
 
 			try {
 				const credentialId = await webAuthnAuthenticate();
@@ -151,7 +194,9 @@ function createPasskeyStore() {
 
 				await this.loadStatus();
 
-				update((state) => ({ ...state, loading: false }));
+				if (browser) {
+					passkeyState.loading = false;
+				}
 				return credentialId;
 			} catch (error) {
 				let errorMsg = 'Failed to authenticate with passkey';
@@ -177,14 +222,20 @@ function createPasskeyStore() {
 					errorMsg = error.message;
 				}
 
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+					passkeyState.loading = false;
+				}
 				throw error;
 			}
 		},
 
 		// Legacy method: Unlock secrets with a specific credential ID (for backwards compatibility)
 		async unlockWithPasskey(credentialId: string): Promise<void> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			if (browser) {
+				passkeyState.loading = true;
+				passkeyState.error = null;
+			}
 
 			try {
 				await apiClient.unlockWithPasskey({ credentialId });
@@ -192,40 +243,65 @@ function createPasskeyStore() {
 				// Update status to reflect unlocked state
 				await this.loadStatus();
 
-				update((state) => ({ ...state, loading: false }));
+				if (browser) {
+					passkeyState.loading = false;
+				}
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to unlock with passkey';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				if (browser) {
+					passkeyState.error = errorMsg;
+					passkeyState.loading = false;
+				}
 				throw error;
 			}
 		},
 
 		// Clear error state
 		clearError() {
-			update((state) => ({ ...state, error: null }));
+			if (browser) {
+				passkeyState.error = null;
+			}
 		},
 
 		// Reset store to initial state
 		reset() {
-			set(initialState);
+			if (browser) {
+				Object.assign(passkeyState, defaultPasskeyState);
+			}
 		}
 	};
 }
 
-export const passkeyStore = createPasskeyStore();
+export const passkeyStore = {
+	get passkeys() {
+		return passkeyState.passkeys;
+	},
+	get status() {
+		return passkeyState.status;
+	},
+	get loading() {
+		return passkeyState.loading;
+	},
+	get error() {
+		return passkeyState.error;
+	},
 
-// Derived stores for convenience
-export const isUnlocked = derived(passkeyStore, ($store) => $store.status?.isUnlocked ?? false);
+	// Derived getters
+	get isUnlocked() {
+		return passkeyState.status?.isUnlocked ?? false;
+	},
+	get hasPasskeys() {
+		return passkeyState.status?.hasPasskeys ?? false;
+	},
+	get requiresSetup() {
+		return !passkeyState.status?.hasPasskeys && !passkeyState.status?.isUnlocked;
+	},
 
-export const hasPasskeys = derived(passkeyStore, ($store) => $store.status?.hasPasskeys ?? false);
+	// Action methods
+	...createPasskeyStore()
+};
 
-export const requiresSetup = derived(
-	passkeyStore,
-	($store) => !$store.status?.hasPasskeys && !$store.status?.isUnlocked
-);
-
-export const passkeyList = derived(passkeyStore, ($store) => $store.passkeys);
-
-export const passkeyLoading = derived(passkeyStore, ($store) => $store.loading);
-
-export const passkeyError = derived(passkeyStore, ($store) => $store.error);
+// Derived exports for convenience
+export const isUnlocked = () => passkeyStore.isUnlocked;
+export const hasPasskeys = () => passkeyStore.hasPasskeys;
+export const requiresSetup = () => passkeyStore.requiresSetup;

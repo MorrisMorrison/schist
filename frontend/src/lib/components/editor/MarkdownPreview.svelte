@@ -6,7 +6,6 @@
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import {
 		secretStore,
-		secretsUnlocked,
 		replaceSecretPlaceholders,
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
@@ -48,7 +47,7 @@
 	$effect(() => {
 		const updateContent = async () => {
 			try {
-				if ($secretsUnlocked && content) {
+				if (secretStore.secretsUnlocked && content) {
 					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
 						return await secretStore.getSecret(key);
 					});
@@ -90,9 +89,9 @@
 </div>
 
 <ImageLightbox
-	src={$imageLightbox.src}
-	alt={$imageLightbox.alt}
-	open={$imageLightbox.open}
+	src={imageLightbox.src}
+	alt={imageLightbox.alt}
+	open={imageLightbox.open}
 	onClose={imageLightboxActions.close}
 />
 

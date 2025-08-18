@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { browser } from '$app/environment';
 
 interface LightboxState {
 	open: boolean;
@@ -6,22 +6,48 @@ interface LightboxState {
 	alt: string;
 }
 
-const initialState: LightboxState = {
+const defaultLightboxState: LightboxState = {
 	open: false,
 	src: '',
 	alt: ''
 };
 
-export const imageLightbox = writable(initialState);
+let lightboxState: LightboxState = defaultLightboxState;
 
-export const imageLightboxActions = {
-	open: (src: string, alt: string = '') => {
-		imageLightbox.set({ open: true, src, alt });
+if (browser) {
+	lightboxState = $state<LightboxState>(defaultLightboxState);
+}
+
+function createImageLightboxActions() {
+	return {
+		open: (src: string, alt: string = '') => {
+			if (browser) {
+				lightboxState.open = true;
+				lightboxState.src = src;
+				lightboxState.alt = alt;
+			}
+		},
+		close: () => {
+			if (browser) {
+				lightboxState.open = false;
+			}
+		}
+	};
+}
+
+export const imageLightbox = {
+	get open() {
+		return lightboxState.open;
 	},
-	close: () => {
-		imageLightbox.update((state) => ({ ...state, open: false }));
+	get src() {
+		return lightboxState.src;
+	},
+	get alt() {
+		return lightboxState.alt;
 	}
 };
+
+export const imageLightboxActions = createImageLightboxActions();
 
 declare global {
 	interface Window {
@@ -29,6 +55,6 @@ declare global {
 	}
 }
 
-if (typeof window !== 'undefined') {
+if (browser) {
 	window.openImageLightbox = imageLightboxActions.open;
 }

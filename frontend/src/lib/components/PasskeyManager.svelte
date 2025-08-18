@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		passkeyStore,
-		passkeyList,
-		passkeyError,
-		passkeyLoading,
-		hasPasskeys,
-		requiresSetup
-	} from '$lib/stores/passkeys';
+	import { passkeyStore } from '$lib/stores/passkeys';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import {
@@ -71,12 +64,12 @@
 	</CardHeader>
 
 	<CardContent class="space-y-4">
-		{#if $passkeyError}
+		{#if passkeyStore.error}
 			<Alert variant="destructive">
-				<AlertDescription>{$passkeyError}</AlertDescription>
+				<AlertDescription>{passkeyStore.error}</AlertDescription>
 			</Alert>
 		{/if}
-		{#if $requiresSetup}
+		{#if passkeyStore.requiresSetup}
 			<div class="space-y-4 py-8 text-center">
 				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
 					<Shield class="text-muted-foreground h-8 w-8" />
@@ -92,7 +85,7 @@
 					Create Your First Passkey
 				</Button>
 			</div>
-		{:else if $hasPasskeys}
+		{:else if passkeyStore.hasPasskeys}
 			<div class="space-y-3">
 				<div class="flex items-center justify-between">
 					<h3 class="text-sm font-medium">Your Passkeys</h3>
@@ -102,14 +95,14 @@
 					</Button>
 				</div>
 
-				{#if $passkeyLoading && $passkeyList.length === 0}
+				{#if passkeyStore.loading && passkeyStore.passkeys.length === 0}
 					<div class="flex items-center justify-center py-6">
 						<LoadingSpinner size="md" />
 						<span class="text-muted-foreground ml-2 text-sm">Loading passkeys...</span>
 					</div>
 				{:else}
 					<div class="space-y-2">
-						{#each $passkeyList as passkey (passkey.id)}
+						{#each passkeyStore.passkeys as passkey (passkey.id)}
 							<div class="flex items-center justify-between rounded-lg border p-3">
 								<div class="flex-1">
 									<div class="flex items-center space-x-2">

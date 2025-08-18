@@ -150,9 +150,9 @@
 
 <!-- Image Lightbox -->
 <ImageLightbox
-	src={$imageLightbox.src}
-	alt={$imageLightbox.alt}
-	open={$imageLightbox.open}
+	src={imageLightbox.src}
+	alt={imageLightbox.alt}
+	open={imageLightbox.open}
 	onClose={imageLightboxActions.close}
 />
 

@@ -1,11 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import {
-		documentsStore,
-		foldersStore,
-		folderActions,
-		documentActions
-	} from '$lib/stores/documents';
+	import { documentsStore, folderActions, documentActions } from '$lib/stores/documents';
 	import DocumentGrid from '../document/DocumentGrid.svelte';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import CreateFolderModal from '../modal/CreateFolderModal.svelte';
@@ -44,11 +39,11 @@
 		let filteredDocuments;
 
 		if (mode === 'recent') {
-			filteredDocuments = ($documentsStore.documents || []).slice(0, recentLimit);
+			filteredDocuments = (documentsStore.documents || []).slice(0, recentLimit);
 		} else if (mode === 'all') {
-			filteredDocuments = $documentsStore.documents || [];
+			filteredDocuments = documentsStore.documents || [];
 		} else {
-			filteredDocuments = ($documentsStore.documents || []).filter((document) => {
+			filteredDocuments = (documentsStore.documents || []).filter((document) => {
 				const documentPath = document.metaData?.path || '';
 				const isRoot = path === '' || path === '/';
 				if (isRoot) {
@@ -87,13 +82,8 @@
 	});
 
 	$effect(() => {
-		if (initialDocuments?.length > 0) {
-			documentsStore.update((state) => ({ ...state, documents: initialDocuments }));
-		}
-		if (initialFolders?.length > 0) {
-			foldersStore.update((state) => ({ ...state, folders: initialFolders }));
-		}
-
+		// Note: initialDocuments and initialFolders are handled server-side
+		// The new store API is reactive and will update components automatically
 		if (initialDocuments?.length === 0 || initialFolders?.length === 0) {
 			loadFolderData();
 		}
@@ -149,7 +139,7 @@
 				{#if mode === 'recent'}
 					<span class="font-medium">
 						{currentFolderDocuments().length > 0
-							? `Showing ${currentFolderDocuments().length} of ${$documentsStore.documents.length} documents, sorted by most recent activity`
+							? `Showing ${currentFolderDocuments().length} of ${documentsStore.documents.length} documents, sorted by most recent activity`
 							: 'No documents found'}
 					</span>
 				{:else if mode === 'all'}

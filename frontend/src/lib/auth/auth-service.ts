@@ -2,7 +2,6 @@ import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { apiClient } from '$lib/api/client';
 import { authActions, authStore } from '$lib/stores/auth';
-import { get } from 'svelte/store';
 
 const PUBLIC_ROUTES = ['/login', '/setup'];
 const PUBLIC_ROUTE_PREFIXES = ['/share/'];
@@ -72,8 +71,7 @@ class AuthService {
 			try {
 				const { secretStore } = await import('../stores/secrets');
 				await secretStore.loadStatus();
-				const secretsState = get(secretStore);
-				if (secretsState.status?.unlocked) {
+				if (secretStore.status?.unlocked) {
 					await secretStore.loadSecrets();
 				}
 			} catch (error) {

@@ -7,7 +7,7 @@
 	import { Settings, Search, LogOut, User, Lock, Unlock } from 'lucide-svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { authService } from '$lib/auth/auth-service';
-	import { secretsUnlocked, secretStore, secretList } from '$lib/stores/secrets';
+	import { secretStore } from '$lib/stores/secrets';
 	import { passkeyStore } from '$lib/stores/passkeys';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
@@ -45,7 +45,7 @@
 
 			// Reload secrets status and secrets after unlock (same as SecretManager does)
 			await secretStore.loadStatus();
-			if ($secretsUnlocked && $secretList.length === 0) {
+			if (secretStore.secretsUnlocked && secretStore.secrets.length === 0) {
 				await secretStore.loadSecrets();
 			}
 
@@ -154,7 +154,7 @@
 					<ThemeToggle />
 
 					<!-- 3. Secret Lock Toggle Button -->
-					{#if authStore.user && !$secretsUnlocked}
+					{#if authStore.user && !secretStore.secretsUnlocked}
 						<button
 							type="button"
 							onclick={handleQuickUnlock}
@@ -170,7 +170,7 @@
 								<Lock class="h-4 w-4" />
 							{/if}
 						</button>
-					{:else if authStore.user && $secretsUnlocked}
+					{:else if authStore.user && secretStore.secretsUnlocked}
 						<!-- Show unlocked indicator -->
 						<div
 							class="rounded-md border border-green-300 bg-green-50 p-2 text-green-600 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400"
@@ -266,7 +266,7 @@
 					</div>
 
 					<!-- Quick unlock button for mobile -->
-					{#if authStore.user && !$secretsUnlocked}
+					{#if authStore.user && !secretStore.secretsUnlocked}
 						<div class="px-4 pb-3">
 							<button
 								type="button"
@@ -286,7 +286,7 @@
 								<span class="text-sm">Unlock Secrets</span>
 							</button>
 						</div>
-					{:else if authStore.user && $secretsUnlocked}
+					{:else if authStore.user && secretStore.secretsUnlocked}
 						<div class="px-4 pb-3">
 							<div class="flex items-center space-x-2 text-green-600 dark:text-green-400">
 								<Unlock class="h-4 w-4" />

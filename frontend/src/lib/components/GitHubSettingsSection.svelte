@@ -1,19 +1,5 @@
 <script lang="ts">
-	import {
-		githubActions,
-		isGitHubLoading,
-		githubError,
-		githubSettings,
-		githubConnectionStatus,
-		connectionTest,
-		isTestingConnection,
-		isGitHubSyncing,
-		lastSyncResult,
-		gitHealthStatus,
-		isCheckingHealth,
-		isRepairingRepository,
-		lastRepairResult
-	} from '$lib/stores/github';
+	import { githubActions, githubStore } from '$lib/stores/github';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -37,33 +23,37 @@
 	let activeTab = $state<'setup' | 'sync'>('setup');
 
 	$effect(() => {
-		if ($githubConnectionStatus && $githubConnectionStatus.connected && $githubSettings) {
+		if (
+			githubStore.connectionStatus &&
+			githubStore.connectionStatus.connected &&
+			githubStore.settings
+		) {
 			token = '';
 
-			owner = $githubSettings.owner || '';
-			repository = $githubSettings.repository || '';
-			branch = $githubSettings.branch || 'main';
-			backupMode = $githubSettings.auto_sync ? 'auto' : 'manual';
+			owner = githubStore.settings.owner || '';
+			repository = githubStore.settings.repository || '';
+			branch = githubStore.settings.branch || 'main';
+			backupMode = githubStore.settings.auto_sync ? 'auto' : 'manual';
 			syncInterval = 60;
 			tokenChanged = false;
 		}
 	});
 
-	const isConnected = $derived($githubConnectionStatus?.connected ?? false);
+	const isConnected = $derived(githubStore.connectionStatus?.connected ?? false);
 	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
 	const hasChanges = $derived(
-		$githubConnectionStatus && $githubConnectionStatus.connected && $githubSettings
+		githubStore.connectionStatus && githubStore.connectionStatus.connected && githubStore.settings
 			? (() => {
 					return (
-						branch !== $githubSettings.branch ||
-						(backupMode === 'auto') !== $githubSettings.auto_sync
+						branch !== githubStore.settings.branch ||
+						(backupMode === 'auto') !== githubStore.settings.auto_sync
 					);
 				})()
 			: canTestConnection
 	);
 
 	onMount(() => {
-		if (!$githubSettings && !$githubConnectionStatus) {
+		if (!githubStore.settings && !githubStore.connectionStatus) {
 			githubActions.refresh();
 		}
 	});
@@ -351,27 +341,29 @@
 				</div>
 			</div>
 
-			{#if formError || $githubError}
-				<ErrorAlert error={formError || $githubError || ''} class="[&_span]:space-y-1" />
+			{#if formError || githubStore.error}
+				<ErrorAlert error={formError || githubStore.error || ''} class="[&_span]:space-y-1" />
 			{/if}
 
-			{#if $connectionTest}
+			{#if githubStore.connectionTest}
 				<div
 					data-testid="github-connection-test-result"
-					class="flex items-center gap-2 rounded-md p-3 text-sm {$connectionTest.success
+					class="flex items-center gap-2 rounded-md p-3 text-sm {githubStore.connectionTest.success
 						? 'bg-accent/50 text-accent-foreground'
 						: 'bg-destructive/10 text-destructive'}"
 				>
-					{#if $connectionTest.success}
+					{#if githubStore.connectionTest.success}
 						<CheckCircle class="h-4 w-4 flex-shrink-0" />
 					{:else}
 						<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					{/if}
-					<span data-testid="github-connection-test-message">{$connectionTest.message}</span>
+					<span data-testid="github-connection-test-message"
+						>{githubStore.connectionTest.message}</span
+					>
 				</div>
 			{/if}
 
-			{#if isConnected && $githubSettings}
+			{#if isConnected && githubStore.settings}
 				<Separator />
 
 				<div class="space-y-4">
@@ -381,7 +373,7 @@
 						<div class="space-y-2">
 							<Label>Connection Status</Label>
 							<div class="flex items-center gap-2">
-								{#if $githubConnectionStatus?.connected}
+								{#if githubStore.connectionStatus?.connected}
 									<CheckCircle class="h-4 w-4 text-green-500" />
 									<span data-testid="github-status-connected" class="text-sm text-green-600"
 										>Connected</span
@@ -398,29 +390,31 @@
 						<div class="space-y-2">
 							<Label>Last Sync</Label>
 							<div class="text-foreground text-sm">
-								{formatLastSync($githubSettings?.last_sync)}
+								{formatLastSync(githubStore.settings?.last_sync)}
 							</div>
 						</div>
 
-						{#if $githubSettings?.owner && $githubSettings?.repository}
+						{#if githubStore.settings?.owner && githubStore.settings?.repository}
 							<div class="space-y-2">
 								<Label>Repository</Label>
 								<div class="flex items-center">
 									<a
-										href="https://github.com/{$githubSettings.owner}/{$githubSettings.repository}"
+										href="https://github.com/{githubStore.settings.owner}/{githubStore.settings
+											.repository}"
 										target="_blank"
 										class="text-primary truncate text-sm hover:underline"
-										title="https://github.com/{$githubSettings.owner}/{$githubSettings.repository}"
+										title="https://github.com/{githubStore.settings.owner}/{githubStore.settings
+											.repository}"
 									>
-										{$githubSettings.owner}/{$githubSettings.repository}
+										{githubStore.settings.owner}/{githubStore.settings.repository}
 									</a>
 								</div>
 							</div>
 						{/if}
 					</div>
 
-					{#if $githubSettings?.last_sync_error}
-						<ErrorAlert error={$githubSettings.last_sync_error} />
+					{#if githubStore.settings?.last_sync_error}
+						<ErrorAlert error={githubStore.settings.last_sync_error} />
 					{/if}
 				</div>
 			{/if}
@@ -434,9 +428,9 @@
 						data-testid="github-test-connection-button"
 						variant="outline"
 						onclick={testConnection}
-						disabled={!canTestConnection || $isTestingConnection}
+						disabled={!canTestConnection || githubStore.testingConnection}
 					>
-						{#if $isTestingConnection}
+						{#if githubStore.testingConnection}
 							<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 						{/if}
 						Test Connection
@@ -450,7 +444,7 @@
 							data-testid="github-disconnect-button"
 							variant="outline"
 							onclick={disconnect}
-							disabled={$isGitHubLoading}
+							disabled={githubStore.loading}
 						>
 							Disconnect
 						</Button>
@@ -459,10 +453,10 @@
 						type="submit"
 						data-testid="github-setup-button"
 						disabled={isConnected
-							? !hasChanges || $isGitHubLoading
-							: !canTestConnection || !hasChanges || $isGitHubLoading}
+							? !hasChanges || githubStore.loading
+							: !canTestConnection || !hasChanges || githubStore.loading}
 					>
-						{#if $isGitHubLoading}
+						{#if githubStore.loading}
 							<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 						{/if}
 						{isConnected ? 'Update Settings' : 'Setup GitHub'}
@@ -490,22 +484,22 @@
 								variant="outline"
 								size="sm"
 								onclick={checkGitHealth}
-								disabled={$isCheckingHealth || $isRepairingRepository}
+								disabled={githubStore.checkingHealth || githubStore.repairingRepository}
 							>
-								{#if $isCheckingHealth}
+								{#if githubStore.checkingHealth}
 									<Loader2 class="mr-1 h-3 w-3 animate-spin" />
 								{/if}
 								Check Health
 							</Button>
-							{#if $gitHealthStatus && !$gitHealthStatus.healthy}
+							{#if githubStore.gitHealthStatus && !githubStore.gitHealthStatus.healthy}
 								<Button
 									variant="outline"
 									size="sm"
 									onclick={repairRepository}
-									disabled={$isRepairingRepository || $isCheckingHealth}
+									disabled={githubStore.repairingRepository || githubStore.checkingHealth}
 									class="border-orange-300 text-orange-600 hover:bg-orange-50"
 								>
-									{#if $isRepairingRepository}
+									{#if githubStore.repairingRepository}
 										<Loader2 class="mr-1 h-3 w-3 animate-spin" />
 									{/if}
 									Repair
@@ -514,9 +508,9 @@
 						</div>
 					</div>
 
-					{#if $gitHealthStatus}
+					{#if githubStore.gitHealthStatus}
 						<div class="flex items-center gap-2">
-							{#if $gitHealthStatus.healthy}
+							{#if githubStore.gitHealthStatus.healthy}
 								<CheckCircle class="h-4 w-4 text-green-500" />
 								<span class="text-sm text-green-600">Repository is healthy</span>
 							{:else}
@@ -525,30 +519,31 @@
 							{/if}
 						</div>
 
-						{#if !$gitHealthStatus.healthy && $gitHealthStatus.error}
+						{#if !githubStore.gitHealthStatus.healthy && githubStore.gitHealthStatus.error}
 							<ErrorAlert
-								error={`Health Check Error: ${$gitHealthStatus.error}. 💡 Click the "Repair" button to attempt automatic repository repair.`}
+								error={`Health Check Error: ${githubStore.gitHealthStatus.error}. 💡 Click the "Repair" button to attempt automatic repository repair.`}
 							/>
 						{/if}
 					{/if}
 
-					{#if $lastRepairResult}
+					{#if githubStore.lastRepairResult}
 						<div
-							class="flex items-start gap-2 rounded-md p-3 text-sm {$lastRepairResult.success
+							class="flex items-start gap-2 rounded-md p-3 text-sm {githubStore.lastRepairResult
+								.success
 								? 'border border-green-200 bg-green-50 text-green-700'
 								: 'border border-red-200 bg-red-50 text-red-700'}"
 						>
-							{#if $lastRepairResult.success}
+							{#if githubStore.lastRepairResult.success}
 								<CheckCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
 								<div>
 									<div class="font-medium">Repair Successful</div>
-									{$lastRepairResult.message}
+									{githubStore.lastRepairResult.message}
 								</div>
 							{:else}
 								<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
 								<div>
 									<div class="font-medium">Repair Failed</div>
-									{$lastRepairResult.error}
+									{githubStore.lastRepairResult.error}
 								</div>
 							{/if}
 						</div>
@@ -566,10 +561,10 @@
 				<Button
 					data-testid="github-sync-now-button"
 					onclick={syncNow}
-					disabled={!isConnected || $isGitHubSyncing}
+					disabled={!isConnected || githubStore.syncing}
 					title={!isConnected ? 'Configure GitHub connection first' : 'Sync documents to GitHub'}
 				>
-					{#if $isGitHubSyncing}
+					{#if githubStore.syncing}
 						<Loader2 class="mr-2 h-4 w-4 animate-spin" />
 						Syncing...
 					{:else}
@@ -579,10 +574,10 @@
 				</Button>
 			</div>
 
-			{#if $lastSyncResult}
+			{#if githubStore.lastSyncResult}
 				<div class="space-y-2 rounded-lg border p-4">
 					<div class="flex items-center gap-2">
-						{#if $lastSyncResult.success}
+						{#if githubStore.lastSyncResult.success}
 							<CheckCircle class="h-4 w-4 text-green-500" />
 							<span class="font-medium text-green-600">Last Sync Successful</span>
 						{:else}
@@ -592,21 +587,21 @@
 					</div>
 
 					<div class="text-muted-foreground text-sm">
-						{formatLastSync($lastSyncResult.timestamp)}
+						{formatLastSync(githubStore.lastSyncResult.timestamp)}
 					</div>
 
-					<div class="text-sm">{$lastSyncResult.message}</div>
+					<div class="text-sm">{githubStore.lastSyncResult.message}</div>
 
-					{#if $lastSyncResult.syncedFiles !== undefined}
+					{#if githubStore.lastSyncResult.syncedFiles !== undefined}
 						<div class="text-muted-foreground text-sm">
-							Files synced: {$lastSyncResult.syncedFiles}
+							Files synced: {githubStore.lastSyncResult.syncedFiles}
 						</div>
 					{/if}
 
-					{#if $lastSyncResult.errors && $lastSyncResult.errors.length > 0}
+					{#if githubStore.lastSyncResult.errors && githubStore.lastSyncResult.errors.length > 0}
 						<div class="space-y-1">
 							<div class="text-destructive text-sm font-medium">Errors:</div>
-							{#each $lastSyncResult.errors as error, index (index)}
+							{#each githubStore.lastSyncResult.errors as error, index (index)}
 								<div class="text-destructive text-sm">• {error}</div>
 							{/each}
 						</div>

@@ -8,7 +8,7 @@
 	import DeleteConfirmModal from './modal/DeleteConfirmModal.svelte';
 	import ImportDocumentsModal from './modal/ImportDocumentsModal.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types';
-	import { folderActions, documentActions, folders } from '$lib/stores/documents';
+	import { folderActions, documentActions, foldersStore } from '$lib/stores/documents';
 	import { apiClient } from '$lib/api/client';
 	import { Button } from './ui/button';
 	import { onMount } from 'svelte';
@@ -249,7 +249,7 @@
 
 <ImportDocumentsModal
 	open={showImportModal}
-	folders={$folders}
+	folders={foldersStore.folders}
 	onClose={handleImportClose}
 	onSuccess={handleImportSuccess}
 />

@@ -16,20 +16,13 @@
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 	import {
 		secretStore,
-		secretsUnlocked,
 		replaceSecretPlaceholders,
 		parseSecretPlaceholders
 	} from '$lib/stores/secrets';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
-	import {
-		documentActions,
-		backlinks,
-		outgoingLinks,
-		isBacklinksLoading,
-		isOutgoingLinksLoading
-	} from '$lib/stores/documents';
+	import { documentActions, linksStore } from '$lib/stores/documents';
 
 	interface Props {
 		document: Document;
@@ -96,7 +89,7 @@
 			}
 
 			try {
-				if ($secretsUnlocked) {
+				if (secretStore.secretsUnlocked) {
 					let processedText = await replaceSecretPlaceholders(content, async (key: string) => {
 						return await secretStore.getSecret(key);
 					});
@@ -331,26 +324,27 @@
 		{/if}
 	</main>
 
-	{#if ($backlinks?.length || 0) > 0 || $outgoingLinks?.some((l) => l.is_valid) || false}
+	{#if (linksStore.backlinks?.length || 0) > 0 || linksStore.outgoingLinks?.some((l) => l.is_valid) || false}
 		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<Link2 class="text-muted-foreground h-5 w-5" />
 					<h2 class="text-lg font-semibold">Links</h2>
 					<Badge variant="secondary" class="text-xs">
-						{$isBacklinksLoading || $isOutgoingLinksLoading
+						{linksStore.backlinksLoading || linksStore.outgoingLinksLoading
 							? '...'
-							: ($backlinks?.length || 0) + ($outgoingLinks?.filter((l) => l.is_valid).length || 0)}
+							: (linksStore.backlinks?.length || 0) +
+								(linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0)}
 					</Badge>
 				</div>
 				<DocumentGraphToggle
 					currentView={graphViewMode}
 					onToggle={(view) => (graphViewMode = view)}
-					disabled={$isBacklinksLoading || $isOutgoingLinksLoading}
+					disabled={linksStore.backlinksLoading || linksStore.outgoingLinksLoading}
 				/>
 			</div>
 
-			{#if $isBacklinksLoading || $isOutgoingLinksLoading}
+			{#if linksStore.backlinksLoading || linksStore.outgoingLinksLoading}
 				<div class="flex items-center justify-center py-8">
 					<div class="text-muted-foreground text-sm">Loading links...</div>
 				</div>
@@ -358,19 +352,19 @@
 				<div class="h-[400px] w-full">
 					<LazyDocumentGraphView
 						currentDocument={document}
-						backlinks={$backlinks}
-						outgoingLinks={$outgoingLinks}
+						backlinks={linksStore.backlinks}
+						outgoingLinks={linksStore.outgoingLinks}
 					/>
 				</div>
 			{:else}
 				<div class="space-y-4">
-					{#if ($backlinks?.length || 0) > 0}
+					{#if (linksStore.backlinks?.length || 0) > 0}
 						<div>
 							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
-								Backlinks ({$backlinks.length})
+								Backlinks ({linksStore.backlinks.length})
 							</h3>
 							<div class="space-y-3">
-								{#each $backlinks as backlinkDocument (backlinkDocument.metaData.path)}
+								{#each linksStore.backlinks as backlinkDocument (backlinkDocument.metaData.path)}
 									<button
 										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
 										onclick={() => goto(`/documents${backlinkDocument.metaData.path}`)}
@@ -402,13 +396,13 @@
 						</div>
 					{/if}
 
-					{#if ($outgoingLinks?.filter((l) => l.is_valid).length || 0) > 0}
+					{#if (linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0) > 0}
 						<div>
 							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
-								Outgoing Links ({$outgoingLinks.filter((l) => l.is_valid).length})
+								Outgoing Links ({linksStore.outgoingLinks.filter((l) => l.is_valid).length})
 							</h3>
 							<div class="space-y-3">
-								{#each $outgoingLinks.filter((l) => l.is_valid) as outgoingLink (outgoingLink.path)}
+								{#each linksStore.outgoingLinks.filter((l) => l.is_valid) as outgoingLink (outgoingLink.path)}
 									<button
 										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
 										onclick={() => goto(`/documents${outgoingLink.path}`)}
@@ -430,7 +424,7 @@
 						</div>
 					{/if}
 
-					{#if ($backlinks?.length || 0) === 0 && ($outgoingLinks?.filter((l) => l.is_valid).length || 0) === 0}
+					{#if (linksStore.backlinks?.length || 0) === 0 && (linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0) === 0}
 						<div class="flex flex-col items-center justify-center py-8 text-center">
 							<p class="text-muted-foreground text-sm">No links found.</p>
 							<p class="text-muted-foreground mt-1 text-xs">
@@ -459,9 +453,9 @@
 />
 
 <ImageLightbox
-	src={$imageLightbox.src}
-	alt={$imageLightbox.alt}
-	open={$imageLightbox.open}
+	src={imageLightbox.src}
+	alt={imageLightbox.alt}
+	open={imageLightbox.open}
 	onClose={imageLightboxActions.close}
 />
 

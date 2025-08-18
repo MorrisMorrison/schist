@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Info } from 'lucide-svelte';
 
-	export let showTaskExample: boolean = false;
+	let { showTaskExample = false }: { showTaskExample?: boolean } = $props();
 </script>
 
 <div class="bg-accent/20 rounded-lg p-4">

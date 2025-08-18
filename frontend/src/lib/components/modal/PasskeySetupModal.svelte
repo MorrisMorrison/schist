@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { passkeyStore, passkeyError, passkeyLoading } from '$lib/stores/passkeys';
+	import { passkeyStore } from '$lib/stores/passkeys';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -89,7 +89,7 @@
 						bind:value={passkeyName}
 						placeholder="e.g., 'MacBook Pro' or 'Main Device'"
 						onkeydown={handleKeydown}
-						disabled={$passkeyLoading}
+						disabled={passkeyStore.loading}
 						class="w-full"
 					/>
 					<p class="text-muted-foreground text-sm">
@@ -97,9 +97,9 @@
 					</p>
 				</div>
 
-				{#if $passkeyError}
+				{#if passkeyStore.error}
 					<Alert variant="destructive">
-						<AlertDescription>{$passkeyError}</AlertDescription>
+						<AlertDescription>{passkeyStore.error}</AlertDescription>
 					</Alert>
 				{/if}
 
@@ -143,9 +143,14 @@
 
 		<DialogFooter>
 			{#if step === 'setup'}
-				<Button variant="outline" onclick={handleClose} disabled={$passkeyLoading}>Cancel</Button>
-				<Button onclick={handleCreatePasskey} disabled={!passkeyName.trim() || $passkeyLoading}>
-					{#if $passkeyLoading}
+				<Button variant="outline" onclick={handleClose} disabled={passkeyStore.loading}
+					>Cancel</Button
+				>
+				<Button
+					onclick={handleCreatePasskey}
+					disabled={!passkeyName.trim() || passkeyStore.loading}
+				>
+					{#if passkeyStore.loading}
 						Creating...
 					{:else}
 						Create Passkey

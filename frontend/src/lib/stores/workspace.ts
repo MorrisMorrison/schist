@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { browser } from '$app/environment';
 import { apiClient } from '$lib/api/client';
 import type { UserInfo } from '$lib/api/types';
 
@@ -10,7 +10,7 @@ interface WorkspaceState {
 	error: string | null;
 }
 
-const initialState: WorkspaceState = {
+const defaultWorkspaceState: WorkspaceState = {
 	users: [],
 	userCount: 0,
 	isSharedWorkspace: false,
@@ -18,13 +18,19 @@ const initialState: WorkspaceState = {
 	error: null
 };
 
-function createWorkspaceStore() {
-	const { subscribe, set, update } = writable<WorkspaceState>(initialState);
+let workspaceState: WorkspaceState = defaultWorkspaceState;
 
+if (browser) {
+	workspaceState = $state<WorkspaceState>(defaultWorkspaceState);
+}
+
+function createWorkspaceStore() {
 	return {
-		subscribe,
 		async loadUsers() {
-			update((state) => ({ ...state, loading: true, error: null }));
+			if (browser) {
+				workspaceState.loading = true;
+				workspaceState.error = null;
+			}
 
 			try {
 				const response = await apiClient.listUsers();
@@ -32,26 +38,45 @@ function createWorkspaceStore() {
 				const userCount = users.length;
 				const isSharedWorkspace = userCount > 1;
 
-				update((state) => ({
-					...state,
-					users,
-					userCount,
-					isSharedWorkspace,
-					loading: false
-				}));
+				if (browser) {
+					workspaceState.users = users;
+					workspaceState.userCount = userCount;
+					workspaceState.isSharedWorkspace = isSharedWorkspace;
+					workspaceState.loading = false;
+				}
 			} catch (error) {
 				console.warn('Failed to load workspace users:', error);
-				update((state) => ({
-					...state,
-					loading: false,
-					error: 'Failed to load workspace information'
-				}));
+				if (browser) {
+					workspaceState.loading = false;
+					workspaceState.error = 'Failed to load workspace information';
+				}
 			}
 		},
 		reset() {
-			set(initialState);
+			if (browser) {
+				Object.assign(workspaceState, defaultWorkspaceState);
+			}
 		}
 	};
 }
 
-export const workspaceStore = createWorkspaceStore();
+export const workspaceStore = {
+	get users() {
+		return workspaceState.users;
+	},
+	get userCount() {
+		return workspaceState.userCount;
+	},
+	get isSharedWorkspace() {
+		return workspaceState.isSharedWorkspace;
+	},
+	get loading() {
+		return workspaceState.loading;
+	},
+	get error() {
+		return workspaceState.error;
+	},
+
+	// Action methods
+	...createWorkspaceStore()
+};

@@ -1,6 +1,5 @@
 TASKS
 1. Read the users CLAUDE.md in home directory. Follow its instructions at all times!
-2. Read the project specific .claude/CLAUDE.nd. Follow its instructions at all times!
 3. Read this projects documentation - README.md
 4. Read the developement guidelines /docs/DEVELOPMENT.md
 5. Read the makefile and use its commands from project root!
@@ -12,6 +11,7 @@ RULES
 4. DELEGATE TASKS TO EXPERT AGENTS WHEN NEEDED
 5. IF IN DOUBT, ASK RELEVANT QUESTIONS TO USER
 6. DO NOT COMMIT ANY CODE
+7. USE SVELTE 5 SYNTAX!
 
 TOOLS
 1. Use `make verify` to validate code changes

@@ -13,7 +13,7 @@
 	} from '$lib/utils/keyboard-shortcuts';
 
 	import '$lib/stores/theme.js';
-	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
+	import { sidebar, sidebarActions } from '$lib/stores/sidebar';
 	import { authService } from '$lib/auth/auth-service';
 	import { authStore } from '$lib/stores/auth';
 	import { browser } from '$app/environment';
@@ -30,10 +30,10 @@
 	);
 
 	const showSidebarComponent = $derived(
-		isPublicRoute || !authService.isAuthEnabled() || ($authStore.token && $authStore.user)
+		isPublicRoute || !authService.isAuthEnabled() || (authStore.token && authStore.user)
 	);
 
-	const sidebarVisible = $derived(showSidebarComponent && $sidebarOpen);
+	const sidebarVisible = $derived(showSidebarComponent && sidebar.isOpen);
 
 	$effect(() => {
 		if (page.url) {
@@ -96,24 +96,24 @@
 	});
 
 	$effect(() => {
-		if (browser && !isPublicRoute && !$authStore.token && authService.isAuthEnabled()) {
+		if (browser && !isPublicRoute && !authStore.token && authService.isAuthEnabled()) {
 			authService.requireAuth(page.url.pathname + page.url.search);
 		}
 	});
 
 	function handleBackdropClick() {
-		if (window.innerWidth < 768 && $sidebarOpen) {
+		if (window.innerWidth < 768 && sidebar.isOpen) {
 			sidebarActions.close();
 		}
 	}
 </script>
 
 <div class="bg-background flex min-h-screen flex-col border-0 transition-colors">
-	<Navigation isSidebarOpen={$sidebarOpen} />
+	<Navigation isSidebarOpen={sidebar.isOpen} />
 
 	<div class="app-container flex-1 border-0" class:with-sidebar={sidebarVisible}>
 		<!-- Mobile backdrop -->
-		{#if showSidebarComponent && $sidebarOpen}
+		{#if showSidebarComponent && sidebar.isOpen}
 			<div
 				class="fixed inset-0 z-10 bg-black/50 md:hidden"
 				onclick={handleBackdropClick}
@@ -131,7 +131,7 @@
 		<!-- Sidebar -->
 		{#if showSidebarComponent}
 			<div
-				class="sidebar-container {$sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}"
+				class="sidebar-container {sidebar.isOpen ? 'sidebar-open' : 'sidebar-closed'}"
 				data-testid="sidebar"
 			>
 				<Sidebar />

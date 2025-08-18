@@ -42,7 +42,7 @@
 	});
 
 	$effect(() => {
-		if ($authStore.token && $authStore.user) {
+		if (authStore.token && authStore.user) {
 			secretStore.loadStatus().then(() => {
 				// If secrets are already unlocked but we don't have the list, load it
 				if ($secretsUnlocked && $secretList.length === 0) {

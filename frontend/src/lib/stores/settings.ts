@@ -1,4 +1,3 @@
-import { writable, derived } from 'svelte/store';
 import { browser } from '$app/environment';
 
 interface AppSettings {
@@ -74,74 +73,99 @@ function saveSettings(settings: Settings): void {
 	}
 }
 
-export const settings = writable<Settings>(loadSettings());
+let settingsState: Settings = loadSettings();
 
 if (browser) {
-	settings.subscribe((value) => {
-		saveSettings(value);
+	settingsState = $state<Settings>(loadSettings());
+
+	$effect(() => {
+		saveSettings(settingsState);
 	});
 }
 
-export const appSettings = derived(settings, ($settings) => $settings.app);
-export const exportSettings = derived(settings, ($settings) => $settings.export);
+export const settings = {
+	get app() {
+		return settingsState.app;
+	},
+	get export() {
+		return settingsState.export;
+	},
+	get current() {
+		return settingsState;
+	}
+};
 
 export const settingsActions = {
 	updateAppSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
-		settings.update((current) => ({
-			...current,
-			app: {
-				...current.app,
-				[key]: value
-			}
-		}));
+		if (browser) {
+			settingsState = {
+				...settingsState,
+				app: {
+					...settingsState.app,
+					[key]: value
+				}
+			};
+		}
 	},
 
 	updateExportSetting<K extends keyof ExportSettings>(key: K, value: ExportSettings[K]) {
-		settings.update((current) => ({
-			...current,
-			export: {
-				...current.export,
-				[key]: value
-			}
-		}));
+		if (browser) {
+			settingsState = {
+				...settingsState,
+				export: {
+					...settingsState.export,
+					[key]: value
+				}
+			};
+		}
 	},
 
 	updateAppSettings(newSettings: Partial<AppSettings>) {
-		settings.update((current) => ({
-			...current,
-			app: {
-				...current.app,
-				...newSettings
-			}
-		}));
+		if (browser) {
+			settingsState = {
+				...settingsState,
+				app: {
+					...settingsState.app,
+					...newSettings
+				}
+			};
+		}
 	},
 
 	updateExportSettings(newSettings: Partial<ExportSettings>) {
-		settings.update((current) => ({
-			...current,
-			export: {
-				...current.export,
-				...newSettings
-			}
-		}));
+		if (browser) {
+			settingsState = {
+				...settingsState,
+				export: {
+					...settingsState.export,
+					...newSettings
+				}
+			};
+		}
 	},
 
 	resetToDefaults() {
-		settings.set(defaultSettings);
+		if (browser) {
+			settingsState = defaultSettings;
+		}
 	},
 
 	resetAppSettings() {
-		settings.update((current) => ({
-			...current,
-			app: defaultSettings.app
-		}));
+		if (browser) {
+			settingsState = {
+				...settingsState,
+				app: defaultSettings.app
+			};
+		}
 	},
 
 	resetExportSettings() {
-		settings.update((current) => ({
-			...current,
-			export: defaultSettings.export
-		}));
+		if (browser) {
+			settingsState = {
+				...settingsState,
+				export: defaultSettings.export
+			};
+		}
 	}
 };
 

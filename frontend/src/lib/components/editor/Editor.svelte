@@ -11,7 +11,7 @@
 	import type { EditorProps, FormattingType } from '$lib/types/editor';
 	import { theme } from '$lib/stores/theme.js';
 	import type { Asset } from '$lib/api/types.js';
-	import { appSettings } from '$lib/stores/settings.js';
+	import { settings } from '$lib/stores/settings.js';
 
 	let {
 		initialContent = '',
@@ -31,8 +31,8 @@
 	let previewContent = $state(initialContent);
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
-	let isPreviewVisible = $state(!$appSettings.alwaysHidePreview);
-	let isFullscreen = $state(fullscreen || $appSettings.alwaysOpenFullscreen);
+	let isPreviewVisible = $state(!settings.app.alwaysHidePreview);
+	let isFullscreen = $state(fullscreen || settings.app.alwaysOpenFullscreen);
 
 	let editorHeight = $state(700);
 	let isResizing = $state(false);
@@ -44,7 +44,7 @@
 	let isPreviewScrolling = $state(false);
 	let scrollSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	const currentTheme = $derived($theme);
+	const currentTheme = $derived(theme.value);
 
 	const autoSaveConfig = {
 		enabled: true,

@@ -6,14 +6,14 @@
 
 	// Load workspace info when component mounts and user is authenticated
 	onMount(() => {
-		if ($authStore.user) {
+		if (authStore.user) {
 			workspaceStore.loadUsers();
 		}
 	});
 
 	// Also load when auth state changes
 	$effect(() => {
-		if ($authStore.user) {
+		if (authStore.user) {
 			workspaceStore.loadUsers();
 		} else {
 			workspaceStore.reset();
@@ -21,7 +21,7 @@
 	});
 </script>
 
-{#if $authStore.user && $workspaceStore.isSharedWorkspace}
+{#if authStore.user && $workspaceStore.isSharedWorkspace}
 	<div
 		class="text-muted-foreground flex items-center gap-2 text-sm"
 		title="This is a shared workspace with {$workspaceStore.userCount} users"

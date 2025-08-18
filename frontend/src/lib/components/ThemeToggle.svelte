@@ -20,11 +20,11 @@
 	class="border-secondary bg-primary text-primary hover:bg-gray-hover cursor-pointer rounded-md border transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none {sizeClasses[
 		size
 	]}"
-	title="Toggle theme (current: {$theme})"
+	title="Toggle theme (current: {theme.current})"
 	aria-label="Toggle theme"
 	data-testid="theme-toggle"
 >
-	{#if $theme === 'dark'}
+	{#if theme.current === 'dark'}
 		<Sun class="h-4 w-4"></Sun>
 	{:else}
 		<Moon class="h-4 w-4"></Moon>

@@ -1,4 +1,3 @@
-import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 function getInitialSidebarState(): boolean {
@@ -12,30 +11,36 @@ function getInitialSidebarState(): boolean {
 	return window.innerWidth >= 768;
 }
 
-export const sidebarOpen = writable<boolean>(getInitialSidebarState());
+let sidebarState = $state<boolean>(getInitialSidebarState());
 
-sidebarOpen.subscribe((isOpen) => {
+$effect(() => {
 	if (browser) {
-		localStorage.setItem('sidebarOpen', isOpen.toString());
+		localStorage.setItem('sidebarOpen', sidebarState.toString());
 	}
 });
 
+export const sidebar = {
+	get isOpen() {
+		return sidebarState;
+	}
+};
+
 export const sidebarActions = {
 	toggle: () => {
-		sidebarOpen.update((isOpen) => !isOpen);
+		sidebarState = !sidebarState;
 	},
 
 	open: () => {
-		sidebarOpen.set(true);
+		sidebarState = true;
 	},
 
 	close: () => {
-		sidebarOpen.set(false);
+		sidebarState = false;
 	},
 
 	closeOnMobile: () => {
 		if (browser && window.innerWidth < 768) {
-			sidebarOpen.set(false);
+			sidebarState = false;
 		}
 	}
 };

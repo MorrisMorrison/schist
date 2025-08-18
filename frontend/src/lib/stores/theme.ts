@@ -1,4 +1,3 @@
-import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 export type Theme = 'light' | 'dark';
@@ -22,31 +21,30 @@ function getInitialTheme(): Theme {
 	return getSystemTheme();
 }
 
-export const theme = writable<Theme>(getInitialTheme());
+// Svelte 5 runes-based theme store state
+let currentTheme = $state<Theme>(getInitialTheme());
 
-theme.subscribe((currentTheme) => {
+// Effect to persist theme to localStorage and update DOM
+$effect(() => {
 	if (browser) {
 		localStorage.setItem('theme', currentTheme);
-
 		document.documentElement.classList.toggle('dark', currentTheme === 'dark');
 	}
 });
 
-if (browser) {
-	theme.update((currentTheme) => {
-		document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+// Export the reactive state directly for use in components
+export const theme = {
+	get current() {
 		return currentTheme;
-	});
-}
+	}
+};
 
 export const themeActions = {
 	setTheme: (newTheme: Theme) => {
-		theme.set(newTheme);
+		currentTheme = newTheme;
 	},
 
 	toggleTheme: () => {
-		theme.update((currentTheme) => {
-			return currentTheme === 'dark' ? 'light' : 'dark';
-		});
+		currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
 	}
 };

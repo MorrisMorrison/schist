@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { BurgerIcon } from './ui/burger-icon';
-	import { sidebarOpen, sidebarActions } from '$lib/stores/sidebar';
+	import { sidebar, sidebarActions } from '$lib/stores/sidebar';
 	import { onMount } from 'svelte';
 	import { Settings, Search, LogOut, User, Lock, Unlock } from 'lucide-svelte';
 	import { authStore } from '$lib/stores/auth';
@@ -66,14 +66,14 @@
 
 	// Load secrets status on component mount if user is authenticated
 	onMount(() => {
-		if ($authStore.user) {
+		if (authStore.user) {
 			secretStore.loadStatus();
 		}
 	});
 
 	// Also load secrets status when auth state changes
 	$effect(() => {
-		if ($authStore.user) {
+		if (authStore.user) {
 			secretStore.loadStatus();
 		}
 	});
@@ -83,7 +83,7 @@
 	<div class="relative">
 		<div class="absolute top-1/2 left-4 z-10 -translate-y-1/2 transform">
 			<BurgerIcon
-				isOpen={$sidebarOpen}
+				isOpen={sidebar.isOpen}
 				onClick={sidebarActions.toggle}
 				size="lg"
 				class="text-muted-foreground hover:text-foreground"
@@ -154,7 +154,7 @@
 					<ThemeToggle />
 
 					<!-- 3. Secret Lock Toggle Button -->
-					{#if $authStore.user && !$secretsUnlocked}
+					{#if authStore.user && !$secretsUnlocked}
 						<button
 							type="button"
 							onclick={handleQuickUnlock}
@@ -170,7 +170,7 @@
 								<Lock class="h-4 w-4" />
 							{/if}
 						</button>
-					{:else if $authStore.user && $secretsUnlocked}
+					{:else if authStore.user && $secretsUnlocked}
 						<!-- Show unlocked indicator -->
 						<div
 							class="rounded-md border border-green-300 bg-green-50 p-2 text-green-600 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400"
@@ -191,14 +191,14 @@
 					</a>
 
 					<!-- 5. Username + Logout Button (Last) -->
-					{#if $authStore.user}
+					{#if authStore.user}
 						<div class="hidden md:flex md:items-center md:gap-2">
 							<span
 								class="text-muted-foreground flex items-center gap-1 text-sm"
 								data-testid="user-info"
 							>
 								<User class="h-4 w-4" />
-								{$authStore.user.username}
+								{authStore.user.username}
 							</span>
 							<button
 								type="button"
@@ -266,7 +266,7 @@
 					</div>
 
 					<!-- Quick unlock button for mobile -->
-					{#if $authStore.user && !$secretsUnlocked}
+					{#if authStore.user && !$secretsUnlocked}
 						<div class="px-4 pb-3">
 							<button
 								type="button"
@@ -286,7 +286,7 @@
 								<span class="text-sm">Unlock Secrets</span>
 							</button>
 						</div>
-					{:else if $authStore.user && $secretsUnlocked}
+					{:else if authStore.user && $secretsUnlocked}
 						<div class="px-4 pb-3">
 							<div class="flex items-center space-x-2 text-green-600 dark:text-green-400">
 								<Unlock class="h-4 w-4" />
@@ -310,7 +310,7 @@
 						<ThemeToggle />
 					</div>
 
-					{#if $authStore.user}
+					{#if authStore.user}
 						<!-- User info and logout (mobile) -->
 						<div class="border-border border-t pt-3 pb-3">
 							<div class="px-4 pb-2">
@@ -319,7 +319,7 @@
 									data-testid="user-info-mobile"
 								>
 									<User class="h-4 w-4" />
-									<span>Signed in as <strong>{$authStore.user.username}</strong></span>
+									<span>Signed in as <strong>{authStore.user.username}</strong></span>
 								</div>
 							</div>
 							<div class="px-4">

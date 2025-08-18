@@ -48,23 +48,28 @@
 	// Initialize data loading
 	$effect(() => {
 		const loadData = async () => {
-			await authService.initialize();
+			try {
+				await authService.initialize();
 
-			// Skip loading if auth is enabled but user is not authenticated
-			if (authService.isAuthEnabled()) {
-				const isAuthenticated = await authService.checkAuthStatus();
-				if (!isAuthenticated) {
-					return;
+				// Skip loading if auth is enabled but user is not authenticated
+				if (authService.isAuthEnabled()) {
+					const isAuthenticated = await authService.checkAuthStatus();
+					if (!isAuthenticated) {
+						return;
+					}
 				}
-			}
 
-			// Only load on first initialization
-			if (!hasInitialized) {
-				folderActions.loadFolderTree().catch(console.error);
-				if (showPages) {
-					documentActions.loadDocuments().catch(console.error);
+				// Only load on first initialization
+				if (!hasInitialized) {
+					folderLoader.startLoading();
+					await folderActions.loadFolderTree();
+					if (showPages) {
+						await documentActions.loadDocuments();
+					}
+					hasInitialized = true;
 				}
-				hasInitialized = true;
+			} catch (error) {
+				console.error('Failed to initialize FolderTreeManager:', error);
 			}
 		};
 

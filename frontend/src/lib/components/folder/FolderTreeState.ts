@@ -5,12 +5,14 @@ import type { Folder } from '$lib/api/types.js';
  * Manages folder tree expansion state with localStorage persistence
  */
 export class FolderTreeState {
-	private expandedFolders = $state<Set<string>>(new Set(['/']));
-	private userCollapsedFolders = $state<Set<string>>(new Set());
+	private expandedFolders: Set<string> = new Set(['/']);
+	private userCollapsedFolders: Set<string> = new Set();
 	private storageKey: string;
+	private updateCallback?: () => void;
 
-	constructor(storageKey: string = 'folder-tree-expanded') {
+	constructor(storageKey: string = 'folder-tree-expanded', updateCallback?: () => void) {
 		this.storageKey = storageKey;
+		this.updateCallback = updateCallback;
 		this.loadFromStorage();
 	}
 
@@ -43,10 +45,10 @@ export class FolderTreeState {
 	}
 
 	/**
-	 * Refresh a Set to trigger reactivity (private helper)
+	 * Notify component about state changes
 	 */
-	private _refreshSet<T>(set: Set<T>): Set<T> {
-		return new Set(set);
+	private notifyUpdate(): void {
+		this.updateCallback?.();
 	}
 
 	/**
@@ -61,10 +63,8 @@ export class FolderTreeState {
 			this.userCollapsedFolders.delete(path);
 		}
 
-		this.expandedFolders = this._refreshSet(this.expandedFolders);
-		this.userCollapsedFolders = this._refreshSet(this.userCollapsedFolders);
-
 		this.saveToStorage();
+		this.notifyUpdate();
 	}
 
 	/**
@@ -73,8 +73,8 @@ export class FolderTreeState {
 	expandFolder(path: string): void {
 		if (!this.expandedFolders.has(path)) {
 			this.expandedFolders.add(path);
-			this.expandedFolders = this._refreshSet(this.expandedFolders);
 			this.saveToStorage();
+			this.notifyUpdate();
 		}
 	}
 
@@ -100,6 +100,7 @@ export class FolderTreeState {
 
 		this.expandedFolders = new Set(allPaths);
 		this.saveToStorage();
+		this.notifyUpdate();
 	}
 
 	/**
@@ -108,6 +109,7 @@ export class FolderTreeState {
 	collapseAll(): void {
 		this.expandedFolders = new Set();
 		this.saveToStorage();
+		this.notifyUpdate();
 	}
 
 	/**

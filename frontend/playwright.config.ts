@@ -98,7 +98,7 @@ export default defineConfig({
 		{
 			command: 'PUBLIC_API_URL=http://localhost:8081/api npm run preview -- --port 4173',
 			port: 4173,
-			reuseExistingServer: false,
+			reuseExistingServer: true,
 			timeout: 60 * 1000
 		},
 		{

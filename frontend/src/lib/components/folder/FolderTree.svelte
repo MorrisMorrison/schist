@@ -11,7 +11,12 @@
 	import FolderTreeSearch from './FolderTreeSearch.svelte';
 	import FolderTreeContextMenus from './FolderTreeContextMenus.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
-	import { foldersError } from '$lib/stores/documents';
+	import { 
+		folders, 
+		isFoldersLoading, 
+		foldersError, 
+		documentsStore 
+	} from '$lib/stores/documents';
 	import { folderActions } from '$lib/stores/documents';
 	import { cn } from '$lib/utils.js';
 
@@ -67,9 +72,14 @@
 		onexportall
 	}: Props = $props();
 
-	const treeState = new FolderTreeState(storageKey);
 	const filtering = createFolderTreeFiltering();
 	let manager: FolderTreeManager | undefined;
+	let stateUpdateTrigger = $state(0); // Used to trigger reactivity when state changes
+	
+	// Create tree state with update callback
+	const treeState = new FolderTreeState(storageKey, () => {
+		stateUpdateTrigger++; // Trigger reactivity
+	});
 
 	let contextMenuOpen = $state<string | null>(null);
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -77,25 +87,32 @@
 	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let unifiedSearchQuery = $state('');
 
-	const managerState = $derived(
-		manager?.getState() || {
-			folders: [],
-			documents: [],
-			isLoading: false,
-			dragAndDrop: {
-				isDragging: false,
-				draggedItem: null,
-				dropTarget: null,
-				dragOverTarget: null,
-				handleDragStart: () => {},
-				handleDragEnd: () => {},
-				handleDragOver: () => {},
-				handleDragEnter: () => {},
-				handleDragLeave: () => {},
-				handleDrop: () => {}
-			}
+	const managerState = $derived.by(() => {
+		// Trigger reactivity when manager is bound
+		stateUpdateTrigger;
+		
+		if (!manager) {
+			// Access the store directly while manager is initializing
+			return {
+				folders: $folders || [],
+				documents: $documentsStore.documents || [],
+				isLoading: $isFoldersLoading, // Use store loading state
+				dragAndDrop: {
+					isDragging: false,
+					draggedItem: null,
+					dropTarget: null,
+					dragOverTarget: null,
+					handleDragStart: () => {},
+					handleDragEnd: () => {},
+					handleDragOver: () => {},
+					handleDragEnter: () => {},
+					handleDragLeave: () => {},
+					handleDrop: () => {}
+				}
+			};
 		}
-	);
+		return manager.getState();
+	});
 
 	const filteredFolders = $derived(
 		unifiedSearchQuery.trim()
@@ -271,6 +288,13 @@
 		closeContextMenu();
 	}
 
+	// Trigger reactivity when manager becomes available
+	$effect(() => {
+		if (manager) {
+			stateUpdateTrigger++;
+		}
+	});
+
 	$effect(() => {
 		document.addEventListener('click', handleOutsideClick);
 		return () => {
@@ -362,7 +386,7 @@
 					}}
 					depth={0}
 					{maxDepth}
-					isExpanded={treeState.isExpanded('/')}
+					isExpanded={(() => { stateUpdateTrigger; return treeState.isExpanded('/'); })()}
 					isSelected={selectedPath === '/'}
 					isCurrent={isCurrentPath('/')}
 					{showPages}
@@ -375,7 +399,7 @@
 					draggedItem={managerState.dragAndDrop.draggedItem}
 					dropTarget={managerState.dragAndDrop.dropTarget}
 					dragOverTarget={managerState.dragAndDrop.dragOverTarget}
-					expandedFolders={treeState.expanded}
+					expandedFolders={(() => { stateUpdateTrigger; return treeState.expanded; })()}
 					onToggleExpanded={(path) => treeState.toggleExpanded(path)}
 					onFolderSelect={handleFolderSelect}
 					onContextMenu={handleContextMenu}
@@ -395,7 +419,7 @@
 						{folder}
 						depth={0}
 						{maxDepth}
-						isExpanded={treeState.isExpanded(folder.path)}
+						isExpanded={(() => { stateUpdateTrigger; return treeState.isExpanded(folder.path); })()}
 						isSelected={selectedPath === folder.path}
 						isCurrent={isCurrentPath(folder.path)}
 						{showPages}
@@ -408,7 +432,7 @@
 						draggedItem={managerState.dragAndDrop.draggedItem}
 						dropTarget={managerState.dragAndDrop.dropTarget}
 						dragOverTarget={managerState.dragAndDrop.dragOverTarget}
-						expandedFolders={treeState.expanded}
+						expandedFolders={(() => { stateUpdateTrigger; return treeState.expanded; })()}
 						onToggleExpanded={(path) => treeState.toggleExpanded(path)}
 						onFolderSelect={handleFolderSelect}
 						onContextMenu={handleContextMenu}

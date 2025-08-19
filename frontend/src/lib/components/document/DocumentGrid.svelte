@@ -3,7 +3,7 @@
 	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
-	import { FileText, Trash2 } from 'lucide-svelte';
+	import { FileText, Trash2 } from '@lucide/svelte';
 	import DocumentCard from './DocumentCard.svelte';
 	import LoadingSpinner from '../LoadingSpinner.svelte';
 	import ErrorAlert from '../ErrorAlert.svelte';

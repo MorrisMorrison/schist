@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History, Share } from 'lucide-svelte';
+	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History, Share } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from '../Breadcrumbs.svelte';

@@ -9,7 +9,7 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Edit, AlertCircle } from 'lucide-svelte';
+	import { Edit, AlertCircle } from '@lucide/svelte';
 	import type { Document } from '$lib/api/types';
 	import { generateSlug } from '$lib/utils/path';
 

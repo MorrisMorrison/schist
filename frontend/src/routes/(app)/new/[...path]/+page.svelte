@@ -5,7 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug, normalizePath } from '$lib/utils/path';
-	import { Check, Loader2 } from 'lucide-svelte';
+	import { Check, Loader2 } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';

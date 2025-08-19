@@ -6,7 +6,7 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { Github, FileEdit } from 'lucide-svelte';
+	import { Github, FileEdit } from '@lucide/svelte';
 	import EditorSettingsSection from '$lib/components/EditorSettingsSection.svelte';
 	import GitHubSettingsSection from '$lib/components/GitHubSettingsSection.svelte';
 	import SecretManager from '$lib/components/SecretManager.svelte';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Info } from 'lucide-svelte';
+	import { Info } from '@lucide/svelte';
 
 	let { showTaskExample = false }: { showTaskExample?: boolean } = $props();
 </script>

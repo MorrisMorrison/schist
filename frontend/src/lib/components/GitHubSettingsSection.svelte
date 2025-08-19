@@ -5,7 +5,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from 'lucide-svelte';
+	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
 	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
 

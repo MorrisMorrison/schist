@@ -12,11 +12,11 @@
 	} from '$lib/components/ui/card';
 	import PasskeySetupModal from './modal/PasskeySetupModal.svelte';
 	import InfoBox from '$lib/components/ui/info-box.svelte';
-	import { Shield, Key, Plus, Trash2, Loader2 } from 'lucide-svelte';
+	import { Shield, Key, Plus, Trash2, Loader2 } from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
-	let showSetupModal = false;
-	let deletingPasskey: string | null = null;
+	let showSetupModal = $state(false);
+	let deletingPasskey: string | null = $state(null);
 
 	onMount(() => {
 		passkeyStore.loadStatus();

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Calendar, Tag, Eye } from 'lucide-svelte';
+	import { Calendar, Tag, Eye } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';

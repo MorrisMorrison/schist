@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, Check, AlertCircle } from 'lucide-svelte';
+	import { Copy, Check, AlertCircle } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { copyToClipboard, isClipboardSupported } from '$lib/utils/clipboard';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';

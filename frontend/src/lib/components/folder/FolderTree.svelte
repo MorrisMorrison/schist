@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Folder, FolderOpen, Plus } from 'lucide-svelte';
+	import { Folder, FolderOpen, Plus } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';

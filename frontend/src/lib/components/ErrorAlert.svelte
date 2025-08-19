@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { X, AlertCircle, AlertTriangle, Info } from 'lucide-svelte';
+	import { X, AlertCircle, AlertTriangle, Info } from '@lucide/svelte';
 
 	export interface Props {
 		error: string;

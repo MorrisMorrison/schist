@@ -9,7 +9,7 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Folder } from 'lucide-svelte';
+	import { Folder } from '@lucide/svelte';
 	import { parseError } from '$lib/utils/error';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 

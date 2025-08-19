@@ -15,7 +15,7 @@
 	import SecretEditModal from './modal/SecretEditModal.svelte';
 	import InfoBox from '$lib/components/ui/info-box.svelte';
 	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
-	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from 'lucide-svelte';
+	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let showUnlockModal = $state(false);

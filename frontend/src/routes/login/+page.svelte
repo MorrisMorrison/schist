@@ -10,7 +10,7 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { Fingerprint, AlertCircle } from 'lucide-svelte';
+	import { Fingerprint, AlertCircle } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authenticateWithPasskey } from '$lib/utils/webauthn';
 	import { authService } from '$lib/auth/auth-service';

@@ -8,7 +8,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug } from '$lib/utils/path';
-	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
+	import { Check, Trash2, RotateCcw } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';

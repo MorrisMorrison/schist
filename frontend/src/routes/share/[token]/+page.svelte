@@ -5,7 +5,7 @@
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '$lib/components/ImageLightbox.svelte';
-	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 

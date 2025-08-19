@@ -10,7 +10,7 @@
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
 	import type { Document, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from '../ImageLightbox.svelte';
-	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';

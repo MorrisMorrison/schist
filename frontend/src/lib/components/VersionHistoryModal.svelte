@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { History, GitCompare, Undo, Calendar, User, MessageSquare, Loader2 } from '@lucide/svelte';
+	import {
+		History,
+		GitCompare,
+		Undo,
+		Calendar,
+		User,
+		MessageSquare,
+		Loader2
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import {

@@ -9,9 +9,9 @@
 	import UploadStatus from './UploadStatus.svelte';
 	import ResizeHandle from './ResizeHandle.svelte';
 	import type { EditorProps, FormattingType } from '$lib/types/editor';
-	import { theme } from '$lib/stores/theme.js';
+	import { themeStore } from '$lib/stores/theme.svelte';
 	import type { Asset } from '$lib/api/types.js';
-	import { appSettings } from '$lib/stores/settings.js';
+	import { settings } from '$lib/stores/settings.svelte';
 
 	let {
 		initialContent = '',
@@ -31,8 +31,8 @@
 	let previewContent = $state(initialContent);
 	let isDirty = $state(false);
 	let lastSaved = $state<Date | null>(null);
-	let isPreviewVisible = $state(!$appSettings.alwaysHidePreview);
-	let isFullscreen = $state(fullscreen || $appSettings.alwaysOpenFullscreen);
+	let isPreviewVisible = $state(!settings.app.alwaysHidePreview);
+	let isFullscreen = $state(fullscreen || settings.app.alwaysOpenFullscreen);
 
 	let editorHeight = $state(700);
 	let isResizing = $state(false);
@@ -43,8 +43,6 @@
 	let isEditorScrolling = $state(false);
 	let isPreviewScrolling = $state(false);
 	let scrollSyncTimeout: ReturnType<typeof setTimeout> | null = null;
-
-	const currentTheme = $derived($theme);
 
 	const autoSaveConfig = {
 		enabled: true,
@@ -300,7 +298,7 @@
 	});
 
 	const themeClasses = $derived(
-		'bg-background text-foreground' + (currentTheme === 'dark' ? ' dark' : '')
+		'bg-background text-foreground' + (themeStore.current === 'dark' ? ' dark' : '')
 	);
 
 	// Public method for immediate content updates (e.g., template application)
@@ -325,7 +323,7 @@
 	<!-- Toolbar -->
 	<EditorToolbar
 		onFormat={formatText}
-		theme={currentTheme}
+		theme={themeStore.current}
 		disabled={readonly}
 		onFullscreenToggle={toggleFullscreen}
 		{isFullscreen}
@@ -350,7 +348,7 @@
 				<EditorContent
 					bind:this={editorContentRef}
 					content={currentContent}
-					theme={currentTheme}
+					theme={themeStore.current}
 					{readonly}
 					onContentChange={updateContent}
 					onScrollSync={() => {
@@ -370,7 +368,7 @@
 		{#if isPreviewVisible}
 			<PreviewPanel
 				content={previewContent}
-				theme={currentTheme}
+				theme={themeStore.current}
 				bind:container={previewContainer}
 				onScroll={() => {
 					if (previewContainer && !isEditorScrolling) {
@@ -387,7 +385,7 @@
 	<!-- Status Bar -->
 	<EditorStatusBar
 		content={currentContent}
-		theme={currentTheme}
+		theme={themeStore.current}
 		autoSaveEnabled={autoSaveConfig.enabled}
 		{isFullscreen}
 	/>

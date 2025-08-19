@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { KEYBOARD_SHORTCUTS } from '$lib/utils/keyboard-shortcuts';
-	import { X } from 'lucide-svelte';
+	import { X } from '@lucide/svelte';
 
 	interface Props {
 		open: boolean;

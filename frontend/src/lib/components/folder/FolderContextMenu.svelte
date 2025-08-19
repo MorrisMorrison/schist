@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Plus, File, Download, Edit, Trash2 } from 'lucide-svelte';
+	import { Plus, File, Download, Edit, Trash2 } from '@lucide/svelte';
 	import type { Folder as FolderType } from '$lib/api/types.js';
 
 	interface Props {

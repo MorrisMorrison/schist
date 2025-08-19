@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Plus, Minus, RotateCcw } from 'lucide-svelte';
+	import { Plus, Minus, RotateCcw } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import type { DiffResult, DiffLine } from '$lib/api/types';
 

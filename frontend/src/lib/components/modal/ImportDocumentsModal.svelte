@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { apiClient } from '$lib/api/client';
 	import type { ImportOptions, ImportResult, Folder } from '$lib/api/types';
-	import { folderActions, documentActions } from '$lib/stores/documents';
+	import { folderActions, documentActions } from '$lib/stores/documents.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,
@@ -12,7 +12,7 @@
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Upload, AlertCircle, CheckCircle } from 'lucide-svelte';
+	import { Upload, AlertCircle, CheckCircle } from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	interface Props {

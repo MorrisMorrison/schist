@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { appSettings, settingsActions } from '$lib/stores/settings';
+	import { settings, settingsActions } from '$lib/stores/settings.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
 
@@ -24,7 +24,7 @@
 					</p>
 				</div>
 				<ToggleSlider
-					checked={$appSettings.alwaysHidePreview}
+					checked={settings.app.alwaysHidePreview}
 					onCheckedChange={handleAlwaysHidePreviewChange}
 					size="sm"
 				/>
@@ -41,7 +41,7 @@
 					</p>
 				</div>
 				<ToggleSlider
-					checked={$appSettings.alwaysOpenFullscreen}
+					checked={settings.app.alwaysOpenFullscreen}
 					onCheckedChange={handleAlwaysOpenFullscreenChange}
 					size="sm"
 				/>

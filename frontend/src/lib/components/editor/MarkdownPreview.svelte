@@ -2,14 +2,13 @@
 	import type { PreviewProps } from '$lib/types/editor';
 	import MarkdownRenderer from '../markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '../ImageLightbox.svelte';
-	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import {
 		secretStore,
-		secretsUnlocked,
 		replaceSecretPlaceholders,
 		parseSecretPlaceholders
-	} from '$lib/stores/secrets';
+	} from '$lib/stores/secrets.svelte';
 
 	let {
 		content,
@@ -48,7 +47,7 @@
 	$effect(() => {
 		const updateContent = async () => {
 			try {
-				if ($secretsUnlocked && content) {
+				if (secretStore.secretsUnlocked && content) {
 					processedContent = await replaceSecretPlaceholders(content, async (key: string) => {
 						return await secretStore.getSecret(key);
 					});
@@ -90,9 +89,9 @@
 </div>
 
 <ImageLightbox
-	src={$imageLightbox.src}
-	alt={$imageLightbox.alt}
-	open={$imageLightbox.open}
+	src={imageLightbox.src}
+	alt={imageLightbox.alt}
+	open={imageLightbox.open}
 	onClose={imageLightboxActions.close}
 />
 

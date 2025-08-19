@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { Calendar, Tag, Eye } from 'lucide-svelte';
+	import { Calendar, Tag, Eye } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
 	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '$lib/components/ImageLightbox.svelte';
-	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 
@@ -150,9 +150,9 @@
 
 <!-- Image Lightbox -->
 <ImageLightbox
-	src={$imageLightbox.src}
-	alt={$imageLightbox.alt}
-	open={$imageLightbox.open}
+	src={imageLightbox.src}
+	alt={imageLightbox.alt}
+	open={imageLightbox.open}
 	onClose={imageLightboxActions.close}
 />
 

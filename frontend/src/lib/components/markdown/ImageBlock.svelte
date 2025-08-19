@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ImageBlock } from '$lib/utils/markdown-blocks';
 	import { sanitizeHtml } from '$lib/utils/sanitizer';
-	import { imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 	import { apiClient } from '$lib/api/client';
 
 	let { block }: { block: ImageBlock } = $props();

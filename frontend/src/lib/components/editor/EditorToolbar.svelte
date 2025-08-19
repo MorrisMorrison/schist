@@ -14,7 +14,7 @@
 		Quote,
 		Maximize,
 		Minimize
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	let {
 		onFormat,

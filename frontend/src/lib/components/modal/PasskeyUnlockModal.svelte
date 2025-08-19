@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { passkeyStore, passkeyError, passkeyLoading } from '$lib/stores/passkeys';
+	import { passkeyStore } from '$lib/stores/passkeys.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import {
@@ -112,9 +112,9 @@
 					</div>
 				</div>
 
-				{#if $passkeyError}
+				{#if passkeyStore.error}
 					<Alert variant="destructive">
-						<AlertDescription>{$passkeyError}</AlertDescription>
+						<AlertDescription>{passkeyStore.error}</AlertDescription>
 					</Alert>
 				{/if}
 
@@ -158,13 +158,15 @@
 
 		<DialogFooter>
 			{#if step === 'ready'}
-				<Button variant="outline" onclick={handleClose} disabled={$passkeyLoading}>Cancel</Button>
+				<Button variant="outline" onclick={handleClose} disabled={passkeyStore.loading}
+					>Cancel</Button
+				>
 				<Button
 					onclick={handleWebAuthnUnlock}
-					disabled={!webAuthnSupported || $passkeyLoading}
+					disabled={!webAuthnSupported || passkeyStore.loading}
 					class="bg-primary"
 				>
-					{#if $passkeyLoading}
+					{#if passkeyStore.loading}
 						Authenticating...
 					{:else}
 						Unlock with Passkey

@@ -1,23 +1,22 @@
 <script lang="ts">
-	import { Folder, Plus } from 'lucide-svelte';
+	import { Folder, Plus } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
-	import FolderTreeManager from './FolderTreeManager.svelte';
-	import { FolderTreeState } from './FolderTreeState.js';
-	import { createFolderTreeFiltering } from './FolderTreeFiltering.js';
 	import FolderTreeToolbar from './FolderTreeToolbar.svelte';
 	import FolderTreeSearch from './FolderTreeSearch.svelte';
 	import FolderTreeContextMenus from './FolderTreeContextMenus.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
-	import { 
-		folders, 
-		isFoldersLoading, 
-		foldersError, 
-		documentsStore 
-	} from '$lib/stores/documents';
-	import { folderActions } from '$lib/stores/documents';
+	import {
+		foldersStore,
+		documentsStore,
+		documentActions,
+		currentFolder,
+		folderActions
+	} from '$lib/stores/documents.svelte';
+	import { authService } from '$lib/auth/auth-service';
+	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte';
 	import { cn } from '$lib/utils.js';
 
 	interface Props {
@@ -72,14 +71,6 @@
 		onexportall
 	}: Props = $props();
 
-	const filtering = createFolderTreeFiltering();
-	let manager: FolderTreeManager | undefined;
-	let stateUpdateTrigger = $state(0); // Used to trigger reactivity when state changes
-	
-	// Create tree state with update callback
-	const treeState = new FolderTreeState(storageKey, () => {
-		stateUpdateTrigger++; // Trigger reactivity
-	});
 
 	let contextMenuOpen = $state<string | null>(null);
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -87,70 +78,213 @@
 	let pageContextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let unifiedSearchQuery = $state('');
 
-	const managerState = $derived.by(() => {
-		// Trigger reactivity when manager is bound
-		stateUpdateTrigger;
-		
-		if (!manager) {
-			// Access the store directly while manager is initializing
-			return {
-				folders: $folders || [],
-				documents: $documentsStore.documents || [],
-				isLoading: $isFoldersLoading, // Use store loading state
-				dragAndDrop: {
-					isDragging: false,
-					draggedItem: null,
-					dropTarget: null,
-					dragOverTarget: null,
-					handleDragStart: () => {},
-					handleDragEnd: () => {},
-					handleDragOver: () => {},
-					handleDragEnter: () => {},
-					handleDragLeave: () => {},
-					handleDrop: () => {}
-				}
-			};
-		}
-		return manager.getState();
-	});
+	const dragAndDrop = useDragAndDrop(showPages);
+
+	const documents = $derived(documentsStore.documents || []);
 
 	const filteredFolders = $derived(
 		unifiedSearchQuery.trim()
-			? filtering.filterFoldersAndPages(
-					managerState.folders,
-					managerState.documents,
-					unifiedSearchQuery.toLowerCase(),
-					(folderPath: string) => filtering.getPagesForFolder(folderPath, managerState.documents)
+			? filterFoldersAndPages(
+					foldersStore.folders || [],
+					documents,
+					unifiedSearchQuery.toLowerCase()
 				)
-			: managerState.folders
+			: foldersStore.folders || []
 	);
 
+	let hasInitialized = $state(false);
+	let expandedFolders = $state(new Set<string>());
+	let userCollapsedFolders = $state(new Set<string>());
+
+	$effect(() => {
+		// Only load data if auth is disabled OR user is authenticated
+		const loadData = async () => {
+			await authService.initialize();
+
+			// Skip loading if auth is enabled but user is not authenticated
+			if (authService.isAuthEnabled()) {
+				const isAuthenticated = await authService.checkAuthStatus();
+				if (!isAuthenticated) {
+					return;
+				}
+			}
+
+			// Only load on first initialization
+			if (!hasInitialized) {
+				folderActions.loadFolderTree().catch(console.error);
+				if (showPages) {
+					documentActions.loadDocuments().catch(console.error);
+				}
+				hasInitialized = true;
+			}
+		};
+
+		loadData();
+	});
+
+	$effect(() => {
+		if (storageKey) {
+			const savedExpanded = localStorage.getItem(storageKey);
+			if (savedExpanded) {
+				try {
+					expandedFolders = new Set(JSON.parse(savedExpanded));
+				} catch (e) {
+					console.warn('Failed to parse saved expanded folders:', e);
+				}
+			}
+		}
+	});
+
+	function saveExpandedFolders() {
+		if (storageKey) {
+			localStorage.setItem(storageKey, JSON.stringify([...expandedFolders]));
+		}
+	}
+
+	function parseUnifiedQuery(query: string): { textQuery: string; tagFilters: string[] } {
+		const words = query.split(/\s+/);
+		const textParts: string[] = [];
+		const tagFilters: string[] = [];
+
+		for (const word of words) {
+			if (word.toLowerCase().startsWith('tag:')) {
+				const tagName = word.substring(4).toLowerCase();
+				if (tagName) tagFilters.push(tagName);
+			} else if (word.trim()) {
+				textParts.push(word.toLowerCase());
+			}
+		}
+
+		return {
+			textQuery: textParts.join(' '),
+			tagFilters
+		};
+	}
+
+	function pageMatchesFilters(
+		document: Document,
+		textQuery: string,
+		tagFilters: string[]
+	): boolean {
+		// Check text match in page title
+		const textMatch = !textQuery || document.metaData.title.toLowerCase().includes(textQuery);
+
+		// Check tag matches (AND logic - must match all specified tags with prefix matching)
+		const tagMatch =
+			tagFilters.length === 0 ||
+			Boolean(
+				document.metaData.tags &&
+					tagFilters.every((requiredTag) =>
+						document.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
+					)
+			);
+
+		return textMatch && tagMatch;
+	}
+
+	function filterFoldersAndPages(
+		folders: FolderType[],
+		_allPages: Document[],
+		query: string
+	): FolderType[] {
+		const { textQuery, tagFilters } = parseUnifiedQuery(query);
+
+		function filterFolderRecursive(folder: FolderType): FolderType | null {
+			const folderNameMatches = !textQuery || folder.name.toLowerCase().includes(textQuery);
+
+			const folderPages = getPagesForFolder(folder.path);
+			const matchingPages = folderPages.filter((page) =>
+				pageMatchesFilters(page, textQuery, tagFilters)
+			);
+
+			const filteredSubFolders =
+				folder.sub_folders
+					?.map(filterFolderRecursive)
+					?.filter((f): f is FolderType => f !== null) || [];
+
+			const shouldInclude =
+				folderNameMatches || matchingPages.length > 0 || filteredSubFolders.length > 0;
+
+			if (shouldInclude) {
+				return {
+					...folder,
+					sub_folders: filteredSubFolders,
+					document_count: matchingPages.length
+				};
+			}
+
+			return null;
+		}
+
+		return folders.map(filterFolderRecursive).filter((f): f is FolderType => f !== null);
+	}
+
+	function getPagesForFolder(folderPath: string) {
+		return documents.filter((page) => {
+			const pagePath = page.metaData?.path || '';
+
+			if (folderPath === '' || folderPath === '/') {
+				return pagePath.split('/').length === 2;
+			}
+
+			const folderSegments = folderPath.split('/').filter(Boolean);
+			const pageSegments = pagePath.split('/').filter(Boolean);
+
+			return (
+				pageSegments.length === folderSegments.length + 1 &&
+				pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
+			);
+		});
+	}
 	function getFilteredRootPages() {
-		return filtering.getFilteredRootPages(managerState.documents, unifiedSearchQuery);
+		return getPagesForFolder('/');
 	}
 
 	function getFilteredPagesForFolder(folderPath: string) {
-		return filtering.getFilteredPagesForFolder(
-			folderPath,
-			managerState.documents,
-			unifiedSearchQuery
-		);
+		return getPagesForFolder(folderPath);
 	}
 
 	function isCurrentPath(path: string): boolean {
-		return manager?.isCurrentPath(path, currentPath) || false;
+		return currentPath === path;
+	}
+
+	function findFolderByPath(folders: FolderType[], path: string): FolderType | null {
+		for (const folder of folders) {
+			if (folder.path === path) {
+				return folder;
+			}
+			if (folder.sub_folders) {
+				const found = findFolderByPath(folder.sub_folders, path);
+				if (found) return found;
+			}
+		}
+		return null;
 	}
 
 	function expandAll() {
-		treeState.expandAll(managerState.folders);
-		if (showPages && (getFilteredRootPages().length > 0 || managerState.folders.length > 0)) {
-			treeState.expandFolder('/');
+		const getAllFolderPaths = (folders: FolderType[]): string[] => {
+			let paths: string[] = [];
+			for (const folder of folders) {
+				paths.push(folder.path);
+				if (folder.sub_folders) {
+					paths = paths.concat(getAllFolderPaths(folder.sub_folders));
+				}
+			}
+			return paths;
+		};
+
+		const allPaths = getAllFolderPaths(foldersStore.folders || []);
+		if (showPages && (getPagesForFolder('/').length > 0 || (foldersStore.folders || []).length > 0)) {
+			allPaths.push('/');
 		}
+		expandedFolders = new Set(allPaths);
+		saveExpandedFolders();
 		onexpandall?.();
 	}
 
 	function collapseAll() {
-		treeState.collapseAll();
+		expandedFolders = new Set();
+		saveExpandedFolders();
 		oncollapseall?.();
 	}
 
@@ -196,11 +330,29 @@
 	}
 
 	function expandFolder(path: string) {
-		treeState.expandFolder(path);
+		expandedFolders = new Set([...expandedFolders, path]);
+		saveExpandedFolders();
+	}
+
+	function toggleExpanded(path: string) {
+		if (expandedFolders.has(path)) {
+			expandedFolders = new Set([...expandedFolders].filter(p => p !== path));
+			userCollapsedFolders = new Set([...userCollapsedFolders, path]);
+		} else {
+			expandedFolders = new Set([...expandedFolders, path]);
+			userCollapsedFolders = new Set([...userCollapsedFolders].filter(p => p !== path));
+		}
+		saveExpandedFolders();
 	}
 
 	export { expandFolder };
 
+	$effect(() => {
+		const current = currentFolder.value;
+		if (current && current !== '/' && !userCollapsedFolders.has(current)) {
+			expandFolder(current);
+		}
+	});
 	function handleFolderSelect(folder: FolderType) {
 		onselect?.({ path: folder.path, folder });
 	}
@@ -276,24 +428,26 @@
 	}
 
 	function findPageByPath(path: string): Document | null {
-		return manager?.findDocumentByPath(path) || null;
+		return documents.find(doc => doc.metaData?.path === path) || null;
 	}
 
 	function getCurrentFolderFromPath(path: string): FolderType | null {
-		if (!manager) return null;
-		return manager.getCurrentFolderFromPath(path);
+		if (path === '/') {
+			return {
+				name: '/',
+				path: '/',
+				created: new Date().toISOString(),
+				document_count: getFilteredRootPages().length,
+				sub_folders: filteredFolders
+			};
+		}
+		return findFolderByPath(foldersStore.folders || [], path);
 	}
 
 	function handleOutsideClick() {
 		closeContextMenu();
 	}
 
-	// Trigger reactivity when manager becomes available
-	$effect(() => {
-		if (manager) {
-			stateUpdateTrigger++;
-		}
-	});
 
 	$effect(() => {
 		document.addEventListener('click', handleOutsideClick);
@@ -305,8 +459,6 @@
 
 <svelte:window onclick={handleOutsideClick} />
 
-<!-- Initialize manager -->
-<FolderTreeManager bind:this={manager} {showPages} {storageKey} />
 
 <div class={cn('select-none', className)}>
 	{#if showActions}
@@ -331,15 +483,15 @@
 		/>
 	{/if}
 
-	{#if $foldersError}
-		<ErrorAlert error={$foldersError} onDismiss={() => folderActions.clearError()} />
+	{#if foldersStore.error}
+		<ErrorAlert error={foldersStore.error} onDismiss={() => folderActions.clearError()} />
 	{/if}
 
-	{#if managerState.isLoading}
+	{#if foldersStore.loading}
 		<div class="flex items-center justify-center py-8">
 			<LoadingSpinner size="md" />
 		</div>
-	{:else if !managerState.isLoading && managerState.folders !== null && filteredFolders.length === 0}
+	{:else if !foldersStore.loading && foldersStore.folders !== null && filteredFolders.length === 0}
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>
@@ -386,7 +538,7 @@
 					}}
 					depth={0}
 					{maxDepth}
-					isExpanded={(() => { stateUpdateTrigger; return treeState.isExpanded('/'); })()}
+					isExpanded={expandedFolders.has('/')}
 					isSelected={selectedPath === '/'}
 					isCurrent={isCurrentPath('/')}
 					{showPages}
@@ -395,20 +547,20 @@
 					filteredPages={getFilteredRootPages()}
 					{selectedPath}
 					{currentPath}
-					isDragging={managerState.dragAndDrop.isDragging}
-					draggedItem={managerState.dragAndDrop.draggedItem}
-					dropTarget={managerState.dragAndDrop.dropTarget}
-					dragOverTarget={managerState.dragAndDrop.dragOverTarget}
-					expandedFolders={(() => { stateUpdateTrigger; return treeState.expanded; })()}
-					onToggleExpanded={(path) => treeState.toggleExpanded(path)}
+					isDragging={dragAndDrop.isDragging}
+					draggedItem={dragAndDrop.draggedItem}
+					dropTarget={dragAndDrop.dropTarget}
+					dragOverTarget={dragAndDrop.dragOverTarget}
+					{expandedFolders}
+					onToggleExpanded={toggleExpanded}
 					onFolderSelect={handleFolderSelect}
 					onContextMenu={handleContextMenu}
-					onDragStart={managerState.dragAndDrop.handleDragStart}
-					onDragEnd={managerState.dragAndDrop.handleDragEnd}
-					onDragOver={managerState.dragAndDrop.handleDragOver}
-					onDragEnter={managerState.dragAndDrop.handleDragEnter}
-					onDragLeave={managerState.dragAndDrop.handleDragLeave}
-					onDrop={managerState.dragAndDrop.handleDrop}
+					onDragStart={dragAndDrop.handleDragStart}
+					onDragEnd={dragAndDrop.handleDragEnd}
+					onDragOver={dragAndDrop.handleDragOver}
+					onDragEnter={dragAndDrop.handleDragEnter}
+					onDragLeave={dragAndDrop.handleDragLeave}
+					onDrop={dragAndDrop.handleDrop}
 					onDocumentSelect={ondocumentselect}
 					onDocumentContextMenu={handlePageContextMenu}
 					{getFilteredPagesForFolder}
@@ -419,7 +571,7 @@
 						{folder}
 						depth={0}
 						{maxDepth}
-						isExpanded={(() => { stateUpdateTrigger; return treeState.isExpanded(folder.path); })()}
+						isExpanded={expandedFolders.has(folder.path)}
 						isSelected={selectedPath === folder.path}
 						isCurrent={isCurrentPath(folder.path)}
 						{showPages}
@@ -428,20 +580,20 @@
 						filteredPages={getFilteredPagesForFolder(folder.path)}
 						{selectedPath}
 						{currentPath}
-						isDragging={managerState.dragAndDrop.isDragging}
-						draggedItem={managerState.dragAndDrop.draggedItem}
-						dropTarget={managerState.dragAndDrop.dropTarget}
-						dragOverTarget={managerState.dragAndDrop.dragOverTarget}
-						expandedFolders={(() => { stateUpdateTrigger; return treeState.expanded; })()}
-						onToggleExpanded={(path) => treeState.toggleExpanded(path)}
+						isDragging={dragAndDrop.isDragging}
+						draggedItem={dragAndDrop.draggedItem}
+						dropTarget={dragAndDrop.dropTarget}
+						dragOverTarget={dragAndDrop.dragOverTarget}
+						{expandedFolders}
+						onToggleExpanded={toggleExpanded}
 						onFolderSelect={handleFolderSelect}
 						onContextMenu={handleContextMenu}
-						onDragStart={managerState.dragAndDrop.handleDragStart}
-						onDragEnd={managerState.dragAndDrop.handleDragEnd}
-						onDragOver={managerState.dragAndDrop.handleDragOver}
-						onDragEnter={managerState.dragAndDrop.handleDragEnter}
-						onDragLeave={managerState.dragAndDrop.handleDragLeave}
-						onDrop={managerState.dragAndDrop.handleDrop}
+						onDragStart={dragAndDrop.handleDragStart}
+						onDragEnd={dragAndDrop.handleDragEnd}
+						onDragOver={dragAndDrop.handleDragOver}
+						onDragEnter={dragAndDrop.handleDragEnter}
+						onDragLeave={dragAndDrop.handleDragLeave}
+						onDrop={dragAndDrop.handleDrop}
 						onDocumentSelect={ondocumentselect}
 						onDocumentContextMenu={handlePageContextMenu}
 						{getFilteredPagesForFolder}

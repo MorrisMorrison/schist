@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import * as d3 from 'd3';
-	import { Network } from 'lucide-svelte';
+	import { Network } from '@lucide/svelte';
 	import type { Document, WikiLink, GraphData, GraphNode, GraphLink } from '$lib/api/types';
 	import { goto } from '$app/navigation';
 

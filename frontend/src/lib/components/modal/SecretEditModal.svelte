@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { secretStore, secretsError, secretsLoading } from '$lib/stores/secrets';
+	import { secretStore } from '$lib/stores/secrets.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -97,9 +97,9 @@
 		</DialogHeader>
 
 		<div class="space-y-4">
-			{#if $secretsError}
+			{#if secretStore.error}
 				<Alert variant="destructive">
-					<AlertDescription>{$secretsError}</AlertDescription>
+					<AlertDescription>{secretStore.error}</AlertDescription>
 				</Alert>
 			{/if}
 
@@ -110,7 +110,7 @@
 					bind:value={key}
 					placeholder="e.g., 'api_key', 'database_url'"
 					onkeydown={handleKeydown}
-					disabled={$secretsLoading || isEditing}
+					disabled={secretStore.loading || isEditing}
 					class="w-full font-mono"
 				/>
 				<p class="text-muted-foreground text-sm">
@@ -130,7 +130,7 @@
 					id="secret-value"
 					bind:value
 					placeholder="Enter the secret value..."
-					disabled={$secretsLoading}
+					disabled={secretStore.loading}
 					class="min-h-24 w-full font-mono"
 					rows={3}
 				/>
@@ -169,9 +169,9 @@
 		</div>
 
 		<DialogFooter>
-			<Button variant="outline" onclick={handleClose} disabled={$secretsLoading}>Cancel</Button>
-			<Button onclick={handleSave} disabled={!key.trim() || !value.trim() || $secretsLoading}>
-				{#if $secretsLoading}
+			<Button variant="outline" onclick={handleClose} disabled={secretStore.loading}>Cancel</Button>
+			<Button onclick={handleSave} disabled={!key.trim() || !value.trim() || secretStore.loading}>
+				{#if secretStore.loading}
 					{isEditing ? 'Updating...' : 'Creating...'}
 				{:else}
 					{isEditing ? 'Update Secret' : 'Create Secret'}

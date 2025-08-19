@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { List, Network } from 'lucide-svelte';
+	import { List, Network } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 
 	interface Props {

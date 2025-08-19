@@ -11,17 +11,17 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from 'lucide-svelte';
+	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { UserInfo } from '$lib/api/types';
 
-	let users: UserInfo[] = [];
-	let loading = true;
-	let error = '';
-	let showInviteDialog = false;
-	let inviteURL = '';
-	let generatingInvite = false;
+	let users: UserInfo[] = $state([]);
+	let loading = $state(true);
+	let error = $state('');
+	let showInviteDialog = $state(false);
+	let inviteURL = $state('');
+	let generatingInvite = $state(false);
 
 	onMount(() => {
 		loadUsers();

@@ -82,8 +82,6 @@
 	});
 
 	$effect(() => {
-		// Note: initialDocuments and initialFolders are handled server-side
-		// The new store API is reactive and will update components automatically
 		if (initialDocuments?.length === 0 || initialFolders?.length === 0) {
 			loadFolderData();
 		}

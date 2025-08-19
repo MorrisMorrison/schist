@@ -77,7 +77,7 @@ ifndef TEST
 	@cd frontend && find e2e/tests -name "*.test.ts" -exec basename {} \; | sort
 	@exit 1
 endif
-	cd frontend && npm run build:e2e && npx playwright test e2e/tests/$(TEST) && npm run cleanup-e2e
+	cd frontend && npm run build && npx playwright test e2e/tests/$(TEST) && npm run cleanup-e2e
 
 # Run individual e2e test file without building (faster for development)
 # Usage: make e2e-test-dev TEST=01-document-lifecycle.test.ts

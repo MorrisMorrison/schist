@@ -6,7 +6,6 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
-		"build:e2e": "env $(cat .env.test | xargs) vite build",
 		"preview": "vite preview",
 		"prepare": "husky || true",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -15,8 +14,8 @@
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit",
-		"test:e2e": "npm run build:e2e && npx playwright test && npm run cleanup-e2e",
-		"test:e2e-ui": "npm run build:e2e && npx playwright test --ui",
+		"test:e2e": "npm run build && npx playwright test && npm run cleanup-e2e",
+		"test:e2e-ui": "npm run build && npx playwright test --ui",
 		"cleanup-test-data": "cd .. && ./scripts/cleanup.sh --profile=e2e-only",
 		"cleanup-e2e": "cd .. && ./scripts/cleanup.sh --profile=e2e-only"
 	},

@@ -187,7 +187,8 @@ describe('Documents Store', () => {
 				expect(result).toEqual(createdDocument);
 				expect(currentFolder.value).toBe('/folder');
 
-				expect(documentsStore.documents).toContain(createdDocument);
+				expect(documentsStore.documents).toHaveLength(1);
+				expect(documentsStore.documents[0]).toEqual(createdDocument);
 				expect(documentsStore.currentDocument).toEqual(createdDocument);
 				expect(documentsStore.loading).toBe(false);
 			});
@@ -264,6 +265,7 @@ describe('Documents Store', () => {
 				});
 
 				vi.mocked(apiClient.deleteDocumentByPath).mockResolvedValue();
+				vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
 
 				await documentActions.deleteDocument(docToDelete.metaData.path);
 
@@ -271,6 +273,8 @@ describe('Documents Store', () => {
 
 				expect(documentsStore.documents).toEqual([]);
 				expect(documentsStore.currentDocument).toBeNull();
+
+				await new Promise((resolve) => setTimeout(resolve, 0));
 				expect(documentsStore.loading).toBe(false);
 			});
 		});

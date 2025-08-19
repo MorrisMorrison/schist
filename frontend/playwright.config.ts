@@ -83,14 +83,14 @@ export default defineConfig({
 	webServer: [
 		{
 			command:
-				'npm run build && cd ../backend/cmd/schist && ENV=production SCHIST_PORT=8081 SCHIST_DATA_DIR=test-data-auth-disabled SCHIST_AUTH_ENABLED=false SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing-32-bytes-long" SCHIST_STATIC_DIR=../../frontend/build go run main.go',
+				'cd ../backend/cmd/schist && ENV=production SCHIST_PORT=8081 SCHIST_DATA_DIR=test-data-auth-disabled SCHIST_AUTH_ENABLED=false SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing-32-bytes-long" SCHIST_STATIC_DIR=../../../frontend/build SCHIST_FRONTEND_URL="http://localhost:8081" go run main.go',
 			port: 8081,
 			reuseExistingServer: true,
 			timeout: 120 * 1000
 		},
 		{
 			command:
-				'npm run build && cd ../backend/cmd/schist && ENV=production SCHIST_PORT=8082 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing-32-bytes-long" SCHIST_STATIC_DIR=../../frontend/build go run main.go',
+				'cd ../backend/cmd/schist && ENV=production SCHIST_PORT=8082 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing-32-bytes-long" SCHIST_STATIC_DIR=../../../frontend/build SCHIST_FRONTEND_URL="http://localhost:8082" go run main.go',
 			port: 8082,
 			reuseExistingServer: true,
 			timeout: 60 * 1000

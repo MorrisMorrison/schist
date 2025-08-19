@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FolderOpen, Folder, Plus } from 'lucide-svelte';
+	import { FolderOpen, Folder, Plus } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 
 	interface Props {

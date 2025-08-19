@@ -3,12 +3,11 @@
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 	import {
-		folders,
-		isFoldersLoading,
+		foldersStore,
 		documentsStore,
-		documentActions
-	} from '$lib/stores/documents';
-	import { folderActions } from '$lib/stores/documents';
+		documentActions,
+		folderActions
+	} from '$lib/stores/documents.svelte';
 	import type { Folder, Document } from '$lib/api/types.js';
 	import { onDestroy } from 'svelte';
 
@@ -27,8 +26,8 @@
 	// Export function to get state instead of exporting derived
 	export function getState() {
 		return {
-			folders: $folders || [],
-			documents: $documentsStore.documents || [],
+			folders: foldersStore.folders || [],
+			documents: documentsStore.documents || [],
 			isLoading: folderLoader.loading,
 			dragAndDrop: {
 				isDragging: dragAndDrop.isDragging,
@@ -78,7 +77,7 @@
 
 	// Sync the optimized loader with the store's loading state
 	$effect(() => {
-		if ($isFoldersLoading) {
+		if (foldersStore.loading) {
 			folderLoader.startLoading();
 		} else {
 			folderLoader.stopLoading();
@@ -109,8 +108,8 @@
 	 * Find a document by path
 	 */
 	export function findDocumentByPath(path: string): Document | null {
-		const documents = $documentsStore.documents || [];
-		return documents.find((doc) => doc.metaData?.path === path) || null;
+		const documents = documentsStore.documents || [];
+		return documents.find((doc: Document) => doc.metaData?.path === path) || null;
 	}
 
 	/**
@@ -123,10 +122,10 @@
 				path: '/',
 				created: new Date().toISOString(),
 				document_count: 0, // Will be calculated by parent
-				sub_folders: $folders || []
+				sub_folders: foldersStore.folders || []
 			};
 		}
-		return findFolderByPath($folders || [], path);
+		return findFolderByPath(foldersStore.folders || [], path);
 	}
 
 	/**

@@ -1,15 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		secretStore,
-		secretList,
-		secretsError,
-		secretsLoading,
-		secretsUnlocked,
-		hasSecrets,
-		requiresPassword
-	} from '$lib/stores/secrets';
-	import { authStore } from '$lib/stores/auth';
+	import { secretStore } from '$lib/stores/secrets.svelte';
+	import { authStore } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import {
@@ -23,7 +15,7 @@
 	import SecretEditModal from './modal/SecretEditModal.svelte';
 	import InfoBox from '$lib/components/ui/info-box.svelte';
 	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
-	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from 'lucide-svelte';
+	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let showUnlockModal = $state(false);
@@ -36,16 +28,16 @@
 	onMount(async () => {
 		await secretStore.loadStatus();
 		// If secrets are already unlocked but we don't have the list, load it
-		if ($secretsUnlocked && $secretList.length === 0) {
+		if (secretStore.secretsUnlocked && secretStore.secrets.length === 0) {
 			await secretStore.loadSecrets();
 		}
 	});
 
 	$effect(() => {
-		if ($authStore.token && $authStore.user) {
+		if (authStore.token && authStore.user) {
 			secretStore.loadStatus().then(() => {
 				// If secrets are already unlocked but we don't have the list, load it
-				if ($secretsUnlocked && $secretList.length === 0) {
+				if (secretStore.secretsUnlocked && secretStore.secrets.length === 0) {
 					secretStore.loadSecrets();
 				}
 			});
@@ -80,7 +72,7 @@
 
 		try {
 			await secretStore.loadStatus();
-			if ($secretsUnlocked && $secretList.length === 0) {
+			if (secretStore.secretsUnlocked && secretStore.secrets.length === 0) {
 				await secretStore.loadSecrets();
 			}
 		} catch (error) {
@@ -89,7 +81,7 @@
 			reloadingAfterUnlock = false;
 		}
 
-		if (!$hasSecrets) {
+		if (!secretStore.hasSecrets) {
 			setTimeout(() => {
 				showCreateModal = true;
 			}, 300);
@@ -141,19 +133,19 @@
 	</CardHeader>
 
 	<CardContent class="space-y-4">
-		{#if $secretsError}
+		{#if secretStore.error}
 			<Alert variant="destructive">
-				<AlertDescription>{$secretsError}</AlertDescription>
+				<AlertDescription>{secretStore.error}</AlertDescription>
 			</Alert>
 		{/if}
 
 		<!-- Status Section -->
 		<div class="bg-muted/50 flex items-center justify-between rounded-lg p-3">
 			<div class="flex items-center space-x-2">
-				{#if $secretsUnlocked}
+				{#if secretStore.secretsUnlocked}
 					<div class="h-2 w-2 rounded-full bg-green-500"></div>
 					<span class="text-primary text-sm font-medium"> Secrets Unlocked </span>
-				{:else if $hasSecrets || $requiresPassword}
+				{:else if secretStore.hasSecrets || secretStore.requiresPassword}
 					<div class="h-2 w-2 rounded-full bg-amber-500"></div>
 					<span class="text-muted-foreground text-sm font-medium"> Secrets Locked </span>
 				{:else}
@@ -163,18 +155,22 @@
 			</div>
 
 			<div class="flex items-center space-x-2">
-				{#if $secretsUnlocked}
+				{#if secretStore.secretsUnlocked}
 					<Button size="sm" onclick={() => (showCreateModal = true)}>
 						<Plus class="mr-1 h-3 w-3" />
 						Add Secret
 					</Button>
 				{/if}
-				<ToggleSlider checked={$secretsUnlocked} onCheckedChange={handleToggleUnlock} size="sm" />
+				<ToggleSlider
+					checked={secretStore.secretsUnlocked}
+					onCheckedChange={handleToggleUnlock}
+					size="sm"
+				/>
 			</div>
 		</div>
 
 		<!-- Initial Setup Section -->
-		{#if !$hasSecrets && !$requiresPassword && !$secretsUnlocked}
+		{#if !secretStore.hasSecrets && !secretStore.requiresPassword && !secretStore.secretsUnlocked}
 			<div class="space-y-4 py-8 text-center">
 				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
 					<Key class="text-muted-foreground h-8 w-8" />
@@ -198,20 +194,20 @@
 			</div>
 
 			<!-- Secret List Section -->
-		{:else if $secretsUnlocked && $secretList.length > 0}
+		{:else if secretStore.secretsUnlocked && secretStore.secrets.length > 0}
 			<div class="space-y-3">
 				<div class="flex items-center justify-between">
-					<h3 class="text-sm font-medium">Your Secrets ({$secretList.length})</h3>
+					<h3 class="text-sm font-medium">Your Secrets ({secretStore.secrets.length})</h3>
 				</div>
 
-				{#if $secretsLoading && $secretList.length === 0}
+				{#if secretStore.loading && secretStore.secrets.length === 0}
 					<div class="flex items-center justify-center py-6">
 						<LoadingSpinner size="md" />
 						<span class="text-muted-foreground ml-2 text-sm">Loading secrets...</span>
 					</div>
 				{:else}
 					<div class="space-y-2">
-						{#each $secretList as secret (secret.key)}
+						{#each secretStore.secrets as secret (secret.key)}
 							<div class="flex items-center justify-between rounded-lg border p-3">
 								<div class="flex-1">
 									<div class="flex items-center space-x-2">
@@ -266,7 +262,7 @@
 			</div>
 
 			<!-- Locked State -->
-		{:else if ($hasSecrets || $requiresPassword) && !$secretsUnlocked}
+		{:else if (secretStore.hasSecrets || secretStore.requiresPassword) && !secretStore.secretsUnlocked}
 			<div class="space-y-4 py-6 text-center">
 				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
 					<Lock class="text-muted-foreground h-8 w-8" />

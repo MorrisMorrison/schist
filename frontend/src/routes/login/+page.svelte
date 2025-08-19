@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Card,
@@ -10,17 +10,17 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { Fingerprint, AlertCircle } from 'lucide-svelte';
+	import { Fingerprint, AlertCircle } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authenticateWithPasskey } from '$lib/utils/webauthn';
 	import { authService } from '$lib/auth/auth-service';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
-	let isLoading = false;
-	let error = '';
-	let checkingSetup = true;
+	let isLoading = $state(false);
+	let error = $state('');
+	let checkingSetup = $state(true);
 
-	$: returnUrl = $page.url.searchParams.get('returnUrl') || '/';
+	const returnUrl = $derived(page.url.searchParams.get('returnUrl') || '/');
 
 	onMount(async () => {
 		// Check if setup is required first

@@ -36,7 +36,7 @@ export default defineConfig({
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL will be set dynamically per worker via fixture */
-		baseURL: 'http://localhost:4173',
+		baseURL: 'http://localhost:8081',
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
@@ -52,7 +52,7 @@ export default defineConfig({
 			name: 'auth-disabled',
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:4173'
+				baseURL: 'http://localhost:8081'
 			},
 			testIgnore: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/]
 		},
@@ -60,7 +60,7 @@ export default defineConfig({
 			name: 'auth-enabled-unauthenticated',
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:4174'
+				baseURL: 'http://localhost:8082'
 				// No storageState - start fresh for unauthenticated tests
 			},
 			dependencies: ['setup'],
@@ -71,7 +71,7 @@ export default defineConfig({
 			name: 'auth-enabled',
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:4174',
+				baseURL: 'http://localhost:8082',
 				storageState: 'playwright/.auth/user.json'
 			},
 			dependencies: ['setup'],
@@ -83,27 +83,15 @@ export default defineConfig({
 	webServer: [
 		{
 			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8081 SCHIST_FRONTEND_URL=http://localhost:4173 SCHIST_DATA_DIR=test-data-auth-disabled SCHIST_AUTH_ENABLED=false go run main.go',
+				'cd ../backend/cmd/schist && ENV=production SCHIST_PORT=8081 SCHIST_DATA_DIR=test-data-auth-disabled SCHIST_AUTH_ENABLED=false SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing-32-bytes-long" SCHIST_STATIC_DIR=../../../frontend/build SCHIST_FRONTEND_URL="http://localhost:8081" go run main.go',
 			port: 8081,
 			reuseExistingServer: true,
-			timeout: 60 * 1000
+			timeout: 120 * 1000
 		},
 		{
 			command:
-				'cd ../backend/cmd/schist && ENV=development SCHIST_PORT=8082 SCHIST_FRONTEND_URL=http://localhost:4174 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing" go run main.go',
+				'cd ../backend/cmd/schist && ENV=production SCHIST_PORT=8082 SCHIST_DATA_DIR=test-data-auth-enabled SCHIST_AUTH_ENABLED=true SCHIST_JWT_SECRET="test-jwt-secret-for-e2e-testing-32-bytes-long" SCHIST_STATIC_DIR=../../../frontend/build SCHIST_FRONTEND_URL="http://localhost:8082" go run main.go',
 			port: 8082,
-			reuseExistingServer: true,
-			timeout: 60 * 1000
-		},
-		{
-			command: 'PUBLIC_API_URL=http://localhost:8081/api npm run preview -- --port 4173',
-			port: 4173,
-			reuseExistingServer: false,
-			timeout: 60 * 1000
-		},
-		{
-			command: 'PUBLIC_API_URL=http://localhost:8082/api npm run preview -- --port 4174',
-			port: 4174,
 			reuseExistingServer: true,
 			timeout: 60 * 1000
 		}

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
-	import { documentActions } from '$lib/stores/documents';
+	import { documentActions } from '$lib/stores/documents.svelte';
 	import { goto } from '$app/navigation';
 	import FolderView from '$lib/components/folder/FolderView.svelte';
 	import DocumentView from '$lib/components/document/DocumentView.svelte';
 	import type { Document } from '$lib/api/types';
 	import { Button } from '$lib/components/ui/button';
-	import { Home, Plus, RotateCcw, Search } from 'lucide-svelte';
+	import { Home, Plus, RotateCcw, Search } from '@lucide/svelte';
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
 	import { isNotFoundError } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';

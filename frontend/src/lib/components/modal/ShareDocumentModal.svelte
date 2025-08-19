@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, Share, RefreshCw, Trash2, Clock, ExternalLink } from 'lucide-svelte';
+	import { Copy, Share, RefreshCw, Trash2, Clock, ExternalLink } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';

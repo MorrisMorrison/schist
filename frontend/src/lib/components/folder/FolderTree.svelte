@@ -71,7 +71,6 @@
 		onexportall
 	}: Props = $props();
 
-
 	let contextMenuOpen = $state<string | null>(null);
 	let contextMenuPosition = $state<{ x: number; y: number }>({ x: 0, y: 0 });
 	let pageContextMenuOpen = $state<string | null>(null);
@@ -274,7 +273,10 @@
 		};
 
 		const allPaths = getAllFolderPaths(foldersStore.folders || []);
-		if (showPages && (getPagesForFolder('/').length > 0 || (foldersStore.folders || []).length > 0)) {
+		if (
+			showPages &&
+			(getPagesForFolder('/').length > 0 || (foldersStore.folders || []).length > 0)
+		) {
 			allPaths.push('/');
 		}
 		expandedFolders = new Set(allPaths);
@@ -336,11 +338,11 @@
 
 	function toggleExpanded(path: string) {
 		if (expandedFolders.has(path)) {
-			expandedFolders = new Set([...expandedFolders].filter(p => p !== path));
+			expandedFolders = new Set([...expandedFolders].filter((p) => p !== path));
 			userCollapsedFolders = new Set([...userCollapsedFolders, path]);
 		} else {
 			expandedFolders = new Set([...expandedFolders, path]);
-			userCollapsedFolders = new Set([...userCollapsedFolders].filter(p => p !== path));
+			userCollapsedFolders = new Set([...userCollapsedFolders].filter((p) => p !== path));
 		}
 		saveExpandedFolders();
 	}
@@ -428,7 +430,7 @@
 	}
 
 	function findPageByPath(path: string): Document | null {
-		return documents.find(doc => doc.metaData?.path === path) || null;
+		return documents.find((doc) => doc.metaData?.path === path) || null;
 	}
 
 	function getCurrentFolderFromPath(path: string): FolderType | null {
@@ -448,7 +450,6 @@
 		closeContextMenu();
 	}
 
-
 	$effect(() => {
 		document.addEventListener('click', handleOutsideClick);
 		return () => {
@@ -458,7 +459,6 @@
 </script>
 
 <svelte:window onclick={handleOutsideClick} />
-
 
 <div class={cn('select-none', className)}>
 	{#if showActions}

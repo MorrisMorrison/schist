@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, Edit, Trash2 } from 'lucide-svelte';
+	import { Download, Edit, Trash2 } from '@lucide/svelte';
 	import type { Document } from '$lib/api/types.js';
 
 	interface Props {

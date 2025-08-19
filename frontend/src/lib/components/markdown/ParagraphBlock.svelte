@@ -3,7 +3,7 @@
 	import { sanitizeHtml } from '$lib/utils/sanitizer';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { imageLightboxActions } from '$lib/stores/image-lightbox';
+	import { imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 
 	let { block }: { block: ParagraphBlock } = $props();
 	let container: HTMLElement;

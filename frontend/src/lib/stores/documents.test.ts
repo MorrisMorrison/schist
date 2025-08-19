@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { get } from 'svelte/store';
 import {
 	documentsStore,
 	searchStore,
@@ -7,8 +6,12 @@ import {
 	documentActions,
 	searchActions,
 	currentFolderDocuments,
-	currentFolder
-} from './documents';
+	currentFolder,
+	resetAllState,
+	setDocumentsState,
+	setSearchState,
+	setCurrentFolderState
+} from './documents.svelte';
 import { apiClient } from '../api/client';
 import type { CreateDocumentRequest, UpdateDocumentRequest } from '../api/types';
 import { testData } from '../test/utils';
@@ -39,28 +42,7 @@ vi.mock('../api/client', () => ({
 describe('Documents Store', () => {
 	beforeEach(() => {
 		// Reset all stores to initial state
-		documentsStore.set({
-			documents: [],
-			currentDocument: null,
-			loading: false,
-			error: null
-		});
-
-		searchStore.set({
-			query: '',
-			selectedTags: [],
-			results: [],
-			loading: false,
-			error: null
-		});
-
-		foldersStore.set({
-			folders: [],
-			loading: false,
-			error: null
-		});
-
-		currentFolder.set('/');
+		resetAllState();
 
 		// Clear all mocks
 		vi.clearAllMocks();
@@ -68,33 +50,24 @@ describe('Documents Store', () => {
 
 	describe('Initial State', () => {
 		it('should have correct initial state for documents store', () => {
-			const state = get(documentsStore);
-			expect(state).toEqual({
-				documents: [],
-				currentDocument: null,
-				loading: false,
-				error: null
-			});
+			expect(documentsStore.documents).toEqual([]);
+			expect(documentsStore.currentDocument).toEqual(null);
+			expect(documentsStore.loading).toEqual(false);
+			expect(documentsStore.error).toEqual(null);
 		});
 
 		it('should have correct initial state for search store', () => {
-			const state = get(searchStore);
-			expect(state).toEqual({
-				query: '',
-				selectedTags: [],
-				results: [],
-				loading: false,
-				error: null
-			});
+			expect(searchStore.query).toEqual('');
+			expect(searchStore.selectedTags).toEqual([]);
+			expect(searchStore.results).toEqual([]);
+			expect(searchStore.loading).toEqual(false);
+			expect(searchStore.error).toEqual(null);
 		});
 
 		it('should have correct initial state for folders store', () => {
-			const state = get(foldersStore);
-			expect(state).toEqual({
-				folders: [],
-				loading: false,
-				error: null
-			});
+			expect(foldersStore.folders).toEqual([]);
+			expect(foldersStore.loading).toEqual(false);
+			expect(foldersStore.error).toEqual(null);
 		});
 	});
 
@@ -109,10 +82,9 @@ describe('Documents Store', () => {
 				expect(apiClient.getDocuments).toHaveBeenCalledWith(false);
 				expect(result).toEqual(mockDocuments);
 
-				const state = get(documentsStore);
-				expect(state.documents).toEqual(mockDocuments);
-				expect(state.loading).toBe(false);
-				expect(state.error).toBeNull();
+				expect(documentsStore.documents).toEqual(mockDocuments);
+				expect(documentsStore.loading).toBe(false);
+				expect(documentsStore.error).toBeNull();
 			});
 
 			it('should handle loading documents error', async () => {
@@ -123,10 +95,9 @@ describe('Documents Store', () => {
 
 				expect(result).toEqual([]);
 
-				const state = get(documentsStore);
-				expect(state.documents).toEqual([]);
-				expect(state.loading).toBe(false);
-				expect(state.error).toBe(errorMessage);
+				expect(documentsStore.documents).toEqual([]);
+				expect(documentsStore.loading).toBe(false);
+				expect(documentsStore.error).toBe(errorMessage);
 			});
 
 			it('should force refresh when requested', async () => {
@@ -150,12 +121,11 @@ describe('Documents Store', () => {
 
 				expect(apiClient.getDocumentByPath).toHaveBeenCalledWith('/folder/document');
 				expect(result).toEqual(mockDocument);
-				expect(get(currentFolder)).toBe('/folder');
+				expect(currentFolder.value).toBe('/folder');
 
-				const state = get(documentsStore);
-				expect(state.currentDocument).toEqual(mockDocument);
-				expect(state.loading).toBe(false);
-				expect(state.error).toBeNull();
+				expect(documentsStore.currentDocument).toEqual(mockDocument);
+				expect(documentsStore.loading).toBe(false);
+				expect(documentsStore.error).toBeNull();
 			});
 
 			it('should load document by ID', async () => {
@@ -169,7 +139,7 @@ describe('Documents Store', () => {
 
 				expect(apiClient.getDocument).toHaveBeenCalledWith('doc-id');
 				expect(result).toEqual(mockDocument);
-				expect(get(currentFolder)).toBe('/folder');
+				expect(currentFolder.value).toBe('/folder');
 			});
 
 			it('should handle load document error', async () => {
@@ -178,10 +148,9 @@ describe('Documents Store', () => {
 
 				await expect(documentActions.loadDocument('/missing')).rejects.toThrow(errorMessage);
 
-				const state = get(documentsStore);
-				expect(state.currentDocument).toBeNull();
-				expect(state.loading).toBe(false);
-				expect(state.error).toBe(errorMessage);
+				expect(documentsStore.currentDocument).toBeNull();
+				expect(documentsStore.loading).toBe(false);
+				expect(documentsStore.error).toBe(errorMessage);
 			});
 		});
 
@@ -216,36 +185,42 @@ describe('Documents Store', () => {
 				expect(apiClient.createDocument).toHaveBeenCalledWith(createRequest);
 				expect(apiClient.getDocumentByPath).toHaveBeenCalledWith('/folder/new-document');
 				expect(result).toEqual(createdDocument);
-				expect(get(currentFolder)).toBe('/folder');
+				expect(currentFolder.value).toBe('/folder');
 
-				const state = get(documentsStore);
-				expect(state.documents).toContain(createdDocument);
-				expect(state.currentDocument).toEqual(createdDocument);
-				expect(state.loading).toBe(false);
+				expect(documentsStore.documents).toHaveLength(1);
+				expect(documentsStore.documents[0]).toEqual(createdDocument);
+				expect(documentsStore.currentDocument).toEqual(createdDocument);
+				expect(documentsStore.loading).toBe(false);
 			});
 
 			it('should handle create document error', async () => {
+				// Ensure clean state
+				resetAllState();
+				vi.clearAllMocks();
+
 				const createRequest: CreateDocumentRequest = {
 					metaData: { title: 'New Document' },
 					content: '# New Document'
 				};
 
 				const errorMessage = 'Failed to create document';
-				vi.mocked(apiClient.createDocument).mockRejectedValue(new Error(errorMessage));
+				vi.mocked(apiClient.createDocument).mockRejectedValueOnce(new Error(errorMessage));
+
+				// Verify initial state
+				expect(documentsStore.documents).toEqual([]);
 
 				await expect(documentActions.createDocument(createRequest)).rejects.toThrow(errorMessage);
 
-				const state = get(documentsStore);
-				expect(state.documents).toEqual([]);
-				expect(state.loading).toBe(false);
-				expect(state.error).toBe(errorMessage);
+				expect(documentsStore.documents).toEqual([]);
+				expect(documentsStore.loading).toBe(false);
+				expect(documentsStore.error).toBe(errorMessage);
 			});
 		});
 
 		describe('updateDocument', () => {
 			it('should update document successfully', async () => {
 				const existingDoc = testData.document;
-				documentsStore.set({
+				setDocumentsState({
 					documents: [existingDoc],
 					currentDocument: existingDoc,
 					loading: false,
@@ -274,16 +249,15 @@ describe('Documents Store', () => {
 				);
 				expect(result).toEqual(updatedDocument);
 
-				const state = get(documentsStore);
-				expect(state.documents[0]).toEqual(updatedDocument);
-				expect(state.currentDocument).toEqual(updatedDocument);
+				expect(documentsStore.documents[0]).toEqual(updatedDocument);
+				expect(documentsStore.currentDocument).toEqual(updatedDocument);
 			});
 		});
 
 		describe('deleteDocument', () => {
 			it('should delete document successfully', async () => {
 				const docToDelete = testData.document;
-				documentsStore.set({
+				setDocumentsState({
 					documents: [docToDelete],
 					currentDocument: docToDelete,
 					loading: false,
@@ -291,15 +265,17 @@ describe('Documents Store', () => {
 				});
 
 				vi.mocked(apiClient.deleteDocumentByPath).mockResolvedValue();
+				vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
 
 				await documentActions.deleteDocument(docToDelete.metaData.path);
 
 				expect(apiClient.deleteDocumentByPath).toHaveBeenCalledWith(docToDelete.metaData.path);
 
-				const state = get(documentsStore);
-				expect(state.documents).toEqual([]);
-				expect(state.currentDocument).toBeNull();
-				expect(state.loading).toBe(false);
+				expect(documentsStore.documents).toEqual([]);
+				expect(documentsStore.currentDocument).toBeNull();
+
+				await new Promise((resolve) => setTimeout(resolve, 0));
+				expect(documentsStore.loading).toBe(false);
 			});
 		});
 	});
@@ -319,11 +295,10 @@ describe('Documents Store', () => {
 				expect(apiClient.searchDocuments).toHaveBeenCalledWith('test query tag:tag1');
 				expect(result.documents).toEqual(mockResults);
 
-				const state = get(searchStore);
-				expect(state.query).toBe('test query');
-				expect(state.selectedTags).toEqual(['tag1']);
-				expect(state.results).toEqual(mockResults);
-				expect(state.loading).toBe(false);
+				expect(searchStore.query).toBe('test query');
+				expect(searchStore.selectedTags).toEqual(['tag1']);
+				expect(searchStore.results).toEqual(mockResults);
+				expect(searchStore.loading).toBe(false);
 			});
 
 			it('should handle search error', async () => {
@@ -332,16 +307,15 @@ describe('Documents Store', () => {
 
 				await expect(searchActions.search('query')).rejects.toThrow(errorMessage);
 
-				const state = get(searchStore);
-				expect(state.loading).toBe(false);
-				expect(state.error).toBe(errorMessage);
-				expect(state.results).toEqual([]);
+				expect(searchStore.loading).toBe(false);
+				expect(searchStore.error).toBe(errorMessage);
+				expect(searchStore.results).toEqual([]);
 			});
 		});
 
 		describe('clearSearch', () => {
 			it('should clear search state', () => {
-				searchStore.set({
+				setSearchState({
 					query: 'test',
 					selectedTags: ['tag1'],
 					results: [testData.document],
@@ -351,14 +325,11 @@ describe('Documents Store', () => {
 
 				searchActions.clearSearch();
 
-				const state = get(searchStore);
-				expect(state).toEqual({
-					query: '',
-					selectedTags: [],
-					results: [],
-					loading: false,
-					error: null
-				});
+				expect(searchStore.query).toEqual('');
+				expect(searchStore.selectedTags).toEqual([]);
+				expect(searchStore.results).toEqual([]);
+				expect(searchStore.loading).toEqual(false);
+				expect(searchStore.error).toEqual(null);
 			});
 		});
 
@@ -366,12 +337,11 @@ describe('Documents Store', () => {
 			it('should add tag', () => {
 				searchActions.addTag('newtag');
 
-				const state = get(searchStore);
-				expect(state.selectedTags).toContain('newtag');
+				expect(searchStore.selectedTags).toContain('newtag');
 			});
 
 			it('should not add duplicate tag', () => {
-				searchStore.set({
+				setSearchState({
 					query: '',
 					selectedTags: ['existing'],
 					results: [],
@@ -381,12 +351,11 @@ describe('Documents Store', () => {
 
 				searchActions.addTag('existing');
 
-				const state = get(searchStore);
-				expect(state.selectedTags).toEqual(['existing']);
+				expect(searchStore.selectedTags).toEqual(['existing']);
 			});
 
 			it('should remove tag', () => {
-				searchStore.set({
+				setSearchState({
 					query: '',
 					selectedTags: ['tag1', 'tag2'],
 					results: [],
@@ -396,12 +365,11 @@ describe('Documents Store', () => {
 
 				searchActions.removeTag('tag1');
 
-				const state = get(searchStore);
-				expect(state.selectedTags).toEqual(['tag2']);
+				expect(searchStore.selectedTags).toEqual(['tag2']);
 			});
 
 			it('should clear all tags', () => {
-				searchStore.set({
+				setSearchState({
 					query: '',
 					selectedTags: ['tag1', 'tag2'],
 					results: [],
@@ -411,8 +379,7 @@ describe('Documents Store', () => {
 
 				searchActions.clearTags();
 
-				const state = get(searchStore);
-				expect(state.selectedTags).toEqual([]);
+				expect(searchStore.selectedTags).toEqual([]);
 			});
 		});
 	});
@@ -425,16 +392,16 @@ describe('Documents Store', () => {
 				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/' } }
 			];
 
-			documentsStore.set({
+			setDocumentsState({
 				documents: docs,
 				currentDocument: null,
 				loading: false,
 				error: null
 			});
 
-			currentFolder.set('/');
+			setCurrentFolderState('/');
 
-			const folderDocs = get(currentFolderDocuments);
+			const folderDocs = currentFolderDocuments();
 			expect(folderDocs).toHaveLength(2); // Should include /doc1 and / but not /folder/doc2
 		});
 
@@ -448,16 +415,16 @@ describe('Documents Store', () => {
 				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/other/doc3' } }
 			];
 
-			documentsStore.set({
+			setDocumentsState({
 				documents: docs,
 				currentDocument: null,
 				loading: false,
 				error: null
 			});
 
-			currentFolder.set('/folder');
+			setCurrentFolderState('/folder');
 
-			const folderDocs = get(currentFolderDocuments);
+			const folderDocs = currentFolderDocuments();
 			expect(folderDocs).toHaveLength(2); // Should include docs in /folder and subfolders
 			expect(folderDocs.every((doc) => doc.metaData.path?.startsWith('/folder'))).toBe(true);
 		});
@@ -465,7 +432,7 @@ describe('Documents Store', () => {
 
 	describe('Error Handling', () => {
 		it('should clear error for documents', () => {
-			documentsStore.set({
+			setDocumentsState({
 				documents: [],
 				currentDocument: null,
 				loading: false,
@@ -474,12 +441,11 @@ describe('Documents Store', () => {
 
 			documentActions.clearError();
 
-			const state = get(documentsStore);
-			expect(state.error).toBeNull();
+			expect(documentsStore.error).toBeNull();
 		});
 
 		it('should clear current document', () => {
-			documentsStore.set({
+			setDocumentsState({
 				documents: [],
 				currentDocument: testData.document,
 				loading: false,
@@ -488,8 +454,7 @@ describe('Documents Store', () => {
 
 			documentActions.clearCurrentDocument();
 
-			const state = get(documentsStore);
-			expect(state.currentDocument).toBeNull();
+			expect(documentsStore.currentDocument).toBeNull();
 		});
 	});
 });

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { File, MoreVertical } from 'lucide-svelte';
+	import { File, MoreVertical } from '@lucide/svelte';
 	import { cn } from '$lib/utils.js';
 	import type { Document, Folder as FolderType } from '$lib/api/types.js';
 

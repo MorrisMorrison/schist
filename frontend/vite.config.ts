@@ -9,7 +9,7 @@ export default defineConfig({
 			output: {
 				manualChunks: {
 					// UI components chunk
-					ui: ['lucide-svelte', 'bits-ui']
+					ui: ['@lucide/svelte', 'bits-ui']
 				}
 			}
 		}

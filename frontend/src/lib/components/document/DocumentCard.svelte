@@ -2,7 +2,7 @@
 	import { Card } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Edit, Trash2, Move, FileText, Clock, Folder } from 'lucide-svelte';
+	import { Edit, Trash2, Move, FileText, Clock, Folder } from '@lucide/svelte';
 	import type { Document } from '$lib/api/types';
 	import { getParentPath } from '$lib/utils/path';
 	import { formatRelativeDate } from '$lib/utils/date';

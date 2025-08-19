@@ -26,9 +26,9 @@ frontend/build/
 frontend/.svelte-kit/
 
 # Development
-.env
-.env.local
-.env.production
+frontend/.env
+frontend/.env.local
+frontend/.env.production
 
 # IDE
 .vscode/

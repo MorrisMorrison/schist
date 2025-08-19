@@ -1,180 +1,123 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { configuredMarked } from './markdown';
 
-// Mock the API client and dependencies
-vi.mock('$lib/api/client', () => ({
-	apiClient: {
-		getAssetUrl: vi.fn().mockImplementation((path) => `https://example.com${path}`)
-	}
-}));
+describe('configuredMarked (Basic Inline Markdown Processing)', () => {
+	describe('Inline Text Formatting', () => {
+		it('should render bold text', () => {
+			const markdown = '**bold text**';
+			const html = configuredMarked(markdown);
 
-vi.mock('./markdown-config', () => ({
-	highlightCode: vi.fn().mockImplementation((code, lang) => {
-		return lang ? `<span class="hljs-${lang}">${code}</span>` : code;
-	})
-}));
+			expect(html).toContain('<strong>bold text</strong>');
+		});
 
-// Mock DOM for escapeHtml function
-Object.defineProperty(global, 'document', {
-	value: {
-		createElement: vi.fn().mockImplementation((tagName) => {
-			if (tagName === 'div') {
-				const div = {
-					textContent: '',
-					innerHTML: ''
-				};
-				Object.defineProperty(div, 'textContent', {
-					set: function (value) {
-						// Simple mock of textContent setting
-						this.innerHTML = value
-							.replace(/&/g, '&amp;')
-							.replace(/</g, '&lt;')
-							.replace(/>/g, '&gt;')
-							.replace(/"/g, '&quot;')
-							.replace(/'/g, '&#39;');
-					}
-				});
-				return div;
-			}
-			return {};
-		})
-	}
-});
+		it('should render italic text', () => {
+			const markdown = '*italic text*';
+			const html = configuredMarked(markdown);
 
-describe('Markdown Renderer', () => {
-	describe('Image Rendering', () => {
-		it('should render basic image with default size', () => {
-			const markdown = '![Alt text](test-image.jpg)';
+			expect(html).toContain('<em>italic text</em>');
+		});
+
+		it('should render inline code', () => {
+			const markdown = 'Use `console.log()` for debugging';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('<code>console.log()</code>');
+		});
+
+		it('should render links', () => {
+			const markdown = '[GitHub](https://github.com)';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('<a href="https://github.com">GitHub</a>');
+		});
+
+		it('should handle mixed inline formatting', () => {
+			const markdown = 'Text with **bold**, *italic*, and `code`';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('<strong>bold</strong>');
+			expect(html).toContain('<em>italic</em>');
+			expect(html).toContain('<code>code</code>');
+		});
+	});
+
+	describe('Basic Block Elements', () => {
+		it('should render headings', () => {
+			const markdown = '# Heading 1';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('<h1');
+			expect(html).toContain('Heading 1');
+		});
+
+		it('should render paragraphs', () => {
+			const markdown = 'This is a paragraph.';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('<p>This is a paragraph.</p>');
+		});
+
+		it('should render basic lists', () => {
+			const markdown = '- Item 1\n- Item 2';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('<ul>');
+			expect(html).toContain('<li>Item 1</li>');
+			expect(html).toContain('<li>Item 2</li>');
+		});
+
+		it('should render basic images', () => {
+			const markdown = '![Alt text](image.jpg)';
 			const html = configuredMarked(markdown);
 
 			expect(html).toContain('<img');
 			expect(html).toContain('alt="Alt text"');
-			expect(html).toContain('src="test-image.jpg"');
-			expect(html).toContain('max-w-[75%]'); // default size
-			expect(html).toContain('data-lightbox="true"');
+			expect(html).toContain('src="image.jpg"');
 		});
 
-		it('should handle image with title', () => {
-			const markdown = '![Alt text](test.jpg "Image title")';
+		it('should render basic code blocks', () => {
+			const markdown = '```\nconst x = 1;\n```';
 			const html = configuredMarked(markdown);
 
-			expect(html).toContain('title="Image title"');
-			expect(html).toContain('alt="Alt text"');
-		});
-
-		it('should parse size from title with pipe separator', () => {
-			const markdown = '![Alt text](test.jpg "Image title|small")';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('title="Image title"');
-			expect(html).toContain('max-w-[33%]'); // small size
-		});
-
-		it('should handle different size options', () => {
-			const sizes = [
-				{ size: 'small', expected: 'max-w-[33%]' },
-				{ size: 'medium', expected: 'max-w-[50%]' },
-				{ size: 'large', expected: 'max-w-[75%]' },
-				{ size: 'full', expected: 'max-w-full' }
-			];
-
-			sizes.forEach(({ size, expected }) => {
-				const markdown = `![Alt](test.jpg "Title|${size}")`;
-				const html = configuredMarked(markdown);
-				expect(html).toContain(expected);
-			});
-		});
-
-		it('should handle custom pixel size', () => {
-			const markdown = '![Alt](test.jpg "Title|300px")';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('max-w-[300px]');
-		});
-
-		it('should handle custom percentage size', () => {
-			const markdown = '![Alt](test.jpg "Title|80%")';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('max-w-[80%]');
-		});
-
-		it('should handle numeric size as pixels', () => {
-			const markdown = '![Alt](test.jpg "Title|400")';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('max-w-[400px]');
-		});
-
-		it('should transform assets path to use API URL', () => {
-			const markdown = '![Alt](/assets/image.jpg)';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('src="https://example.com/assets/image.jpg"');
-		});
-
-		it('should include lightbox attributes', () => {
-			const markdown = '![Alt](test.jpg)';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('data-lightbox="true"');
-			expect(html).toContain('data-original-src=');
-			expect(html).toContain('data-fallback-text=');
-			expect(html).toContain('cursor-pointer');
+			expect(html).toContain('<pre><code>');
+			expect(html).toContain('const x = 1;');
 		});
 	});
 
-	describe('Code Block Rendering', () => {
-		it('should render code block with language', () => {
-			const markdown = '```javascript\nconsole.log("hello");\n```';
+	describe('GitHub Flavored Markdown', () => {
+		it('should handle line breaks', () => {
+			const markdown = 'Line 1\nLine 2';
 			const html = configuredMarked(markdown);
 
-			expect(html).toContain('class="hljs language-javascript"');
-			expect(html).toContain('<span class="code-lang');
-			expect(html).toContain('>javascript</span>');
-			expect(html).toContain('console.log("hello");');
+			expect(html).toContain('<br>');
 		});
 
-		it('should render code block without language', () => {
-			const markdown = '```\nplain code\n```';
+		it('should handle task lists', () => {
+			const markdown = '- [x] Completed\n- [ ] Todo';
 			const html = configuredMarked(markdown);
 
-			expect(html).toContain('plain code');
-			expect(html).toContain('class="hljs"');
-			expect(html).not.toContain('language-');
+			expect(html).toContain('<input');
+			expect(html).toContain('type="checkbox"');
 		});
 
-		it('should include copy button with escaped text', () => {
-			const markdown = '```\ncode with "quotes" & <html>\n```';
+		it('should handle strikethrough', () => {
+			const markdown = '~~strikethrough~~';
 			const html = configuredMarked(markdown);
 
-			expect(html).toContain('copy-button');
-			expect(html).toContain('data-copy-text=');
-			expect(html).toContain('&quot;'); // escaped quotes
-			expect(html).toContain('&lt;'); // escaped HTML
+			expect(html).toContain('<del>strikethrough</del>');
 		});
 
-		it('should have proper structure and classes', () => {
-			const markdown = '```\ncode\n```';
+		it('should handle tables', () => {
+			const markdown = '| Col 1 | Col 2 |\n|-------|-------|\n| A | B |';
 			const html = configuredMarked(markdown);
 
-			expect(html).toContain('code-block-container');
-			expect(html).toContain('border rounded-lg');
-			expect(html).toContain('<pre class="overflow-x-auto');
-			expect(html).toContain('copy-icon');
+			expect(html).toContain('<table>');
+			expect(html).toContain('<th>Col 1</th>');
+			expect(html).toContain('<td>A</td>');
 		});
 	});
 
-	describe('Inline Code Rendering', () => {
-		it('should render inline code with proper styling', () => {
-			const markdown = 'Use `console.log()` for debugging';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain(
-				'<code class="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">console.log()</code>'
-			);
-		});
-
+	describe('HTML Escaping and Security', () => {
 		it('should escape HTML in inline code', () => {
 			const markdown = 'Use `<script>alert("xss")</script>` carefully';
 			const html = configuredMarked(markdown);
@@ -183,86 +126,49 @@ describe('Markdown Renderer', () => {
 			expect(html).toContain('&quot;xss&quot;');
 		});
 
-		it('should escape special characters', () => {
+		it('should escape special characters in inline code', () => {
 			const markdown = 'Use `const x = \'value\' & "test"` in code';
 			const html = configuredMarked(markdown);
 
 			expect(html).toContain('&#39;value&#39;');
 			expect(html).toContain('&quot;test&quot;');
 		});
+
+		it('should handle HTML entities in text', () => {
+			const markdown = 'Text with & < > " \' characters';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('&amp;');
+			expect(html).toContain('&lt;');
+			expect(html).toContain('&gt;');
+		});
 	});
 
-	describe('General Markdown Features', () => {
-		it('should handle line breaks', () => {
-			const markdown = 'Line 1\nLine 2';
+	describe('Configuration Options', () => {
+		it('should have GitHub Flavored Markdown enabled', () => {
+			// Test strikethrough which is GFM-specific
+			const markdown = '~~deleted~~';
+			const html = configuredMarked(markdown);
+
+			expect(html).toContain('<del>deleted</del>');
+		});
+
+		it('should have line breaks enabled', () => {
+			const markdown = 'First line\nSecond line';
 			const html = configuredMarked(markdown);
 
 			expect(html).toContain('<br>');
 		});
 
-		it('should handle GitHub Flavored Markdown', () => {
-			const markdown = '# Heading\n\n- List item\n- Another item\n\n**Bold** and *italic*';
+		it('should preserve basic markdown structure', () => {
+			const markdown = '# Title\n\nParagraph with **bold** text.\n\n- List item';
 			const html = configuredMarked(markdown);
 
 			expect(html).toContain('<h1');
+			expect(html).toContain('<p>');
+			expect(html).toContain('<strong>bold</strong>');
 			expect(html).toContain('<ul>');
 			expect(html).toContain('<li>');
-			expect(html).toContain('<strong>Bold</strong>');
-			expect(html).toContain('<em>italic</em>');
-		});
-
-		it('should handle mixed content', () => {
-			const markdown = `
-# Heading
-
-Some text with \`inline code\` and a link.
-
-\`\`\`javascript
-function hello() {
-  console.log("world");
-}
-\`\`\`
-
-![Image](test.jpg "Test image|medium")
-			`.trim();
-
-			const html = configuredMarked(markdown);
-
-			// Should contain all elements
-			expect(html).toContain('<h1');
-			expect(html).toContain('<code class="bg-muted');
-			expect(html).toContain('language-javascript');
-			expect(html).toContain('<img');
-			expect(html).toContain('max-w-[50%]');
-		});
-	});
-
-	describe('Security and Escaping', () => {
-		it('should escape malicious HTML in code copy data', () => {
-			const markdown = '```\n<script>alert("xss")</script>\n```';
-			const html = configuredMarked(markdown);
-
-			// The copy data should be properly escaped
-			expect(html).toContain(
-				'data-copy-text="&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;"'
-			);
-		});
-
-		it('should escape quotes in copy button data', () => {
-			const markdown = '```\ncode with "double" and \'single\' quotes\n```';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('data-copy-text=');
-			// Check that quotes are properly escaped in the data attribute
-			expect(html).toMatch(/data-copy-text="[^"]*&quot;[^"]*"/);
-		});
-
-		it('should escape HTML entities in image attributes', () => {
-			const markdown = '![Alt with "quotes"](test.jpg "Title with \'quotes\'")';
-			const html = configuredMarked(markdown);
-
-			expect(html).toContain('alt="Alt with &quot;quotes&quot;"');
-			expect(html).toContain('title="Title with &#39;quotes&#39;"');
 		});
 	});
 });

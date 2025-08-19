@@ -1,4 +1,3 @@
-import { writable, derived } from 'svelte/store';
 import { apiClient } from '$lib/api/client';
 import type { SecretsStatus, CreateSecretRequest, UpdateSecretRequest } from '$lib/api/types';
 
@@ -15,7 +14,7 @@ export interface SecretStoreState {
 	unlocking: boolean;
 }
 
-const initialState: SecretStoreState = {
+const defaultSecretState: SecretStoreState = {
 	status: null,
 	secrets: [],
 	loading: false,
@@ -23,29 +22,31 @@ const initialState: SecretStoreState = {
 	unlocking: false
 };
 
+const secretState: SecretStoreState = $state<SecretStoreState>(defaultSecretState);
+
 function createSecretStore() {
-	const { subscribe, set, update } = writable<SecretStoreState>(initialState);
-
 	return {
-		subscribe,
-
 		async loadStatus(): Promise<SecretsStatus> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				const status = await apiClient.getSecretsStatus();
 
-				update((state) => ({ ...state, status, loading: false }));
+				secretState.status = status;
+				secretState.loading = false;
 				return status;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load secrets status';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async loadSecrets(): Promise<SecretInfo[]> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				const response = await apiClient.listSecrets();
@@ -54,33 +55,39 @@ function createSecretStore() {
 					hasValue: true
 				}));
 
-				update((state) => ({ ...state, secrets, loading: false }));
+				secretState.secrets = secrets;
+				secretState.loading = false;
 				return secrets;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load secrets';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async lock(): Promise<void> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.lockSecrets();
 
 				// Clear sensitive data and reload status
 				await this.loadStatus();
-				update((state) => ({ ...state, secrets: [], loading: false }));
+				secretState.secrets = [];
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to lock secrets';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async createSecret(request: CreateSecretRequest): Promise<void> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.createSecret(request);
@@ -88,10 +95,11 @@ function createSecretStore() {
 				await this.loadSecrets();
 				await this.loadStatus();
 
-				update((state) => ({ ...state, loading: false }));
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to create secret';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
@@ -102,23 +110,26 @@ function createSecretStore() {
 		},
 
 		async updateSecret(key: string, request: UpdateSecretRequest): Promise<void> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.updateSecret(key, request);
 
 				// Reload secrets after update
 				await this.loadSecrets();
-				update((state) => ({ ...state, loading: false }));
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to update secret';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async deleteSecret(key: string): Promise<void> {
-			update((state) => ({ ...state, loading: true, error: null }));
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.deleteSecret(key);
@@ -127,50 +138,69 @@ function createSecretStore() {
 				await this.loadSecrets();
 				await this.loadStatus();
 
-				update((state) => ({ ...state, loading: false }));
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to delete secret';
-				update((state) => ({ ...state, error: errorMsg, loading: false }));
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		clearError() {
-			update((state) => ({ ...state, error: null }));
+			secretState.error = null;
 		},
 
 		reset() {
-			set(initialState);
+			Object.assign(secretState, defaultSecretState);
 		}
 	};
 }
 
-export const secretStore = createSecretStore();
+export const secretStore = {
+	get status() {
+		return secretState.status;
+	},
+	get secrets() {
+		return secretState.secrets;
+	},
+	get loading() {
+		return secretState.loading;
+	},
+	get error() {
+		return secretState.error;
+	},
+	get unlocking() {
+		return secretState.unlocking;
+	},
 
-// Derived stores for convenience
-export const secretsUnlocked = derived(secretStore, ($store) => $store.status?.unlocked ?? false);
+	// Derived getters
+	get secretsUnlocked() {
+		return secretState.status?.unlocked ?? false;
+	},
+	get hasSecrets() {
+		return secretState.status?.has_secrets ?? false;
+	},
+	get requiresPassword() {
+		return secretState.status?.requires_password ?? false;
+	},
+	get hasPasskeys() {
+		return secretState.status?.has_passkeys ?? false;
+	},
+	get requiresSetup() {
+		return secretState.status?.requires_setup ?? false;
+	},
 
-export const hasSecrets = derived(secretStore, ($store) => $store.status?.has_secrets ?? false);
+	// Action methods
+	...createSecretStore()
+};
 
-export const requiresPassword = derived(
-	secretStore,
-	($store) => $store.status?.requires_password ?? false
-);
-
-export const secretList = derived(secretStore, ($store) => $store.secrets);
-
-export const secretsLoading = derived(secretStore, ($store) => $store.loading);
-
-export const secretsError = derived(secretStore, ($store) => $store.error);
-
-export const secretsUnlocking = derived(secretStore, ($store) => $store.unlocking);
-
-export const hasPasskeys = derived(secretStore, ($store) => $store.status?.has_passkeys ?? false);
-
-export const requiresSetup = derived(
-	secretStore,
-	($store) => $store.status?.requires_setup ?? false
-);
+// Derived exports for convenience
+export const secretsUnlocked = () => secretStore.secretsUnlocked;
+export const hasSecrets = () => secretStore.hasSecrets;
+export const requiresPassword = () => secretStore.requiresPassword;
+export const hasPasskeys = () => secretStore.hasPasskeys;
+export const requiresSetup = () => secretStore.requiresSetup;
 
 // Helper function to process secret placeholders in text
 export function parseSecretPlaceholders(text: string): { placeholder: string; key: string }[] {

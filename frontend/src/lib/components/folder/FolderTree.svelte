@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Folder, FolderOpen, Plus } from 'lucide-svelte';
+	import { Folder, FolderOpen, Plus } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
@@ -9,15 +9,12 @@
 	import DocumentContextMenu from '../document/DocumentContextMenu.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
 	import {
-		folders,
-		isFoldersLoading,
-		foldersError,
+		foldersStore,
 		documentsStore,
 		documentActions,
-		currentFolder
-	} from '$lib/stores/documents';
-	import { folderActions } from '$lib/stores/documents';
-	import { browser } from '$app/environment';
+		currentFolder,
+		folderActions
+	} from '$lib/stores/documents.svelte';
 	import { cn } from '$lib/utils.js';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 	import { authService } from '$lib/auth/auth-service';
@@ -88,12 +85,16 @@
 
 	const dragAndDrop = useDragAndDrop(showPages);
 
-	const documents = $derived($documentsStore.documents || []);
+	const documents = $derived(documentsStore.documents || []);
 
 	const filteredFolders = $derived(
 		unifiedSearchQuery.trim()
-			? filterFoldersAndPages($folders || [], documents, unifiedSearchQuery.toLowerCase())
-			: $folders || []
+			? filterFoldersAndPages(
+					foldersStore.folders || [],
+					documents,
+					unifiedSearchQuery.toLowerCase()
+				)
+			: foldersStore.folders || []
 	);
 
 	let hasInitialized = $state(false);
@@ -126,7 +127,7 @@
 
 	// Sync the optimized loader with the store's loading state
 	$effect(() => {
-		if ($isFoldersLoading) {
+		if (foldersStore.loading) {
 			folderLoader.startLoading();
 		} else {
 			folderLoader.stopLoading();
@@ -138,7 +139,7 @@
 	});
 
 	$effect(() => {
-		if (browser && storageKey) {
+		if (storageKey) {
 			const savedExpanded = localStorage.getItem(storageKey);
 			if (savedExpanded) {
 				try {
@@ -151,7 +152,7 @@
 	});
 
 	function saveExpandedFolders() {
-		if (browser && storageKey) {
+		if (storageKey) {
 			localStorage.setItem(storageKey, JSON.stringify([...expandedFolders]));
 		}
 	}
@@ -293,8 +294,8 @@
 			return paths;
 		};
 
-		const allPaths = getAllFolderPaths($folders);
-		if (showPages && (getPagesForFolder('/').length > 0 || $folders.length > 0)) {
+		const allPaths = getAllFolderPaths(foldersStore.folders);
+		if (showPages && (getPagesForFolder('/').length > 0 || foldersStore.folders.length > 0)) {
 			allPaths.push('/');
 		}
 		expandedFolders = new Set(allPaths);
@@ -373,7 +374,7 @@
 	export { expandFolder };
 
 	$effect(() => {
-		const current = $currentFolder;
+		const current = currentFolder.value;
 		if (current && current !== '/' && !userCollapsedFolders.has(current)) {
 			expandFolder(current);
 		}
@@ -491,7 +492,7 @@
 				sub_folders: filteredFolders
 			};
 		}
-		return findFolderByPath($folders || [], path);
+		return findFolderByPath(foldersStore.folders || [], path);
 	}
 </script>
 
@@ -546,15 +547,15 @@
 		</div>
 	{/if}
 
-	{#if $foldersError}
-		<ErrorAlert error={$foldersError} onDismiss={() => folderActions.clearError()} />
+	{#if foldersStore.error}
+		<ErrorAlert error={foldersStore.error} onDismiss={() => folderActions.clearError()} />
 	{/if}
 
 	{#if folderLoader.loading}
 		<div class="flex items-center justify-center py-8">
 			<LoadingSpinner size="md" />
 		</div>
-	{:else if !folderLoader.loading && $folders !== null && filteredFolders.length === 0}
+	{:else if !folderLoader.loading && foldersStore.folders !== null && filteredFolders.length === 0}
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>

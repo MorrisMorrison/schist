@@ -11,16 +11,16 @@
 	} from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Fingerprint, AlertCircle, CheckCircle } from 'lucide-svelte';
+	import { Fingerprint, AlertCircle, CheckCircle } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import { registerPasskey } from '$lib/utils/webauthn';
 
-	let username = '';
-	let isLoading = false;
-	let error = '';
-	let currentStep = 1;
-	let inviteToken = '';
-	let isInviteFlow = false;
+	let username = $state('');
+	let isLoading = $state(false);
+	let error = $state('');
+	let currentStep = $state(1);
+	let inviteToken = $state('');
+	let isInviteFlow = $state(false);
 
 	onMount(async () => {
 		// Check if there's an invite token in the URL

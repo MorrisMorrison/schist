@@ -1,5 +1,4 @@
 import { env } from '$env/dynamic/public';
-import { browser } from '$app/environment';
 import type {
 	Document,
 	CreateDocumentRequest,
@@ -127,7 +126,7 @@ class SchістApiClient {
 
 	private async handleAuthenticationError() {
 		// Clear auth state through the store (will automatically clear API client token)
-		const { authActions } = await import('$lib/stores/auth');
+		const { authActions } = await import('$lib/stores/auth.svelte');
 		authActions.clearAuth();
 
 		// Use centralized auth service for redirect logic (includes public route check)
@@ -186,17 +185,15 @@ class SchістApiClient {
 					};
 				}
 
-				if (browser) {
-					console.error('API Request failed', {
-						url,
-						status: response.status,
-						statusText: response.statusText,
-						errorData,
-						headers: Object.fromEntries(response.headers.entries())
-					});
-				}
+				console.error('API Request failed', {
+					url,
+					status: response.status,
+					statusText: response.statusText,
+					errorData,
+					headers: Object.fromEntries(response.headers.entries())
+				});
 
-				if (response.status === 401 && browser) {
+				if (response.status === 401) {
 					await this.handleAuthenticationError();
 				}
 
@@ -220,18 +217,16 @@ class SchістApiClient {
 		try {
 			return await executeRequest();
 		} catch (error) {
-			if (browser) {
-				const parsedError = parseError(error);
-				const url = `${this.getApiUrl()}${endpoint}`;
-				console.error('API Request error', {
-					url,
-					error: parsedError.message,
-					code: parsedError.code,
-					severity: parsedError.severity,
-					originalError: error instanceof Error ? error.message : 'Unknown error',
-					stack: error instanceof Error ? error.stack : undefined
-				});
-			}
+			const parsedError = parseError(error);
+			const url = `${this.getApiUrl()}${endpoint}`;
+			console.error('API Request error', {
+				url,
+				error: parsedError.message,
+				code: parsedError.code,
+				severity: parsedError.severity,
+				originalError: error instanceof Error ? error.message : 'Unknown error',
+				stack: error instanceof Error ? error.stack : undefined
+			});
 
 			// Re-throw the error to preserve its structure
 			throw error;
@@ -351,7 +346,7 @@ class SchістApiClient {
 				return true;
 			} else if (response.status === 404) {
 				return false;
-			} else if (response.status === 401 && browser) {
+			} else if (response.status === 401) {
 				await this.handleAuthenticationError();
 				throw new Error('Authentication required');
 			} else {

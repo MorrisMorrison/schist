@@ -5,13 +5,13 @@ vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
 
-vi.mock('$lib/stores/theme.js', () => ({
+vi.mock('$lib/stores/theme.svelte', () => ({
 	themeActions: {
 		toggleTheme: vi.fn()
 	}
 }));
 
-vi.mock('$lib/stores/sidebar', () => ({
+vi.mock('$lib/stores/sidebar.svelte', () => ({
 	sidebarActions: {
 		toggle: vi.fn()
 	}
@@ -22,8 +22,8 @@ import { createKeyboardShortcutHandler, KEYBOARD_SHORTCUTS } from './keyboard-sh
 import type { KeyboardShortcutHandlers } from './keyboard-shortcuts';
 import type { Page } from '@sveltejs/kit';
 import { goto } from '$app/navigation';
-import { themeActions } from '$lib/stores/theme.js';
-import { sidebarActions } from '$lib/stores/sidebar';
+import { themeActions } from '$lib/stores/theme.svelte';
+import { sidebarActions } from '$lib/stores/sidebar.svelte';
 
 // Mock page object matching SvelteKit's Page interface
 const createMockPage = (pathname: string = '/'): Page<Record<string, string>, string | null> => ({

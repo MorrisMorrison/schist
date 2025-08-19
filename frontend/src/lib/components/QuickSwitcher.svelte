@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { apiClient } from '$lib/api/client';
 	import type { Document } from '$lib/api/types';
-	import { Search, FileText, Clock, Folder } from 'lucide-svelte';
+	import { Search, FileText, Clock, Folder } from '@lucide/svelte';
 	import {
 		fuzzySearchDocuments,
 		addToRecentDocuments,

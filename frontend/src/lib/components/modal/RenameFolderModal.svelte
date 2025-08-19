@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { folderActions } from '$lib/stores/documents';
+	import { folderActions } from '$lib/stores/documents.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,
@@ -9,7 +9,7 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Edit, AlertCircle } from 'lucide-svelte';
+	import { Edit, AlertCircle } from '@lucide/svelte';
 	import type { Folder as FolderType } from '$lib/api/types';
 
 	interface Props {

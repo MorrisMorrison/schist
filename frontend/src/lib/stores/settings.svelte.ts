@@ -1,6 +1,3 @@
-import { writable, derived } from 'svelte/store';
-import { browser } from '$app/environment';
-
 interface AppSettings {
 	autoSave: boolean;
 	autoSaveInterval: number; // minutes
@@ -46,8 +43,6 @@ const defaultSettings: Settings = {
 const SETTINGS_STORAGE_KEY = 'schist_settings';
 
 function loadSettings(): Settings {
-	if (!browser) return defaultSettings;
-
 	try {
 		const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
 		if (stored) {
@@ -65,8 +60,6 @@ function loadSettings(): Settings {
 }
 
 function saveSettings(settings: Settings): void {
-	if (!browser) return;
-
 	try {
 		localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 	} catch (error) {
@@ -74,74 +67,91 @@ function saveSettings(settings: Settings): void {
 	}
 }
 
-export const settings = writable<Settings>(loadSettings());
+let settingsState = $state<Settings>(loadSettings());
 
-if (browser) {
-	settings.subscribe((value) => {
-		saveSettings(value);
-	});
+// Function to save settings when they change
+function persistSettings() {
+	if (typeof localStorage !== 'undefined') {
+		saveSettings(settingsState);
+	}
 }
 
-export const appSettings = derived(settings, ($settings) => $settings.app);
-export const exportSettings = derived(settings, ($settings) => $settings.export);
+export const settings = {
+	get app() {
+		return settingsState.app;
+	},
+	get export() {
+		return settingsState.export;
+	},
+	get current() {
+		return settingsState;
+	}
+};
 
 export const settingsActions = {
 	updateAppSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
-		settings.update((current) => ({
-			...current,
+		settingsState = {
+			...settingsState,
 			app: {
-				...current.app,
+				...settingsState.app,
 				[key]: value
 			}
-		}));
+		};
+		persistSettings();
 	},
 
 	updateExportSetting<K extends keyof ExportSettings>(key: K, value: ExportSettings[K]) {
-		settings.update((current) => ({
-			...current,
+		settingsState = {
+			...settingsState,
 			export: {
-				...current.export,
+				...settingsState.export,
 				[key]: value
 			}
-		}));
+		};
+		persistSettings();
 	},
 
 	updateAppSettings(newSettings: Partial<AppSettings>) {
-		settings.update((current) => ({
-			...current,
+		settingsState = {
+			...settingsState,
 			app: {
-				...current.app,
+				...settingsState.app,
 				...newSettings
 			}
-		}));
+		};
+		persistSettings();
 	},
 
 	updateExportSettings(newSettings: Partial<ExportSettings>) {
-		settings.update((current) => ({
-			...current,
+		settingsState = {
+			...settingsState,
 			export: {
-				...current.export,
+				...settingsState.export,
 				...newSettings
 			}
-		}));
+		};
+		persistSettings();
 	},
 
 	resetToDefaults() {
-		settings.set(defaultSettings);
+		settingsState = defaultSettings;
+		persistSettings();
 	},
 
 	resetAppSettings() {
-		settings.update((current) => ({
-			...current,
+		settingsState = {
+			...settingsState,
 			app: defaultSettings.app
-		}));
+		};
+		persistSettings();
 	},
 
 	resetExportSettings() {
-		settings.update((current) => ({
-			...current,
+		settingsState = {
+			...settingsState,
 			export: defaultSettings.export
-		}));
+		};
+		persistSettings();
 	}
 };
 

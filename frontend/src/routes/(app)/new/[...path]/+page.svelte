@@ -3,13 +3,13 @@
 	import { onMount, onDestroy } from 'svelte';
 	import LazyEditor from '$lib/components/editor/LazyEditor.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { documentActions } from '$lib/stores/documents';
+	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug, normalizePath } from '$lib/utils/path';
-	import { Check, Loader2 } from 'lucide-svelte';
+	import { Check, Loader2 } from '@lucide/svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
-	import { templatesStore, templateActions } from '$lib/stores/templates';
+	import { templatesStore, templateActions } from '$lib/stores/templates.svelte';
 	import type { Template } from '$lib/api/types';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
@@ -233,14 +233,14 @@
 	<div class="bg-content rounded-lg p-6">
 		<h3 class="text-primary mb-4 text-lg font-medium">Quick Start Templates</h3>
 
-		{#if $templatesStore.loading}
+		{#if templatesStore.loading}
 			<div class="flex items-center justify-center py-8">
 				<LoadingSpinner size="lg" />
 				<span class="text-secondary ml-3">Loading templates...</span>
 			</div>
-		{:else if $templatesStore.error}
+		{:else if templatesStore.error}
 			<div class="py-8 text-center">
-				<p class="text-red-600">Error: {$templatesStore.error}</p>
+				<p class="text-red-600">Error: {templatesStore.error}</p>
 				<button
 					onclick={() => templateActions.loadTemplates(true)}
 					class="mt-2 text-sm text-blue-600 hover:text-blue-800"
@@ -248,13 +248,13 @@
 					Retry
 				</button>
 			</div>
-		{:else if $templatesStore.templates.length === 0}
+		{:else if templatesStore.templates.length === 0}
 			<div class="py-8 text-center">
 				<p class="text-secondary">No templates available</p>
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-				{#each $templatesStore.templates as template (template.id)}
+				{#each templatesStore.templates as template (template.id)}
 					<button
 						type="button"
 						onclick={() => applyTemplate(template)}

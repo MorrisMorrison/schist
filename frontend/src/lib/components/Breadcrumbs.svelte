@@ -2,18 +2,18 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronRight, Home } from 'lucide-svelte';
+	import { ChevronRight, Home } from '@lucide/svelte';
 
-	export let path: string = '';
-	export let currentDocumentTitle: string = '';
-	let segments: Array<{ name: string; path: string; isLast: boolean }> = [];
-	$: {
+	let { path = '', currentDocumentTitle = '' }: { path?: string; currentDocumentTitle?: string } =
+		$props();
+
+	const segments = $derived(() => {
 		let rawSegments = path.split('/').filter((segment) => segment !== '');
 		const isDocumentPath = page.url.pathname.includes('documents');
 		if (isDocumentPath && rawSegments.length > 0) {
 			rawSegments = rawSegments.slice(0, -1);
 		}
-		segments = rawSegments.map((segment, index, array) => {
+		return rawSegments.map((segment, index, array) => {
 			const fullPath = '/' + array.slice(0, index + 1).join('/');
 			return {
 				name: segment.charAt(0) + segment.slice(1),
@@ -21,7 +21,7 @@
 				isLast: index === array.length - 1
 			};
 		});
-	}
+	});
 
 	function navigateToPath(targetPath: string) {
 		if (targetPath === '/') {
@@ -49,7 +49,7 @@
 		</li>
 
 		<!-- Path segments -->
-		{#each segments as segment (segment.path)}
+		{#each segments() as segment (segment.path)}
 			<li class="flex items-center gap-1">
 				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
 				<Button
@@ -65,7 +65,7 @@
 		{/each}
 
 		<!-- Current page title if different from path -->
-		{#if currentDocumentTitle && currentDocumentTitle !== segments[segments.length - 1]?.name}
+		{#if currentDocumentTitle && currentDocumentTitle !== segments()[segments().length - 1]?.name}
 			<li class="flex items-center gap-1">
 				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
 				<span class="text-primary px-2 py-1 text-sm font-medium" aria-current="page">

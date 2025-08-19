@@ -1,5 +1,3 @@
-import { browser } from '$app/environment';
-
 interface AppSettings {
 	autoSave: boolean;
 	autoSaveInterval: number; // minutes
@@ -45,8 +43,6 @@ const defaultSettings: Settings = {
 const SETTINGS_STORAGE_KEY = 'schist_settings';
 
 function loadSettings(): Settings {
-	if (!browser) return defaultSettings;
-
 	try {
 		const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
 		if (stored) {
@@ -64,8 +60,6 @@ function loadSettings(): Settings {
 }
 
 function saveSettings(settings: Settings): void {
-	if (!browser) return;
-
 	try {
 		localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
 	} catch (error) {
@@ -73,14 +67,13 @@ function saveSettings(settings: Settings): void {
 	}
 }
 
-let settingsState: Settings = loadSettings();
+let settingsState = $state<Settings>(loadSettings());
 
-if (browser) {
-	settingsState = $state<Settings>(loadSettings());
-
-	$effect(() => {
+// Function to save settings when they change
+function persistSettings() {
+	if (typeof localStorage !== 'undefined') {
 		saveSettings(settingsState);
-	});
+	}
 }
 
 export const settings = {
@@ -97,75 +90,68 @@ export const settings = {
 
 export const settingsActions = {
 	updateAppSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {
-		if (browser) {
-			settingsState = {
-				...settingsState,
-				app: {
-					...settingsState.app,
-					[key]: value
-				}
-			};
-		}
+		settingsState = {
+			...settingsState,
+			app: {
+				...settingsState.app,
+				[key]: value
+			}
+		};
+		persistSettings();
 	},
 
 	updateExportSetting<K extends keyof ExportSettings>(key: K, value: ExportSettings[K]) {
-		if (browser) {
-			settingsState = {
-				...settingsState,
-				export: {
-					...settingsState.export,
-					[key]: value
-				}
-			};
-		}
+		settingsState = {
+			...settingsState,
+			export: {
+				...settingsState.export,
+				[key]: value
+			}
+		};
+		persistSettings();
 	},
 
 	updateAppSettings(newSettings: Partial<AppSettings>) {
-		if (browser) {
-			settingsState = {
-				...settingsState,
-				app: {
-					...settingsState.app,
-					...newSettings
-				}
-			};
-		}
+		settingsState = {
+			...settingsState,
+			app: {
+				...settingsState.app,
+				...newSettings
+			}
+		};
+		persistSettings();
 	},
 
 	updateExportSettings(newSettings: Partial<ExportSettings>) {
-		if (browser) {
-			settingsState = {
-				...settingsState,
-				export: {
-					...settingsState.export,
-					...newSettings
-				}
-			};
-		}
+		settingsState = {
+			...settingsState,
+			export: {
+				...settingsState.export,
+				...newSettings
+			}
+		};
+		persistSettings();
 	},
 
 	resetToDefaults() {
-		if (browser) {
-			settingsState = defaultSettings;
-		}
+		settingsState = defaultSettings;
+		persistSettings();
 	},
 
 	resetAppSettings() {
-		if (browser) {
-			settingsState = {
-				...settingsState,
-				app: defaultSettings.app
-			};
-		}
+		settingsState = {
+			...settingsState,
+			app: defaultSettings.app
+		};
+		persistSettings();
 	},
 
 	resetExportSettings() {
-		if (browser) {
-			settingsState = {
-				...settingsState,
-				export: defaultSettings.export
-			};
-		}
+		settingsState = {
+			...settingsState,
+			export: defaultSettings.export
+		};
+		persistSettings();
 	}
 };
 

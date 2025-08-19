@@ -1,7 +1,6 @@
-import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { apiClient } from '$lib/api/client';
-import { authActions, authStore } from '$lib/stores/auth';
+import { authActions, authStore } from '$lib/stores/auth.svelte';
 
 const PUBLIC_ROUTES = ['/login', '/setup'];
 const PUBLIC_ROUTE_PREFIXES = ['/share/'];
@@ -13,7 +12,7 @@ class AuthService {
 	private authCheckPromise: Promise<boolean> | null = null;
 
 	async initialize() {
-		if (this.initialized || !browser) return;
+		if (this.initialized) return;
 
 		if (this.initPromise) {
 			return this.initPromise;
@@ -69,7 +68,7 @@ class AuthService {
 
 			// Trigger secrets store sync after successful auth
 			try {
-				const { secretStore } = await import('../stores/secrets');
+				const { secretStore } = await import('../stores/secrets.svelte');
 				await secretStore.loadStatus();
 				if (secretStore.status?.unlocked) {
 					await secretStore.loadSecrets();
@@ -148,10 +147,8 @@ class AuthService {
 		const isAuthenticated = await this.checkAuthStatus();
 
 		if (!isAuthenticated) {
-			// In browser environment, redirect using goto
-			if (browser) {
-				await this.redirectToAuthPage(returnUrl);
-			}
+			// Redirect to auth page
+			await this.redirectToAuthPage(returnUrl);
 			return false;
 		}
 
@@ -160,11 +157,7 @@ class AuthService {
 
 	private isPublicRoute(path?: string): boolean {
 		if (!path) {
-			if (browser) {
-				path = window.location.pathname;
-			} else {
-				return false;
-			}
+			path = window.location.pathname;
 		}
 
 		if (PUBLIC_ROUTES.includes(path)) {

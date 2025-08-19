@@ -8,7 +8,7 @@
 	import LoadingSpinner from '../LoadingSpinner.svelte';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import type { Document } from '$lib/api/types.js';
-	import { documentActions } from '$lib/stores/documents.js';
+	import { documentActions } from '$lib/stores/documents.svelte';
 
 	interface Props {
 		documents: Document[];

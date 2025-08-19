@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { apiClient } from '$lib/api/client';
 	import type { ImportOptions, ImportResult, Folder } from '$lib/api/types';
-	import { folderActions, documentActions } from '$lib/stores/documents';
+	import { folderActions, documentActions } from '$lib/stores/documents.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,

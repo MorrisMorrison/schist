@@ -8,7 +8,7 @@
 		secretStore,
 		replaceSecretPlaceholders,
 		parseSecretPlaceholders
-	} from '$lib/stores/secrets';
+	} from '$lib/stores/secrets.svelte';
 
 	let {
 		content,

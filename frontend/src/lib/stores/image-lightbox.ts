@@ -1,5 +1,3 @@
-import { browser } from '$app/environment';
-
 interface LightboxState {
 	open: boolean;
 	src: string;
@@ -12,25 +10,17 @@ const defaultLightboxState: LightboxState = {
 	alt: ''
 };
 
-let lightboxState: LightboxState = defaultLightboxState;
-
-if (browser) {
-	lightboxState = $state<LightboxState>(defaultLightboxState);
-}
+const lightboxState = $state<LightboxState>(defaultLightboxState);
 
 function createImageLightboxActions() {
 	return {
 		open: (src: string, alt: string = '') => {
-			if (browser) {
-				lightboxState.open = true;
-				lightboxState.src = src;
-				lightboxState.alt = alt;
-			}
+			lightboxState.open = true;
+			lightboxState.src = src;
+			lightboxState.alt = alt;
 		},
 		close: () => {
-			if (browser) {
-				lightboxState.open = false;
-			}
+			lightboxState.open = false;
 		}
 	};
 }
@@ -55,6 +45,4 @@ declare global {
 	}
 }
 
-if (browser) {
-	window.openImageLightbox = imageLightboxActions.open;
-}
+window.openImageLightbox = imageLightboxActions.open;

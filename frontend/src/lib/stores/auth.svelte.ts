@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { apiClient } from '$lib/api/client';
 
 interface User {
@@ -24,8 +23,6 @@ const defaultAuthState: AuthState = {
 const AUTH_STORAGE_KEY = 'schist_auth_token';
 
 function loadAuthState(): AuthState {
-	if (!browser) return defaultAuthState;
-
 	try {
 		const token = localStorage.getItem(AUTH_STORAGE_KEY);
 		if (token) {
@@ -42,8 +39,6 @@ function loadAuthState(): AuthState {
 }
 
 function saveToken(token: string | null): void {
-	if (!browser) return;
-
 	try {
 		if (token) {
 			localStorage.setItem(AUTH_STORAGE_KEY, token);
@@ -55,18 +50,20 @@ function saveToken(token: string | null): void {
 	}
 }
 
-let authState: AuthState = loadAuthState();
+const authState: AuthState = $state<AuthState>(loadAuthState());
 
-if (browser) {
-	authState = $state<AuthState>(loadAuthState());
+// Initialize API token on store creation
+if (authState.token) {
+	apiClient.setAuthToken(authState.token);
+}
 
-	$effect(() => {
-		if (authState.token) {
-			apiClient.setAuthToken(authState.token);
-		} else {
-			apiClient.setAuthToken(null);
-		}
-	});
+// Function to sync token changes with API client
+function syncTokenWithApiClient(token: string | null) {
+	if (token) {
+		apiClient.setAuthToken(token);
+	} else {
+		apiClient.setAuthToken(null);
+	}
 }
 
 export const authStore = {
@@ -89,62 +86,39 @@ export const authStore = {
 
 export const authActions = {
 	setLoading(loading: boolean) {
-		if (browser) {
-			authState = {
-				...authState,
-				isLoading: loading,
-				error: loading ? null : authState.error
-			};
+		authState.isLoading = loading;
+		if (loading) {
+			authState.error = null;
 		}
 	},
 
 	setError(error: string | null) {
-		if (browser) {
-			authState = {
-				...authState,
-				error,
-				isLoading: false
-			};
-		}
+		authState.error = error;
+		authState.isLoading = false;
 	},
 
 	setAuth(token: string, user: User) {
 		saveToken(token);
-		if (browser) {
-			authState = {
-				...authState,
-				token,
-				user,
-				isLoading: false,
-				error: null
-			};
-		}
+		authState.token = token;
+		authState.user = user;
+		authState.isLoading = false;
+		authState.error = null;
+		syncTokenWithApiClient(token);
 	},
 
 	updateUser(user: User | null) {
-		if (browser) {
-			authState = {
-				...authState,
-				user,
-				isLoading: false
-			};
-		}
+		authState.user = user;
+		authState.isLoading = false;
 	},
 
 	clearAuth() {
 		saveToken(null);
-		if (browser) {
-			authState = defaultAuthState;
-		}
+		Object.assign(authState, defaultAuthState);
+		syncTokenWithApiClient(null);
 	},
 
 	clearError() {
-		if (browser) {
-			authState = {
-				...authState,
-				error: null
-			};
-		}
+		authState.error = null;
 	}
 };
 

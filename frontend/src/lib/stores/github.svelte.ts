@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { apiClient } from '../api/client.js';
 import type {
 	GitHubSettings,
@@ -39,11 +38,7 @@ const defaultGitHubState: GitHubState = {
 	lastRepairResult: null
 };
 
-let githubState: GitHubState = defaultGitHubState;
-
-if (browser) {
-	githubState = $state<GitHubState>(defaultGitHubState);
-}
+const githubState: GitHubState = $state<GitHubState>(defaultGitHubState);
 
 export const githubStore = {
 	get settings() {
@@ -104,56 +99,41 @@ export { isGitHubConnected, isGitHubEnabled, canSync };
 
 export const githubActions = {
 	async loadGitHubSettings(force = false) {
-		if (browser) {
-			githubState.loading = true;
-			githubState.error = null;
-		}
+		githubState.loading = true;
+		githubState.error = null;
 
 		try {
 			const settings = await apiClient.getGitHubSettings(force);
-			if (browser) {
-				githubState.settings = settings;
-				githubState.loading = false;
-			}
+			githubState.settings = settings;
+			githubState.loading = false;
 			return settings;
 		} catch (error) {
-			if (browser) {
-				githubState.loading = false;
-				githubState.error =
-					error instanceof Error ? error.message : 'Failed to load GitHub settings';
-			}
+			githubState.loading = false;
+			githubState.error = error instanceof Error ? error.message : 'Failed to load GitHub settings';
 			throw error;
 		}
 	},
 
 	async loadConnectionStatus(force = false) {
-		if (browser) {
-			githubState.loading = true;
-			githubState.error = null;
-		}
+		githubState.loading = true;
+		githubState.error = null;
 
 		try {
 			const connectionStatus = await apiClient.getGitHubConnectionStatus(force);
-			if (browser) {
-				githubState.connectionStatus = connectionStatus;
-				githubState.loading = false;
-			}
+			githubState.connectionStatus = connectionStatus;
+			githubState.loading = false;
 			return connectionStatus;
 		} catch (error) {
-			if (browser) {
-				githubState.loading = false;
-				githubState.error =
-					error instanceof Error ? error.message : 'Failed to load GitHub connection status';
-			}
+			githubState.loading = false;
+			githubState.error =
+				error instanceof Error ? error.message : 'Failed to load GitHub connection status';
 			throw error;
 		}
 	},
 
 	async setupGitHub(setupRequest: GitHubSetupRequest) {
-		if (browser) {
-			githubState.loading = true;
-			githubState.error = null;
-		}
+		githubState.loading = true;
+		githubState.error = null;
 
 		try {
 			const setupResult = await apiClient.setupGitHub(setupRequest);
@@ -162,93 +142,73 @@ export const githubActions = {
 			const connectionStatus =
 				setupResult.connection || (await apiClient.getGitHubConnectionStatus(true));
 
-			if (browser) {
-				githubState.settings = settings;
-				githubState.connectionStatus = connectionStatus;
-				githubState.loading = false;
-			}
+			githubState.settings = settings;
+			githubState.connectionStatus = connectionStatus;
+			githubState.loading = false;
 
 			return setupResult;
 		} catch (error) {
-			if (browser) {
-				githubState.loading = false;
-				githubState.error =
-					error instanceof Error ? error.message : 'Failed to setup GitHub integration';
-			}
+			githubState.loading = false;
+			githubState.error =
+				error instanceof Error ? error.message : 'Failed to setup GitHub integration';
 			throw error;
 		}
 	},
 
 	async updateSettings(settingsUpdate: GitHubConfigRequest) {
-		if (browser) {
-			githubState.loading = true;
-			githubState.error = null;
-		}
+		githubState.loading = true;
+		githubState.error = null;
 
 		try {
 			await apiClient.updateGitHubSettings(settingsUpdate);
 			const settings = await apiClient.getGitHubSettings(true);
 			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
-			if (browser) {
-				githubState.settings = settings;
-				githubState.connectionStatus = connectionStatus;
-				githubState.loading = false;
-			}
+			githubState.settings = settings;
+			githubState.connectionStatus = connectionStatus;
+			githubState.loading = false;
 			return { settings, connectionStatus };
 		} catch (error) {
-			if (browser) {
-				githubState.loading = false;
-				githubState.error =
-					error instanceof Error ? error.message : 'Failed to update GitHub settings';
-			}
+			githubState.loading = false;
+			githubState.error =
+				error instanceof Error ? error.message : 'Failed to update GitHub settings';
 			throw error;
 		}
 	},
 
 	async testConnection(token: string, owner: string, repository: string) {
-		if (browser) {
-			githubState.testingConnection = true;
-			githubState.error = null;
-			githubState.connectionTest = null;
-		}
+		githubState.testingConnection = true;
+		githubState.error = null;
+		githubState.connectionTest = null;
 
 		try {
 			const result = await apiClient.testGitHubConnection(token, owner, repository);
-			if (browser) {
-				githubState.connectionTest = result;
-				githubState.testingConnection = false;
-			}
+			githubState.connectionTest = result;
+			githubState.testingConnection = false;
 			return result;
 		} catch (error) {
-			if (browser) {
-				githubState.testingConnection = false;
-				githubState.error =
-					error instanceof Error ? error.message : 'Failed to test GitHub connection';
-				githubState.connectionTest = {
-					success: false,
-					message: error instanceof Error ? error.message : 'Connection test failed'
-				};
-			}
+			githubState.testingConnection = false;
+			githubState.error =
+				error instanceof Error ? error.message : 'Failed to test GitHub connection';
+			githubState.connectionTest = {
+				success: false,
+				message: error instanceof Error ? error.message : 'Connection test failed'
+			};
 			throw error;
 		}
 	},
 
 	async syncToGitHub() {
-		if (browser) {
-			githubState.syncing = true;
-			githubState.error = null;
-		}
+		githubState.syncing = true;
+		githubState.error = null;
 
 		try {
 			const result = await apiClient.syncToGitHub();
 
 			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
 
-			if (browser) {
-				githubState.lastSyncResult = result;
-				githubState.connectionStatus = connectionStatus;
-				githubState.syncing = false;
-			}
+			githubState.lastSyncResult = result;
+			githubState.connectionStatus = connectionStatus;
+			githubState.syncing = false;
 
 			return result;
 		} catch (error) {
@@ -277,36 +237,28 @@ export const githubActions = {
 				}
 			}
 
-			if (browser) {
-				githubState.syncing = false;
-				githubState.error = errorMessage;
-			}
+			githubState.syncing = false;
+			githubState.error = errorMessage;
 			throw error;
 		}
 	},
 
 	async disconnect() {
-		if (browser) {
-			githubState.loading = true;
-			githubState.error = null;
-		}
+		githubState.loading = true;
+		githubState.error = null;
 
 		try {
 			const result = await apiClient.disconnectGitHub();
-			if (browser) {
-				githubState.settings = result.settings;
-				githubState.connectionStatus = result.connection;
-				githubState.loading = false;
-				githubState.connectionTest = null;
-				githubState.lastSyncResult = null;
-			}
+			githubState.settings = result.settings;
+			githubState.connectionStatus = result.connection;
+			githubState.loading = false;
+			githubState.connectionTest = null;
+			githubState.lastSyncResult = null;
 			return result;
 		} catch (error) {
-			if (browser) {
-				githubState.loading = false;
-				githubState.error =
-					error instanceof Error ? error.message : 'Failed to disconnect from GitHub';
-			}
+			githubState.loading = false;
+			githubState.error =
+				error instanceof Error ? error.message : 'Failed to disconnect from GitHub';
 			throw error;
 		}
 	},
@@ -326,30 +278,22 @@ export const githubActions = {
 	},
 
 	clearError() {
-		if (browser) {
-			githubState.error = null;
-		}
+		githubState.error = null;
 	},
 
 	clearConnectionTest() {
-		if (browser) {
-			githubState.connectionTest = null;
-		}
+		githubState.connectionTest = null;
 	},
 
 	async checkGitHealth() {
-		if (browser) {
-			githubState.checkingHealth = true;
-			githubState.gitHealthStatus = null;
-		}
+		githubState.checkingHealth = true;
+		githubState.gitHealthStatus = null;
 
 		try {
 			const result = await apiClient.checkGitHealth();
 
-			if (browser) {
-				githubState.gitHealthStatus = { healthy: result.healthy, error: result.error };
-				githubState.checkingHealth = false;
-			}
+			githubState.gitHealthStatus = { healthy: result.healthy, error: result.error };
+			githubState.checkingHealth = false;
 
 			if (!result.healthy) {
 				throw new Error(result.error || 'Git repository is not healthy');
@@ -360,37 +304,29 @@ export const githubActions = {
 			const errorMessage =
 				error instanceof Error ? error.message : 'Failed to check Git repository health';
 
-			if (browser) {
-				githubState.checkingHealth = false;
-				githubState.gitHealthStatus = { healthy: false, error: errorMessage };
-			}
+			githubState.checkingHealth = false;
+			githubState.gitHealthStatus = { healthy: false, error: errorMessage };
 
 			throw error;
 		}
 	},
 
 	clearHealthStatus() {
-		if (browser) {
-			githubState.gitHealthStatus = null;
-		}
+		githubState.gitHealthStatus = null;
 	},
 
 	async repairRepository() {
-		if (browser) {
-			githubState.repairingRepository = true;
-			githubState.lastRepairResult = null;
-		}
+		githubState.repairingRepository = true;
+		githubState.lastRepairResult = null;
 
 		try {
 			const result = await apiClient.repairGitRepository();
 
-			if (browser) {
-				githubState.repairingRepository = false;
-				githubState.lastRepairResult = {
-					success: result.success,
-					message: result.message
-				};
-			}
+			githubState.repairingRepository = false;
+			githubState.lastRepairResult = {
+				success: result.success,
+				message: result.message
+			};
 
 			if (result.success) {
 				await this.checkGitHealth();
@@ -401,28 +337,22 @@ export const githubActions = {
 			const errorMessage =
 				error instanceof Error ? error.message : 'Failed to repair Git repository';
 
-			if (browser) {
-				githubState.repairingRepository = false;
-				githubState.lastRepairResult = {
-					success: false,
-					error: errorMessage
-				};
-			}
+			githubState.repairingRepository = false;
+			githubState.lastRepairResult = {
+				success: false,
+				error: errorMessage
+			};
 
 			throw error;
 		}
 	},
 
 	clearRepairResult() {
-		if (browser) {
-			githubState.lastRepairResult = null;
-		}
+		githubState.lastRepairResult = null;
 	}
 };
 
-if (browser) {
-	// Delay initial refresh to avoid interference with setup flows
-	setTimeout(() => {
-		githubActions.refresh().catch(console.error);
-	}, 500);
-}
+// Delay initial refresh to avoid interference with setup flows
+setTimeout(() => {
+	githubActions.refresh().catch(console.error);
+}, 500);

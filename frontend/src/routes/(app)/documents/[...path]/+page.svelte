@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/state';
-	import { documentActions } from '$lib/stores/documents';
+	import { documentActions } from '$lib/stores/documents.svelte';
 	import { goto } from '$app/navigation';
 	import FolderView from '$lib/components/folder/FolderView.svelte';
 	import DocumentView from '$lib/components/document/DocumentView.svelte';

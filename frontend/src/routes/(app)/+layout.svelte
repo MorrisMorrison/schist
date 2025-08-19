@@ -12,11 +12,10 @@
 		type KeyboardShortcutHandlers
 	} from '$lib/utils/keyboard-shortcuts';
 
-	import '$lib/stores/theme.js';
-	import { sidebar, sidebarActions } from '$lib/stores/sidebar';
+	import '$lib/stores/theme.svelte';
+	import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
 	import { authService } from '$lib/auth/auth-service';
-	import { authStore } from '$lib/stores/auth';
-	import { browser } from '$app/environment';
+	import { authStore } from '$lib/stores/auth.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { goto } from '$app/navigation';
 
@@ -96,7 +95,7 @@
 	});
 
 	$effect(() => {
-		if (browser && !isPublicRoute && !authStore.token && authService.isAuthEnabled()) {
+		if (!isPublicRoute && !authStore.token && authService.isAuthEnabled()) {
 			authService.requireAuth(page.url.pathname + page.url.search);
 		}
 	});

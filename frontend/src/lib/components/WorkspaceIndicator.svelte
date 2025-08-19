@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Users } from 'lucide-svelte';
-	import { workspaceStore } from '$lib/stores/workspace';
-	import { authStore } from '$lib/stores/auth';
+	import { workspaceStore } from '$lib/stores/workspace.svelte';
+	import { authStore } from '$lib/stores/auth.svelte';
 
 	// Load workspace info when component mounts and user is authenticated
 	onMount(() => {

@@ -14,8 +14,7 @@
 		documentActions,
 		currentFolder,
 		folderActions
-	} from '$lib/stores/documents';
-	import { browser } from '$app/environment';
+	} from '$lib/stores/documents.svelte';
 	import { cn } from '$lib/utils.js';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 	import { authService } from '$lib/auth/auth-service';
@@ -140,7 +139,7 @@
 	});
 
 	$effect(() => {
-		if (browser && storageKey) {
+		if (storageKey) {
 			const savedExpanded = localStorage.getItem(storageKey);
 			if (savedExpanded) {
 				try {
@@ -153,7 +152,7 @@
 	});
 
 	function saveExpandedFolders() {
-		if (browser && storageKey) {
+		if (storageKey) {
 			localStorage.setItem(storageKey, JSON.stringify([...expandedFolders]));
 		}
 	}

@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { apiClient } from '$lib/api/client';
 import type { SecretsStatus, CreateSecretRequest, UpdateSecretRequest } from '$lib/api/types';
 
@@ -23,43 +22,31 @@ const defaultSecretState: SecretStoreState = {
 	unlocking: false
 };
 
-let secretState: SecretStoreState = defaultSecretState;
-
-if (browser) {
-	secretState = $state<SecretStoreState>(defaultSecretState);
-}
+const secretState: SecretStoreState = $state<SecretStoreState>(defaultSecretState);
 
 function createSecretStore() {
 	return {
 		async loadStatus(): Promise<SecretsStatus> {
-			if (browser) {
-				secretState.loading = true;
-				secretState.error = null;
-			}
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				const status = await apiClient.getSecretsStatus();
 
-				if (browser) {
-					secretState.status = status;
-					secretState.loading = false;
-				}
+				secretState.status = status;
+				secretState.loading = false;
 				return status;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load secrets status';
-				if (browser) {
-					secretState.error = errorMsg;
-					secretState.loading = false;
-				}
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async loadSecrets(): Promise<SecretInfo[]> {
-			if (browser) {
-				secretState.loading = true;
-				secretState.error = null;
-			}
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				const response = await apiClient.listSecrets();
@@ -68,51 +55,39 @@ function createSecretStore() {
 					hasValue: true
 				}));
 
-				if (browser) {
-					secretState.secrets = secrets;
-					secretState.loading = false;
-				}
+				secretState.secrets = secrets;
+				secretState.loading = false;
 				return secrets;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load secrets';
-				if (browser) {
-					secretState.error = errorMsg;
-					secretState.loading = false;
-				}
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async lock(): Promise<void> {
-			if (browser) {
-				secretState.loading = true;
-				secretState.error = null;
-			}
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.lockSecrets();
 
 				// Clear sensitive data and reload status
 				await this.loadStatus();
-				if (browser) {
-					secretState.secrets = [];
-					secretState.loading = false;
-				}
+				secretState.secrets = [];
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to lock secrets';
-				if (browser) {
-					secretState.error = errorMsg;
-					secretState.loading = false;
-				}
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async createSecret(request: CreateSecretRequest): Promise<void> {
-			if (browser) {
-				secretState.loading = true;
-				secretState.error = null;
-			}
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.createSecret(request);
@@ -120,15 +95,11 @@ function createSecretStore() {
 				await this.loadSecrets();
 				await this.loadStatus();
 
-				if (browser) {
-					secretState.loading = false;
-				}
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to create secret';
-				if (browser) {
-					secretState.error = errorMsg;
-					secretState.loading = false;
-				}
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
@@ -139,34 +110,26 @@ function createSecretStore() {
 		},
 
 		async updateSecret(key: string, request: UpdateSecretRequest): Promise<void> {
-			if (browser) {
-				secretState.loading = true;
-				secretState.error = null;
-			}
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.updateSecret(key, request);
 
 				// Reload secrets after update
 				await this.loadSecrets();
-				if (browser) {
-					secretState.loading = false;
-				}
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to update secret';
-				if (browser) {
-					secretState.error = errorMsg;
-					secretState.loading = false;
-				}
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		async deleteSecret(key: string): Promise<void> {
-			if (browser) {
-				secretState.loading = true;
-				secretState.error = null;
-			}
+			secretState.loading = true;
+			secretState.error = null;
 
 			try {
 				await apiClient.deleteSecret(key);
@@ -175,29 +138,21 @@ function createSecretStore() {
 				await this.loadSecrets();
 				await this.loadStatus();
 
-				if (browser) {
-					secretState.loading = false;
-				}
+				secretState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to delete secret';
-				if (browser) {
-					secretState.error = errorMsg;
-					secretState.loading = false;
-				}
+				secretState.error = errorMsg;
+				secretState.loading = false;
 				throw error;
 			}
 		},
 
 		clearError() {
-			if (browser) {
-				secretState.error = null;
-			}
+			secretState.error = null;
 		},
 
 		reset() {
-			if (browser) {
-				Object.assign(secretState, defaultSecretState);
-			}
+			Object.assign(secretState, defaultSecretState);
 		}
 	};
 }

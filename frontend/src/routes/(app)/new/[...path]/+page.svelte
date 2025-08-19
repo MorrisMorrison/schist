@@ -3,13 +3,13 @@
 	import { onMount, onDestroy } from 'svelte';
 	import LazyEditor from '$lib/components/editor/LazyEditor.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { documentActions } from '$lib/stores/documents';
+	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug, normalizePath } from '$lib/utils/path';
 	import { Check, Loader2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
-	import { templatesStore, templateActions } from '$lib/stores/templates';
+	import { templatesStore, templateActions } from '$lib/stores/templates.svelte';
 	import type { Template } from '$lib/api/types';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';

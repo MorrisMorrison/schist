@@ -11,7 +11,7 @@ import {
 	setDocumentsState,
 	setSearchState,
 	setCurrentFolderState
-} from './documents';
+} from './documents.svelte';
 import { apiClient } from '../api/client';
 import type { CreateDocumentRequest, UpdateDocumentRequest } from '../api/types';
 import { testData } from '../test/utils';

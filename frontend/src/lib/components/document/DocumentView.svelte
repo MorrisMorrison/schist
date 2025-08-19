@@ -18,11 +18,11 @@
 		secretStore,
 		replaceSecretPlaceholders,
 		parseSecretPlaceholders
-	} from '$lib/stores/secrets';
+	} from '$lib/stores/secrets.svelte';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
-	import { documentActions, linksStore } from '$lib/stores/documents';
+	import { documentActions, linksStore } from '$lib/stores/documents.svelte';
 
 	interface Props {
 		document: Document;

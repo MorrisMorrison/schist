@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { githubActions, githubStore } from '$lib/stores/github';
+	import { githubActions, githubStore } from '$lib/stores/github.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';

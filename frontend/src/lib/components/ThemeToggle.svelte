@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { themeStore, themeActions } from '$lib/stores/theme.js';
+	import { themeStore, themeActions } from '$lib/stores/theme.svelte';
 	import { Moon, Sun } from 'lucide-svelte';
 
 	let { size = 'sm' }: { size?: 'sm' | 'md' | 'lg' } = $props();

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { documentsStore, folderActions, documentActions } from '$lib/stores/documents';
+	import { documentsStore, folderActions, documentActions } from '$lib/stores/documents.svelte';
 	import DocumentGrid from '../document/DocumentGrid.svelte';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import CreateFolderModal from '../modal/CreateFolderModal.svelte';

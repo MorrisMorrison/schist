@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { apiClient } from '../api/client.js';
 import type {
 	Document,
@@ -68,59 +67,31 @@ const defaultLinksState: LinksState = {
 	error: null
 };
 
-let documentsState: DocumentsState = defaultDocumentsState;
-let searchState: SearchState = defaultSearchState;
-let foldersState: FoldersState = defaultFoldersState;
-let linksState: LinksState = defaultLinksState;
-let currentFolderState: string = '/';
+const documentsState: DocumentsState = $state<DocumentsState>(defaultDocumentsState);
+const searchState: SearchState = $state<SearchState>(defaultSearchState);
+const foldersState: FoldersState = $state<FoldersState>(defaultFoldersState);
+const linksState: LinksState = $state<LinksState>(defaultLinksState);
+let currentFolderState: string = $state<string>('/');
 
-if (browser) {
-	documentsState = $state<DocumentsState>(defaultDocumentsState);
-	searchState = $state<SearchState>(defaultSearchState);
-	foldersState = $state<FoldersState>(defaultFoldersState);
-	linksState = $state<LinksState>(defaultLinksState);
-	currentFolderState = $state<string>('/');
-}
-
-// Helper functions for state updates that work in both browser and test environments
+// Helper functions for state updates
 function updateDocumentsState(updates: Partial<DocumentsState>) {
-	if (browser) {
-		Object.assign(documentsState, updates);
-	} else {
-		Object.assign(documentsState, updates);
-	}
+	Object.assign(documentsState, updates);
 }
 
 function updateSearchState(updates: Partial<SearchState>) {
-	if (browser) {
-		Object.assign(searchState, updates);
-	} else {
-		Object.assign(searchState, updates);
-	}
+	Object.assign(searchState, updates);
 }
 
 function updateFoldersState(updates: Partial<FoldersState>) {
-	if (browser) {
-		Object.assign(foldersState, updates);
-	} else {
-		Object.assign(foldersState, updates);
-	}
+	Object.assign(foldersState, updates);
 }
 
 function updateLinksState(updates: Partial<LinksState>) {
-	if (browser) {
-		Object.assign(linksState, updates);
-	} else {
-		Object.assign(linksState, updates);
-	}
+	Object.assign(linksState, updates);
 }
 
 function setCurrentFolder(value: string) {
-	if (browser) {
-		currentFolderState = value;
-	} else {
-		currentFolderState = value;
-	}
+	currentFolderState = value;
 }
 
 function createDocumentActions() {
@@ -256,27 +227,21 @@ function createDocumentActions() {
 		},
 
 		async loadDocumentByPath(path: string) {
-			if (browser) {
-				documentsState.loading = true;
-				documentsState.error = null;
-			}
+			documentsState.loading = true;
+			documentsState.error = null;
 
 			try {
 				const document = await apiClient.getDocumentByPath(path);
-				if (browser) {
-					documentsState.currentDocument = document;
-					documentsState.loading = false;
-				}
+				documentsState.currentDocument = document;
+				documentsState.loading = false;
 
 				setCurrentFolder(getParentPath(document.metaData.path));
 
 				return document;
 			} catch (error) {
-				if (browser) {
-					documentsState.loading = false;
-					documentsState.error = error instanceof Error ? error.message : 'Failed to load document';
-					documentsState.currentDocument = null;
-				}
+				documentsState.loading = false;
+				documentsState.error = error instanceof Error ? error.message : 'Failed to load document';
+				documentsState.currentDocument = null;
 				throw error;
 			}
 		},
@@ -286,10 +251,8 @@ function createDocumentActions() {
 			documentData: UpdateDocumentRequest,
 			saveType: 'manual' | 'auto' = 'manual'
 		) {
-			if (browser) {
-				documentsState.loading = true;
-				documentsState.error = null;
-			}
+			documentsState.loading = true;
+			documentsState.error = null;
 
 			try {
 				const updatedDocument = await apiClient.updateDocumentByPath(path, documentData, saveType);
@@ -302,16 +265,14 @@ function createDocumentActions() {
 						folderActions.loadFolderTree(true)
 					]);
 				} else {
-					if (browser) {
-						documentsState.documents = documentsState.documents.map((d) =>
-							d.metaData.path === path ? updatedDocument : d
-						);
-						documentsState.currentDocument =
-							documentsState.currentDocument?.metaData.path === path
-								? updatedDocument
-								: documentsState.currentDocument;
-						documentsState.loading = false;
-					}
+					documentsState.documents = documentsState.documents.map((d) =>
+						d.metaData.path === path ? updatedDocument : d
+					);
+					documentsState.currentDocument =
+						documentsState.currentDocument?.metaData.path === path
+							? updatedDocument
+							: documentsState.currentDocument;
+					documentsState.loading = false;
 
 					// Force folder tree refresh to update document counts and metadata
 					folderActions.loadFolderTree(true).catch(console.error);
@@ -319,50 +280,36 @@ function createDocumentActions() {
 
 				return updatedDocument;
 			} catch (error) {
-				if (browser) {
-					documentsState.loading = false;
-					documentsState.error =
-						error instanceof Error ? error.message : 'Failed to update document';
-				}
+				documentsState.loading = false;
+				documentsState.error = error instanceof Error ? error.message : 'Failed to update document';
 				throw error;
 			}
 		},
 
 		async deleteDocumentByPath(path: string) {
-			if (browser) {
-				documentsState.loading = true;
-				documentsState.error = null;
-			}
+			documentsState.loading = true;
+			documentsState.error = null;
 
 			try {
 				await apiClient.deleteDocumentByPath(path);
-				if (browser) {
-					documentsState.documents = documentsState.documents.filter(
-						(d) => d.metaData.path !== path
-					);
-					documentsState.currentDocument =
-						documentsState.currentDocument?.metaData.path === path
-							? null
-							: documentsState.currentDocument;
-					documentsState.loading = false;
-				}
+				documentsState.documents = documentsState.documents.filter((d) => d.metaData.path !== path);
+				documentsState.currentDocument =
+					documentsState.currentDocument?.metaData.path === path
+						? null
+						: documentsState.currentDocument;
+				documentsState.loading = false;
 
 				folderActions.loadFolderTree(true).catch(console.error);
 			} catch (error) {
-				if (browser) {
-					documentsState.loading = false;
-					documentsState.error =
-						error instanceof Error ? error.message : 'Failed to delete document';
-				}
+				documentsState.loading = false;
+				documentsState.error = error instanceof Error ? error.message : 'Failed to delete document';
 				throw error;
 			}
 		},
 
 		async moveDocumentPath(oldPath: string, newPath: string) {
-			if (browser) {
-				documentsState.loading = true;
-				documentsState.error = null;
-			}
+			documentsState.loading = true;
+			documentsState.error = null;
 
 			try {
 				const moveRequest: MoveDocumentRequest = { oldPath, newPath };
@@ -375,15 +322,11 @@ function createDocumentActions() {
 
 				setCurrentFolder(getParentPath(newPath));
 
-				if (browser) {
-					documentsState.loading = false;
-				}
+				documentsState.loading = false;
 				return result;
 			} catch (error) {
-				if (browser) {
-					documentsState.loading = false;
-					documentsState.error = error instanceof Error ? error.message : 'Failed to move document';
-				}
+				documentsState.loading = false;
+				documentsState.error = error instanceof Error ? error.message : 'Failed to move document';
 				throw error;
 			}
 		},
@@ -397,43 +340,30 @@ function createDocumentActions() {
 		},
 
 		async loadBacklinks(documentPath: string) {
-			if (browser) {
-				linksState.backlinksLoading = true;
-				linksState.error = null;
-			}
+			linksState.backlinksLoading = true;
+			linksState.error = null;
 
 			try {
 				const backlinks = await apiClient.getDocumentBacklinks(documentPath);
-				if (browser) {
-					linksState.backlinks = backlinks;
-					linksState.backlinksLoading = false;
-				}
+				linksState.backlinks = backlinks;
+				linksState.backlinksLoading = false;
 			} catch (error) {
-				if (browser) {
-					linksState.backlinksLoading = false;
-					linksState.error = error instanceof Error ? error.message : 'Failed to load backlinks';
-				}
+				linksState.backlinksLoading = false;
+				linksState.error = error instanceof Error ? error.message : 'Failed to load backlinks';
 			}
 		},
 
 		async loadOutgoingLinks(documentPath: string) {
-			if (browser) {
-				linksState.outgoingLinksLoading = true;
-				linksState.error = null;
-			}
+			linksState.outgoingLinksLoading = true;
+			linksState.error = null;
 
 			try {
 				const outgoingLinks = await apiClient.getDocumentOutgoingLinks(documentPath);
-				if (browser) {
-					linksState.outgoingLinks = outgoingLinks;
-					linksState.outgoingLinksLoading = false;
-				}
+				linksState.outgoingLinks = outgoingLinks;
+				linksState.outgoingLinksLoading = false;
 			} catch (error) {
-				if (browser) {
-					linksState.outgoingLinksLoading = false;
-					linksState.error =
-						error instanceof Error ? error.message : 'Failed to load outgoing links';
-				}
+				linksState.outgoingLinksLoading = false;
+				linksState.error = error instanceof Error ? error.message : 'Failed to load outgoing links';
 			}
 		},
 
@@ -526,11 +456,9 @@ function createSearchActions() {
 		},
 
 		async searchInFolder(query: string, folderPath: string) {
-			if (browser) {
-				searchState.query = query;
-				searchState.loading = true;
-				searchState.error = null;
-			}
+			searchState.query = query;
+			searchState.loading = true;
+			searchState.error = null;
 
 			try {
 				const allResults = await apiClient.searchDocuments(query);
@@ -538,17 +466,13 @@ function createSearchActions() {
 					(document) => document.metaData.path && document.metaData.path.startsWith(folderPath)
 				);
 
-				if (browser) {
-					searchState.results = results;
-					searchState.loading = false;
-				}
+				searchState.results = results;
+				searchState.loading = false;
 				return results;
 			} catch (error) {
-				if (browser) {
-					searchState.loading = false;
-					searchState.error = error instanceof Error ? error.message : 'Search failed';
-					searchState.results = [];
-				}
+				searchState.loading = false;
+				searchState.error = error instanceof Error ? error.message : 'Search failed';
+				searchState.results = [];
 				throw error;
 			}
 		}
@@ -558,81 +482,60 @@ function createSearchActions() {
 function createFolderActions() {
 	return {
 		async loadFolderTree(force = false) {
-			if (browser) {
-				foldersState.loading = true;
-				foldersState.error = null;
-			}
+			foldersState.loading = true;
+			foldersState.error = null;
 
 			try {
 				const folders = await apiClient.getFolderTree(force);
-				if (browser) {
-					foldersState.folders = folders;
-					foldersState.loading = false;
-				}
+				foldersState.folders = folders;
+				foldersState.loading = false;
 				return folders;
 			} catch (error) {
-				if (browser) {
-					foldersState.loading = false;
-					foldersState.error =
-						error instanceof Error ? error.message : 'Failed to load folder tree';
-				}
+				foldersState.loading = false;
+				foldersState.error = error instanceof Error ? error.message : 'Failed to load folder tree';
 				throw error;
 			}
 		},
 
 		async createFolder(path: string) {
-			if (browser) {
-				foldersState.loading = true;
-				foldersState.error = null;
-			}
+			foldersState.loading = true;
+			foldersState.error = null;
 
 			try {
 				const result = await apiClient.createFolder(path);
 
 				await folderActions.loadFolderTree(true);
 
-				if (browser) {
-					foldersState.loading = false;
-				}
+				foldersState.loading = false;
 				return result;
 			} catch (error) {
-				if (browser) {
-					foldersState.loading = false;
-					foldersState.error = error instanceof Error ? error.message : 'Failed to create folder';
-				}
+				foldersState.loading = false;
+				foldersState.error = error instanceof Error ? error.message : 'Failed to create folder';
 				throw error;
 			}
 		},
 
 		async renameFolder(path: string, newName: string) {
-			if (browser) {
-				foldersState.loading = true;
-				foldersState.error = null;
-			}
+			foldersState.loading = true;
+			foldersState.error = null;
 			try {
 				const result = await apiClient.renameFolder(path, newName);
 				await Promise.all([
 					folderActions.loadFolderTree(true),
 					documentActions.loadDocuments(true)
 				]);
-				if (browser) {
-					foldersState.loading = false;
-				}
+				foldersState.loading = false;
 				return result;
 			} catch (error) {
-				if (browser) {
-					foldersState.loading = false;
-					foldersState.error = error instanceof Error ? error.message : 'Failed to rename folder';
-				}
+				foldersState.loading = false;
+				foldersState.error = error instanceof Error ? error.message : 'Failed to rename folder';
 				throw error;
 			}
 		},
 
 		async deleteFolder(path: string) {
-			if (browser) {
-				foldersState.loading = true;
-				foldersState.error = null;
-			}
+			foldersState.loading = true;
+			foldersState.error = null;
 
 			try {
 				const result = await apiClient.deleteFolder(path);
@@ -642,24 +545,18 @@ function createFolderActions() {
 					documentActions.loadDocuments(true)
 				]);
 
-				if (browser) {
-					foldersState.loading = false;
-				}
+				foldersState.loading = false;
 				return result;
 			} catch (error) {
-				if (browser) {
-					foldersState.loading = false;
-					foldersState.error = error instanceof Error ? error.message : 'Failed to delete folder';
-				}
+				foldersState.loading = false;
+				foldersState.error = error instanceof Error ? error.message : 'Failed to delete folder';
 				throw error;
 			}
 		},
 
 		async moveFolder(oldPath: string, newPath: string) {
-			if (browser) {
-				foldersState.loading = true;
-				foldersState.error = null;
-			}
+			foldersState.loading = true;
+			foldersState.error = null;
 
 			try {
 				const moveRequest: MoveDocumentRequest = { oldPath, newPath };
@@ -670,23 +567,17 @@ function createFolderActions() {
 					documentActions.loadDocuments(true)
 				]);
 
-				if (browser) {
-					foldersState.loading = false;
-				}
+				foldersState.loading = false;
 				return result;
 			} catch (error) {
-				if (browser) {
-					foldersState.loading = false;
-					foldersState.error = error instanceof Error ? error.message : 'Failed to move folder';
-				}
+				foldersState.loading = false;
+				foldersState.error = error instanceof Error ? error.message : 'Failed to move folder';
 				throw error;
 			}
 		},
 
 		clearError() {
-			if (browser) {
-				foldersState.error = null;
-			}
+			foldersState.error = null;
 		}
 	};
 }

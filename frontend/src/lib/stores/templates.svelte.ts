@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { apiClient } from '$lib/api/client';
 import type { Template } from '$lib/api/types';
 
@@ -16,11 +15,7 @@ const defaultTemplatesState: TemplatesState = {
 	loaded: false
 };
 
-let templatesState: TemplatesState = defaultTemplatesState;
-
-if (browser) {
-	templatesState = $state<TemplatesState>(defaultTemplatesState);
-}
+const templatesState: TemplatesState = $state<TemplatesState>(defaultTemplatesState);
 
 function createTemplatesStore() {
 	return {
@@ -29,37 +24,29 @@ function createTemplatesStore() {
 				return;
 			}
 
-			if (browser) {
-				templatesState.loading = true;
-				templatesState.error = null;
-			}
+			templatesState.loading = true;
+			templatesState.error = null;
 
 			try {
 				const templates = await apiClient.getTemplates(force);
 
-				if (browser) {
-					templatesState.templates = templates;
-					templatesState.loading = false;
-					templatesState.loaded = true;
-					templatesState.error = null;
-				}
+				templatesState.templates = templates;
+				templatesState.loading = false;
+				templatesState.loaded = true;
+				templatesState.error = null;
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : 'Failed to load templates';
 				console.error('Failed to load templates:', error);
 
-				if (browser) {
-					templatesState.templates = [];
-					templatesState.loading = false;
-					templatesState.loaded = false;
-					templatesState.error = errorMessage;
-				}
+				templatesState.templates = [];
+				templatesState.loading = false;
+				templatesState.loaded = false;
+				templatesState.error = errorMessage;
 			}
 		},
 
 		clearTemplates(): void {
-			if (browser) {
-				Object.assign(templatesState, defaultTemplatesState);
-			}
+			Object.assign(templatesState, defaultTemplatesState);
 		},
 
 		getTemplateById(id: string): Template | null {

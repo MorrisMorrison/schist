@@ -2,6 +2,10 @@ import { authService } from '$lib/auth/auth-service';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 
+// Disable SSR completely - we serve static files from backend
+export const ssr = false;
+export const csr = true;
+
 export const load: LayoutLoad = async ({ url }) => {
 	await authService.initialize();
 

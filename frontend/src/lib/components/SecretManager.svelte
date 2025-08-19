@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { secretStore } from '$lib/stores/secrets';
-	import { authStore } from '$lib/stores/auth';
+	import { secretStore } from '$lib/stores/secrets.svelte';
+	import { authStore } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import {

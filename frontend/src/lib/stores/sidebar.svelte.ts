@@ -1,8 +1,4 @@
-import { browser } from '$app/environment';
-
 function getInitialSidebarState(): boolean {
-	if (!browser) return true;
-
 	const stored = localStorage.getItem('sidebarOpen');
 	if (stored !== null) {
 		return stored === 'true';
@@ -13,11 +9,12 @@ function getInitialSidebarState(): boolean {
 
 let sidebarState = $state<boolean>(getInitialSidebarState());
 
-$effect(() => {
-	if (browser) {
+// Function to persist sidebar state
+function persistSidebarState() {
+	if (typeof localStorage !== 'undefined') {
 		localStorage.setItem('sidebarOpen', sidebarState.toString());
 	}
-});
+}
 
 export const sidebar = {
 	get isOpen() {
@@ -28,19 +25,23 @@ export const sidebar = {
 export const sidebarActions = {
 	toggle: () => {
 		sidebarState = !sidebarState;
+		persistSidebarState();
 	},
 
 	open: () => {
 		sidebarState = true;
+		persistSidebarState();
 	},
 
 	close: () => {
 		sidebarState = false;
+		persistSidebarState();
 	},
 
 	closeOnMobile: () => {
-		if (browser && window.innerWidth < 768) {
+		if (window.innerWidth < 768) {
 			sidebarState = false;
+			persistSidebarState();
 		}
 	}
 };

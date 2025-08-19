@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { folderActions } from '$lib/stores/documents';
+	import { folderActions } from '$lib/stores/documents.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		Dialog,

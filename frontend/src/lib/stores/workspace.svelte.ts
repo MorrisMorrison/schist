@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { apiClient } from '$lib/api/client';
 import type { UserInfo } from '$lib/api/types';
 
@@ -18,19 +17,13 @@ const defaultWorkspaceState: WorkspaceState = {
 	error: null
 };
 
-let workspaceState: WorkspaceState = defaultWorkspaceState;
-
-if (browser) {
-	workspaceState = $state<WorkspaceState>(defaultWorkspaceState);
-}
+const workspaceState: WorkspaceState = $state<WorkspaceState>(defaultWorkspaceState);
 
 function createWorkspaceStore() {
 	return {
 		async loadUsers() {
-			if (browser) {
-				workspaceState.loading = true;
-				workspaceState.error = null;
-			}
+			workspaceState.loading = true;
+			workspaceState.error = null;
 
 			try {
 				const response = await apiClient.listUsers();
@@ -38,24 +31,18 @@ function createWorkspaceStore() {
 				const userCount = users.length;
 				const isSharedWorkspace = userCount > 1;
 
-				if (browser) {
-					workspaceState.users = users;
-					workspaceState.userCount = userCount;
-					workspaceState.isSharedWorkspace = isSharedWorkspace;
-					workspaceState.loading = false;
-				}
+				workspaceState.users = users;
+				workspaceState.userCount = userCount;
+				workspaceState.isSharedWorkspace = isSharedWorkspace;
+				workspaceState.loading = false;
 			} catch (error) {
 				console.warn('Failed to load workspace users:', error);
-				if (browser) {
-					workspaceState.loading = false;
-					workspaceState.error = 'Failed to load workspace information';
-				}
+				workspaceState.loading = false;
+				workspaceState.error = 'Failed to load workspace information';
 			}
 		},
 		reset() {
-			if (browser) {
-				Object.assign(workspaceState, defaultWorkspaceState);
-			}
+			Object.assign(workspaceState, defaultWorkspaceState);
 		}
 	};
 }

@@ -1,4 +1,3 @@
-import { browser } from '$app/environment';
 import { apiClient } from '$lib/api/client';
 import {
 	registerPasskey,
@@ -33,59 +32,43 @@ const defaultPasskeyState: PasskeyStoreState = {
 	error: null
 };
 
-let passkeyState: PasskeyStoreState = defaultPasskeyState;
-
-if (browser) {
-	passkeyState = $state<PasskeyStoreState>(defaultPasskeyState);
-}
+const passkeyState: PasskeyStoreState = $state<PasskeyStoreState>(defaultPasskeyState);
 
 function createPasskeyStore() {
 	return {
 		async loadStatus(force = false): Promise<PasskeyStatus> {
-			if (browser) {
-				passkeyState.loading = true;
-				passkeyState.error = null;
-			}
+			passkeyState.loading = true;
+			passkeyState.error = null;
 
 			try {
 				const status = await apiClient.getPasskeyStatus(force);
 
-				if (browser) {
-					passkeyState.status = status;
-					passkeyState.loading = false;
-				}
+				passkeyState.status = status;
+				passkeyState.loading = false;
 				return status;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load passkey status';
-				if (browser) {
-					passkeyState.error = errorMsg;
-					passkeyState.loading = false;
-				}
+				passkeyState.error = errorMsg;
+				passkeyState.loading = false;
 				throw error;
 			}
 		},
 
 		async loadPasskeys(force = false): Promise<PasskeyInfo[]> {
-			if (browser) {
-				passkeyState.loading = true;
-				passkeyState.error = null;
-			}
+			passkeyState.loading = true;
+			passkeyState.error = null;
 
 			try {
 				const response = await apiClient.listPasskeys(force);
 				const passkeys = response.passkeys;
 
-				if (browser) {
-					passkeyState.passkeys = passkeys;
-					passkeyState.loading = false;
-				}
+				passkeyState.passkeys = passkeys;
+				passkeyState.loading = false;
 				return passkeys;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to load passkeys';
-				if (browser) {
-					passkeyState.error = errorMsg;
-					passkeyState.loading = false;
-				}
+				passkeyState.error = errorMsg;
+				passkeyState.loading = false;
 				throw error;
 			}
 		},
@@ -94,16 +77,12 @@ function createPasskeyStore() {
 			if (!isWebAuthnSupported()) {
 				const errorMsg =
 					'WebAuthn is not supported in this browser. Please use a modern browser with passkey support.';
-				if (browser) {
-					passkeyState.error = errorMsg;
-				}
+				passkeyState.error = errorMsg;
 				throw new WebAuthnError(errorMsg, 'NOT_SUPPORTED');
 			}
 
-			if (browser) {
-				passkeyState.loading = true;
-				passkeyState.error = null;
-			}
+			passkeyState.loading = true;
+			passkeyState.error = null;
 
 			try {
 				const credentialId = await registerPasskey(name);
@@ -111,9 +90,7 @@ function createPasskeyStore() {
 				await this.loadPasskeys();
 				await this.loadStatus();
 
-				if (browser) {
-					passkeyState.loading = false;
-				}
+				passkeyState.loading = false;
 				return credentialId;
 			} catch (error) {
 				let errorMsg = 'Failed to create passkey';
@@ -139,19 +116,15 @@ function createPasskeyStore() {
 					errorMsg = error.message;
 				}
 
-				if (browser) {
-					passkeyState.error = errorMsg;
-					passkeyState.loading = false;
-				}
+				passkeyState.error = errorMsg;
+				passkeyState.loading = false;
 				throw error;
 			}
 		},
 
 		async deletePasskey(credentialId: string): Promise<void> {
-			if (browser) {
-				passkeyState.loading = true;
-				passkeyState.error = null;
-			}
+			passkeyState.loading = true;
+			passkeyState.error = null;
 
 			try {
 				await apiClient.deletePasskey(credentialId);
@@ -159,15 +132,11 @@ function createPasskeyStore() {
 				await this.loadPasskeys();
 				await this.loadStatus();
 
-				if (browser) {
-					passkeyState.loading = false;
-				}
+				passkeyState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to delete passkey';
-				if (browser) {
-					passkeyState.error = errorMsg;
-					passkeyState.loading = false;
-				}
+				passkeyState.error = errorMsg;
+				passkeyState.loading = false;
 				throw error;
 			}
 		},
@@ -176,16 +145,12 @@ function createPasskeyStore() {
 			if (!isWebAuthnSupported()) {
 				const errorMsg =
 					'WebAuthn is not supported in this browser. Please use a modern browser with passkey support.';
-				if (browser) {
-					passkeyState.error = errorMsg;
-				}
+				passkeyState.error = errorMsg;
 				throw new WebAuthnError(errorMsg, 'NOT_SUPPORTED');
 			}
 
-			if (browser) {
-				passkeyState.loading = true;
-				passkeyState.error = null;
-			}
+			passkeyState.loading = true;
+			passkeyState.error = null;
 
 			try {
 				const credentialId = await webAuthnAuthenticate();
@@ -194,9 +159,7 @@ function createPasskeyStore() {
 
 				await this.loadStatus();
 
-				if (browser) {
-					passkeyState.loading = false;
-				}
+				passkeyState.loading = false;
 				return credentialId;
 			} catch (error) {
 				let errorMsg = 'Failed to authenticate with passkey';
@@ -222,20 +185,16 @@ function createPasskeyStore() {
 					errorMsg = error.message;
 				}
 
-				if (browser) {
-					passkeyState.error = errorMsg;
-					passkeyState.loading = false;
-				}
+				passkeyState.error = errorMsg;
+				passkeyState.loading = false;
 				throw error;
 			}
 		},
 
 		// Legacy method: Unlock secrets with a specific credential ID (for backwards compatibility)
 		async unlockWithPasskey(credentialId: string): Promise<void> {
-			if (browser) {
-				passkeyState.loading = true;
-				passkeyState.error = null;
-			}
+			passkeyState.loading = true;
+			passkeyState.error = null;
 
 			try {
 				await apiClient.unlockWithPasskey({ credentialId });
@@ -243,31 +202,23 @@ function createPasskeyStore() {
 				// Update status to reflect unlocked state
 				await this.loadStatus();
 
-				if (browser) {
-					passkeyState.loading = false;
-				}
+				passkeyState.loading = false;
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to unlock with passkey';
-				if (browser) {
-					passkeyState.error = errorMsg;
-					passkeyState.loading = false;
-				}
+				passkeyState.error = errorMsg;
+				passkeyState.loading = false;
 				throw error;
 			}
 		},
 
 		// Clear error state
 		clearError() {
-			if (browser) {
-				passkeyState.error = null;
-			}
+			passkeyState.error = null;
 		},
 
 		// Reset store to initial state
 		reset() {
-			if (browser) {
-				Object.assign(passkeyState, defaultPasskeyState);
-			}
+			Object.assign(passkeyState, defaultPasskeyState);
 		}
 	};
 }

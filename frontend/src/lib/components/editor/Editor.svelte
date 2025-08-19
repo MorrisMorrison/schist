@@ -9,9 +9,9 @@
 	import UploadStatus from './UploadStatus.svelte';
 	import ResizeHandle from './ResizeHandle.svelte';
 	import type { EditorProps, FormattingType } from '$lib/types/editor';
-	import { themeStore } from '$lib/stores/theme.js';
+	import { themeStore } from '$lib/stores/theme.svelte';
 	import type { Asset } from '$lib/api/types.js';
-	import { settings } from '$lib/stores/settings.js';
+	import { settings } from '$lib/stores/settings.svelte';
 
 	let {
 		initialContent = '',

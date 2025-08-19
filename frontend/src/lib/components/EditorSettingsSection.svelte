@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { settings, settingsActions } from '$lib/stores/settings';
+	import { settings, settingsActions } from '$lib/stores/settings.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
 

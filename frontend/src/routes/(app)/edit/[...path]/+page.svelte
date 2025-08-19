@@ -6,7 +6,7 @@
 	import UnsavedChangesModal from '$lib/components/modal/UnsavedChangesModal.svelte';
 	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
 	import { Button } from '$lib/components/ui/button';
-	import { documentActions } from '$lib/stores/documents.js';
+	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug } from '$lib/utils/path';
 	import { Check, Trash2, RotateCcw } from 'lucide-svelte';
 	import type { PageData } from './$types';

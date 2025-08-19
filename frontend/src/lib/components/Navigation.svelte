@@ -2,13 +2,13 @@
 	import { page } from '$app/state';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { BurgerIcon } from './ui/burger-icon';
-	import { sidebar, sidebarActions } from '$lib/stores/sidebar';
+	import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
 	import { onMount } from 'svelte';
 	import { Settings, Search, LogOut, User, Lock, Unlock } from 'lucide-svelte';
-	import { authStore } from '$lib/stores/auth';
+	import { authStore } from '$lib/stores/auth.svelte';
 	import { authService } from '$lib/auth/auth-service';
-	import { secretStore } from '$lib/stores/secrets';
-	import { passkeyStore } from '$lib/stores/passkeys';
+	import { secretStore } from '$lib/stores/secrets.svelte';
+	import { passkeyStore } from '$lib/stores/passkeys.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();

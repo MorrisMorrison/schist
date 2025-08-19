@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { passkeyStore } from '$lib/stores/passkeys';
+	import { passkeyStore } from '$lib/stores/passkeys.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Alert, AlertDescription } from '$lib/components/ui/alert';
 	import {

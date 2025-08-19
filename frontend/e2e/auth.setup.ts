@@ -1,6 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import { ApiHelper } from './utils/api-helpers';
 import { WebAuthnHelper } from './utils/webauthn-helper';
+import { AUTH_ENABLED_BASE_URL, LOGIN_URL, SETUP_URL } from './utils/routes';
 
 const authFile = 'playwright/.auth/user.json';
 const testUsername = 'testuser';
@@ -15,7 +16,7 @@ const MOCK_CREDENTIAL = {
 };
 
 setup('authenticate', async ({ page, request }) => {
-	const apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
+	const apiHelper = new ApiHelper(request, 0, `${AUTH_ENABLED_BASE_URL}/api`);
 	let webauthnHelper: WebAuthnHelper | null = null;
 
 	try {
@@ -52,7 +53,7 @@ setup('authenticate', async ({ page, request }) => {
 			console.log('[Auth Setup] First-time setup required, creating admin user...');
 
 			// Navigate to setup page
-			await page.goto('http://localhost:4174/setup');
+			await page.goto(SETUP_URL);
 
 			// Fill in username
 			await expect(page.getByLabel('Username')).toBeVisible();
@@ -74,7 +75,7 @@ setup('authenticate', async ({ page, request }) => {
 			await expect(page).toHaveURL(/\/login/);
 		} else {
 			console.log('[Auth Setup] User already exists, proceeding to login...');
-			await page.goto('http://localhost:4174/login');
+			await page.goto(LOGIN_URL);
 		}
 
 		// Perform passkey authentication
@@ -126,7 +127,7 @@ setup('authenticate', async ({ page, request }) => {
 		await authFinishPromise;
 
 		// Should redirect to home page
-		await expect(page).toHaveURL('http://localhost:4174/', { timeout: 10000 });
+		await expect(page).toHaveURL(AUTH_ENABLED_BASE_URL, { timeout: 10000 });
 
 		// Verify authenticated state
 		await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();

@@ -1,10 +1,6 @@
-import { browser } from '$app/environment';
-
 export type Theme = 'light' | 'dark';
 
 function getSystemTheme(): 'light' | 'dark' {
-	if (!browser) return 'dark';
-
 	if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
 		return 'dark';
 	}
@@ -12,8 +8,6 @@ function getSystemTheme(): 'light' | 'dark' {
 }
 
 function getInitialTheme(): Theme {
-	if (!browser) return 'dark';
-
 	const stored = localStorage.getItem('theme') as Theme;
 	if (stored && ['light', 'dark'].includes(stored)) {
 		return stored;
@@ -22,14 +16,21 @@ function getInitialTheme(): Theme {
 }
 
 function createThemeStore() {
-	let currentTheme = $state<Theme>(getInitialTheme());
+	const initialTheme = getInitialTheme();
+	let currentTheme = $state<Theme>(initialTheme);
 
-	if (browser) {
-		$effect(() => {
-			localStorage.setItem('theme', currentTheme);
-			document.documentElement.classList.toggle('dark', currentTheme === 'dark');
-		});
+	// Function to apply theme changes
+	function applyTheme(theme: Theme) {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem('theme', theme);
+		}
+		if (typeof document !== 'undefined') {
+			document.documentElement.classList.toggle('dark', theme === 'dark');
+		}
 	}
+
+	// Apply initial theme
+	applyTheme(initialTheme);
 
 	return {
 		get current() {
@@ -37,9 +38,12 @@ function createThemeStore() {
 		},
 		set: (newTheme: Theme) => {
 			currentTheme = newTheme;
+			applyTheme(newTheme);
 		},
 		toggle: () => {
-			currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+			const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+			currentTheme = newTheme;
+			applyTheme(newTheme);
 		}
 	};
 }

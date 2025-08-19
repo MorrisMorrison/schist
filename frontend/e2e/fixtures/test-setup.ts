@@ -192,8 +192,8 @@ export const test = base.extend<{
 
 	// eslint-disable-next-line no-empty-pattern
 	workerBaseURL: async ({}, use, testInfo) => {
-		// parallelIndex: 0 -> port 4173, 1 -> port 4174, etc.
-		const port = 4173 + (testInfo.parallelIndex || 0);
+		// parallelIndex: 0 -> port 8081 (auth-disabled), 1 -> port 8082 (auth-enabled), etc.
+		const port = 8081 + (testInfo.parallelIndex || 0);
 		const baseURL = `http://localhost:${port}`;
 		await use(baseURL);
 	}

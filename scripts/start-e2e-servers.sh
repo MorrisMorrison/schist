@@ -3,6 +3,13 @@
 # Start e2e servers script for Playwright
 set -e
 
+# Ensure cleanup on script exit (success or failure)
+cleanup() {
+    echo "🧹 Cleaning up Docker containers..."
+    docker-compose --profile e2e down 2>/dev/null || true
+}
+trap cleanup EXIT
+
 echo "Starting Docker services..."
 docker-compose --profile e2e up --build -d
 

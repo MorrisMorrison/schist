@@ -8,19 +8,30 @@ async function globalTeardown() {
 	console.log('[Global Teardown] Starting cleanup...');
 
 	try {
-		// Stop Docker containers first
+		// Stop Docker containers first (more aggressive cleanup)
 		console.log('[Global Teardown] Stopping Docker containers...');
 		const dockerComposeDir = path.resolve(process.cwd(), '..');
-		const { stdout: dockerStdout, stderr: dockerStderr } = await execAsync(
-			'docker-compose --profile e2e down',
-			{ cwd: dockerComposeDir }
-		);
-
-		if (dockerStdout) {
-			console.log('[Global Teardown] Docker stop output:', dockerStdout);
-		}
-		if (dockerStderr) {
-			console.warn('[Global Teardown] Docker stop warnings:', dockerStderr);
+		
+		// Try docker-compose down first
+		try {
+			const { stdout: dockerStdout, stderr: dockerStderr } = await execAsync(
+				'docker-compose --profile e2e down',
+				{ cwd: dockerComposeDir, timeout: 30000 }
+			);
+			if (dockerStdout) {
+				console.log('[Global Teardown] Docker stop output:', dockerStdout);
+			}
+		} catch (dockerError) {
+			console.warn('[Global Teardown] Docker-compose down failed, trying manual cleanup...');
+			
+			// Fallback: stop and remove containers manually
+			try {
+				await execAsync('docker stop $(docker ps -q --filter "name=schist") 2>/dev/null || true');
+				await execAsync('docker rm $(docker ps -aq --filter "name=schist") 2>/dev/null || true');
+				console.log('[Global Teardown] Manual Docker cleanup completed');
+			} catch (manualError) {
+				console.warn('[Global Teardown] Manual Docker cleanup also failed:', manualError);
+			}
 		}
 
 		// Use the unified cleanup script with e2e-only profile

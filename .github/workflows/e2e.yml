@@ -46,3 +46,11 @@ jobs:
           make e2e
         env:
           CI: true
+      
+      # Ensure Docker containers are cleaned up even if tests fail
+      - name: Cleanup Docker containers
+        if: always()
+        run: |
+          docker-compose --profile e2e down 2>/dev/null || true
+          docker stop $(docker ps -q --filter "name=schist") 2>/dev/null || true
+          docker rm $(docker ps -aq --filter "name=schist") 2>/dev/null || true

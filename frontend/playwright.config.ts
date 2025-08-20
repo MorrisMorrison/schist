@@ -80,18 +80,10 @@ export default defineConfig({
 		}
 	],
 
-	webServer: [
-		{
-			command: 'cd .. && ./scripts/start-e2e-servers.sh',
-			port: 8081,
-			reuseExistingServer: true,
-			timeout: 120 * 1000
-		},
-		{
-			command: 'sleep 2',
-			port: 8082,
-			reuseExistingServer: true,
-			timeout: 10 * 1000
-		}
-	]
+	webServer: {
+		command: 'cd .. && ./scripts/start-e2e-servers.sh',
+		port: 8081,
+		reuseExistingServer: true,
+		timeout: 120 * 1000
+	}
 });

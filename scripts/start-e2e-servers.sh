@@ -3,24 +3,32 @@
 # Start e2e servers script for Playwright
 set -e
 
-# Ensure cleanup on script exit (success or failure)
-cleanup() {
-    echo "🧹 Cleaning up Docker containers..."
-    docker-compose --profile e2e down 2>/dev/null || true
-}
-trap cleanup EXIT
-
 echo "Starting Docker services..."
 docker-compose --profile e2e up --build -d
 
 echo "Waiting for services to be ready..."
-timeout=60
+timeout=90
 counter=0
 
 while [ $counter -lt $timeout ]; do
-    if curl -f -s http://localhost:8081/api/health > /dev/null && \
-       curl -f -s http://localhost:8082/api/health > /dev/null; then
+    # Check if both services are ready
+    auth_disabled_ready=false
+    auth_enabled_ready=false
+    
+    if curl -f -s http://localhost:8081/api/health > /dev/null 2>&1; then
+        auth_disabled_ready=true
+    fi
+    
+    if curl -f -s http://localhost:8082/api/health > /dev/null 2>&1; then
+        auth_enabled_ready=true
+    fi
+    
+    if [ "$auth_disabled_ready" = true ] && [ "$auth_enabled_ready" = true ]; then
+        echo ""
         echo "✅ Both services are ready!"
+        echo "  - Auth disabled: http://localhost:8081"
+        echo "  - Auth enabled:  http://localhost:8082"
+        echo "READY"
         break
     fi
     
@@ -37,14 +45,11 @@ done
 if [ $counter -eq $timeout ]; then
     echo ""
     echo "❌ Services failed to start within ${timeout} seconds"
+    echo "Container logs:"
     docker-compose --profile e2e logs
+    docker-compose --profile e2e down
     exit 1
 fi
-
-echo ""
-echo "🚀 E2E servers are running:"
-echo "  - Auth disabled: http://localhost:8081"
-echo "  - Auth enabled:  http://localhost:8082"
 
 # Keep the script running so Playwright can detect the servers
 trap 'echo "Shutting down..."; docker-compose --profile e2e down; exit 0' SIGINT SIGTERM
@@ -52,10 +57,12 @@ trap 'echo "Shutting down..."; docker-compose --profile e2e down; exit 0' SIGINT
 # Keep running until interrupted
 while true; do
     sleep 5
-    # Check if containers are still running
-    if ! docker-compose --profile e2e ps -q | xargs docker inspect -f '{{.State.Running}}' | grep -q true; then
-        echo "❌ One or more containers stopped unexpectedly"
+    # Simple health check - if we can't reach either service, exit
+    if ! curl -f -s http://localhost:8081/api/health > /dev/null 2>&1 || \
+       ! curl -f -s http://localhost:8082/api/health > /dev/null 2>&1; then
+        echo "❌ One or more services became unavailable"
         docker-compose --profile e2e logs
+        docker-compose --profile e2e down
         exit 1
     fi
 done

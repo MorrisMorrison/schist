@@ -1,4 +1,4 @@
-.PHONY: all install build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-docker-dev run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui e2e-test e2e-test-dev e2e-grep check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
+.PHONY: all install build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui e2e-test e2e-grep check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
 
 all: build
 
@@ -66,7 +66,6 @@ e2e-ui:
 
 # Run individual e2e test file
 # Usage: make e2e-test TEST=01-document-lifecycle.test.ts
-# Usage: make e2e-test TEST=authentication.test.ts
 e2e-test: install
 ifndef TEST
 	@echo "Usage: make e2e-test TEST=<test-file>"
@@ -77,25 +76,10 @@ ifndef TEST
 	@cd frontend && find e2e/tests -name "*.test.ts" -exec basename {} \; | sort
 	@exit 1
 endif
-	cd frontend && npm run build:e2e && npx playwright test e2e/tests/$(TEST) && npm run cleanup-e2e
-
-# Run individual e2e test file without building (faster for development)
-# Usage: make e2e-test-dev TEST=01-document-lifecycle.test.ts
-e2e-test-dev:
-ifndef TEST
-	@echo "Usage: make e2e-test-dev TEST=<test-file>"
-	@echo "Example: make e2e-test-dev TEST=01-document-lifecycle.test.ts"
-	@echo "Example: make e2e-test-dev TEST=authentication.test.ts"
-	@echo ""
-	@echo "Available test files:"
-	@cd frontend && find e2e/tests -name "*.test.ts" -exec basename {} \; | sort
-	@exit 1
-endif
 	cd frontend && npx playwright test e2e/tests/$(TEST) && npm run cleanup-e2e
 
 # Run specific test by grep pattern (across all test files)
 # Usage: make e2e-grep GREP="should delete a document"
-# Usage: make e2e-grep GREP="authentication"
 e2e-grep:
 ifndef GREP
 	@echo "Usage: make e2e-grep GREP=<test-pattern>"

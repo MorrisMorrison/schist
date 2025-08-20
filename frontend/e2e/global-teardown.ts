@@ -8,6 +8,21 @@ async function globalTeardown() {
 	console.log('[Global Teardown] Starting cleanup...');
 
 	try {
+		// Stop Docker containers first
+		console.log('[Global Teardown] Stopping Docker containers...');
+		const dockerComposeDir = path.resolve(process.cwd(), '..');
+		const { stdout: dockerStdout, stderr: dockerStderr } = await execAsync(
+			'docker-compose --profile e2e down',
+			{ cwd: dockerComposeDir }
+		);
+
+		if (dockerStdout) {
+			console.log('[Global Teardown] Docker stop output:', dockerStdout);
+		}
+		if (dockerStderr) {
+			console.warn('[Global Teardown] Docker stop warnings:', dockerStderr);
+		}
+
 		// Use the unified cleanup script with e2e-only profile
 		// In CI, we run from frontend directory, so we need to go up one level
 		const cleanupScript = path.resolve(process.cwd(), '../scripts/cleanup.sh');

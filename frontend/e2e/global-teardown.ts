@@ -11,19 +11,19 @@ async function globalTeardown() {
 		// Stop Docker containers first (more aggressive cleanup)
 		console.log('[Global Teardown] Stopping Docker containers...');
 		const dockerComposeDir = path.resolve(process.cwd(), '..');
-		
+
 		// Try docker-compose down first
 		try {
-			const { stdout: dockerStdout, stderr: dockerStderr } = await execAsync(
-				'docker-compose --profile e2e down',
-				{ cwd: dockerComposeDir, timeout: 30000 }
-			);
+			const { stdout: dockerStdout } = await execAsync('docker-compose --profile e2e down', {
+				cwd: dockerComposeDir,
+				timeout: 30000
+			});
 			if (dockerStdout) {
 				console.log('[Global Teardown] Docker stop output:', dockerStdout);
 			}
-		} catch (dockerError) {
+		} catch (_dockerError) {
 			console.warn('[Global Teardown] Docker-compose down failed, trying manual cleanup...');
-			
+
 			// Fallback: stop and remove containers manually
 			try {
 				await execAsync('docker stop $(docker ps -q --filter "name=schist") 2>/dev/null || true');

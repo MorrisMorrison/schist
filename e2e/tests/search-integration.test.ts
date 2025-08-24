@@ -2,11 +2,7 @@ import { test, expect } from '@e2e/fixtures/test-data-fixtures';
 import { createTestPage } from '../utils/test-data';
 
 test.describe.serial('Search Integration with Folder Tree', () => {
-	test('should filter folder tree by text query', async ({
-		folderPage,
-		withSearchTestData, // eslint-disable-line @typescript-eslint/no-unused-vars
-		page
-	}) => {
+	test('should filter folder tree by text query', async ({ folderPage, page }) => {
 		// Search test data is created by the fixture
 
 		// Navigate to root to see full tree
@@ -41,11 +37,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		}
 	});
 
-	test('should filter folder tree by tag query', async ({
-		folderPage,
-		withSearchTestData, // eslint-disable-line @typescript-eslint/no-unused-vars
-		page
-	}) => {
+	test('should filter folder tree by tag query', async ({ folderPage, page }) => {
 		// Search test data is created by the fixture
 
 		await folderPage.navigateToRoot();
@@ -91,11 +83,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		}
 	});
 
-	test('should support combined text and tag search', async ({
-		folderPage,
-		withSearchTestData, // eslint-disable-line @typescript-eslint/no-unused-vars
-		page
-	}) => {
+	test('should support combined text and tag search', async ({ folderPage, page }) => {
 		// Search test data is created by the fixture
 
 		await folderPage.navigateToRoot();

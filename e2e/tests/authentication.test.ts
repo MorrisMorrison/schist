@@ -179,9 +179,9 @@ test.describe('Passkey Authentication System', () => {
 			await page.addInitScript(() => {
 				// Remove WebAuthn support to test fallback
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				delete (window as any).PublicKeyCredential;
+				delete (globalThis as any).PublicKeyCredential;
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				delete (navigator as any).credentials;
+				delete (globalThis as any).navigator?.credentials;
 			});
 
 			await page.goto(LOGIN_URL);

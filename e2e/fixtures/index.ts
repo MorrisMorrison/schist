@@ -1,6 +1,5 @@
 import { ApiHelper } from '../utils/api-helpers';
 
-
 export { HomePage } from '../pages/HomePage';
 export { EditorPage } from '../pages/EditorPage';
 export { DocumentViewPage, PageViewPage } from '../pages/DocumentViewPage';

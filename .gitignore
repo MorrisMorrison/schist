@@ -36,13 +36,16 @@ data/
 backend/schist
 .claude/settings.local.json
 wiki-data/
-frontend/playwright-report
-frontend/test-results
+# E2E test artifacts  
+e2e/playwright-report
+e2e/test-results
+e2e/screenshots
+e2e/node_modules
 backend/cmd/schist/test-data-*
 backend/cmd/schist/schist
 project/
 test-token
 docs/features
-frontend/playwright
+e2e/playwright
 test-results/
 test-data*

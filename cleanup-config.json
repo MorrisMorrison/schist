@@ -10,15 +10,15 @@
         "backend/cmd/schist/test-data-*"
       ],
       "test_directories": [
-        "frontend/test-results",
-        "frontend/playwright-report",
+        "e2e/test-results",
+        "e2e/playwright-report",
         "frontend/coverage",
         "backend/coverage", 
         "backend/test-results"
       ],
       "e2e_results": [
-        "frontend/test-results/**",
-        "frontend/playwright-report/**",
+        "e2e/test-results/**",
+        "e2e/playwright-report/**",
         "**/playwright-report/**",
         "**/test-results/**"
       ],
@@ -35,7 +35,7 @@
         "tmp/**",
         "/tmp/schist-*",
         "/var/tmp/schist-*",
-        "frontend/playwright/.auth/user.json"
+        "e2e/playwright/.auth/user.json"
       ],
       "search_patterns": [
         "**/node_modules/.cache/**",
@@ -53,14 +53,14 @@
         "backend/cmd/schist/test-data-*"
       ],
       "test_directories": [
-        "frontend/test-results",
-        "frontend/playwright-report", 
+        "e2e/test-results",
+        "e2e/playwright-report", 
         "frontend/coverage",
         "backend/coverage"
       ],
       "e2e_results": [
-        "frontend/test-results/**",
-        "frontend/playwright-report/**"
+        "e2e/test-results/**",
+        "e2e/playwright-report/**"
       ],
       "log_files": [
         "*.log",
@@ -69,7 +69,7 @@
       "temp_files": [
         "*.tmp",
         "*.temp",
-        "frontend/playwright/.auth/user.json"
+        "e2e/playwright/.auth/user.json"
       ],
       "search_patterns": [],
       "system_cleanup": false
@@ -84,16 +84,16 @@
         "backend/cmd/schist/test-data-worker-4"
       ],
       "test_directories": [
-        "frontend/test-results",
-        "frontend/playwright-report"
+        "e2e/test-results",
+        "e2e/playwright-report"
       ],
       "e2e_results": [
-        "frontend/test-results/**",
-        "frontend/playwright-report/**"
+        "e2e/test-results/**",
+        "e2e/playwright-report/**"
       ],
       "log_files": [],
       "temp_files": [
-        "frontend/playwright/.auth/user.json"
+        "e2e/playwright/.auth/user.json"
       ],
       "search_patterns": [],
       "system_cleanup": false

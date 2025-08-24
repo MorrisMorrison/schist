@@ -10,7 +10,7 @@ const isCI = !!globalThis.process?.env.CI;
 const baseURL = globalThis.process?.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 export default defineConfig({
-	testDir: './e2e',
+	testDir: './tests',
 
 	fullyParallel: true,
 
@@ -30,7 +30,7 @@ export default defineConfig({
 	},
 
 	/* Global teardown script to clean up auth files */
-	globalTeardown: './e2e/global-teardown.ts',
+	globalTeardown: './global-teardown.ts',
 
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: [
@@ -68,12 +68,12 @@ export default defineConfig({
 	],
 
 	// Only use webServer for local development, not in CI
-	// In CI, the services are started by GitHub Actions using docker-compose.e2e.yml
+	// In CI, the services are started by GitHub Actions using docker-compose
 	...(isCI
 		? {}
 		: {
 				webServer: {
-					command: 'cd .. && docker-compose -f docker-compose.e2e.yml up --build',
+					command: 'docker-compose --profile e2e up --build',
 					port: 3000,
 					reuseExistingServer: true,
 					timeout: 180 * 1000 // 3 minutes for local Docker builds

@@ -64,7 +64,7 @@ export abstract class BasePage {
 	 * Take screenshot with a descriptive name
 	 */
 	async screenshot(name: string) {
-		await this.page.screenshot({ path: `e2e-screenshots/${name}.png`, fullPage: true });
+		await this.page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
 	}
 
 	/**

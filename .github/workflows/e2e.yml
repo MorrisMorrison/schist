@@ -111,15 +111,32 @@ jobs:
           
           # Final verification
           echo "Final connectivity verification:"
+          echo "Testing localhost access from runner:"
           curl -f -s http://localhost:8081/api/health > /dev/null && echo "✅ Auth-disabled service: OK" || echo "❌ Auth-disabled service: FAILED"
           curl -f -s http://localhost:8082/api/health > /dev/null && echo "✅ Auth-enabled service: OK" || echo "❌ Auth-enabled service: FAILED"
+          echo "Testing host network access from runner:"
+          curl -f -s http://host.docker.internal:8081/api/health > /dev/null && echo "✅ Auth-disabled via host.docker.internal: OK" || echo "❌ Auth-disabled via host.docker.internal: FAILED"
+          curl -f -s http://host.docker.internal:8082/api/health > /dev/null && echo "✅ Auth-enabled via host.docker.internal: OK" || echo "❌ Auth-enabled via host.docker.internal: FAILED"
           
           echo "Container status:"
           docker-compose -f docker-compose.e2e-ci.yml ps
       
       # Run Playwright tests
       - name: Run Playwright tests
-        run: cd frontend && npx playwright test
+        run: |
+          cd frontend
+          # Get container IPs for Playwright
+          DISABLED_IP=$(docker inspect $(docker-compose -f ../docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "localhost")
+          ENABLED_IP=$(docker inspect $(docker-compose -f ../docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "localhost")
+          
+          echo "Setting Playwright URLs:"
+          echo "E2E_AUTH_DISABLED_URL=http://$DISABLED_IP:8080"
+          echo "E2E_AUTH_ENABLED_URL=http://$ENABLED_IP:8080"
+          
+          export E2E_AUTH_DISABLED_URL="http://$DISABLED_IP:8080"
+          export E2E_AUTH_ENABLED_URL="http://$ENABLED_IP:8080"
+          
+          npx playwright test
         env:
           CI: true
       

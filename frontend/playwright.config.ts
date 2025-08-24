@@ -6,6 +6,14 @@ import { defineConfig, devices } from '@playwright/test';
 // Detect if we're running in CI
 const isCI = !!globalThis.process?.env.CI;
 
+// Get CI container URLs from environment or use defaults
+const authDisabledURL = isCI 
+  ? (globalThis.process?.env.E2E_AUTH_DISABLED_URL || 'http://localhost:8081')
+  : 'http://localhost:8081';
+const authEnabledURL = isCI 
+  ? (globalThis.process?.env.E2E_AUTH_ENABLED_URL || 'http://localhost:8082') 
+  : 'http://localhost:8082';
+
 export default defineConfig({
 	testDir: './e2e',
 
@@ -39,7 +47,7 @@ export default defineConfig({
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL will be set dynamically per worker via fixture */
-		baseURL: 'http://localhost:8081',
+		baseURL: isCI ? undefined : 'http://localhost:8081',
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
@@ -55,7 +63,7 @@ export default defineConfig({
 			name: 'auth-disabled',
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:8081'
+				baseURL: authDisabledURL
 			},
 			testIgnore: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/]
 		},
@@ -63,7 +71,7 @@ export default defineConfig({
 			name: 'auth-enabled-unauthenticated',
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:8082'
+				baseURL: authEnabledURL
 				// No storageState - start fresh for unauthenticated tests
 			},
 			dependencies: ['setup'],
@@ -74,7 +82,7 @@ export default defineConfig({
 			name: 'auth-enabled',
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: 'http://localhost:8082',
+				baseURL: authEnabledURL,
 				storageState: 'playwright/.auth/user.json'
 			},
 			dependencies: ['setup'],

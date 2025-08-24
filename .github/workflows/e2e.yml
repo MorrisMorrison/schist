@@ -40,8 +40,16 @@ jobs:
       - name: Start E2E service  
         run: |
           echo "Starting E2E service with host networking..."
-          # Build and run with host networking for direct localhost access
-          docker build -t schist-e2e --build-arg PUBLIC_API_URL="" .
+          # Use docker-compose with host networking override
+          docker-compose -f docker-compose.e2e.yml up -d --force-recreate
+          
+          # Get the container and restart it with host networking
+          CONTAINER_ID=$(docker-compose -f docker-compose.e2e.yml ps -q)
+          IMAGE_NAME=$(docker inspect $CONTAINER_ID --format='{{.Config.Image}}')
+          echo "Using image: $IMAGE_NAME"
+          
+          # Stop compose container and run with host networking
+          docker-compose -f docker-compose.e2e.yml down
           docker run -d \
             --name schist-e2e \
             --network host \
@@ -52,7 +60,7 @@ jobs:
             -e SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long \
             -e SCHIST_FRONTEND_URL=http://localhost:3000 \
             -e ENV=production \
-            schist-e2e
+            $IMAGE_NAME
           
           # Wait for service to be ready (now accessible via localhost:3000)
           echo "Waiting for service to be ready on localhost:3000..."
@@ -86,6 +94,6 @@ jobs:
           echo "Cleaning up E2E containers..."
           docker stop schist-e2e || true
           docker rm schist-e2e || true
-          docker rmi schist-e2e || true
+          docker-compose -f docker-compose.e2e.yml down --rmi all || true
           rm -rf e2e-data || true
           echo "✅ Cleanup completed"

@@ -69,27 +69,7 @@ export default defineConfig({
 			testMatch: /.*\.setup\.ts/,
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: authEnabledURL,
-				// Enable WebAuthn support in CI environment
-				...(isCI ? {
-					launchOptions: {
-						args: [
-							'--enable-features=WebAuthentication',
-							'--enable-web-platform-features',
-							'--enable-experimental-web-platform-features',
-							'--no-sandbox',
-							'--disable-web-security',
-							'--disable-features=VizDisplayCompositor',
-							'--ignore-certificate-errors',
-							'--allow-running-insecure-content',
-							'--unsafely-treat-insecure-origin-as-secure=http://10.0.0.1:8082',
-							'--enable-webauthn-testing-api'
-						]
-					},
-					contextOptions: {
-						ignoreHTTPSErrors: true
-					}
-				} : {})
+				baseURL: authEnabledURL
 			}
 		},
 		{

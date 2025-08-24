@@ -28,8 +28,6 @@ jobs:
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
       
-      - name: Prepare test environment  
-        run: mkdir -p e2e-data
       
       - name: Start E2E service  
         run: |
@@ -63,6 +61,4 @@ jobs:
       
       - name: Cleanup Docker containers
         if: always()
-        run: |
-          docker-compose --profile e2e down --rmi all --volumes --remove-orphans || true
-          rm -rf e2e-data || true
+        run: docker-compose --profile e2e down --rmi all --volumes --remove-orphans || true

@@ -32,10 +32,7 @@ services:
         PUBLIC_API_URL: ""
     ports:
       - "3000:8080"
-    volumes:
-      - ./e2e-data:/app/data
     environment:
-      - SCHIST_DATA_DIR=/app/data
       - SCHIST_PORT=8080
       - SCHIST_AUTH_ENABLED=true
       - SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long

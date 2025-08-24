@@ -42,6 +42,29 @@ jobs:
           echo "Starting E2E services with local Docker build..."
           docker-compose -f docker-compose.e2e-ci.yml up --build -d
           
+          # Get container IPs and update frontend URLs for WebAuthn
+          echo "Updating WebAuthn configuration with container IPs..."
+          DISABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          ENABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          
+          if [ -n "$DISABLED_IP" ] && [ -n "$ENABLED_IP" ]; then
+            echo "Restarting containers with correct frontend URLs..."
+            echo "Auth-disabled will use: http://$DISABLED_IP:8080"
+            echo "Auth-enabled will use: http://$ENABLED_IP:8080"
+            
+            # Stop containers
+            docker-compose -f docker-compose.e2e-ci.yml stop
+            
+            # Set environment variables for the restart
+            export E2E_DISABLED_FRONTEND_URL="http://$DISABLED_IP:8080"
+            export E2E_ENABLED_FRONTEND_URL="http://$ENABLED_IP:8080"
+            
+            # Start containers with new URLs
+            docker-compose -f docker-compose.e2e-ci.yml up -d
+          else
+            echo "Warning: Could not get container IPs, using default URLs"
+          fi
+          
           echo "=== Network debugging ==="
           echo "Checking ci-network exists:"
           docker network ls | grep ci-network || echo "❌ ci-network not found"

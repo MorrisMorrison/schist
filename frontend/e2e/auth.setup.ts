@@ -83,9 +83,42 @@ setup('authenticate', async ({ page, request }) => {
 				}
 			});
 
+			// Debug: Check what's actually on the page
+			console.log('[Auth Setup] Current URL:', page.url());
+			console.log('[Auth Setup] Page title:', await page.title());
+			
+			// Take a screenshot to see what's rendered
+			await page.screenshot({ path: 'setup-page-debug.png' });
+			
+			// Check if button exists and is clickable
+			const button = page.getByRole('button', { name: /Create Account with Passkey/i });
+			const isVisible = await button.isVisible();
+			const isEnabled = await button.isEnabled();
+			console.log(`[Auth Setup] Button visible: ${isVisible}, enabled: ${isEnabled}`);
+			
+			if (!isVisible) {
+				// Log what buttons are actually available
+				const allButtons = await page.locator('button').all();
+				console.log(`[Auth Setup] Found ${allButtons.length} buttons on page`);
+				for (let i = 0; i < allButtons.length; i++) {
+					const text = await allButtons[i].textContent();
+					console.log(`[Auth Setup] Button ${i}: "${text}"`);
+				}
+			}
+
 			// Click the setup button to start passkey registration
 			console.log('[Auth Setup] Clicking Create Account with Passkey button...');
 			await page.getByRole('button', { name: /Create Account with Passkey/i }).click();
+			
+			// Check for any JavaScript errors
+			page.on('console', msg => {
+				if (msg.type() === 'error') {
+					console.log(`[Auth Setup] JS Error: ${msg.text()}`);
+				}
+			});
+			page.on('pageerror', error => {
+				console.log(`[Auth Setup] Page Error: ${error.message}`);
+			});
 
 			// Wait for begin request first
 			console.log('[Auth Setup] Waiting for registration begin...');

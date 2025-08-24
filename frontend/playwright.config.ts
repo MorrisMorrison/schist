@@ -12,6 +12,17 @@ const authDisabledURL =
 const authEnabledURL =
 	globalThis.process?.env.PLAYWRIGHT_AUTH_ENABLED_URL || 'http://localhost:8082';
 
+// Debug: Log the URLs being used
+console.log('🔧 Playwright Config - URLs:', {
+	authDisabledURL,
+	authEnabledURL,
+	CI: isCI,
+	envVars: {
+		PLAYWRIGHT_AUTH_DISABLED_URL: globalThis.process?.env.PLAYWRIGHT_AUTH_DISABLED_URL,
+		PLAYWRIGHT_AUTH_ENABLED_URL: globalThis.process?.env.PLAYWRIGHT_AUTH_ENABLED_URL
+	}
+});
+
 export default defineConfig({
 	testDir: './e2e',
 

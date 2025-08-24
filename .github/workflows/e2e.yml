@@ -225,9 +225,27 @@ jobs:
           echo "✅ Services are ready!"
           docker-compose -f docker-compose.e2e-ci.yml ps
       
-      # Run Playwright tests
-      - name: Run Playwright tests
-        run: cd frontend && npx playwright test
+      # Run Playwright tests by project to ensure proper routing
+      - name: Run Setup tests
+        run: cd frontend && npx playwright test --project=setup
+        env:
+          CI: true
+          # URLs are set dynamically by the service startup step
+      
+      - name: Run Auth-Disabled tests  
+        run: cd frontend && npx playwright test --project=auth-disabled
+        env:
+          CI: true
+          # URLs are set dynamically by the service startup step
+      
+      - name: Run Auth-Enabled Unauthenticated tests
+        run: cd frontend && npx playwright test --project=auth-enabled-unauthenticated
+        env:
+          CI: true
+          # URLs are set dynamically by the service startup step
+      
+      - name: Run Auth-Enabled tests
+        run: cd frontend && npx playwright test --project=auth-enabled  
         env:
           CI: true
           # URLs are set dynamically by the service startup step

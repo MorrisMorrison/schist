@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"target": "ES2022",
 		"module": "ES2022",
-		"moduleResolution": "Node",
+		"moduleResolution": "bundler",
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
 		"allowJs": true,
@@ -10,7 +10,7 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"baseUrl": ".",
-		"types": ["node"]
+		"types": ["node", "@playwright/test"]
 	},
 	"include": ["./**/*.ts", "./**/*.js"],
 	"exclude": ["node_modules", "playwright-report", "test-results"]

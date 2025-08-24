@@ -69,7 +69,18 @@ export default defineConfig({
 			testMatch: /.*\.setup\.ts/,
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: authEnabledURL
+				baseURL: authEnabledURL,
+				// Add Chrome flags for WebAuthn if using IP addresses in CI
+				...(isCI && authEnabledURL.includes('.') && !authEnabledURL.includes('localhost') ? {
+					launchOptions: {
+						args: [
+							'--enable-features=WebAuthentication',
+							'--enable-web-platform-features',
+							`--unsafely-treat-insecure-origin-as-secure=${authEnabledURL}`,
+							'--enable-webauthn-testing-api'
+						]
+					}
+				} : {})
 			}
 		},
 		{

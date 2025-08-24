@@ -6,18 +6,28 @@ import { AUTH_ENABLED_BASE_URL, LOGIN_URL, SETUP_URL } from './utils/routes';
 const authFile = 'playwright/.auth/user.json';
 const testUsername = 'testuser';
 
-// Mock credential data for testing
-const MOCK_CREDENTIAL = {
+// Mock credential data for testing - rpId will be set dynamically
+const MOCK_CREDENTIAL_BASE = {
 	credentialId: 'bW9jay1jcmVkZW50aWFsLWlkLWZvci1lMmUtdGVzdGluZw==', // base64 encoded
 	privateKey: 'bW9jay1wcml2YXRlLWtleS1mb3ItZTJlLXRlc3RpbmctdGhpcy1pcy0zMi1ieXRlcy1sb25nIQ==', // base64 encoded
 	userHandle: 'dGVzdHVzZXI=', // base64 encoded 'testuser'
-	signCount: 1,
-	rpId: 'localhost'
+	signCount: 1
 };
 
 setup('authenticate', async ({ page, request }) => {
 	const apiHelper = new ApiHelper(request, 0, `${AUTH_ENABLED_BASE_URL}/api`);
 	let webauthnHelper: WebAuthnHelper | null = null;
+
+	// Determine rpId based on the URL - use hostname to handle both localhost and IP addresses
+	const authURL = new URL(AUTH_ENABLED_BASE_URL);
+	const rpId = authURL.hostname;
+	console.log(`[Auth Setup] Using rpId: ${rpId} for URL: ${AUTH_ENABLED_BASE_URL}`);
+
+	// Create mock credential with dynamic rpId
+	const MOCK_CREDENTIAL = {
+		...MOCK_CREDENTIAL_BASE,
+		rpId: rpId
+	};
 
 	try {
 		// Wait for the auth-enabled server to be ready

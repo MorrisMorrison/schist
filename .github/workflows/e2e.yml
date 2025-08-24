@@ -51,33 +51,83 @@ jobs:
             exit 1
           }
           
-          # Verify service connectivity using localhost (host networking mode)
-          echo "Verifying service connectivity via localhost..."
+          # Debug Docker containers and networking
+          echo "=== Docker container debugging ==="
+          docker-compose -f docker-compose.e2e-ci.yml ps
+          echo "=== Container logs ==="
+          docker-compose -f docker-compose.e2e-ci.yml logs --tail=20
+          echo "=== Port bindings ==="
+          docker ps --format "table {{.Names}}\t{{.Ports}}"
+          echo "=== Network interfaces ==="
+          ip addr show || ifconfig || echo "No network tools available"
+          echo "=== Process listening on ports ==="
+          netstat -tlnp | grep -E ':(8081|8082)' || ss -tlnp | grep -E ':(8081|8082)' || echo "No netstat/ss available"
           
-          # Wait for auth-disabled service
+          # Try multiple connectivity approaches
+          echo "Verifying service connectivity with multiple approaches..."
+          
+          # Wait for auth-disabled service (try localhost first, then fallback)
           AUTH_DISABLED_READY=false
           AUTH_DISABLED_URL=""
           for i in {1..10}; do
+            # Method 1: localhost (host networking)
             if curl -f -s --max-time 3 "http://localhost:8081/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-disabled service ready via localhost:8081"
               AUTH_DISABLED_READY=true
               AUTH_DISABLED_URL="http://localhost:8081"
               break
             fi
+            
+            # Method 2: 127.0.0.1 (explicit loopback)
+            if curl -f -s --max-time 3 "http://127.0.0.1:8081/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service ready via 127.0.0.1:8081"
+              AUTH_DISABLED_READY=true
+              AUTH_DISABLED_URL="http://127.0.0.1:8081"
+              break
+            fi
+            
+            # Method 3: Docker gateway (fallback for non-host networking)
+            DOCKER_GATEWAY=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || echo "")
+            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s --max-time 3 "http://$DOCKER_GATEWAY:8081/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service ready via Docker gateway ($DOCKER_GATEWAY:8081)"
+              AUTH_DISABLED_READY=true
+              AUTH_DISABLED_URL="http://$DOCKER_GATEWAY:8081"
+              break
+            fi
+            
             echo "Waiting for auth-disabled service... attempt $i/10"
             sleep 2
           done
           
-          # Wait for auth-enabled service
+          # Wait for auth-enabled service (try localhost first, then fallback)
           AUTH_ENABLED_READY=false
           AUTH_ENABLED_URL=""
           for i in {1..10}; do
+            # Method 1: localhost (host networking)
             if curl -f -s --max-time 3 "http://localhost:8082/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-enabled service ready via localhost:8082"
               AUTH_ENABLED_READY=true
               AUTH_ENABLED_URL="http://localhost:8082"
               break
             fi
+            
+            # Method 2: 127.0.0.1 (explicit loopback)  
+            if curl -f -s --max-time 3 "http://127.0.0.1:8082/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service ready via 127.0.0.1:8082"
+              AUTH_ENABLED_READY=true
+              AUTH_ENABLED_URL="http://127.0.0.1:8082"
+              break
+            fi
+            
+            # Method 3: Docker gateway (fallback for non-host networking)
+            DOCKER_GATEWAY=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || echo "")
+            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s --max-time 3 "http://$DOCKER_GATEWAY:8082/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service ready via Docker gateway ($DOCKER_GATEWAY:8082)"
+              AUTH_ENABLED_READY=true
+              AUTH_ENABLED_URL="http://$DOCKER_GATEWAY:8082"
+              break
+            fi
+            
             echo "Waiting for auth-enabled service... attempt $i/10"
             sleep 2
           done

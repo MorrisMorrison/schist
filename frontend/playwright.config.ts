@@ -9,15 +9,6 @@ const isCI = !!globalThis.process?.env.CI;
 // Single E2E test URL
 const baseURL = globalThis.process?.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
-// Debug: Log the URL being used
-console.log('🔧 Playwright Config - URL:', {
-	baseURL,
-	CI: isCI,
-	envVars: {
-		PLAYWRIGHT_BASE_URL: globalThis.process?.env.PLAYWRIGHT_BASE_URL
-	}
-});
-
 export default defineConfig({
 	testDir: './e2e',
 

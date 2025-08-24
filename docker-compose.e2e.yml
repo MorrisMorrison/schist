@@ -4,6 +4,7 @@ services:
       context: .
       args:
         PUBLIC_API_URL: ""
+    network_mode: host
     volumes:
       - ./e2e-data:/app/data
     environment:

@@ -31,10 +31,12 @@ jobs:
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
       
-      # Create test data directories
-      - name: Prepare test data directories
+      # Create test data directories and network
+      - name: Prepare test environment  
         run: |
           mkdir -p test-data-auth-disabled test-data-auth-enabled
+          # Ensure ci-network exists for container communication
+          docker network create ci-network || true
       
       # Start E2E services using simplified Docker setup
       - name: Start E2E services
@@ -82,7 +84,7 @@ jobs:
           # Wait for auth-disabled service
           AUTH_DISABLED_READY=false
           for i in {1..30}; do
-            # Try localhost first
+            # Try localhost first (for local development compatibility)
             if curl -f -s "http://localhost:8081/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-disabled service (8081) is ready via localhost"
               AUTH_DISABLED_READY=true
@@ -94,12 +96,29 @@ jobs:
               AUTH_DISABLED_READY=true
               break
             fi
+            # Try container name for CI environment (when runner is containerized)
+            if curl -f -s "http://schist-e2e-auth-disabled:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service is ready via container name (schist-e2e-auth-disabled)"
+              AUTH_DISABLED_READY=true
+              break
+            fi
+            # Try full container name as fallback
+            if curl -f -s "http://schist_schist-e2e-auth-disabled_1:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service is ready via full container name"
+              AUTH_DISABLED_READY=true
+              break
+            fi
             echo "Waiting for auth-disabled service (8081)... attempt $i/30"
             if [ $i -eq 30 ]; then
-              echo "❌ Final attempt failed. Curl output:"
+              echo "❌ All connection attempts failed:"
+              echo "1. Localhost attempt:"
               curl -v "http://localhost:8081/api/health" || true
-              echo "❌ Trying 127.0.0.1:"
+              echo "2. 127.0.0.1 attempt:"
               curl -v "http://127.0.0.1:8081/api/health" || true
+              echo "3. Service name attempt:"
+              curl -v "http://schist-e2e-auth-disabled:8080/api/health" || true
+              echo "4. Full container name attempt:"  
+              curl -v "http://schist_schist-e2e-auth-disabled_1:8080/api/health" || true
             fi
             sleep 2
           done
@@ -107,7 +126,7 @@ jobs:
           # Wait for auth-enabled service  
           AUTH_ENABLED_READY=false
           for i in {1..30}; do
-            # Try localhost first
+            # Try localhost first (for local development compatibility)
             if curl -f -s "http://localhost:8082/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-enabled service (8082) is ready via localhost"
               AUTH_ENABLED_READY=true
@@ -119,12 +138,29 @@ jobs:
               AUTH_ENABLED_READY=true
               break
             fi
+            # Try container name for CI environment (when runner is containerized)
+            if curl -f -s "http://schist-e2e-auth-enabled:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service is ready via container name (schist-e2e-auth-enabled)"
+              AUTH_ENABLED_READY=true
+              break
+            fi
+            # Try full container name as fallback
+            if curl -f -s "http://schist_schist-e2e-auth-enabled_1:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service is ready via full container name"
+              AUTH_ENABLED_READY=true
+              break
+            fi
             echo "Waiting for auth-enabled service (8082)... attempt $i/30"
             if [ $i -eq 30 ]; then
-              echo "❌ Final attempt failed. Curl output:"
+              echo "❌ All connection attempts failed:"
+              echo "1. Localhost attempt:"
               curl -v "http://localhost:8082/api/health" || true
-              echo "❌ Trying 127.0.0.1:"
+              echo "2. 127.0.0.1 attempt:"
               curl -v "http://127.0.0.1:8082/api/health" || true
+              echo "3. Service name attempt:"
+              curl -v "http://schist-e2e-auth-enabled:8080/api/health" || true
+              echo "4. Full container name attempt:"
+              curl -v "http://schist_schist-e2e-auth-enabled_1:8080/api/health" || true
             fi
             sleep 2
           done
@@ -132,9 +168,25 @@ jobs:
           # Final verification
           echo "Final connectivity test..."
           if [ "$AUTH_DISABLED_READY" = "true" ] && [ "$AUTH_ENABLED_READY" = "true" ]; then
-            echo "✅ Both services are ready, performing final health checks..."
-            curl -f "http://localhost:8081/api/health" || exit 1
-            curl -f "http://localhost:8082/api/health" || exit 1
+            echo "✅ Both services are ready!"
+            
+            # Determine which URLs actually work for Playwright tests
+            if curl -f -s "http://localhost:8081/api/health" > /dev/null 2>&1; then
+              echo "Using localhost URLs for Playwright tests"
+              echo "PLAYWRIGHT_AUTH_DISABLED_URL=http://localhost:8081" >> $GITHUB_ENV
+              echo "PLAYWRIGHT_AUTH_ENABLED_URL=http://localhost:8082" >> $GITHUB_ENV
+              echo "E2E_AUTH_DISABLED_URL=http://localhost:8081" >> $GITHUB_ENV
+              echo "E2E_AUTH_ENABLED_URL=http://localhost:8082" >> $GITHUB_ENV
+            elif curl -f -s "http://schist-e2e-auth-disabled:8080/api/health" > /dev/null 2>&1; then
+              echo "Using container service URLs for Playwright tests"
+              echo "PLAYWRIGHT_AUTH_DISABLED_URL=http://schist-e2e-auth-disabled:8080" >> $GITHUB_ENV
+              echo "PLAYWRIGHT_AUTH_ENABLED_URL=http://schist-e2e-auth-enabled:8080" >> $GITHUB_ENV
+              echo "E2E_AUTH_DISABLED_URL=http://schist-e2e-auth-disabled:8080" >> $GITHUB_ENV
+              echo "E2E_AUTH_ENABLED_URL=http://schist-e2e-auth-enabled:8080" >> $GITHUB_ENV
+            else
+              echo "❌ Cannot determine working URLs for Playwright tests"
+              exit 1
+            fi
           else
             echo "❌ One or more services failed to become ready:"
             echo "  Auth-disabled ready: $AUTH_DISABLED_READY"
@@ -150,8 +202,7 @@ jobs:
         run: cd frontend && npx playwright test
         env:
           CI: true
-          E2E_AUTH_DISABLED_URL: http://localhost:8081
-          E2E_AUTH_ENABLED_URL: http://localhost:8082
+          # URLs are set dynamically by the service startup step
       
       # Show service logs if tests fail
       - name: Show service logs on failure

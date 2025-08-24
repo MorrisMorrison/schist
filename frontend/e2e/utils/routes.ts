@@ -1,6 +1,8 @@
-// Always use localhost URLs for consistency across local and CI environments
-const authDisabledURL = 'http://localhost:8081';
-const authEnabledURL = 'http://localhost:8082';
+// Use environment-specific URLs for containerized CI environments
+const authDisabledURL =
+	globalThis.process?.env.PLAYWRIGHT_AUTH_DISABLED_URL || 'http://localhost:8081';
+const authEnabledURL =
+	globalThis.process?.env.PLAYWRIGHT_AUTH_ENABLED_URL || 'http://localhost:8082';
 
 export const AUTH_DISABLED_BASE_URL = authDisabledURL;
 export const AUTH_ENABLED_BASE_URL = authEnabledURL;

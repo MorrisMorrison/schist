@@ -6,9 +6,11 @@ import { defineConfig, devices } from '@playwright/test';
 // Detect if we're running in CI
 const isCI = !!globalThis.process?.env.CI;
 
-// Use localhost URLs for both local and CI (with port mapping)
-const authDisabledURL = 'http://localhost:8081';
-const authEnabledURL = 'http://localhost:8082';
+// Use environment-specific URLs for containerized CI environments
+const authDisabledURL =
+	globalThis.process?.env.PLAYWRIGHT_AUTH_DISABLED_URL || 'http://localhost:8081';
+const authEnabledURL =
+	globalThis.process?.env.PLAYWRIGHT_AUTH_ENABLED_URL || 'http://localhost:8082';
 
 export default defineConfig({
 	testDir: './e2e',

@@ -76,10 +76,18 @@ export default defineConfig({
 						args: [
 							'--enable-features=WebAuthentication',
 							'--enable-web-platform-features',
+							'--enable-experimental-web-platform-features',
 							'--no-sandbox',
 							'--disable-web-security',
-							'--disable-features=VizDisplayCompositor'
+							'--disable-features=VizDisplayCompositor',
+							'--ignore-certificate-errors',
+							'--allow-running-insecure-content',
+							'--unsafely-treat-insecure-origin-as-secure=http://10.0.0.1:8082',
+							'--enable-webauthn-testing-api'
 						]
+					},
+					contextOptions: {
+						ignoreHTTPSErrors: true
 					}
 				} : {})
 			}

@@ -47,12 +47,17 @@ setup('authenticate', async ({ page, request }) => {
 			throw new Error('Server does not have authentication enabled');
 		}
 
-		// Set up WebAuthn virtual authenticator first (works for both new and existing users)
+		// Navigate to the auth server first, then set up WebAuthn
+		await page.goto(AUTH_ENABLED_BASE_URL);
+		
+		// Set up WebAuthn virtual authenticator AFTER navigating to the page
 		webauthnHelper = new WebAuthnHelper(page);
 		await webauthnHelper.setup();
 
+		// Allow time for WebAuthn to be fully initialized
+		await page.waitForTimeout(1000);
+
 		// Verify WebAuthn is available in the page context
-		await page.goto(AUTH_ENABLED_BASE_URL);
 		const webauthnSupported = await page.evaluate(() => {
 			return typeof window.navigator?.credentials?.create === 'function' &&
 				   typeof window.navigator?.credentials?.get === 'function';

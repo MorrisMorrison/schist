@@ -70,9 +70,12 @@ e2e-ci:
 	mkdir -p test-data-auth-disabled test-data-auth-enabled
 	docker-compose -f docker-compose.e2e-ci.yml up --build -d
 	@echo "Waiting for services to be healthy..."
-	@timeout 120 bash -c 'while ! docker-compose -f docker-compose.e2e-ci.yml ps | grep -E "(healthy|Up).*8080/tcp.*8081" > /dev/null; do echo "Waiting for auth-disabled service..."; sleep 5; done'
-	@timeout 120 bash -c 'while ! docker-compose -f docker-compose.e2e-ci.yml ps | grep -E "(healthy|Up).*8080/tcp.*8082" > /dev/null; do echo "Waiting for auth-enabled service..."; sleep 5; done'
-	@echo "✅ Services are ready!"
+	@timeout 120 bash -c 'while ! docker-compose -f docker-compose.e2e-ci.yml ps --filter "health=healthy" | grep schist-e2e-auth-disabled > /dev/null; do echo "Waiting for auth-disabled service to be healthy..."; sleep 3; done'
+	@timeout 120 bash -c 'while ! docker-compose -f docker-compose.e2e-ci.yml ps --filter "health=healthy" | grep schist-e2e-auth-enabled > /dev/null; do echo "Waiting for auth-enabled service to be healthy..."; sleep 3; done'
+	@echo "✅ Services are healthy! Testing connectivity..."
+	@timeout 60 bash -c 'while ! curl -f -s http://localhost:8081/api/health > /dev/null; do echo "Waiting for auth-disabled service on localhost:8081..."; sleep 2; done'
+	@timeout 60 bash -c 'while ! curl -f -s http://localhost:8082/api/health > /dev/null; do echo "Waiting for auth-enabled service on localhost:8082..."; sleep 2; done'
+	@echo "✅ All services are ready and accessible!"
 	cd frontend && npx playwright test
 	@echo "Cleaning up..."
 	docker-compose -f docker-compose.e2e-ci.yml down --rmi all --volumes --remove-orphans || true

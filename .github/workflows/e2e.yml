@@ -51,10 +51,10 @@ jobs:
             exit 1
           }
           
-          # Verify connectivity via localhost ports
+          # Verify connectivity via service names
           echo "Verifying service connectivity..."
-          curl -f "http://localhost:8081/api/health" || exit 1
-          curl -f "http://localhost:8082/api/health" || exit 1
+          docker exec $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) curl -f "http://schist-e2e-auth-disabled:8080/api/health" || exit 1
+          docker exec $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) curl -f "http://schist-e2e-auth-enabled:8080/api/health" || exit 1
           
           echo "✅ Services are ready!"
           docker-compose -f docker-compose.e2e-ci.yml ps

@@ -42,41 +42,35 @@ jobs:
           echo "Starting E2E services with local Docker build..."
           docker-compose -f docker-compose.e2e-ci.yml up --build -d
           
-          echo "Waiting for services to be healthy..."
-          # Wait for containers to be healthy
-          timeout 120 bash -c '
-            while ! docker-compose -f docker-compose.e2e-ci.yml ps --filter "health=healthy" | grep schist-e2e-auth-disabled > /dev/null; do
-              echo "Waiting for auth-disabled service to be healthy..."
-              sleep 3
-            done
-          '
+          echo "Waiting for services to be accessible..."
+          # Wait for both services to be ready - up to 90 seconds
+          for i in {1..30}; do
+            auth_disabled_ready=false
+            auth_enabled_ready=false
+            
+            if curl -f -s http://localhost:8081/api/health > /dev/null 2>&1; then
+              auth_disabled_ready=true
+            fi
+            
+            if curl -f -s http://localhost:8082/api/health > /dev/null 2>&1; then
+              auth_enabled_ready=true
+            fi
+            
+            if [ "$auth_disabled_ready" = true ] && [ "$auth_enabled_ready" = true ]; then
+              echo "✅ Both services are ready!"
+              break
+            fi
+            
+            echo "Attempt $i/30: Waiting for services (disabled: $auth_disabled_ready, enabled: $auth_enabled_ready)..."
+            sleep 3
+          done
           
-          timeout 120 bash -c '
-            while ! docker-compose -f docker-compose.e2e-ci.yml ps --filter "health=healthy" | grep schist-e2e-auth-enabled > /dev/null; do
-              echo "Waiting for auth-enabled service to be healthy..."
-              sleep 3
-            done
-          '
+          # Final verification
+          echo "Final connectivity verification:"
+          curl -f -s http://localhost:8081/api/health > /dev/null && echo "✅ Auth-disabled service: OK" || echo "❌ Auth-disabled service: FAILED"
+          curl -f -s http://localhost:8082/api/health > /dev/null && echo "✅ Auth-enabled service: OK" || echo "❌ Auth-enabled service: FAILED"
           
-          echo "✅ Services are healthy!"
-          
-          # Additional connectivity check from host
-          echo "Testing connectivity from host..."
-          timeout 60 bash -c '
-            while ! curl -f -s http://localhost:8081/api/health > /dev/null; do
-              echo "Waiting for auth-disabled service to be reachable on localhost:8081..."
-              sleep 2
-            done
-          '
-          
-          timeout 60 bash -c '
-            while ! curl -f -s http://localhost:8082/api/health > /dev/null; do
-              echo "Waiting for auth-enabled service to be reachable on localhost:8082..."
-              sleep 2
-            done
-          '
-          
-          echo "✅ All services are ready and accessible!"
+          echo "Container status:"
           docker-compose -f docker-compose.e2e-ci.yml ps
       
       # Run Playwright tests

@@ -51,7 +51,15 @@ export default defineConfig({
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
-		viewport: { width: 1280, height: 720 }
+		viewport: { width: 1280, height: 720 },
+		// Enable WebAuthn support for passkey testing
+		launchOptions: {
+			args: [
+				'--enable-web-authentication-api',
+				'--enable-webauthn-ctap2',
+				'--no-sandbox'
+			]
+		}
 	},
 
 	projects: [

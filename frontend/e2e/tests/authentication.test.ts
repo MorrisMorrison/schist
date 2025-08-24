@@ -16,10 +16,10 @@ test.describe('Passkey Authentication System', () => {
 		});
 
 		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
+			// Create unauthenticated API helper using worker index 1 (auth-enabled container)
 			const unauthApiHelper = new ApiHelper(
 				apiHelper['apiContext'],
-				0,
-				'http://localhost:8082/api'
+				1
 			);
 
 			// Unauthenticated request should fail
@@ -121,7 +121,7 @@ test.describe('Passkey Authentication System', () => {
 		test('should handle first-time setup with fresh database', async ({ page }) => {
 			// This test would require a completely fresh database
 			// For now, we'll test the setup API endpoints directly
-			const apiHelper = new ApiHelper(page.request, 0, 'http://localhost:8082/api');
+			const apiHelper = new ApiHelper(page.request, 1); // Use worker index 1 (auth-enabled container)
 
 			// Test setup required check
 			const setupResponse = await apiHelper.checkSetupRequired();

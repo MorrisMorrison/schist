@@ -156,22 +156,28 @@ export const test = base.extend<{
 
 		const projectName = testInfo.project.name;
 		if (projectName === 'auth-disabled') {
-			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
-		} else if (projectName === 'auth-enabled') {
-			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
+			// Use worker index 0 for auth-disabled container
+			apiHelper = new ApiHelper(request, 0);
+		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
+			// Use worker index 1 for auth-enabled container
+			apiHelper = new ApiHelper(request, 1);
 
-			try {
-				const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
-				const token = authData.origins?.[0]?.localStorage?.find(
-					(item: { name: string; value: string }) => item.name === 'schist_auth_token'
-				)?.value;
-				if (token) {
-					apiHelper.setAuthToken(token);
+			// Only load auth token for authenticated projects
+			if (projectName === 'auth-enabled') {
+				try {
+					const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
+					const token = authData.origins?.[0]?.localStorage?.find(
+						(item: { name: string; value: string }) => item.name === 'schist_auth_token'
+					)?.value;
+					if (token) {
+						apiHelper.setAuthToken(token);
+					}
+				} catch (error) {
+					console.warn('Failed to load auth token for API helper:', error);
 				}
-			} catch (error) {
-				console.warn('Failed to load auth token for API helper:', error);
 			}
 		} else {
+			// Fallback for other project names
 			apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 		}
 
@@ -192,9 +198,27 @@ export const test = base.extend<{
 
 	// eslint-disable-next-line no-empty-pattern
 	workerBaseURL: async ({}, use, testInfo) => {
-		// parallelIndex: 0 -> port 8081 (auth-disabled), 1 -> port 8082 (auth-enabled), etc.
-		const port = 8081 + (testInfo.parallelIndex || 0);
-		const baseURL = `http://localhost:${port}`;
+		const isCI = typeof process !== 'undefined' && process.env?.CI;
+		let baseURL: string;
+		
+		if (isCI) {
+			// In CI, use environment variables for container URLs
+			const projectName = testInfo.project.name;
+			if (projectName === 'auth-disabled') {
+				baseURL = process.env?.E2E_AUTH_DISABLED_URL || 'http://localhost:8081';
+			} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
+				baseURL = process.env?.E2E_AUTH_ENABLED_URL || 'http://localhost:8082';
+			} else {
+				// Fallback for other project names
+				const port = 8081 + (testInfo.parallelIndex || 0);
+				baseURL = `http://localhost:${port}`;
+			}
+		} else {
+			// Local development - use localhost with appropriate port
+			const port = 8081 + (testInfo.parallelIndex || 0);
+			baseURL = `http://localhost:${port}`;
+		}
+		
 		await use(baseURL);
 	}
 });

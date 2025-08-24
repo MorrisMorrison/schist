@@ -1,5 +1,5 @@
 // Use service names in CI, localhost for local development
-const isCI = typeof process !== 'undefined' && process.env?.CI;
+const isCI = typeof globalThis.process !== 'undefined' && globalThis.process?.env?.CI;
 const authDisabledURL = isCI ? 'http://schist-e2e-auth-disabled:8080' : 'http://localhost:8081';
 const authEnabledURL = isCI ? 'http://schist-e2e-auth-enabled:8080' : 'http://localhost:8082';
 

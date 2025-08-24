@@ -1,6 +1,7 @@
 networks:
   ci-network:
     external: true
+    name: uk0wo0wcg4gwo4wook4gswk0_ci-network
 
 services:
   schist-e2e-auth-disabled:

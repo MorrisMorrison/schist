@@ -155,14 +155,11 @@ export const test = base.extend<{
 		let apiHelper: ApiHelper;
 
 		const projectName = testInfo.project.name;
-		const isCI = typeof process !== 'undefined' && process.env?.CI;
 		
 		if (projectName === 'auth-disabled') {
-			const baseURL = isCI ? 'http://schist-e2e-auth-disabled:8080/api' : 'http://localhost:8081/api';
-			apiHelper = new ApiHelper(request, 0, baseURL);
+			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
 		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
-			const baseURL = isCI ? 'http://schist-e2e-auth-enabled:8080/api' : 'http://localhost:8082/api';
-			apiHelper = new ApiHelper(request, 0, baseURL);
+			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 
 			// Only load auth token for authenticated projects
 			if (projectName === 'auth-enabled') {
@@ -201,13 +198,12 @@ export const test = base.extend<{
 	// eslint-disable-next-line no-empty-pattern
 	workerBaseURL: async ({}, use, testInfo) => {
 		const projectName = testInfo.project.name;
-		const isCI = typeof process !== 'undefined' && process.env?.CI;
 		let baseURL: string;
 		
 		if (projectName === 'auth-disabled') {
-			baseURL = isCI ? 'http://schist-e2e-auth-disabled:8080' : 'http://localhost:8081';
+			baseURL = 'http://localhost:8081';
 		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
-			baseURL = isCI ? 'http://schist-e2e-auth-enabled:8080' : 'http://localhost:8082';
+			baseURL = 'http://localhost:8082';
 		} else {
 			// Fallback for other project names
 			const port = 8081 + (testInfo.parallelIndex || 0);

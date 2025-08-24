@@ -6,9 +6,9 @@ import { defineConfig, devices } from '@playwright/test';
 // Detect if we're running in CI
 const isCI = !!globalThis.process?.env.CI;
 
-// Use service names in CI, localhost for local development  
-const authDisabledURL = isCI ? 'http://schist-e2e-auth-disabled:8080' : 'http://localhost:8081';
-const authEnabledURL = isCI ? 'http://schist-e2e-auth-enabled:8080' : 'http://localhost:8082';
+// Use localhost URLs for both local and CI (with port mapping)
+const authDisabledURL = 'http://localhost:8081';
+const authEnabledURL = 'http://localhost:8082';
 
 export default defineConfig({
 	testDir: './e2e',
@@ -43,7 +43,7 @@ export default defineConfig({
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL will be set dynamically per worker via fixture */
-		baseURL: isCI ? 'http://schist-e2e-auth-disabled:8080' : 'http://localhost:8081',
+		baseURL: 'http://localhost:8081',
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',

@@ -16,8 +16,7 @@ const MOCK_CREDENTIAL = {
 };
 
 setup('authenticate', async ({ page, request }) => {
-	const isCI = typeof process !== 'undefined' && process.env?.CI;
-	const baseURL = isCI ? 'http://schist-e2e-auth-enabled:8080/api' : 'http://localhost:8082/api';
+	const baseURL = 'http://localhost:8082/api';
 	const apiHelper = new ApiHelper(request, 0, baseURL); // Auth-enabled server
 	let webauthnHelper: WebAuthnHelper | null = null;
 

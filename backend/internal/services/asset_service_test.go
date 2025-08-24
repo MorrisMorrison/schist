@@ -364,7 +364,7 @@ func TestAssetService_Integration(t *testing.T) {
 		var assets []*models.Asset
 
 		// Upload 3 files with same name
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			fileHeader, err := createMultipartFile("multi.png", testImageData, "image/png")
 			require.NoError(t, err)
 
@@ -412,6 +412,12 @@ func TestAssetService_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("read-only directory", func(t *testing.T) {
+		// Skip this test if running as root (common in CI containers)
+		// Root can write to read-only directories, making the test unreliable
+		if os.Getuid() == 0 {
+			t.Skip("Skipping read-only directory test when running as root")
+		}
+
 		testDir, cleanup := setupTestDir(t)
 		defer cleanup()
 

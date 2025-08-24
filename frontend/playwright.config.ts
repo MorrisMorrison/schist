@@ -66,7 +66,23 @@ export default defineConfig({
 	projects: [
 		{
 			name: 'setup',
-			testMatch: /.*\.setup\.ts/
+			testMatch: /.*\.setup\.ts/,
+			use: {
+				...devices['Desktop Chrome'],
+				baseURL: authEnabledURL,
+				// Enable WebAuthn support in CI environment
+				...(isCI ? {
+					launchOptions: {
+						args: [
+							'--enable-features=WebAuthentication',
+							'--enable-web-platform-features',
+							'--no-sandbox',
+							'--disable-web-security',
+							'--disable-features=VizDisplayCompositor'
+						]
+					}
+				} : {})
+			}
 		},
 		{
 			name: 'auth-disabled',

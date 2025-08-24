@@ -12,13 +12,24 @@ const MOCK_CREDENTIAL = {
 	privateKey: 'bW9jay1wcml2YXRlLWtleS1mb3ItZTJlLXRlc3RpbmctdGhpcy1pcy0zMi1ieXRlcy1sb25nIQ==', // base64 encoded
 	userHandle: 'dGVzdHVzZXI=', // base64 encoded 'testuser'
 	signCount: 1,
-	rpId: 'localhost'
+	rpId: '10.0.0.1' // Match the CI environment IP
 };
 
 setup('authenticate', async ({ page, request }) => {
 	const baseURL = `${AUTH_ENABLED_BASE_URL}/api`;
 	const apiHelper = new ApiHelper(request, 0, baseURL); // Auth-enabled server
 	let webauthnHelper: WebAuthnHelper | null = null;
+
+	// Extract hostname from AUTH_ENABLED_BASE_URL for rpId
+	const authURL = new URL(AUTH_ENABLED_BASE_URL);
+	const rpId = authURL.hostname;
+	console.log(`[Auth Setup] Using rpId: ${rpId}`);
+
+	// Update mock credential with dynamic rpId
+	const mockCredential = {
+		...MOCK_CREDENTIAL,
+		rpId: rpId
+	};
 
 	try {
 		// Wait for the auth-enabled server to be ready
@@ -39,6 +50,14 @@ setup('authenticate', async ({ page, request }) => {
 		// Set up WebAuthn virtual authenticator first (works for both new and existing users)
 		webauthnHelper = new WebAuthnHelper(page);
 		await webauthnHelper.setup();
+
+		// Verify WebAuthn is available in the page context
+		await page.goto(AUTH_ENABLED_BASE_URL);
+		const webauthnSupported = await page.evaluate(() => {
+			return typeof window.navigator?.credentials?.create === 'function' &&
+				   typeof window.navigator?.credentials?.get === 'function';
+		});
+		console.log(`[Auth Setup] WebAuthn supported in page context: ${webauthnSupported}`);
 
 		// Check if setup is required (first-time setup)
 		const setupResponse = await apiHelper.checkSetupRequired();
@@ -135,7 +154,7 @@ setup('authenticate', async ({ page, request }) => {
 		// If no credentials exist, add the mock credential for existing user
 		if (credentials.length === 0) {
 			console.log('[Auth Setup] No credentials found, adding mock credential for existing user...');
-			await webauthnHelper.addCredential(MOCK_CREDENTIAL);
+			await webauthnHelper.addCredential(mockCredential);
 			credentials = await webauthnHelper.getCredentials();
 			console.log(`[Auth Setup] Credentials after adding mock: ${credentials.length}`);
 

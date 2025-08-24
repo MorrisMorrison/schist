@@ -63,6 +63,7 @@ make e2e-grep GREP="should login successfully"
 ## Test Architecture
 
 ### Page Object Models (POM)
+
 - `BasePage.ts` - Base page with common functionality
 - `HomePage.ts` - Home page interactions
 - `EditorPage.ts` - Document editor interactions
@@ -72,6 +73,7 @@ make e2e-grep GREP="should login successfully"
 - `SharedDocumentPage.ts` - Shared document viewing
 
 ### Test Categories
+
 - **Infrastructure** - Basic connectivity and health checks
 - **Authentication** - Passkey-based authentication flow
 - **Document Lifecycle** - Create, edit, save, delete documents
@@ -87,11 +89,14 @@ make e2e-grep GREP="should login successfully"
 ## Configuration
 
 ### Environment Variables
+
 - `PLAYWRIGHT_BASE_URL` - Target application URL (default: http://localhost:3000)
 - `CI` - Set to true in CI environments
 
 ### Docker Integration
+
 Tests run against the `schist-e2e` Docker service defined in `docker-compose.yml`:
+
 - Port: 3000
 - Profile: e2e
 - Authentication: enabled
@@ -100,6 +105,7 @@ Tests run against the `schist-e2e` Docker service defined in `docker-compose.yml
 ## CI/CD Integration
 
 The GitHub Actions workflow:
+
 1. Builds and starts the E2E Docker service
 2. Waits for health checks to pass
 3. Runs all Playwright tests
@@ -109,6 +115,7 @@ The GitHub Actions workflow:
 ## Test Data Management
 
 Tests use ephemeral data that is automatically cleaned up:
+
 - Global teardown script removes test data
 - Docker containers are recreated for each run
 - No persistent state between test runs
@@ -116,18 +123,21 @@ Tests use ephemeral data that is automatically cleaned up:
 ## Development
 
 ### Adding New Tests
+
 1. Create test file in `tests/` directory
-2. Use Page Object Models from `pages/` directory  
+2. Use Page Object Models from `pages/` directory
 3. Import fixtures from `fixtures/index.ts`
 4. Follow existing naming conventions
 
 ### Writing Page Objects
+
 - Extend `BasePage` class
 - Use descriptive locator names
 - Include assertion methods
 - Add navigation helpers
 
 ### Debugging Tests
+
 ```bash
 # Run specific test in debug mode
 npx playwright test tests/authentication.test.ts --debug
@@ -142,12 +152,14 @@ npx playwright show-report
 ## Architecture Benefits
 
 ### Separated from Frontend
+
 - Independent versioning and dependencies
 - Cleaner separation of concerns
 - Frontend remains lightweight
 - Dedicated E2E environment
 
-### Well-Isolated Design  
+### Well-Isolated Design
+
 - No direct frontend code dependencies
 - API-based interactions only
 - Self-contained utilities

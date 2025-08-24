@@ -11,6 +11,9 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"baseUrl": ".",
+		"paths": {
+			"*": ["*", "node_modules/*"]
+		},
 		"types": ["node", "@playwright/test"],
 		"noEmit": true
 	},

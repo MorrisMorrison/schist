@@ -78,14 +78,23 @@ setup('authenticate', async ({ page, request }) => {
 
 			// Monitor all network requests for debugging
 			page.on('response', response => {
-				if (response.url().includes('/api/')) {
-					console.log(`[Auth Setup] API Response: ${response.url()} - ${response.status()}`);
+				console.log(`[Auth Setup] Network: ${response.url()} - ${response.status()}`);
+			});
+
+			// Monitor console for errors
+			page.on('console', msg => {
+				if (msg.type() === 'error') {
+					console.log(`[Auth Setup] JS Error: ${msg.text()}`);
 				}
 			});
 
 			// Click the setup button to start passkey registration
 			console.log('[Auth Setup] Clicking Create Account with Passkey button...');
 			await page.getByRole('button', { name: /Create Account with Passkey/i }).click();
+			
+			// Give time for immediate network requests
+			console.log('[Auth Setup] Waiting for network activity...');
+			await page.waitForTimeout(3000);
 
 			// Wait for begin request first
 			console.log('[Auth Setup] Waiting for registration begin...');

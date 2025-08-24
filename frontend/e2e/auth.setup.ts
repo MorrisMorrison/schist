@@ -59,15 +59,41 @@ setup('authenticate', async ({ page, request }) => {
 			await expect(page.getByLabel('Username')).toBeVisible();
 			await page.getByLabel('Username').fill(testUsername);
 
+			// Set up response monitoring before clicking
+			const beginPromise = page.waitForResponse(
+				(response) => {
+					console.log(`[Auth Setup] Begin response: ${response.url()} - Status: ${response.status()}`);
+					return response.url().includes('/passkeys/register/begin');
+				},
+				{ timeout: 10000 }
+			).catch(e => console.log(`[Auth Setup] Begin request failed: ${e.message}`));
+
+			const finishPromise = page.waitForResponse(
+				(response) => {
+					console.log(`[Auth Setup] Finish response: ${response.url()} - Status: ${response.status()}`);
+					return response.url().includes('/passkeys/register/finish');
+				},
+				{ timeout: 15000 }
+			).catch(e => console.log(`[Auth Setup] Finish request failed: ${e.message}`));
+
+			// Monitor all network requests for debugging
+			page.on('response', response => {
+				if (response.url().includes('/api/')) {
+					console.log(`[Auth Setup] API Response: ${response.url()} - ${response.status()}`);
+				}
+			});
+
 			// Click the setup button to start passkey registration
+			console.log('[Auth Setup] Clicking Create Account with Passkey button...');
 			await page.getByRole('button', { name: /Create Account with Passkey/i }).click();
+
+			// Wait for begin request first
+			console.log('[Auth Setup] Waiting for registration begin...');
+			await beginPromise;
 
 			// Wait for the registration to complete by watching for the finish endpoint
 			console.log('[Auth Setup] Waiting for registration to complete...');
-			await page.waitForResponse(
-				(response) => response.url().includes('/passkeys/register/finish'),
-				{ timeout: 15000 }
-			);
+			await finishPromise;
 
 			// Wait for setup completion and navigate to login
 			await expect(page.getByText('Setup Complete!')).toBeVisible({ timeout: 10000 });

@@ -31,173 +31,70 @@ jobs:
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
       
-      # Create test data directories
+      # Create test data directory
       - name: Prepare test environment  
         run: |
-          mkdir -p test-data-auth-disabled test-data-auth-enabled
+          mkdir -p e2e-data
       
-      # Start E2E services using simplified Docker setup
-      - name: Start E2E services
+      # Start E2E service using simple Docker setup
+      - name: Start E2E service
         run: |
-          echo "Starting E2E services with Docker Compose..."
-          docker-compose -f docker-compose.e2e-ci.yml up --build -d
+          echo "Starting E2E service with Docker Compose..."
+          docker-compose -f docker-compose.e2e.yml up --build -d
           
-          # Wait for services to be healthy using Docker health checks
-          echo "Waiting for services to become healthy..."
-          timeout 60 bash -c 'while [ "$(docker-compose -f docker-compose.e2e-ci.yml ps -q | xargs -I {} docker inspect {} --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 2 ]; do echo "Waiting for health checks..."; sleep 2; done' || {
+          # Wait for service to be healthy using Docker health checks
+          echo "Waiting for service to become healthy..."
+          timeout 60 bash -c 'while [ "$(docker-compose -f docker-compose.e2e.yml ps -q | xargs -I {} docker inspect {} --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 1 ]; do echo "Waiting for health check..."; sleep 2; done' || {
             echo "❌ Health check timeout - showing container status:"
-            docker-compose -f docker-compose.e2e-ci.yml ps
-            docker-compose -f docker-compose.e2e-ci.yml logs
+            docker-compose -f docker-compose.e2e.yml ps
+            docker-compose -f docker-compose.e2e.yml logs
             exit 1
           }
           
-          # Debug Docker containers and networking
-          echo "=== Docker container debugging ==="
-          docker-compose -f docker-compose.e2e-ci.yml ps
-          echo "=== Container logs ==="
-          docker-compose -f docker-compose.e2e-ci.yml logs --tail=20
-          echo "=== Port bindings ==="
-          docker ps --format "table {{.Names}}\t{{.Ports}}"
-          echo "=== Network interfaces ==="
-          ip addr show || ifconfig || echo "No network tools available"
-          echo "=== Process listening on ports ==="
-          netstat -tlnp | grep -E ':(8081|8082)' || ss -tlnp | grep -E ':(8081|8082)' || echo "No netstat/ss available"
-          
-          # Try multiple connectivity approaches
-          echo "Verifying service connectivity with multiple approaches..."
-          
-          # Wait for auth-disabled service (try localhost first, then fallback)
-          AUTH_DISABLED_READY=false
-          AUTH_DISABLED_URL=""
+          # Verify service connectivity
+          echo "Verifying service connectivity..."
           for i in {1..10}; do
-            # Method 1: localhost (host networking)
-            if curl -f -s --max-time 3 "http://localhost:8081/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service ready via localhost:8081"
-              AUTH_DISABLED_READY=true
-              AUTH_DISABLED_URL="http://localhost:8081"
+            if curl -f -s --max-time 3 "http://localhost:3000/api/health" > /dev/null 2>&1; then
+              echo "✅ Service ready via localhost:3000"
               break
             fi
-            
-            # Method 2: 127.0.0.1 (explicit loopback)
-            if curl -f -s --max-time 3 "http://127.0.0.1:8081/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service ready via 127.0.0.1:8081"
-              AUTH_DISABLED_READY=true
-              AUTH_DISABLED_URL="http://127.0.0.1:8081"
-              break
-            fi
-            
-            # Method 3: Docker gateway (fallback for non-host networking)
-            DOCKER_GATEWAY=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || echo "")
-            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s --max-time 3 "http://$DOCKER_GATEWAY:8081/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service ready via Docker gateway ($DOCKER_GATEWAY:8081)"
-              AUTH_DISABLED_READY=true
-              AUTH_DISABLED_URL="http://$DOCKER_GATEWAY:8081"
-              break
-            fi
-            
-            echo "Waiting for auth-disabled service... attempt $i/10"
-            sleep 2
-          done
-          
-          # Wait for auth-enabled service (try localhost first, then fallback)
-          AUTH_ENABLED_READY=false
-          AUTH_ENABLED_URL=""
-          for i in {1..10}; do
-            # Method 1: localhost (host networking)
-            if curl -f -s --max-time 3 "http://localhost:8082/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service ready via localhost:8082"
-              AUTH_ENABLED_READY=true
-              AUTH_ENABLED_URL="http://localhost:8082"
-              break
-            fi
-            
-            # Method 2: 127.0.0.1 (explicit loopback)  
-            if curl -f -s --max-time 3 "http://127.0.0.1:8082/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service ready via 127.0.0.1:8082"
-              AUTH_ENABLED_READY=true
-              AUTH_ENABLED_URL="http://127.0.0.1:8082"
-              break
-            fi
-            
-            # Method 3: Docker gateway (fallback for non-host networking)
-            DOCKER_GATEWAY=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || echo "")
-            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s --max-time 3 "http://$DOCKER_GATEWAY:8082/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service ready via Docker gateway ($DOCKER_GATEWAY:8082)"
-              AUTH_ENABLED_READY=true
-              AUTH_ENABLED_URL="http://$DOCKER_GATEWAY:8082"
-              break
-            fi
-            
-            echo "Waiting for auth-enabled service... attempt $i/10"
+            echo "Waiting for service... attempt $i/10"
             sleep 2
           done
           
           # Final verification
-          echo "Final connectivity test..."
-          if [ "$AUTH_DISABLED_READY" = "true" ] && [ "$AUTH_ENABLED_READY" = "true" ]; then
-            echo "✅ Both services are ready!"
-            
-            # Use the working URLs discovered during connectivity tests
-            echo "Using discovered working URLs for Playwright tests"
-            echo "Auth-disabled URL: $AUTH_DISABLED_URL"
-            echo "Auth-enabled URL: $AUTH_ENABLED_URL"
-            
-            echo "PLAYWRIGHT_AUTH_DISABLED_URL=$AUTH_DISABLED_URL" >> $GITHUB_ENV
-            echo "PLAYWRIGHT_AUTH_ENABLED_URL=$AUTH_ENABLED_URL" >> $GITHUB_ENV
-            echo "E2E_AUTH_DISABLED_URL=$AUTH_DISABLED_URL" >> $GITHUB_ENV
-            echo "E2E_AUTH_ENABLED_URL=$AUTH_ENABLED_URL" >> $GITHUB_ENV
-          else
-            echo "❌ One or more services failed to become ready:"
-            echo "  Auth-disabled ready: $AUTH_DISABLED_READY"
-            echo "  Auth-enabled ready: $AUTH_ENABLED_READY"
+          if ! curl -f -s --max-time 3 "http://localhost:3000/api/health" > /dev/null 2>&1; then
+            echo "❌ Service failed to become ready"
+            docker-compose -f docker-compose.e2e.yml ps
+            docker-compose -f docker-compose.e2e.yml logs
             exit 1
           fi
           
-          echo "✅ Services are ready!"
-          docker-compose -f docker-compose.e2e-ci.yml ps
+          echo "✅ Service is ready!"
+          docker-compose -f docker-compose.e2e.yml ps
       
-      # Run Playwright tests by project to ensure proper routing
-      - name: Run Setup tests
-        run: cd frontend && npx playwright test --project=setup
+      # Run Playwright tests
+      - name: Run Playwright tests
+        run: cd frontend && npx playwright test
         env:
           CI: true
-          # URLs are set dynamically by the service startup step
-      
-      - name: Run Auth-Disabled tests  
-        run: cd frontend && npx playwright test --project=auth-disabled
-        env:
-          CI: true
-          # URLs are set dynamically by the service startup step
-      
-      - name: Run Auth-Enabled Unauthenticated tests
-        run: cd frontend && npx playwright test --project=auth-enabled-unauthenticated
-        env:
-          CI: true
-          # URLs are set dynamically by the service startup step
-      
-      - name: Run Auth-Enabled tests
-        run: cd frontend && npx playwright test --project=auth-enabled  
-        env:
-          CI: true
-          # URLs are set dynamically by the service startup step
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
       
       # Show service logs if tests fail
       - name: Show service logs on failure
         if: failure()
         run: |
-          echo "=== Auth-disabled service logs ==="
-          docker-compose -f docker-compose.e2e-ci.yml logs schist-e2e-auth-disabled
-          echo "=== Auth-enabled service logs ==="
-          docker-compose -f docker-compose.e2e-ci.yml logs schist-e2e-auth-enabled
+          echo "=== E2E service logs ==="
+          docker-compose -f docker-compose.e2e.yml logs
       
       # Ensure Docker containers are cleaned up even if tests fail
       - name: Cleanup Docker containers
         if: always()
         run: |
           echo "Cleaning up E2E containers and images..."
-          docker-compose -f docker-compose.e2e-ci.yml down --rmi all --volumes --remove-orphans 2>/dev/null || true
+          docker-compose -f docker-compose.e2e.yml down --rmi all --volumes --remove-orphans 2>/dev/null || true
           
-          # Clean up test data directories
-          rm -rf test-data-auth-disabled test-data-auth-enabled || true
+          # Clean up test data directory
+          rm -rf e2e-data || true
           
           echo "✅ Cleanup completed"

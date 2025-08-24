@@ -1,12 +1,12 @@
 import { test, expect } from '../fixtures';
 import { ApiHelper } from '../utils/api-helpers';
-import { AUTH_ENABLED_BASE_URL, LOGIN_URL, SETTINGS_URL } from '../utils/routes';
+import { BASE_URL, LOGIN_URL, SETTINGS_URL } from '../utils/routes';
 import { WebAuthnHelper } from '../utils/webauthn-helper';
 
 test.describe('Passkey Authentication System', () => {
 	test.describe('Authentication Enabled - Unauthenticated State', () => {
 		test('should redirect unauthenticated users to login', async ({ page }) => {
-			await page.goto(AUTH_ENABLED_BASE_URL);
+			await page.goto(BASE_URL);
 
 			await expect(page).toHaveURL(/\/login/);
 
@@ -33,10 +33,10 @@ test.describe('Passkey Authentication System', () => {
 			// Since auth.setup.ts already authenticated the user, verify auth is working
 			// by checking we can access protected pages directly
 
-			await page.goto(AUTH_ENABLED_BASE_URL);
+			await page.goto(BASE_URL);
 
 			// Should be able to access home page (not redirected to login)
-			await expect(page).toHaveURL(AUTH_ENABLED_BASE_URL);
+			await expect(page).toHaveURL(BASE_URL);
 
 			// Should show authenticated UI elements
 			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
@@ -78,7 +78,7 @@ test.describe('Passkey Authentication System', () => {
 		});
 
 		test('should allow logout', async ({ page }) => {
-			await page.goto(AUTH_ENABLED_BASE_URL);
+			await page.goto(BASE_URL);
 
 			// Find and click logout button
 			await expect(page.getByTestId('logout-button')).toBeVisible();
@@ -88,12 +88,12 @@ test.describe('Passkey Authentication System', () => {
 			await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
 
 			// Verify we're logged out by trying to access protected page
-			await page.goto(AUTH_ENABLED_BASE_URL);
+			await page.goto(BASE_URL);
 			await expect(page).toHaveURL(/\/login/);
 		});
 
 		test('should persist authentication across page reloads', async ({ page }) => {
-			await page.goto(AUTH_ENABLED_BASE_URL);
+			await page.goto(BASE_URL);
 
 			// Verify we're authenticated
 			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
@@ -102,7 +102,7 @@ test.describe('Passkey Authentication System', () => {
 			await page.reload();
 
 			// Should remain authenticated
-			await expect(page).toHaveURL(AUTH_ENABLED_BASE_URL);
+			await expect(page).toHaveURL(BASE_URL);
 			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
 		});
 

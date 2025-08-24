@@ -156,13 +156,12 @@ export const test = base.extend<{
 
 		const projectName = testInfo.project.name;
 
-		if (projectName === 'auth-disabled') {
-			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
-		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
-			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
+		// Single E2E service for all projects
+		const baseURL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+		apiHelper = new ApiHelper(request, 0, `${baseURL}/api`);
 
-			// Only load auth token for authenticated projects
-			if (projectName === 'auth-enabled') {
+		// Load auth token for authenticated projects (not setup)
+		if (projectName === 'e2e') {
 				try {
 					const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
 					const token = authData.origins?.[0]?.localStorage?.find(
@@ -196,19 +195,9 @@ export const test = base.extend<{
 	},
 
 	// eslint-disable-next-line no-empty-pattern
-	workerBaseURL: async ({}, use, testInfo) => {
-		const projectName = testInfo.project.name;
-		let baseURL: string;
-
-		if (projectName === 'auth-disabled') {
-			baseURL = 'http://localhost:8081';
-		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
-			baseURL = 'http://localhost:8082';
-		} else {
-			// Fallback for other project names
-			const port = 8081 + (testInfo.parallelIndex || 0);
-			baseURL = `http://localhost:${port}`;
-		}
+	workerBaseURL: async ({}, use) => {
+		// Single E2E service URL for all projects
+		const baseURL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 		await use(baseURL);
 	}

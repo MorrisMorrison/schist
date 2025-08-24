@@ -1,7 +1,7 @@
 import { test as setup, expect } from '@playwright/test';
 import { ApiHelper } from './utils/api-helpers';
 import { WebAuthnHelper } from './utils/webauthn-helper';
-import { AUTH_ENABLED_BASE_URL, LOGIN_URL, SETUP_URL } from './utils/routes';
+import { BASE_URL, LOGIN_URL, SETUP_URL } from './utils/routes';
 
 const authFile = 'playwright/.auth/user.json';
 const testUsername = 'testuser';
@@ -15,13 +15,13 @@ const MOCK_CREDENTIAL_BASE = {
 };
 
 setup('authenticate', async ({ page, request }) => {
-	const apiHelper = new ApiHelper(request, 0, `${AUTH_ENABLED_BASE_URL}/api`);
+	const apiHelper = new ApiHelper(request, 0, `${BASE_URL}/api`);
 	let webauthnHelper: WebAuthnHelper | null = null;
 
 	// Determine rpId based on the URL - use hostname to handle both localhost and IP addresses
-	const authURL = new URL(AUTH_ENABLED_BASE_URL);
+	const authURL = new URL(BASE_URL);
 	const rpId = authURL.hostname;
-	console.log(`[Auth Setup] Using rpId: ${rpId} for URL: ${AUTH_ENABLED_BASE_URL}`);
+	console.log(`[Auth Setup] Using rpId: ${rpId} for URL: ${BASE_URL}`);
 
 	// Create mock credential with dynamic rpId
 	const MOCK_CREDENTIAL = {
@@ -137,7 +137,7 @@ setup('authenticate', async ({ page, request }) => {
 		await authFinishPromise;
 
 		// Should redirect to home page
-		await expect(page).toHaveURL(AUTH_ENABLED_BASE_URL, { timeout: 10000 });
+		await expect(page).toHaveURL(BASE_URL, { timeout: 10000 });
 
 		// Verify authenticated state
 		await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();

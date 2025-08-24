@@ -1,11 +1,7 @@
-// Use environment-specific URLs for containerized CI environments
-const authDisabledURL =
-	globalThis.process?.env.PLAYWRIGHT_AUTH_DISABLED_URL || 'http://localhost:8081';
-const authEnabledURL =
-	globalThis.process?.env.PLAYWRIGHT_AUTH_ENABLED_URL || 'http://localhost:8082';
+// Single E2E test URL for auth-enabled server
+const baseURL = globalThis.process?.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
-export const AUTH_DISABLED_BASE_URL = authDisabledURL;
-export const AUTH_ENABLED_BASE_URL = authEnabledURL;
-export const LOGIN_URL = `${AUTH_ENABLED_BASE_URL}/login`;
-export const SETUP_URL = `${AUTH_ENABLED_BASE_URL}/setup`;
-export const SETTINGS_URL = `${AUTH_ENABLED_BASE_URL}/settings`;
+export const BASE_URL = baseURL;
+export const LOGIN_URL = `${baseURL}/login`;
+export const SETUP_URL = `${baseURL}/setup`;
+export const SETTINGS_URL = `${baseURL}/settings`;

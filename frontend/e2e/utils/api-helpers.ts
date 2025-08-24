@@ -116,10 +116,9 @@ export class ApiHelper {
 		return this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {};
 	}
 
-	private getWorkerSpecificBaseURL(workerIndex?: number): string {
-		const index = workerIndex ?? 0;
-		const port = 8081 + index;
-		return `http://localhost:${port}/api`;
+	private getWorkerSpecificBaseURL(): string {
+		// Single E2E service URL - same for all workers
+		return `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
 	}
 
 	async healthCheck(): Promise<boolean> {
@@ -743,40 +742,14 @@ export async function waitForDocumentUpdate(
 	return false;
 }
 
-export function getWorkerApiURL(workerIndex?: number): string {
-	const index = workerIndex ?? 0;
-	const isCI = typeof process !== 'undefined' && process.env?.CI;
-
-	if (isCI) {
-		// In CI, use environment variables for container URLs
-		if (index === 0) {
-			return `${process.env?.E2E_AUTH_DISABLED_URL || 'http://localhost:8081'}/api`;
-		} else {
-			return `${process.env?.E2E_AUTH_ENABLED_URL || 'http://localhost:8082'}/api`;
-		}
-	}
-
-	// Local development
-	const port = 8081 + index;
-	return `http://localhost:${port}/api`;
+export function getWorkerApiURL(): string {
+	// Single E2E service URL - same for all workers
+	return `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
 }
 
-export function getWorkerBaseURL(workerIndex?: number): string {
-	const index = workerIndex ?? 0;
-	const isCI = typeof process !== 'undefined' && process.env?.CI;
-
-	if (isCI) {
-		// In CI, use environment variables for container URLs
-		if (index === 0) {
-			return process.env?.E2E_AUTH_DISABLED_URL || 'http://localhost:8081';
-		} else {
-			return process.env?.E2E_AUTH_ENABLED_URL || 'http://localhost:8082';
-		}
-	}
-
-	// Local development
-	const port = 8081 + index;
-	return `http://localhost:${port}`;
+export function getWorkerBaseURL(): string {
+	// Single E2E service URL - same for all workers
+	return process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 }
 
 export class MockApiHelper extends ApiHelper {

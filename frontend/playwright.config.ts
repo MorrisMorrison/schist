@@ -6,20 +6,15 @@ import { defineConfig, devices } from '@playwright/test';
 // Detect if we're running in CI
 const isCI = !!globalThis.process?.env.CI;
 
-// Use environment-specific URLs for containerized CI environments
-const authDisabledURL =
-	globalThis.process?.env.PLAYWRIGHT_AUTH_DISABLED_URL || 'http://localhost:8081';
-const authEnabledURL =
-	globalThis.process?.env.PLAYWRIGHT_AUTH_ENABLED_URL || 'http://localhost:8082';
+// Single E2E test URL 
+const baseURL = globalThis.process?.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
-// Debug: Log the URLs being used
-console.log('🔧 Playwright Config - URLs:', {
-	authDisabledURL,
-	authEnabledURL,
+// Debug: Log the URL being used
+console.log('🔧 Playwright Config - URL:', {
+	baseURL,
 	CI: isCI,
 	envVars: {
-		PLAYWRIGHT_AUTH_DISABLED_URL: globalThis.process?.env.PLAYWRIGHT_AUTH_DISABLED_URL,
-		PLAYWRIGHT_AUTH_ENABLED_URL: globalThis.process?.env.PLAYWRIGHT_AUTH_ENABLED_URL
+		PLAYWRIGHT_BASE_URL: globalThis.process?.env.PLAYWRIGHT_BASE_URL
 	}
 });
 
@@ -55,8 +50,7 @@ export default defineConfig({
 
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
-		/* Base URL will be set dynamically per worker via fixture */
-		baseURL: 'http://localhost:8081',
+		baseURL: baseURL,
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
@@ -68,61 +62,28 @@ export default defineConfig({
 			name: 'setup',
 			testMatch: /.*\.setup\.ts/,
 			use: {
-				...devices['Desktop Chrome'],
-				baseURL: authEnabledURL,
-				// Add Chrome flags for WebAuthn if using IP addresses in CI
-				...(isCI && authEnabledURL.includes('.') && !authEnabledURL.includes('localhost') ? {
-					launchOptions: {
-						args: [
-							'--enable-features=WebAuthentication',
-							'--enable-web-platform-features',
-							`--unsafely-treat-insecure-origin-as-secure=${authEnabledURL}`,
-							'--enable-webauthn-testing-api'
-						]
-					}
-				} : {})
+				...devices['Desktop Chrome']
 			}
 		},
 		{
-			name: 'auth-disabled',
+			name: 'e2e',
 			use: {
 				...devices['Desktop Chrome'],
-				baseURL: authDisabledURL
-			},
-			testIgnore: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/]
-		},
-		{
-			name: 'auth-enabled-unauthenticated',
-			use: {
-				...devices['Desktop Chrome'],
-				baseURL: authEnabledURL
-				// No storageState - start fresh for unauthenticated tests
-			},
-			dependencies: ['setup'],
-			testMatch: [/.*authentication\.test\.ts/],
-			grep: /Unauthenticated State/
-		},
-		{
-			name: 'auth-enabled',
-			use: {
-				...devices['Desktop Chrome'],
-				baseURL: authEnabledURL,
 				storageState: 'playwright/.auth/user.json'
 			},
 			dependencies: ['setup'],
-			testMatch: [/.*authentication\.test\.ts/, /.*quick-unlock\.test\.ts/],
-			grepInvert: /Unauthenticated State/
+			testIgnore: [/.*\.setup\.ts/]
 		}
 	],
 
 	// Only use webServer for local development, not in CI
-	// In CI, the services are started by GitHub Actions using docker-compose.e2e-ci.yml
+	// In CI, the services are started by GitHub Actions using docker-compose.e2e.yml
 	...(isCI
 		? {}
 		: {
 				webServer: {
-					command: 'cd .. && ./scripts/start-e2e-servers.sh',
-					port: 8081,
+					command: 'cd .. && docker-compose -f docker-compose.e2e.yml up --build',
+					port: 3000,
 					reuseExistingServer: true,
 					timeout: 180 * 1000 // 3 minutes for local Docker builds
 				}

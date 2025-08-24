@@ -36,33 +36,57 @@ jobs:
         run: |
           mkdir -p e2e-data
       
-      # Start E2E service using host networking for WebAuthn compatibility
+      # Start E2E service in ci-network  
       - name: Start E2E service  
         run: |
-          echo "Starting E2E service with host networking..."
+          echo "Starting E2E service in ci-network..."
           docker-compose -f docker-compose.e2e.yml up --build -d
           
           # Wait for service to be healthy  
           echo "Waiting for service to become healthy..."
           timeout 60 bash -c 'while [ "$(docker-compose -f docker-compose.e2e.yml ps -q | xargs -I {} docker inspect {} --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 1 ]; do echo "Waiting for health check..."; sleep 2; done'
           
-          # Simple connectivity test
-          echo "Testing service connectivity..."
+          # Test connectivity within ci-network
+          echo "Testing service connectivity within ci-network..."
           for i in {1..10}; do
-            if curl -f -s "http://localhost:3000/api/health" > /dev/null; then
-              echo "✅ Service ready at localhost:3000"
+            # Test using container name (both runner and service are on ci-network)
+            if curl -f -s "http://schist:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Service ready at schist:8080 within ci-network"
+              # For WebAuthn compatibility, we'll need to proxy localhost to schist
+              echo "PLAYWRIGHT_BASE_URL=http://schist:8080" >> $GITHUB_ENV
               break
             fi
             echo "Waiting for service... attempt $i/10"
             sleep 2
           done
       
-      # Run Playwright tests
+      # Set up localhost proxy for WebAuthn compatibility
+      - name: Set up localhost proxy
+        run: |
+          echo "Setting up localhost:3000 -> schist:8080 proxy for WebAuthn..."
+          # Install socat for port forwarding
+          sudo apt-get update && sudo apt-get install -y socat
+          # Start background proxy from localhost:3000 to schist:8080
+          nohup socat TCP-LISTEN:3000,fork,reuseaddr TCP:schist:8080 > /dev/null 2>&1 &
+          echo "Proxy started, waiting for it to be ready..."
+          sleep 2
+          
+          # Test the proxy
+          for i in {1..5}; do
+            if curl -f -s "http://localhost:3000/api/health" > /dev/null 2>&1; then
+              echo "✅ Localhost proxy working - WebAuthn should work!"
+              break
+            fi
+            echo "Waiting for proxy... attempt $i/5"
+            sleep 2
+          done
+
+      # Run Playwright tests with localhost (WebAuthn compatible)
       - name: Run Playwright tests
         run: cd frontend && npx playwright test
         env:
           CI: true
-          PLAYWRIGHT_BASE_URL: ${{ env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000' }}
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
       
       # Show service logs if tests fail
       - name: Show service logs on failure

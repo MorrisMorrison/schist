@@ -91,7 +91,13 @@ jobs:
           # Wait for auth-disabled service
           AUTH_DISABLED_READY=false
           for i in {1..30}; do
-            # Try localhost first (for local development compatibility)
+            # Try container IP first if available (most likely to work in CI)
+            if [ -n "$AUTH_DISABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service is ready via container IP ($AUTH_DISABLED_CONTAINER_IP)"
+              AUTH_DISABLED_READY=true
+              break
+            fi
+            # Try localhost (for local development compatibility)
             if curl -f -s "http://localhost:8081/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-disabled service (8081) is ready via localhost"
               AUTH_DISABLED_READY=true
@@ -103,31 +109,31 @@ jobs:
               AUTH_DISABLED_READY=true
               break
             fi
-            # Try container IP directly if available
-            if [ -n "$AUTH_DISABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service is ready via container IP ($AUTH_DISABLED_CONTAINER_IP)"
-              AUTH_DISABLED_READY=true
-              break
-            fi
-            echo "Waiting for auth-disabled service (8081)... attempt $i/30"
+            echo "Waiting for auth-disabled service... attempt $i/30"
             if [ $i -eq 30 ]; then
               echo "❌ All connection attempts failed:"
-              echo "1. Localhost attempt:"
-              curl -v "http://localhost:8081/api/health" || true
-              echo "2. 127.0.0.1 attempt:"
-              curl -v "http://127.0.0.1:8081/api/health" || true
               if [ -n "$AUTH_DISABLED_CONTAINER_IP" ]; then
-                echo "3. Container IP attempt ($AUTH_DISABLED_CONTAINER_IP):"
+                echo "1. Container IP attempt ($AUTH_DISABLED_CONTAINER_IP):"
                 curl -v "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" || true
               fi
+              echo "2. Localhost attempt:"
+              curl -v "http://localhost:8081/api/health" || true
+              echo "3. 127.0.0.1 attempt:"
+              curl -v "http://127.0.0.1:8081/api/health" || true
             fi
-            sleep 2
+            sleep 1
           done
           
           # Wait for auth-enabled service  
           AUTH_ENABLED_READY=false
           for i in {1..30}; do
-            # Try localhost first (for local development compatibility)
+            # Try container IP first if available (most likely to work in CI)
+            if [ -n "$AUTH_ENABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_ENABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service is ready via container IP ($AUTH_ENABLED_CONTAINER_IP)"
+              AUTH_ENABLED_READY=true
+              break
+            fi
+            # Try localhost (for local development compatibility)
             if curl -f -s "http://localhost:8082/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-enabled service (8082) is ready via localhost"
               AUTH_ENABLED_READY=true
@@ -139,25 +145,19 @@ jobs:
               AUTH_ENABLED_READY=true
               break
             fi
-            # Try container IP directly if available
-            if [ -n "$AUTH_ENABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_ENABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service is ready via container IP ($AUTH_ENABLED_CONTAINER_IP)"
-              AUTH_ENABLED_READY=true
-              break
-            fi
-            echo "Waiting for auth-enabled service (8082)... attempt $i/30"
+            echo "Waiting for auth-enabled service... attempt $i/30"
             if [ $i -eq 30 ]; then
               echo "❌ All connection attempts failed:"
-              echo "1. Localhost attempt:"
-              curl -v "http://localhost:8082/api/health" || true
-              echo "2. 127.0.0.1 attempt:"
-              curl -v "http://127.0.0.1:8082/api/health" || true
               if [ -n "$AUTH_ENABLED_CONTAINER_IP" ]; then
-                echo "3. Container IP attempt ($AUTH_ENABLED_CONTAINER_IP):"
+                echo "1. Container IP attempt ($AUTH_ENABLED_CONTAINER_IP):"
                 curl -v "http://$AUTH_ENABLED_CONTAINER_IP:8080/api/health" || true
               fi
+              echo "2. Localhost attempt:"
+              curl -v "http://localhost:8082/api/health" || true
+              echo "3. 127.0.0.1 attempt:"
+              curl -v "http://127.0.0.1:8082/api/health" || true
             fi
-            sleep 2
+            sleep 1
           done
           
           # Final verification

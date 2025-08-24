@@ -81,6 +81,13 @@ jobs:
           
           echo "=== Testing service health endpoints with retries ==="
           
+          # Get container IPs for direct connection
+          echo "Getting container IP addresses..."
+          AUTH_DISABLED_CONTAINER_IP=$(docker inspect schist_schist-e2e-auth-disabled_1 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          AUTH_ENABLED_CONTAINER_IP=$(docker inspect schist_schist-e2e-auth-enabled_1 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          
+          echo "Container IPs: auth-disabled=$AUTH_DISABLED_CONTAINER_IP, auth-enabled=$AUTH_ENABLED_CONTAINER_IP"
+          
           # Wait for auth-disabled service
           AUTH_DISABLED_READY=false
           for i in {1..30}; do
@@ -96,15 +103,9 @@ jobs:
               AUTH_DISABLED_READY=true
               break
             fi
-            # Try container name for CI environment (when runner is containerized)
-            if curl -f -s "http://schist-e2e-auth-disabled:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service is ready via container name (schist-e2e-auth-disabled)"
-              AUTH_DISABLED_READY=true
-              break
-            fi
-            # Try full container name as fallback
-            if curl -f -s "http://schist_schist-e2e-auth-disabled_1:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service is ready via full container name"
+            # Try container IP directly if available
+            if [ -n "$AUTH_DISABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service is ready via container IP ($AUTH_DISABLED_CONTAINER_IP)"
               AUTH_DISABLED_READY=true
               break
             fi
@@ -115,10 +116,10 @@ jobs:
               curl -v "http://localhost:8081/api/health" || true
               echo "2. 127.0.0.1 attempt:"
               curl -v "http://127.0.0.1:8081/api/health" || true
-              echo "3. Service name attempt:"
-              curl -v "http://schist-e2e-auth-disabled:8080/api/health" || true
-              echo "4. Full container name attempt:"  
-              curl -v "http://schist_schist-e2e-auth-disabled_1:8080/api/health" || true
+              if [ -n "$AUTH_DISABLED_CONTAINER_IP" ]; then
+                echo "3. Container IP attempt ($AUTH_DISABLED_CONTAINER_IP):"
+                curl -v "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" || true
+              fi
             fi
             sleep 2
           done
@@ -138,15 +139,9 @@ jobs:
               AUTH_ENABLED_READY=true
               break
             fi
-            # Try container name for CI environment (when runner is containerized)
-            if curl -f -s "http://schist-e2e-auth-enabled:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service is ready via container name (schist-e2e-auth-enabled)"
-              AUTH_ENABLED_READY=true
-              break
-            fi
-            # Try full container name as fallback
-            if curl -f -s "http://schist_schist-e2e-auth-enabled_1:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service is ready via full container name"
+            # Try container IP directly if available
+            if [ -n "$AUTH_ENABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_ENABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service is ready via container IP ($AUTH_ENABLED_CONTAINER_IP)"
               AUTH_ENABLED_READY=true
               break
             fi
@@ -157,10 +152,10 @@ jobs:
               curl -v "http://localhost:8082/api/health" || true
               echo "2. 127.0.0.1 attempt:"
               curl -v "http://127.0.0.1:8082/api/health" || true
-              echo "3. Service name attempt:"
-              curl -v "http://schist-e2e-auth-enabled:8080/api/health" || true
-              echo "4. Full container name attempt:"
-              curl -v "http://schist_schist-e2e-auth-enabled_1:8080/api/health" || true
+              if [ -n "$AUTH_ENABLED_CONTAINER_IP" ]; then
+                echo "3. Container IP attempt ($AUTH_ENABLED_CONTAINER_IP):"
+                curl -v "http://$AUTH_ENABLED_CONTAINER_IP:8080/api/health" || true
+              fi
             fi
             sleep 2
           done
@@ -177,14 +172,16 @@ jobs:
               echo "PLAYWRIGHT_AUTH_ENABLED_URL=http://localhost:8082" >> $GITHUB_ENV
               echo "E2E_AUTH_DISABLED_URL=http://localhost:8081" >> $GITHUB_ENV
               echo "E2E_AUTH_ENABLED_URL=http://localhost:8082" >> $GITHUB_ENV
-            elif curl -f -s "http://schist-e2e-auth-disabled:8080/api/health" > /dev/null 2>&1; then
-              echo "Using container service URLs for Playwright tests"
-              echo "PLAYWRIGHT_AUTH_DISABLED_URL=http://schist-e2e-auth-disabled:8080" >> $GITHUB_ENV
-              echo "PLAYWRIGHT_AUTH_ENABLED_URL=http://schist-e2e-auth-enabled:8080" >> $GITHUB_ENV
-              echo "E2E_AUTH_DISABLED_URL=http://schist-e2e-auth-disabled:8080" >> $GITHUB_ENV
-              echo "E2E_AUTH_ENABLED_URL=http://schist-e2e-auth-enabled:8080" >> $GITHUB_ENV
+            elif [ -n "$AUTH_DISABLED_CONTAINER_IP" ] && [ -n "$AUTH_ENABLED_CONTAINER_IP" ] && \
+                 curl -f -s "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "Using container IP URLs for Playwright tests"
+              echo "PLAYWRIGHT_AUTH_DISABLED_URL=http://$AUTH_DISABLED_CONTAINER_IP:8080" >> $GITHUB_ENV
+              echo "PLAYWRIGHT_AUTH_ENABLED_URL=http://$AUTH_ENABLED_CONTAINER_IP:8080" >> $GITHUB_ENV
+              echo "E2E_AUTH_DISABLED_URL=http://$AUTH_DISABLED_CONTAINER_IP:8080" >> $GITHUB_ENV
+              echo "E2E_AUTH_ENABLED_URL=http://$AUTH_ENABLED_CONTAINER_IP:8080" >> $GITHUB_ENV
             else
               echo "❌ Cannot determine working URLs for Playwright tests"
+              echo "Localhost failed, container IPs: disabled=$AUTH_DISABLED_CONTAINER_IP, enabled=$AUTH_ENABLED_CONTAINER_IP"
               exit 1
             fi
           else

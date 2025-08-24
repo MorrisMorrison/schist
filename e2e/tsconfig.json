@@ -13,6 +13,7 @@
 		"baseUrl": ".",
 		"paths": {
 			"@fixtures/*": ["./fixtures/*"],
+			"@e2e/*": ["./*"],
 			"*": ["*", "node_modules/*"]
 		},
 		"types": ["node", "@playwright/test"],

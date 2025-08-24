@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-data-fixtures';
+import { test, expect } from '@e2e/fixtures/test-data-fixtures';
 import { createTestPage as createTestDocument } from '../utils/test-data';
 
 // serial enforces not running in parallel

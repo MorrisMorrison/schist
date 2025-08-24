@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { test as fixtureTest } from '../fixtures/test-data-fixtures';
+import { test as fixtureTest } from '@e2e/fixtures/test-data-fixtures';
 
 test.describe('Recent Page', () => {
 	test.beforeEach(async ({ page }) => {

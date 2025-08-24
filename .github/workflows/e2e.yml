@@ -51,20 +51,67 @@ jobs:
             exit 1
           }
           
-          # Verify service connectivity
+          # Verify service connectivity - try multiple approaches for containerized CI
           echo "Verifying service connectivity..."
+          
+          # Try multiple connection methods for containerized environments
+          GATEWAY_IP=$(docker network inspect schist_default --format='{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || echo "")
+          CONTAINER_IP=$(docker-compose -f docker-compose.e2e.yml ps -q schist | xargs docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          
+          echo "Detected IPs: Gateway=$GATEWAY_IP, Container=$CONTAINER_IP"
+          
+          SERVICE_READY=false
+          WORKING_URL=""
+          
           for i in {1..10}; do
+            # Method 1: Try localhost (works in most environments)
             if curl -f -s --max-time 3 "http://localhost:3000/api/health" > /dev/null 2>&1; then
               echo "✅ Service ready via localhost:3000"
+              WORKING_URL="http://localhost:3000"
+              SERVICE_READY=true
               break
             fi
-            echo "Waiting for service... attempt $i/10"
+            
+            # Method 2: Try Docker gateway IP (for containerized CI)
+            if [ -n "$GATEWAY_IP" ] && curl -f -s --max-time 3 "http://$GATEWAY_IP:3000/api/health" > /dev/null 2>&1; then
+              echo "✅ Service ready via $GATEWAY_IP:3000"
+              WORKING_URL="http://$GATEWAY_IP:3000"
+              SERVICE_READY=true
+              break
+            fi
+            
+            # Method 3: Try container IP directly (bypasses port mapping)
+            if [ -n "$CONTAINER_IP" ] && curl -f -s --max-time 3 "http://$CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Service ready via $CONTAINER_IP:8080"
+              WORKING_URL="http://$CONTAINER_IP:8080"
+              SERVICE_READY=true
+              break
+            fi
+            
+            # Method 4: Try Docker host network (127.0.0.1)
+            if curl -f -s --max-time 3 "http://127.0.0.1:3000/api/health" > /dev/null 2>&1; then
+              echo "✅ Service ready via 127.0.0.1:3000"
+              WORKING_URL="http://127.0.0.1:3000"
+              SERVICE_READY=true
+              break
+            fi
+            
+            echo "Waiting for service... attempt $i/10 (tried localhost:3000, $GATEWAY_IP:3000, $CONTAINER_IP:8080, 127.0.0.1:3000)"
             sleep 2
           done
           
+          # Set the working URL for Playwright if we found one that's not localhost
+          if [ -n "$WORKING_URL" ] && [ "$WORKING_URL" != "http://localhost:3000" ]; then
+            echo "PLAYWRIGHT_BASE_URL=$WORKING_URL" >> $GITHUB_ENV
+            echo "Using $WORKING_URL for Playwright tests"
+          fi
+          
           # Final verification
-          if ! curl -f -s --max-time 3 "http://localhost:3000/api/health" > /dev/null 2>&1; then
-            echo "❌ Service failed to become ready"
+          if [ "$SERVICE_READY" != "true" ]; then
+            echo "❌ Service failed to become ready via any connection method"
+            echo "Debugging information:"
+            echo "Gateway IP: $GATEWAY_IP"
+            docker network ls
             docker-compose -f docker-compose.e2e.yml ps
             docker-compose -f docker-compose.e2e.yml logs
             exit 1
@@ -78,7 +125,7 @@ jobs:
         run: cd frontend && npx playwright test
         env:
           CI: true
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: ${{ env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000' }}
       
       # Show service logs if tests fail
       - name: Show service logs on failure

@@ -47,7 +47,7 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build --build-arg schist-test:latest .
+          docker build -t schist-test:latest .
           
       - name: Test Docker image
         run: |

@@ -84,6 +84,6 @@ export default defineConfig({
 		command: 'cd .. && ./scripts/start-e2e-servers.sh',
 		port: 8081,
 		reuseExistingServer: true,
-		timeout: 120 * 1000
+		timeout: 300 * 1000 // 5 minutes for Docker builds in CI
 	}
 });

@@ -7,7 +7,7 @@ echo "Starting Docker services..."
 docker-compose --profile e2e up --build -d
 
 echo "Waiting for services to be ready..."
-timeout=90
+timeout=180 # Increased for Docker builds in CI
 counter=0
 
 while [ $counter -lt $timeout ]; do

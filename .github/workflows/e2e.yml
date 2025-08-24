@@ -42,27 +42,45 @@ jobs:
           echo "Starting E2E services with local Docker build..."
           docker-compose -f docker-compose.e2e-ci.yml up --build -d
           
+          # Wait a moment for containers to be fully started
+          sleep 5
+          
           # Get container IPs and update frontend URLs for WebAuthn
           echo "Updating WebAuthn configuration with container IPs..."
-          DISABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
-          ENABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          DISABLED_ID=$(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled)
+          ENABLED_ID=$(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled)
           
-          if [ -n "$DISABLED_IP" ] && [ -n "$ENABLED_IP" ]; then
-            echo "Restarting containers with correct frontend URLs..."
-            echo "Auth-disabled will use: http://$DISABLED_IP:8080"
-            echo "Auth-enabled will use: http://$ENABLED_IP:8080"
+          echo "Container IDs: disabled=$DISABLED_ID, enabled=$ENABLED_ID"
+          
+          if [ -n "$DISABLED_ID" ] && [ -n "$ENABLED_ID" ]; then
+            DISABLED_IP=$(docker inspect $DISABLED_ID --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+            ENABLED_IP=$(docker inspect $ENABLED_ID --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
             
-            # Stop containers
-            docker-compose -f docker-compose.e2e-ci.yml stop
+            echo "Container IPs: disabled=$DISABLED_IP, enabled=$ENABLED_IP"
             
-            # Set environment variables for the restart
-            export E2E_DISABLED_FRONTEND_URL="http://$DISABLED_IP:8080"
-            export E2E_ENABLED_FRONTEND_URL="http://$ENABLED_IP:8080"
-            
-            # Start containers with new URLs
-            docker-compose -f docker-compose.e2e-ci.yml up -d
+            if [ -n "$DISABLED_IP" ] && [ -n "$ENABLED_IP" ]; then
+              echo "Restarting containers with correct frontend URLs..."
+              echo "Auth-disabled will use: http://$DISABLED_IP:8080"
+              echo "Auth-enabled will use: http://$ENABLED_IP:8080"
+              
+              # Stop containers
+              docker-compose -f docker-compose.e2e-ci.yml stop
+              
+              # Set environment variables for the restart
+              export E2E_DISABLED_FRONTEND_URL="http://$DISABLED_IP:8080"
+              export E2E_ENABLED_FRONTEND_URL="http://$ENABLED_IP:8080"
+              
+              # Start containers with new URLs
+              docker-compose -f docker-compose.e2e-ci.yml up -d
+              
+              # Wait for containers to start again
+              sleep 10
+            else
+              echo "Warning: Could not get container IPs, using default URLs"
+              echo "Disabled IP: '$DISABLED_IP', Enabled IP: '$ENABLED_IP'"
+            fi
           else
-            echo "Warning: Could not get container IPs, using default URLs"
+            echo "Warning: Could not get container IDs"
           fi
           
           echo "=== Network debugging ==="
@@ -142,6 +160,10 @@ jobs:
           ENABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
           curl -f -s "http://$DISABLED_IP:8080/api/health" > /dev/null && echo "✅ Auth-disabled service: OK ($DISABLED_IP:8080)" || echo "❌ Auth-disabled service: FAILED"
           curl -f -s "http://$ENABLED_IP:8080/api/health" > /dev/null && echo "✅ Auth-enabled service: OK ($ENABLED_IP:8080)" || echo "❌ Auth-enabled service: FAILED"
+          
+          # Check WebAuthn configuration by looking at container logs
+          echo "Checking WebAuthn configuration in container logs:"
+          docker-compose -f docker-compose.e2e-ci.yml logs schist-e2e-auth-enabled | grep -i "webauthn configuration" || echo "No WebAuthn config logs found"
           
           echo "Container status:"
           docker-compose -f docker-compose.e2e-ci.yml ps

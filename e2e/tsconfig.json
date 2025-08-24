@@ -11,6 +11,9 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"baseUrl": ".",
-		"types": ["node", "@playwright/test"]
-	}
+		"types": ["node", "@playwright/test"],
+		"noEmit": true
+	},
+	"include": ["./**/*.ts"],
+	"exclude": ["node_modules", "playwright-report", "test-results"]
 }

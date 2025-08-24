@@ -61,29 +61,37 @@ setup('authenticate', async ({ page, request }) => {
 			await page.getByLabel('Username').fill(testUsername);
 
 			// Set up response monitoring before clicking
-			const beginPromise = page.waitForResponse(
-				(response) => {
-					console.log(`[Auth Setup] Begin response: ${response.url()} - Status: ${response.status()}`);
-					return response.url().includes('/passkeys/register/begin');
-				},
-				{ timeout: 10000 }
-			).catch(e => console.log(`[Auth Setup] Begin request failed: ${e.message}`));
+			const beginPromise = page
+				.waitForResponse(
+					(response) => {
+						console.log(
+							`[Auth Setup] Begin response: ${response.url()} - Status: ${response.status()}`
+						);
+						return response.url().includes('/passkeys/register/begin');
+					},
+					{ timeout: 10000 }
+				)
+				.catch((e) => console.log(`[Auth Setup] Begin request failed: ${e.message}`));
 
-			const finishPromise = page.waitForResponse(
-				(response) => {
-					console.log(`[Auth Setup] Finish response: ${response.url()} - Status: ${response.status()}`);
-					return response.url().includes('/passkeys/register/finish');
-				},
-				{ timeout: 15000 }
-			).catch(e => console.log(`[Auth Setup] Finish request failed: ${e.message}`));
+			const finishPromise = page
+				.waitForResponse(
+					(response) => {
+						console.log(
+							`[Auth Setup] Finish response: ${response.url()} - Status: ${response.status()}`
+						);
+						return response.url().includes('/passkeys/register/finish');
+					},
+					{ timeout: 15000 }
+				)
+				.catch((e) => console.log(`[Auth Setup] Finish request failed: ${e.message}`));
 
 			// Monitor all network requests for debugging
-			page.on('response', response => {
+			page.on('response', (response) => {
 				console.log(`[Auth Setup] Network: ${response.url()} - ${response.status()}`);
 			});
 
 			// Monitor console for errors
-			page.on('console', msg => {
+			page.on('console', (msg) => {
 				if (msg.type() === 'error') {
 					console.log(`[Auth Setup] JS Error: ${msg.text()}`);
 				}
@@ -92,7 +100,7 @@ setup('authenticate', async ({ page, request }) => {
 			// Click the setup button to start passkey registration
 			console.log('[Auth Setup] Clicking Create Account with Passkey button...');
 			await page.getByRole('button', { name: /Create Account with Passkey/i }).click();
-			
+
 			// Give time for immediate network requests
 			console.log('[Auth Setup] Waiting for network activity...');
 			await page.waitForTimeout(3000);

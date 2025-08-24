@@ -746,7 +746,7 @@ export async function waitForDocumentUpdate(
 export function getWorkerApiURL(workerIndex?: number): string {
 	const index = workerIndex ?? 0;
 	const isCI = typeof process !== 'undefined' && process.env?.CI;
-	
+
 	if (isCI) {
 		// In CI, use environment variables for container URLs
 		if (index === 0) {
@@ -755,7 +755,7 @@ export function getWorkerApiURL(workerIndex?: number): string {
 			return `${process.env?.E2E_AUTH_ENABLED_URL || 'http://localhost:8082'}/api`;
 		}
 	}
-	
+
 	// Local development
 	const port = 8081 + index;
 	return `http://localhost:${port}/api`;
@@ -764,7 +764,7 @@ export function getWorkerApiURL(workerIndex?: number): string {
 export function getWorkerBaseURL(workerIndex?: number): string {
 	const index = workerIndex ?? 0;
 	const isCI = typeof process !== 'undefined' && process.env?.CI;
-	
+
 	if (isCI) {
 		// In CI, use environment variables for container URLs
 		if (index === 0) {
@@ -773,7 +773,7 @@ export function getWorkerBaseURL(workerIndex?: number): string {
 			return process.env?.E2E_AUTH_ENABLED_URL || 'http://localhost:8082';
 		}
 	}
-	
+
 	// Local development
 	const port = 8081 + index;
 	return `http://localhost:${port}`;

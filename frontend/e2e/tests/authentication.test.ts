@@ -17,10 +17,7 @@ test.describe('Passkey Authentication System', () => {
 
 		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
 			// Create unauthenticated API helper using worker index 1 (auth-enabled container)
-			const unauthApiHelper = new ApiHelper(
-				apiHelper['apiContext'],
-				1
-			);
+			const unauthApiHelper = new ApiHelper(apiHelper['apiContext'], 1);
 
 			// Unauthenticated request should fail
 			const response = await unauthApiHelper.request('GET', '/documents');

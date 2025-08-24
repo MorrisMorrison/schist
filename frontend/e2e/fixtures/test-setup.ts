@@ -155,7 +155,7 @@ export const test = base.extend<{
 		let apiHelper: ApiHelper;
 
 		const projectName = testInfo.project.name;
-		
+
 		if (projectName === 'auth-disabled') {
 			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
 		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
@@ -199,7 +199,7 @@ export const test = base.extend<{
 	workerBaseURL: async ({}, use, testInfo) => {
 		const projectName = testInfo.project.name;
 		let baseURL: string;
-		
+
 		if (projectName === 'auth-disabled') {
 			baseURL = 'http://localhost:8081';
 		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
@@ -209,7 +209,7 @@ export const test = base.extend<{
 			const port = 8081 + (testInfo.parallelIndex || 0);
 			baseURL = `http://localhost:${port}`;
 		}
-		
+
 		await use(baseURL);
 	}
 });

@@ -51,8 +51,12 @@ jobs:
             exit 1
           }
           
-          # Verify connectivity via localhost ports (from runner container)
+          # Verify port availability and service connectivity
           echo "Verifying service connectivity..."
+          echo "Waiting for port availability..."
+          timeout 60 bash -c 'until nc -z localhost 8081; do echo "Waiting for port 8081..."; sleep 1; done' || exit 1
+          timeout 60 bash -c 'until nc -z localhost 8082; do echo "Waiting for port 8082..."; sleep 1; done' || exit 1
+          echo "Testing service health endpoints..."
           curl -f "http://localhost:8081/api/health" || exit 1
           curl -f "http://localhost:8082/api/health" || exit 1
           
@@ -64,6 +68,8 @@ jobs:
         run: cd frontend && npx playwright test
         env:
           CI: true
+          E2E_AUTH_DISABLED_URL: http://localhost:8081
+          E2E_AUTH_ENABLED_URL: http://localhost:8082
       
       # Show service logs if tests fail
       - name: Show service logs on failure

@@ -89,12 +89,14 @@ export default defineConfig({
 
 	// Only use webServer for local development, not in CI
 	// In CI, the services are started by GitHub Actions using docker-compose.e2e-ci.yml
-	...(isCI ? {} : {
-		webServer: {
-			command: 'cd .. && ./scripts/start-e2e-servers.sh',
-			port: 8081,
-			reuseExistingServer: true,
-			timeout: 180 * 1000 // 3 minutes for local Docker builds
-		}
-	})
+	...(isCI
+		? {}
+		: {
+				webServer: {
+					command: 'cd .. && ./scripts/start-e2e-servers.sh',
+					port: 8081,
+					reuseExistingServer: true,
+					timeout: 180 * 1000 // 3 minutes for local Docker builds
+				}
+			})
 });

@@ -16,7 +16,7 @@ const MOCK_CREDENTIAL = {
 };
 
 setup('authenticate', async ({ page, request }) => {
-	const baseURL = 'http://localhost:8082/api';
+	const baseURL = `${AUTH_ENABLED_BASE_URL}/api`;
 	const apiHelper = new ApiHelper(request, 0, baseURL); // Auth-enabled server
 	let webauthnHelper: WebAuthnHelper | null = null;
 

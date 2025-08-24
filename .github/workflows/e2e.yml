@@ -46,7 +46,7 @@ jobs:
           
           # Wait for services to be healthy using Docker health checks
           echo "Waiting for services to become healthy..."
-          timeout 120 bash -c 'while [ "$(docker-compose -f docker-compose.e2e-ci.yml ps -q | xargs -I {} docker inspect {} --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 2 ]; do echo "Waiting for health checks..."; sleep 3; done' || {
+          timeout 60 bash -c 'while [ "$(docker-compose -f docker-compose.e2e-ci.yml ps -q | xargs -I {} docker inspect {} --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 2 ]; do echo "Waiting for health checks..."; sleep 2; done' || {
             echo "❌ Health check timeout - showing container status:"
             docker-compose -f docker-compose.e2e-ci.yml ps
             docker-compose -f docker-compose.e2e-ci.yml logs
@@ -55,150 +55,71 @@ jobs:
           
           # Verify service connectivity using curl (no external dependencies)
           echo "Verifying service connectivity..."
-          echo "Debugging network setup..."
           
-          # Debug network information
-          echo "=== Docker containers status ==="
-          docker-compose -f docker-compose.e2e-ci.yml ps
-          
-          echo "=== Network information ==="
-          docker network ls
-          
-          echo "=== Port bindings ==="
-          # Get actual container names dynamically
-          AUTH_DISABLED_CONTAINER=$(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled)
-          AUTH_ENABLED_CONTAINER=$(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled)
-          
-          if [ -n "$AUTH_DISABLED_CONTAINER" ]; then
-            echo "Auth-disabled container ports:"
-            docker port $AUTH_DISABLED_CONTAINER || true
-          fi
-          
-          if [ -n "$AUTH_ENABLED_CONTAINER" ]; then
-            echo "Auth-enabled container ports:"
-            docker port $AUTH_ENABLED_CONTAINER || true
-          fi
-          
-          echo "=== Testing service health endpoints with retries ==="
-          
-          # Get container network details for direct connection
-          echo "Getting container network details..."
+          # Get container network details and Docker gateway for connectivity testing
           AUTH_DISABLED_CONTAINER_IP=$(docker inspect schist_schist-e2e-auth-disabled_1 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
           AUTH_ENABLED_CONTAINER_IP=$(docker inspect schist_schist-e2e-auth-enabled_1 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
-          
-          # Show detailed network information
-          echo "=== Container network details ==="
-          echo "Auth-disabled container networks:"
-          docker inspect schist_schist-e2e-auth-disabled_1 --format='{{json .NetworkSettings.Networks}}' 2>/dev/null | jq . || echo "jq not available"
-          echo "Auth-enabled container networks:"  
-          docker inspect schist_schist-e2e-auth-enabled_1 --format='{{json .NetworkSettings.Networks}}' 2>/dev/null | jq . || echo "jq not available"
+          DOCKER_GATEWAY=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || echo "")
           
           echo "Container IPs: auth-disabled=$AUTH_DISABLED_CONTAINER_IP, auth-enabled=$AUTH_ENABLED_CONTAINER_IP"
-          
-          # Test different connectivity methods immediately
-          echo "Testing connectivity methods..."
-          
-          # Get Docker host gateway IP
-          DOCKER_GATEWAY=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}' 2>/dev/null || echo "")
           echo "Docker gateway IP: $DOCKER_GATEWAY"
           
-          if [ -n "$AUTH_DISABLED_CONTAINER_IP" ]; then
-            echo "1. Container IP test:"
-            curl -v --max-time 5 "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" || echo "Container IP failed"
-          fi
-          
-          echo "2. Docker gateway + host port test:"
-          if [ -n "$DOCKER_GATEWAY" ]; then
-            curl -v --max-time 5 "http://$DOCKER_GATEWAY:8081/api/health" || echo "Gateway IP failed"
-          fi
-          
-          echo "3. Host network test (host.docker.internal):"
-          curl -v --max-time 5 "http://host.docker.internal:8081/api/health" || echo "host.docker.internal failed"
-          
-          # Wait for auth-disabled service
+          # Wait for auth-disabled service (prioritize Docker gateway since it works)
           AUTH_DISABLED_READY=false
           AUTH_DISABLED_URL=""
-          for i in {1..30}; do
-            # Try container IP first if available
-            if [ -n "$AUTH_DISABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service is ready via container IP ($AUTH_DISABLED_CONTAINER_IP)"
-              AUTH_DISABLED_READY=true
-              AUTH_DISABLED_URL="http://$AUTH_DISABLED_CONTAINER_IP:8080"
-              break
-            fi
-            # Try Docker gateway + host port
-            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s "http://$DOCKER_GATEWAY:8081/api/health" > /dev/null 2>&1; then
+          for i in {1..10}; do
+            # Try Docker gateway + host port first (most likely to work)
+            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s --max-time 3 "http://$DOCKER_GATEWAY:8081/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-disabled service is ready via Docker gateway ($DOCKER_GATEWAY:8081)"
               AUTH_DISABLED_READY=true
               AUTH_DISABLED_URL="http://$DOCKER_GATEWAY:8081"
               break
             fi
-            # Try host.docker.internal 
-            if curl -f -s "http://host.docker.internal:8081/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service is ready via host.docker.internal"
-              AUTH_DISABLED_READY=true
-              AUTH_DISABLED_URL="http://host.docker.internal:8081"
-              break
-            fi
-            # Try localhost (for local development compatibility)
-            if curl -f -s "http://localhost:8081/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service (8081) is ready via localhost"
+            # Try localhost as fallback
+            if curl -f -s --max-time 3 "http://localhost:8081/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service ready via localhost"
               AUTH_DISABLED_READY=true
               AUTH_DISABLED_URL="http://localhost:8081"
               break
             fi
-            # Try 127.0.0.1 as fallback
-            if curl -f -s "http://127.0.0.1:8081/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-disabled service (8081) is ready via 127.0.0.1"
+            # Try container IP if available
+            if [ -n "$AUTH_DISABLED_CONTAINER_IP" ] && curl -f -s --max-time 3 "http://$AUTH_DISABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service ready via container IP"
               AUTH_DISABLED_READY=true
-              AUTH_DISABLED_URL="http://127.0.0.1:8081"
+              AUTH_DISABLED_URL="http://$AUTH_DISABLED_CONTAINER_IP:8080"
               break
             fi
-            echo "Waiting for auth-disabled service... attempt $i/30"
-            sleep 1
+            echo "Waiting for auth-disabled service... attempt $i/10"
+            sleep 2
           done
           
-          # Wait for auth-enabled service  
+          # Wait for auth-enabled service (prioritize Docker gateway since it works)
           AUTH_ENABLED_READY=false
           AUTH_ENABLED_URL=""
-          for i in {1..30}; do
-            # Try container IP first if available
-            if [ -n "$AUTH_ENABLED_CONTAINER_IP" ] && curl -f -s "http://$AUTH_ENABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service is ready via container IP ($AUTH_ENABLED_CONTAINER_IP)"
-              AUTH_ENABLED_READY=true
-              AUTH_ENABLED_URL="http://$AUTH_ENABLED_CONTAINER_IP:8080"
-              break
-            fi
-            # Try Docker gateway + host port
-            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s "http://$DOCKER_GATEWAY:8082/api/health" > /dev/null 2>&1; then
+          for i in {1..10}; do
+            # Try Docker gateway + host port first (most likely to work)
+            if [ -n "$DOCKER_GATEWAY" ] && curl -f -s --max-time 3 "http://$DOCKER_GATEWAY:8082/api/health" > /dev/null 2>&1; then
               echo "✅ Auth-enabled service is ready via Docker gateway ($DOCKER_GATEWAY:8082)"
               AUTH_ENABLED_READY=true
               AUTH_ENABLED_URL="http://$DOCKER_GATEWAY:8082"
               break
             fi
-            # Try host.docker.internal
-            if curl -f -s "http://host.docker.internal:8082/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service is ready via host.docker.internal"
-              AUTH_ENABLED_READY=true
-              AUTH_ENABLED_URL="http://host.docker.internal:8082"
-              break
-            fi
-            # Try localhost (for local development compatibility)
-            if curl -f -s "http://localhost:8082/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service (8082) is ready via localhost"
+            # Try localhost as fallback
+            if curl -f -s --max-time 3 "http://localhost:8082/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service ready via localhost"
               AUTH_ENABLED_READY=true
               AUTH_ENABLED_URL="http://localhost:8082"
               break
             fi
-            # Try 127.0.0.1 as fallback
-            if curl -f -s "http://127.0.0.1:8082/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service (8082) is ready via 127.0.0.1"
+            # Try container IP if available
+            if [ -n "$AUTH_ENABLED_CONTAINER_IP" ] && curl -f -s --max-time 3 "http://$AUTH_ENABLED_CONTAINER_IP:8080/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service ready via container IP"
               AUTH_ENABLED_READY=true
-              AUTH_ENABLED_URL="http://127.0.0.1:8082"
+              AUTH_ENABLED_URL="http://$AUTH_ENABLED_CONTAINER_IP:8080"
               break
             fi
-            echo "Waiting for auth-enabled service... attempt $i/30"
-            sleep 1
+            echo "Waiting for auth-enabled service... attempt $i/10"
+            sleep 2
           done
           
           # Final verification

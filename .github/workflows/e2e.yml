@@ -51,14 +51,78 @@ jobs:
             exit 1
           }
           
-          # Verify port availability and service connectivity
+          # Verify service connectivity using curl (no external dependencies)
           echo "Verifying service connectivity..."
-          echo "Waiting for port availability..."
-          timeout 60 bash -c 'until nc -z localhost 8081; do echo "Waiting for port 8081..."; sleep 1; done' || exit 1
-          timeout 60 bash -c 'until nc -z localhost 8082; do echo "Waiting for port 8082..."; sleep 1; done' || exit 1
-          echo "Testing service health endpoints..."
-          curl -f "http://localhost:8081/api/health" || exit 1
-          curl -f "http://localhost:8082/api/health" || exit 1
+          echo "Debugging network setup..."
+          
+          # Debug network information
+          echo "=== Docker containers status ==="
+          docker-compose -f docker-compose.e2e-ci.yml ps
+          
+          echo "=== Network information ==="
+          docker network ls
+          
+          echo "=== Port bindings ==="
+          # Get actual container names dynamically
+          AUTH_DISABLED_CONTAINER=$(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled)
+          AUTH_ENABLED_CONTAINER=$(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled)
+          
+          if [ -n "$AUTH_DISABLED_CONTAINER" ]; then
+            echo "Auth-disabled container ports:"
+            docker port $AUTH_DISABLED_CONTAINER || true
+          fi
+          
+          if [ -n "$AUTH_ENABLED_CONTAINER" ]; then
+            echo "Auth-enabled container ports:"
+            docker port $AUTH_ENABLED_CONTAINER || true
+          fi
+          
+          echo "=== Testing service health endpoints with retries ==="
+          
+          # Wait for auth-disabled service
+          AUTH_DISABLED_READY=false
+          for i in {1..30}; do
+            if curl -f -s "http://localhost:8081/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-disabled service (8081) is ready"
+              AUTH_DISABLED_READY=true
+              break
+            fi
+            echo "Waiting for auth-disabled service (8081)... attempt $i/30"
+            if [ $i -eq 30 ]; then
+              echo "❌ Final attempt failed. Curl output:"
+              curl -v "http://localhost:8081/api/health" || true
+            fi
+            sleep 2
+          done
+          
+          # Wait for auth-enabled service  
+          AUTH_ENABLED_READY=false
+          for i in {1..30}; do
+            if curl -f -s "http://localhost:8082/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service (8082) is ready"
+              AUTH_ENABLED_READY=true
+              break
+            fi
+            echo "Waiting for auth-enabled service (8082)... attempt $i/30"
+            if [ $i -eq 30 ]; then
+              echo "❌ Final attempt failed. Curl output:"
+              curl -v "http://localhost:8082/api/health" || true
+            fi
+            sleep 2
+          done
+          
+          # Final verification
+          echo "Final connectivity test..."
+          if [ "$AUTH_DISABLED_READY" = "true" ] && [ "$AUTH_ENABLED_READY" = "true" ]; then
+            echo "✅ Both services are ready, performing final health checks..."
+            curl -f "http://localhost:8081/api/health" || exit 1
+            curl -f "http://localhost:8082/api/health" || exit 1
+          else
+            echo "❌ One or more services failed to become ready:"
+            echo "  Auth-disabled ready: $AUTH_DISABLED_READY"
+            echo "  Auth-enabled ready: $AUTH_ENABLED_READY"
+            exit 1
+          fi
           
           echo "✅ Services are ready!"
           docker-compose -f docker-compose.e2e-ci.yml ps

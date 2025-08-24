@@ -107,8 +107,15 @@ jobs:
           # Wait for auth-enabled service  
           AUTH_ENABLED_READY=false
           for i in {1..30}; do
+            # Try localhost first
             if curl -f -s "http://localhost:8082/api/health" > /dev/null 2>&1; then
-              echo "✅ Auth-enabled service (8082) is ready"
+              echo "✅ Auth-enabled service (8082) is ready via localhost"
+              AUTH_ENABLED_READY=true
+              break
+            fi
+            # Try 127.0.0.1 as fallback
+            if curl -f -s "http://127.0.0.1:8082/api/health" > /dev/null 2>&1; then
+              echo "✅ Auth-enabled service (8082) is ready via 127.0.0.1"
               AUTH_ENABLED_READY=true
               break
             fi
@@ -116,6 +123,8 @@ jobs:
             if [ $i -eq 30 ]; then
               echo "❌ Final attempt failed. Curl output:"
               curl -v "http://localhost:8082/api/health" || true
+              echo "❌ Trying 127.0.0.1:"
+              curl -v "http://127.0.0.1:8082/api/health" || true
             fi
             sleep 2
           done

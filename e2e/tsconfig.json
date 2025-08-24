@@ -12,6 +12,7 @@
 		"forceConsistentCasingInFileNames": true,
 		"baseUrl": ".",
 		"paths": {
+			"@fixtures/*": ["./fixtures/*"],
 			"*": ["*", "node_modules/*"]
 		},
 		"types": ["node", "@playwright/test"],

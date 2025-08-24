@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures';
+import { test, expect } from '../fixtures/test-data-fixtures';
 import { ApiHelper } from '../utils/api-helpers';
 import { BASE_URL, LOGIN_URL, SETTINGS_URL } from '../utils/routes';
 import { WebAuthnHelper } from '../utils/webauthn-helper';

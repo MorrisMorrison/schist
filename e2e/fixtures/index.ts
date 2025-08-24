@@ -1,6 +1,5 @@
 import { ApiHelper } from '../utils/api-helpers';
 
-export { test, expect } from '../fixtures/test-data-fixtures';
 
 export { HomePage } from '../pages/HomePage';
 export { EditorPage } from '../pages/EditorPage';

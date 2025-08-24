@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures';
+import { test, expect } from '../fixtures/test-data-fixtures';
 
 test.describe.serial('Folder Rename and Delete', () => {
 	const testFolderName = 'rename-delete-test';

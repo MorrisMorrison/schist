@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Detect if we're running in CI
 const isCI = !!globalThis.process?.env.CI;
 
-// Single E2E test URL 
+// Single E2E test URL
 const baseURL = globalThis.process?.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 // Debug: Log the URL being used

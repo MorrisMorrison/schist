@@ -152,31 +152,25 @@ export const test = base.extend<{
 	},
 
 	apiHelper: async ({ request }, use, testInfo) => {
-		let apiHelper: ApiHelper;
-
 		const projectName = testInfo.project.name;
 
 		// Single E2E service for all projects
 		const baseURL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
-		apiHelper = new ApiHelper(request, 0, `${baseURL}/api`);
+		const apiHelper = new ApiHelper(request, 0, `${baseURL}/api`);
 
 		// Load auth token for authenticated projects (not setup)
 		if (projectName === 'e2e') {
-				try {
-					const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
-					const token = authData.origins?.[0]?.localStorage?.find(
-						(item: { name: string; value: string }) => item.name === 'schist_auth_token'
-					)?.value;
-					if (token) {
-						apiHelper.setAuthToken(token);
-					}
-				} catch (error) {
-					console.warn('Failed to load auth token for API helper:', error);
+			try {
+				const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
+				const token = authData.origins?.[0]?.localStorage?.find(
+					(item: { name: string; value: string }) => item.name === 'schist_auth_token'
+				)?.value;
+				if (token) {
+					apiHelper.setAuthToken(token);
 				}
+			} catch (error) {
+				console.warn('Failed to load auth token for API helper:', error);
 			}
-		} else {
-			// Fallback for other project names
-			apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 		}
 
 		await use(apiHelper);

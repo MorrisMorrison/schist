@@ -392,7 +392,14 @@ func TestAssetService_Integration(t *testing.T) {
 
 func TestAssetService_ErrorCases(t *testing.T) {
 	t.Run("invalid data directory", func(t *testing.T) {
-		assetService := services.NewAssetService("/invalid/path/that/does/not/exist")
+		// Use a path that should definitely not be writable - a file instead of directory
+		tempFile, err := os.CreateTemp("", "test_invalid_path")
+		require.NoError(t, err)
+		defer os.Remove(tempFile.Name())
+		tempFile.Close()
+
+		// Try to use a regular file as the data directory, which should fail when creating subdirs
+		assetService := services.NewAssetService(tempFile.Name())
 
 		fileHeader, err := createMultipartFile("test.png", testImageData, "image/png")
 		require.NoError(t, err)

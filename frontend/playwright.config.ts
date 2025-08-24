@@ -52,14 +52,17 @@ export default defineConfig({
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
 		viewport: { width: 1280, height: 720 },
-		// Enable WebAuthn support for passkey testing
-		launchOptions: {
-			args: [
-				'--enable-web-authentication-api',
-				'--enable-webauthn-ctap2',
-				'--no-sandbox'
-			]
-		}
+		// In CI, treat container IP addresses as secure contexts for WebAuthn
+		...(isCI ? {
+			launchOptions: {
+				args: [
+					// Treat container URLs as secure for WebAuthn (dynamically set in CI)
+					...(globalThis.process?.env.E2E_AUTH_DISABLED_URL ? [`--unsafely-treat-insecure-origin-as-secure=${globalThis.process.env.E2E_AUTH_DISABLED_URL}`] : []),
+					...(globalThis.process?.env.E2E_AUTH_ENABLED_URL ? [`--unsafely-treat-insecure-origin-as-secure=${globalThis.process.env.E2E_AUTH_ENABLED_URL}`] : []),
+					'--no-sandbox'
+				]
+			}
+		} : {})
 	},
 
 	projects: [

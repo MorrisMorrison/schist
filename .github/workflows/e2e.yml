@@ -79,6 +79,23 @@ jobs:
               echo "Container IPs:"
               docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' 2>/dev/null || echo "No IP for auth-disabled"
               docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' 2>/dev/null || echo "No IP for auth-enabled"
+              echo "Container status details:"
+              docker-compose -f docker-compose.e2e-ci.yml ps
+              echo "Container logs (auth-disabled):"
+              docker-compose -f docker-compose.e2e-ci.yml logs --tail=20 schist-e2e-auth-disabled
+              echo "Container logs (auth-enabled):"
+              docker-compose -f docker-compose.e2e-ci.yml logs --tail=20 schist-e2e-auth-enabled
+              echo "Testing direct container IP connectivity:"
+              DISABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+              ENABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+              if [ -n "$DISABLED_IP" ]; then
+                echo "Testing auth-disabled at $DISABLED_IP:8080"
+                curl -f -s "http://$DISABLED_IP:8080/api/health" && echo "✅ Direct IP works for auth-disabled" || echo "❌ Direct IP failed for auth-disabled"
+              fi
+              if [ -n "$ENABLED_IP" ]; then
+                echo "Testing auth-enabled at $ENABLED_IP:8080"
+                curl -f -s "http://$ENABLED_IP:8080/api/health" && echo "✅ Direct IP works for auth-enabled" || echo "❌ Direct IP failed for auth-enabled"
+              fi
             fi
             
             sleep 3

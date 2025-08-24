@@ -98,6 +98,9 @@ jobs:
                 echo "Testing auth-enabled at $ENABLED_IP:8080"
                 curl -f -s "http://$ENABLED_IP:8080/api/health" && echo "✅ Direct IP works for auth-enabled" || echo "❌ Direct IP failed for auth-enabled"
               fi
+              echo "Testing health endpoint from inside containers:"
+              docker exec $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) curl -f -s "http://127.0.0.1:8080/api/health" && echo "✅ Health endpoint works inside auth-disabled container" || echo "❌ Health endpoint failed inside auth-disabled container"
+              docker exec $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) curl -f -s "http://127.0.0.1:8080/api/health" && echo "✅ Health endpoint works inside auth-enabled container" || echo "❌ Health endpoint failed inside auth-enabled container"
             fi
             
             sleep 3

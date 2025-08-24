@@ -10,11 +10,7 @@ import { readFileSync, statSync } from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 import { HomePage } from '../pages/HomePage';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
@@ -25,7 +21,7 @@ import { generateTestId } from '../utils/test-data';
 const execFileAsync = promisify(execFile);
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
 
-function findProjectRoot(startDir: string): string {
+function findProjectRoot(startDir: string = __dirname): string {
 	let currentDir = startDir;
 	while (currentDir !== path.dirname(currentDir)) {
 		try {

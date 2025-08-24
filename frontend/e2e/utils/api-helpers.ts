@@ -118,18 +118,6 @@ export class ApiHelper {
 
 	private getWorkerSpecificBaseURL(workerIndex?: number): string {
 		const index = workerIndex ?? 0;
-		const isCI = typeof process !== 'undefined' && process.env?.CI;
-		
-		if (isCI) {
-			// In CI, use environment variables for container URLs
-			if (index === 0) {
-				return `${process.env?.E2E_AUTH_DISABLED_URL || 'http://localhost:8081'}/api`;
-			} else {
-				return `${process.env?.E2E_AUTH_ENABLED_URL || 'http://localhost:8082'}/api`;
-			}
-		}
-		
-		// Local development - use localhost with appropriate port
 		const port = 8081 + index;
 		return `http://localhost:${port}/api`;
 	}

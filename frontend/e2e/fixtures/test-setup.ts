@@ -156,11 +156,9 @@ export const test = base.extend<{
 
 		const projectName = testInfo.project.name;
 		if (projectName === 'auth-disabled') {
-			// Use worker index 0 for auth-disabled container
-			apiHelper = new ApiHelper(request, 0);
+			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
 		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
-			// Use worker index 1 for auth-enabled container
-			apiHelper = new ApiHelper(request, 1);
+			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 
 			// Only load auth token for authenticated projects
 			if (projectName === 'auth-enabled') {
@@ -198,23 +196,15 @@ export const test = base.extend<{
 
 	// eslint-disable-next-line no-empty-pattern
 	workerBaseURL: async ({}, use, testInfo) => {
-		const isCI = typeof process !== 'undefined' && process.env?.CI;
+		const projectName = testInfo.project.name;
 		let baseURL: string;
 		
-		if (isCI) {
-			// In CI, use environment variables for container URLs
-			const projectName = testInfo.project.name;
-			if (projectName === 'auth-disabled') {
-				baseURL = process.env?.E2E_AUTH_DISABLED_URL || 'http://localhost:8081';
-			} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
-				baseURL = process.env?.E2E_AUTH_ENABLED_URL || 'http://localhost:8082';
-			} else {
-				// Fallback for other project names
-				const port = 8081 + (testInfo.parallelIndex || 0);
-				baseURL = `http://localhost:${port}`;
-			}
+		if (projectName === 'auth-disabled') {
+			baseURL = 'http://localhost:8081';
+		} else if (projectName === 'auth-enabled' || projectName === 'auth-enabled-unauthenticated') {
+			baseURL = 'http://localhost:8082';
 		} else {
-			// Local development - use localhost with appropriate port
+			// Fallback for other project names
 			const port = 8081 + (testInfo.parallelIndex || 0);
 			baseURL = `http://localhost:${port}`;
 		}

@@ -1,8 +1,3 @@
-networks:
-  ci-network:
-    external: true
-    name: uk0wo0wcg4gwo4wook4gswk0_ci-network
-
 services:
   schist-e2e-auth-disabled:
     build:
@@ -18,16 +13,14 @@ services:
       - SCHIST_PORT=8080
       - SCHIST_AUTH_ENABLED=false
       - SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long
-      - SCHIST_FRONTEND_URL=${E2E_DISABLED_FRONTEND_URL:-http://localhost:8081}
+      - SCHIST_FRONTEND_URL=http://localhost:8081
       - ENV=production
-    networks:
-      - ci-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
       interval: 5s
       timeout: 3s
-      retries: 12
-      start_period: 30s
+      retries: 10
+      start_period: 20s
 
   schist-e2e-auth-enabled:
     build:
@@ -43,13 +36,11 @@ services:
       - SCHIST_PORT=8080
       - SCHIST_AUTH_ENABLED=true
       - SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long
-      - SCHIST_FRONTEND_URL=${E2E_ENABLED_FRONTEND_URL:-http://localhost:8082}
+      - SCHIST_FRONTEND_URL=http://localhost:8082
       - ENV=production
-    networks:
-      - ci-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
       interval: 5s
       timeout: 3s
-      retries: 12
-      start_period: 30s
+      retries: 10
+      start_period: 20s

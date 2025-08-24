@@ -45,3 +45,4 @@ test-token
 docs/features
 frontend/playwright
 test-results/
+test-data*

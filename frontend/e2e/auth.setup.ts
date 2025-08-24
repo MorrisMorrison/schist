@@ -16,7 +16,7 @@ const MOCK_CREDENTIAL = {
 };
 
 setup('authenticate', async ({ page, request }) => {
-	const apiHelper = new ApiHelper(request, 1); // Use worker index 1 for auth-enabled container
+	const apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api'); // Auth-enabled server
 	let webauthnHelper: WebAuthnHelper | null = null;
 
 	try {

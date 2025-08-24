@@ -6,13 +6,9 @@ import { defineConfig, devices } from '@playwright/test';
 // Detect if we're running in CI
 const isCI = !!globalThis.process?.env.CI;
 
-// Get CI container URLs from environment or use defaults
-const authDisabledURL = isCI 
-  ? (globalThis.process?.env.E2E_AUTH_DISABLED_URL || 'http://localhost:8081')
-  : 'http://localhost:8081';
-const authEnabledURL = isCI 
-  ? (globalThis.process?.env.E2E_AUTH_ENABLED_URL || 'http://localhost:8082') 
-  : 'http://localhost:8082';
+// Use consistent localhost URLs for both local and CI
+const authDisabledURL = 'http://localhost:8081';
+const authEnabledURL = 'http://localhost:8082';
 
 export default defineConfig({
 	testDir: './e2e',
@@ -47,22 +43,11 @@ export default defineConfig({
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL will be set dynamically per worker via fixture */
-		baseURL: isCI ? undefined : 'http://localhost:8081',
+		baseURL: 'http://localhost:8081',
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
-		viewport: { width: 1280, height: 720 },
-		// In CI, treat container IP addresses as secure contexts for WebAuthn
-		...(isCI ? {
-			launchOptions: {
-				args: [
-					// Treat container URLs as secure for WebAuthn (dynamically set in CI)
-					...(globalThis.process?.env.E2E_AUTH_DISABLED_URL ? [`--unsafely-treat-insecure-origin-as-secure=${globalThis.process.env.E2E_AUTH_DISABLED_URL}`] : []),
-					...(globalThis.process?.env.E2E_AUTH_ENABLED_URL ? [`--unsafely-treat-insecure-origin-as-secure=${globalThis.process.env.E2E_AUTH_ENABLED_URL}`] : []),
-					'--no-sandbox'
-				]
-			}
-		} : {})
+		viewport: { width: 1280, height: 720 }
 	},
 
 	projects: [
@@ -102,14 +87,10 @@ export default defineConfig({
 		}
 	],
 
-	// Only use webServer for local development, not in CI
-	// In CI, the services are started by GitHub Actions using docker-compose.e2e-ci.yml
-	...(isCI ? {} : {
-		webServer: {
-			command: 'cd .. && ./scripts/start-e2e-servers.sh',
-			port: 8081,
-			reuseExistingServer: true,
-			timeout: 180 * 1000 // 3 minutes for local Docker builds
-		}
-	})
+	webServer: {
+		command: 'cd .. && docker-compose -f docker-compose.e2e-ci.yml up --build',
+		port: 8081,
+		reuseExistingServer: !isCI,
+		timeout: 120 * 1000 // 2 minutes for Docker builds
+	}
 });

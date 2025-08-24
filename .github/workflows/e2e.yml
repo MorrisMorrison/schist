@@ -52,16 +52,20 @@ jobs:
           echo "Waiting for services to be accessible..."
           echo "Giving containers initial startup time..."
           sleep 15
-          # Wait for both services to be ready - up to 90 seconds
+          # Wait for both services to be ready via their container IPs - up to 90 seconds
           for i in {1..30}; do
             auth_disabled_ready=false
             auth_enabled_ready=false
             
-            if curl -f -s http://localhost:8081/api/health > /dev/null 2>&1; then
+            # Get current container IPs
+            DISABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+            ENABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+            
+            if [ -n "$DISABLED_IP" ] && curl -f -s "http://$DISABLED_IP:8080/api/health" > /dev/null 2>&1; then
               auth_disabled_ready=true
             fi
             
-            if curl -f -s http://localhost:8082/api/health > /dev/null 2>&1; then
+            if [ -n "$ENABLED_IP" ] && curl -f -s "http://$ENABLED_IP:8080/api/health" > /dev/null 2>&1; then
               auth_enabled_ready=true
             fi
             
@@ -109,14 +113,12 @@ jobs:
             sleep 3
           done
           
-          # Final verification
+          # Final verification using container IPs (which we know work)
           echo "Final connectivity verification:"
-          echo "Testing localhost access from runner:"
-          curl -f -s http://localhost:8081/api/health > /dev/null && echo "✅ Auth-disabled service: OK" || echo "❌ Auth-disabled service: FAILED"
-          curl -f -s http://localhost:8082/api/health > /dev/null && echo "✅ Auth-enabled service: OK" || echo "❌ Auth-enabled service: FAILED"
-          echo "Testing host network access from runner:"
-          curl -f -s http://host.docker.internal:8081/api/health > /dev/null && echo "✅ Auth-disabled via host.docker.internal: OK" || echo "❌ Auth-disabled via host.docker.internal: FAILED"
-          curl -f -s http://host.docker.internal:8082/api/health > /dev/null && echo "✅ Auth-enabled via host.docker.internal: OK" || echo "❌ Auth-enabled via host.docker.internal: FAILED"
+          DISABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          ENABLED_IP=$(docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || echo "")
+          curl -f -s "http://$DISABLED_IP:8080/api/health" > /dev/null && echo "✅ Auth-disabled service: OK ($DISABLED_IP:8080)" || echo "❌ Auth-disabled service: FAILED"
+          curl -f -s "http://$ENABLED_IP:8080/api/health" > /dev/null && echo "✅ Auth-enabled service: OK ($ENABLED_IP:8080)" || echo "❌ Auth-enabled service: FAILED"
           
           echo "Container status:"
           docker-compose -f docker-compose.e2e-ci.yml ps

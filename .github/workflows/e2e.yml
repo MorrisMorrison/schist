@@ -15,7 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Set up Node.js (22.12.0 required for Svelte)
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -23,20 +22,16 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       
-      # Install frontend dependencies
       - name: Install frontend dependencies
         run: cd frontend && npm ci
       
-      # Install Playwright browsers
       - name: Install Playwright browsers
         run: cd frontend && npx playwright install --with-deps chromium
       
-      # Create test data directory
       - name: Prepare test environment  
         run: |
           mkdir -p e2e-data
       
-      # Start E2E service using runner's network namespace
       - name: Start E2E service  
         run: |
           echo "Starting E2E service using runner's network..."
@@ -103,21 +98,18 @@ jobs:
             sleep 2
           done
       
-      # Run Playwright tests (direct localhost access via shared network)
       - name: Run Playwright tests
         run: cd frontend && npx playwright test
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:3000
       
-      # Show service logs if tests fail
       - name: Show service logs on failure
         if: failure()
         run: |
           echo "=== E2E service logs ==="
           docker logs schist-e2e || echo "No logs available"
       
-      # Cleanup Docker containers
       - name: Cleanup Docker containers
         if: always()
         run: |

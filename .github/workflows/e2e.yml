@@ -36,61 +36,23 @@ jobs:
         run: |
           mkdir -p e2e-data
       
-      # Start E2E service using runner's network namespace
+      # Start E2E service with host networking
       - name: Start E2E service  
         run: |
-          echo "Starting E2E service using runner's network..."
-          
-          # Debug: Check all running containers
-          echo "All running containers:"
-          docker ps
-          
-          # Try different ways to find the runner container
-          RUNNER_ID=$(docker ps --filter "name=gh-runner" --format "{{.ID}}")
-          if [ -z "$RUNNER_ID" ]; then
-            RUNNER_ID=$(docker ps --filter "label=com.docker.compose.service=runner" --format "{{.ID}}")
-          fi
-          if [ -z "$RUNNER_ID" ]; then
-            RUNNER_ID=$(docker ps --filter "ancestor=myoung34/github-runner:latest" --format "{{.ID}}")
-          fi
-          
-          echo "Runner container ID: '$RUNNER_ID'"
-          
-          if [ -z "$RUNNER_ID" ]; then
-            echo "❌ Runner container not found! Falling back to host networking..."
-            # Build the image first
-            docker-compose -f docker-compose.e2e.yml build
-            
-            # Fallback: use host networking
-            docker run -d \
-              --name schist-e2e \
-              --network host \
-              -v "$(pwd)/e2e-data:/app/data" \
-              -e SCHIST_DATA_DIR=/app/data \
-              -e SCHIST_PORT=3000 \
-              -e SCHIST_AUTH_ENABLED=true \
-              -e SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long \
-              -e SCHIST_FRONTEND_URL=http://localhost:3000 \
-              -e ENV=production \
-              schist_schist
-          else
-            echo "✅ Using runner container network: $RUNNER_ID"
-            # Build the image first
-            docker-compose -f docker-compose.e2e.yml build
-            
-            # Run using the runner's network namespace
-            docker run -d \
-              --name schist-e2e \
-              --network container:$RUNNER_ID \
-              -v "$(pwd)/e2e-data:/app/data" \
-              -e SCHIST_DATA_DIR=/app/data \
-              -e SCHIST_PORT=3000 \
-              -e SCHIST_AUTH_ENABLED=true \
-              -e SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long \
-              -e SCHIST_FRONTEND_URL=http://localhost:3000 \
-              -e ENV=production \
-              schist_schist
-          fi
+          echo "Starting E2E service with host networking..."
+          # Build and run with host networking for direct localhost access
+          docker build -t schist-e2e --build-arg PUBLIC_API_URL="" .
+          docker run -d \
+            --name schist-e2e \
+            --network host \
+            -v "$(pwd)/e2e-data:/app/data" \
+            -e SCHIST_DATA_DIR=/app/data \
+            -e SCHIST_PORT=3000 \
+            -e SCHIST_AUTH_ENABLED=true \
+            -e SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long \
+            -e SCHIST_FRONTEND_URL=http://localhost:3000 \
+            -e ENV=production \
+            schist-e2e
           
           # Wait for service to be ready (now accessible via localhost:3000)
           echo "Waiting for service to be ready on localhost:3000..."
@@ -124,6 +86,6 @@ jobs:
           echo "Cleaning up E2E containers..."
           docker stop schist-e2e || true
           docker rm schist-e2e || true
-          docker rmi schist_schist || true
+          docker rmi schist-e2e || true
           rm -rf e2e-data || true
           echo "✅ Cleanup completed"

@@ -3,17 +3,20 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
+// Detect if we're running in CI
+const isCI = !!globalThis.process?.env.CI;
+
 export default defineConfig({
 	testDir: './e2e',
 
 	fullyParallel: true,
 
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
-	forbidOnly: !!globalThis.process?.env.CI,
+	forbidOnly: isCI,
 
-	retries: globalThis.process?.env.CI ? 2 : 0,
+	retries: isCI ? 2 : 0,
 
-	workers: globalThis.process?.env.CI ? 1 : 1,
+	workers: isCI ? 1 : 1,
 
 	/* Global timeout for each test */
 	timeout: 20 * 1000,
@@ -80,10 +83,14 @@ export default defineConfig({
 		}
 	],
 
-	webServer: {
-		command: 'cd .. && ./scripts/start-e2e-servers.sh',
-		port: 8081,
-		reuseExistingServer: true,
-		timeout: 300 * 1000 // 5 minutes for Docker builds in CI
-	}
+	// Only use webServer for local development, not in CI
+	// In CI, the services are started by GitHub Actions using docker-compose.e2e-ci.yml
+	...(isCI ? {} : {
+		webServer: {
+			command: 'cd .. && ./scripts/start-e2e-servers.sh',
+			port: 8081,
+			reuseExistingServer: true,
+			timeout: 180 * 1000 // 3 minutes for local Docker builds
+		}
+	})
 });

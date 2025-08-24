@@ -1,4 +1,4 @@
-.PHONY: all install build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-ui e2e-test e2e-grep check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
+.PHONY: all install build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend lint lint-frontend lint-backend e2e e2e-local e2e-ci e2e-ui e2e-test e2e-grep check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
 
 all: build
 
@@ -60,6 +60,23 @@ lint-backend:
 
 e2e: install
 	cd frontend && npm run test:e2e
+
+e2e-local: install
+	@echo "Running E2E tests locally with Docker Compose..."
+	cd frontend && npm run test:e2e
+
+e2e-ci:
+	@echo "Running E2E tests in CI with local Docker build..."
+	mkdir -p test-data-auth-disabled test-data-auth-enabled
+	docker-compose -f docker-compose.e2e-ci.yml up --build -d
+	@echo "Waiting for services to be healthy..."
+	@timeout 120 bash -c 'while ! docker-compose -f docker-compose.e2e-ci.yml ps | grep -E "(healthy|Up).*8080/tcp.*8081" > /dev/null; do echo "Waiting for auth-disabled service..."; sleep 5; done'
+	@timeout 120 bash -c 'while ! docker-compose -f docker-compose.e2e-ci.yml ps | grep -E "(healthy|Up).*8080/tcp.*8082" > /dev/null; do echo "Waiting for auth-enabled service..."; sleep 5; done'
+	@echo "✅ Services are ready!"
+	cd frontend && npx playwright test
+	@echo "Cleaning up..."
+	docker-compose -f docker-compose.e2e-ci.yml down --rmi all --volumes --remove-orphans || true
+	rm -rf test-data-auth-disabled test-data-auth-enabled || true
 
 e2e-ui:
 	cd frontend && npm run test:e2e-ui

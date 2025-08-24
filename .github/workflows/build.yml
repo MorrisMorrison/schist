@@ -47,7 +47,7 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build --build-arg PUBLIC_API_URL=/api -t schist:latest .
+          docker build --build-arg schist-test:latest .
           
       - name: Test Docker image
         run: |
@@ -56,7 +56,7 @@ jobs:
             -e SCHIST_DATA_DIR=/app/data \
             -e SCHIST_PORT=8080 \
             -e SCHIST_JWT_SECRET="aB3\$5fG8*9kL2&mN7@pQ4#rS6%tU1!vW0^xY5+zA8-bC3=dE7_fG2~hI4" \
-            schist:latest
+            schist-test:latest
           
           # Wait for container to be ready with proper retry mechanism
           echo "Waiting for container to start..."

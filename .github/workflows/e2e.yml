@@ -34,11 +34,11 @@ jobs:
       - name: Start E2E service  
         run: |
           echo "Starting E2E service..."
-          docker-compose -f docker-compose.e2e.yml up -d --build
+          docker-compose --profile e2e up -d --build
           
           # Wait for service to be healthy
           echo "Waiting for service to become healthy..."
-          timeout 60 bash -c 'while [ "$(docker-compose -f docker-compose.e2e.yml ps -q | xargs docker inspect --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 1 ]; do echo "Waiting..."; sleep 2; done'
+          timeout 60 bash -c 'while [ "$(docker-compose ps -q schist-e2e | xargs docker inspect --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 1 ]; do echo "Waiting..."; sleep 2; done'
           
           # Verify connectivity
           echo "Verifying service is ready..."
@@ -59,10 +59,10 @@ jobs:
       
       - name: Show service logs on failure
         if: failure()
-        run: docker-compose -f docker-compose.e2e.yml logs
+        run: docker-compose logs schist-e2e
       
       - name: Cleanup Docker containers
         if: always()
         run: |
-          docker-compose -f docker-compose.e2e.yml down --rmi all --volumes --remove-orphans || true
+          docker-compose --profile e2e down --rmi all --volumes --remove-orphans || true
           rm -rf e2e-data || true

@@ -16,41 +16,35 @@ services:
       - SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long
       - SCHIST_FRONTEND_URL=http://localhost:8080
       - ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
 
-  schist-e2e-auth-disabled:
+  schist-e2e:
     profiles: ["e2e"]
     build:
       context: .
       args:
         PUBLIC_API_URL: ""
     ports:
-      - "8081:8080"
+      - "3000:8080"
     volumes:
-      - ./test-data-auth-disabled:/app/data
-    environment:
-      - SCHIST_DATA_DIR=/app/data
-      - SCHIST_PORT=8080
-      - SCHIST_AUTH_ENABLED=false
-      - SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long
-      - SCHIST_FRONTEND_URL=http://localhost:8081
-      - ENV=production
-
-  schist-e2e-auth-enabled:
-    profiles: ["e2e"]
-    build:
-      context: .
-      args:
-        PUBLIC_API_URL: ""
-    ports:
-      - "8082:8080"
-    volumes:
-      - ./test-data-auth-enabled:/app/data
+      - ./e2e-data:/app/data
     environment:
       - SCHIST_DATA_DIR=/app/data
       - SCHIST_PORT=8080
       - SCHIST_AUTH_ENABLED=true
       - SCHIST_JWT_SECRET=test-jwt-secret-for-e2e-testing-32-bytes-long
-      - SCHIST_FRONTEND_URL=http://localhost:8082
+      - SCHIST_FRONTEND_URL=http://localhost:3000
       - ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
 

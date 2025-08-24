@@ -42,6 +42,13 @@ jobs:
           echo "Starting E2E services with local Docker build..."
           docker-compose -f docker-compose.e2e-ci.yml up --build -d
           
+          echo "=== Network debugging ==="
+          echo "Checking ci-network exists:"
+          docker network ls | grep ci-network || echo "❌ ci-network not found"
+          
+          echo "Container network connections:"
+          docker-compose -f docker-compose.e2e-ci.yml ps -q | xargs -I {} docker inspect {} --format '{{.Name}}: {{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}'
+          
           echo "Waiting for services to be accessible..."
           # Wait for both services to be ready - up to 90 seconds
           for i in {1..30}; do
@@ -62,6 +69,18 @@ jobs:
             fi
             
             echo "Attempt $i/30: Waiting for services (disabled: $auth_disabled_ready, enabled: $auth_enabled_ready)..."
+            
+            # Additional debugging on failed attempts
+            if [ $i -eq 10 ]; then
+              echo "=== Debugging after 10 attempts ==="
+              echo "Port bindings:"
+              docker port $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) 2>/dev/null || echo "No port info for auth-disabled"
+              docker port $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) 2>/dev/null || echo "No port info for auth-enabled"
+              echo "Container IPs:"
+              docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-disabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' 2>/dev/null || echo "No IP for auth-disabled"
+              docker inspect $(docker-compose -f docker-compose.e2e-ci.yml ps -q schist-e2e-auth-enabled) --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' 2>/dev/null || echo "No IP for auth-enabled"
+            fi
+            
             sleep 3
           done
           

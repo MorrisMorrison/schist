@@ -1,6 +1,6 @@
 networks:
-  e2e-network:
-    driver: bridge
+  ci-network:
+    external: true
 
 services:
   schist-e2e-auth-disabled:
@@ -20,8 +20,7 @@ services:
       - SCHIST_FRONTEND_URL=http://localhost:8081
       - ENV=production
     networks:
-      - e2e-network
-      - default
+      - ci-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 5s
@@ -46,8 +45,7 @@ services:
       - SCHIST_FRONTEND_URL=http://localhost:8082
       - ENV=production
     networks:
-      - e2e-network
-      - default
+      - ci-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 5s

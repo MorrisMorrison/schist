@@ -50,6 +50,8 @@ jobs:
           docker-compose -f docker-compose.e2e-ci.yml ps -q | xargs -I {} docker inspect {} --format '{{.Name}}: {{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}'
           
           echo "Waiting for services to be accessible..."
+          echo "Giving containers initial startup time..."
+          sleep 15
           # Wait for both services to be ready - up to 90 seconds
           for i in {1..30}; do
             auth_disabled_ready=false

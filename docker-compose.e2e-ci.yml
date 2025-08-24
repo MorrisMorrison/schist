@@ -25,8 +25,8 @@ services:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
       interval: 5s
       timeout: 3s
-      retries: 6
-      start_period: 10s
+      retries: 12
+      start_period: 30s
 
   schist-e2e-auth-enabled:
     build:
@@ -50,5 +50,5 @@ services:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
       interval: 5s
       timeout: 3s
-      retries: 6
-      start_period: 10s
+      retries: 12
+      start_period: 30s

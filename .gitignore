@@ -48,4 +48,6 @@ test-token
 docs/features
 e2e/playwright
 test-results/
-test-data*
+test-data*.json
+test-data*.csv
+test-data*.sql

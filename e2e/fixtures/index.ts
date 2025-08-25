@@ -9,7 +9,6 @@ export { BasePage } from '../pages/BasePage';
 export { SettingsPage } from '../pages/SettingsPage';
 
 export { ApiHelper } from '../utils/api-helpers';
-export * from '../utils/test-data';
 
 export async function setupCleanState(apiHelper: ApiHelper) {
 	await apiHelper.cleanupTestData();

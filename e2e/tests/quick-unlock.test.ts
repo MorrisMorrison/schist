@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures/test-data-fixtures';
 import { BASE_URL } from '../utils/routes';
 
 test.describe('Quick Unlock Feature', () => {

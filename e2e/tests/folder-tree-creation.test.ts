@@ -1,4 +1,4 @@
-import { test, expect } from '@e2e/fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures/test-data-fixtures';
 
 test.describe.serial('Folder Tree Creation', () => {
 	const testFolderName = 'tree-test-folder';

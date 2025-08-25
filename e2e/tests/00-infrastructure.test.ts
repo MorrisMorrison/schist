@@ -2,7 +2,7 @@
  * Infrastructure tests to verify e2e test setup is working
  */
 
-import { test, expect } from '@e2e/fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures/test-data-fixtures';
 import { expectPageLoaded, expectVisibleText } from '../utils/assertions';
 
 test.describe('E2E Infrastructure', () => {

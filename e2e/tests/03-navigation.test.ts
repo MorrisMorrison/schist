@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures';
 import { createTestPage } from '../utils/test-data';
 
 test.describe('Navigation and Routing', () => {

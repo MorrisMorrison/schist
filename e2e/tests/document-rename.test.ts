@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures';
 
 test.describe.serial('Document Rename', () => {
 	test('should rename document via context menu', async ({

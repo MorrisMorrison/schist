@@ -23,3 +23,6 @@ export async function waitForAppReady(page: import('@playwright/test').Page) {
 		await loadingIndicators.first().waitFor({ state: 'hidden', timeout: 5000 });
 	}
 }
+
+// Re-export test fixtures
+export { test, expect } from './test-data-fixtures';

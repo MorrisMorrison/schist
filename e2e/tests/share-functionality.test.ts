@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures';
 import { SharedDocumentPage } from '../pages/SharedDocumentPage';
 
 test.describe.serial('Share Functionality', () => {

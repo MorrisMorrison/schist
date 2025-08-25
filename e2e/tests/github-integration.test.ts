@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures';
 
 test.describe('GitHub Integration', () => {
 	test.beforeEach(async ({ settingsPage }) => {

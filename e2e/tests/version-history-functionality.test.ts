@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures';
 
 test.describe('Version History Functionality', () => {
 	test('should display version history and allow comparison', async ({

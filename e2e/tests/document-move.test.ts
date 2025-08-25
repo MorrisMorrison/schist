@@ -1,4 +1,4 @@
-import { test } from '../fixtures/test-data-fixtures';
+import { test } from '../fixtures';
 import { createTestDocument } from '../utils/test-data';
 
 test.describe.serial('Document Move', () => {

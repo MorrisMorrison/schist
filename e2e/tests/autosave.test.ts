@@ -1,4 +1,4 @@
-import { test } from '../fixtures/test-data-fixtures';
+import { test } from '../fixtures';
 
 test.describe('Auto-save Functionality', () => {
 	test('should auto-save content without navigation', async ({

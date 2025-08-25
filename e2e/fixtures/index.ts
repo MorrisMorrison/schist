@@ -23,5 +23,5 @@ export async function waitForAppReady(page: import('@playwright/test').Page) {
 	}
 }
 
-// Re-export test fixtures
+// Re-export test and expect from test-data-fixtures for convenience
 export { test, expect } from './test-data-fixtures';

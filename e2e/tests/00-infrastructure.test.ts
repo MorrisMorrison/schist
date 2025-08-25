@@ -2,8 +2,8 @@
  * Infrastructure tests to verify e2e test setup is working
  */
 
-import { test, expect } from '../fixtures/test-data-fixtures.ts';
-import { expectPageLoaded, expectVisibleText } from '../utils/assertions.ts';
+import { test, expect } from '../fixtures/test-data-fixtures';
+import { expectPageLoaded, expectVisibleText } from '../utils/assertions';
 
 test.describe('E2E Infrastructure', () => {
 	test('page objects work correctly', async ({ homePage }) => {

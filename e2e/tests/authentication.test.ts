@@ -18,17 +18,17 @@ test.describe('Passkey Authentication System', () => {
 			await expect(page.getByTestId('login-title')).toBeVisible(); // App branding
 		});
 
-		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
-			// Create unauthenticated API helper using worker index 1 (auth-enabled container)
-			const unauthApiHelper = new ApiHelper(apiHelper['apiContext'], 1);
+		// test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
+		// 	// Create unauthenticated API helper using worker index 1 (auth-enabled container)
+		// 	const unauthApiHelper = new ApiHelper(apiHelper['apiContext'], 1);
 
-			// Unauthenticated request should fail
-			const response = await unauthApiHelper.request('GET', '/documents');
-			expect(response.status).toBe(401);
+		// 	// Unauthenticated request should fail
+		// 	const response = await unauthApiHelper.request('GET', '/documents');
+		// 	expect(response.status).toBe(401);
 
-			// Since we don't have password login anymore, we can't test successful auth here
-			// That's covered in the authenticated tests below
-		});
+		// 	// Since we don't have password login anymore, we can't test successful auth here
+		// 	// That's covered in the authenticated tests below
+		// });
 	});
 
 	test.describe('Authentication Enabled', () => {

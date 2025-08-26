@@ -88,7 +88,7 @@ ifndef TEST
 	@cd e2e && find tests -name "*.test.ts" -exec basename {} \; | sort
 	@exit 1
 endif
-	cd e2e && npx playwright test tests/$(TEST) && npm run cleanup
+	cd e2e && npx playwright test tests/$(TEST)
 
 # Run specific test by grep pattern (across all test files)
 # Usage: make e2e-grep GREP="should delete a document"
@@ -99,7 +99,7 @@ ifndef GREP
 	@echo "Example: make e2e-grep GREP=\"authentication\""
 	@exit 1
 endif
-	cd e2e && npx playwright test --grep "$(GREP)" && npm run cleanup
+	cd e2e && npx playwright test --grep "$(GREP)"
 
 check:
 	cd frontend && npm run check

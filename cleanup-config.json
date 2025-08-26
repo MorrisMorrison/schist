@@ -74,6 +74,22 @@
       "test_directories": [],
       "e2e_results": [],
       "log_files": [],
+      "temp_files": [],
+      "search_patterns": [],
+      "system_cleanup": false
+    },
+    "e2e-full": {
+      "data_directories": [
+        "backend/cmd/schist/test-data-auth-disabled",
+        "backend/cmd/schist/test-data-auth-enabled", 
+        "backend/cmd/schist/test-data-worker-1",
+        "backend/cmd/schist/test-data-worker-2",
+        "backend/cmd/schist/test-data-worker-3",
+        "backend/cmd/schist/test-data-worker-4"
+      ],
+      "test_directories": [],
+      "e2e_results": [],
+      "log_files": [],
       "temp_files": [
         "e2e/playwright/.auth/user.json"
       ],

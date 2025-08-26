@@ -10,7 +10,7 @@ on:
 jobs:
   e2e:
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 10
     
     steps:
       - uses: actions/checkout@v4

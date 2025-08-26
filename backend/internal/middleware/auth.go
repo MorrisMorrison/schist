@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -119,4 +120,49 @@ func (ja *JWTAuth) unauthorized(c *gin.Context) {
 func JWTMiddleware(authService *services.AuthService, config *config.Config) gin.HandlerFunc {
 	auth := NewJWTAuth(authService, config)
 	return auth.Middleware()
+}
+
+// UserServiceInterface defines the methods needed by the admin middleware
+type UserServiceInterface interface {
+	GetUserByUsername(username string) (*models.User, error)
+}
+
+// AdminAuthMiddleware ensures the authenticated user has admin privileges
+func AdminAuthMiddleware(userService UserServiceInterface) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// First ensure user is authenticated
+		username, exists := c.Get("authenticated_user")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "Unauthorized",
+				"message": "Authentication required to access this resource",
+			})
+			c.Abort()
+			return
+		}
+
+		// Get user details to check admin status
+		user, err := userService.GetUserByUsername(username.(string))
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "Unauthorized",
+				"message": "User not found",
+			})
+			c.Abort()
+			return
+		}
+
+		// Check if user has admin privileges
+		if !user.IsAdmin {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "Forbidden",
+				"message": "Admin privileges required to access this resource",
+			})
+			c.Abort()
+			return
+		}
+
+		// User is authenticated and has admin privileges, proceed
+		c.Next()
+	}
 }

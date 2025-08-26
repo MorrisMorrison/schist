@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/middleware"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/MorrisMorrison/schist/internal/utils"
@@ -45,16 +46,23 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 
 	auth := routerGroup.Group("/auth")
 	{
+		// Public and non-admin endpoints
 		auth.GET("/setup/required", h.checkSetupRequired)
 		auth.POST("/setup/first-user", h.createFirstUser)
 		auth.POST("/setup/invite-user", h.createUserFromInvite)
 		auth.POST("/login/passkey", h.loginWithPasskey)
 		auth.POST("/logout", h.logout)
 		auth.GET("/me", h.getCurrentUser)
-		auth.POST("/invite", h.generateInviteToken)
-		auth.POST("/users", h.createUser)
-		auth.GET("/users", h.listUsers)
-		auth.DELETE("/users/:username", h.deleteUser)
+
+		// Admin-only endpoints
+		adminAuth := auth.Group("/")
+		adminAuth.Use(middleware.AdminAuthMiddleware(h.Services.UserService))
+		{
+			adminAuth.POST("/invite", h.generateInviteToken)
+			adminAuth.POST("/users", h.createUser)
+			adminAuth.GET("/users", h.listUsers)
+			adminAuth.DELETE("/users/:username", h.deleteUser)
+		}
 	}
 	documents := routerGroup.Group("/documents")
 	{
@@ -515,7 +523,6 @@ type CreateUserRequest struct {
 }
 
 func (h *APIHandler) createUser(c *gin.Context) {
-	// TODO: Add admin authentication middleware
 	var req CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -539,7 +546,6 @@ func (h *APIHandler) createUser(c *gin.Context) {
 }
 
 func (h *APIHandler) listUsers(c *gin.Context) {
-	// TODO: Add admin authentication middleware
 	users, err := h.Services.UserService.ListUsers()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -554,7 +560,6 @@ func (h *APIHandler) listUsers(c *gin.Context) {
 }
 
 func (h *APIHandler) deleteUser(c *gin.Context) {
-	// TODO: Add admin authentication middleware
 	username := c.Param("username")
 	if username == "" {
 		c.JSON(http.StatusBadRequest, gin.H{

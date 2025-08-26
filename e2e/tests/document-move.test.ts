@@ -1,4 +1,4 @@
-import { test } from '../fixtures';
+import { expect, test } from '../fixtures';
 import { createTestDocument } from '../utils/test-data';
 
 test.describe.serial('Document Move', () => {
@@ -75,17 +75,25 @@ test.describe.serial('Document Move', () => {
 		// Try to drag document to itself or invalid target
 		await folderPage.navigateToRoot();
 
+		// Wait for folder tree to be fully loaded
+		await page.waitForLoadState('networkidle');
+
 		const folderTree = page.getByTestId('folder-tree');
 		const documentTreeItem = folderTree.getByText(testDocument.title);
 
-		if (await documentTreeItem.isVisible()) {
-			// Try to drag to itself (should not work)
-			await documentTreeItem.dragTo(documentTreeItem);
+		// Wait for document to appear in tree with timeout
+		await expect(documentTreeItem).toBeVisible({ timeout: 10000 });
 
-			// Verify document is still in original location
-			await documentViewPage.navigateToDocument(testDocumentPath);
-			await documentViewPage.verifyDocumentLoaded(testDocument.title);
-			await documentViewPage.expectUrl(`/documents${testDocumentPath}`);
-		}
+		// Try to drag to itself (should not work)
+		await documentTreeItem.dragTo(documentTreeItem);
+
+		// Wait for any potential page changes to settle
+		await page.waitForTimeout(1000);
+		await page.waitForLoadState('networkidle');
+
+		// Verify document is still in original location
+		await documentViewPage.navigateToDocument(testDocumentPath);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.expectUrl(`/documents${testDocumentPath}`);
 	});
 });

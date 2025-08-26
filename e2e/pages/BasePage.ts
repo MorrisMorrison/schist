@@ -39,10 +39,24 @@ export abstract class BasePage {
 	}
 
 	/**
-	 * Wait for element to be visible
+	 * Wait for element to be visible with retry logic
 	 */
-	async waitForVisible(locator: Locator) {
-		await expect(locator).toBeVisible();
+	async waitForVisible(locator: Locator, timeoutMs: number = 10000) {
+		await expect(locator).toBeVisible({ timeout: timeoutMs });
+	}
+
+	/**
+	 * Wait for page to be stable (no pending network requests or DOM changes)
+	 */
+	async waitForPageStable() {
+		// Wait for any pending navigation
+		await this.page.waitForLoadState('networkidle');
+
+		// Wait for any dynamic content to load
+		await this.page.waitForTimeout(500);
+
+		// Ensure DOM is stable
+		await this.page.waitForLoadState('domcontentloaded');
 	}
 
 	/**

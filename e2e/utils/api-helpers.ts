@@ -508,8 +508,10 @@ export class ApiHelper {
 					await new Promise((resolve) => setTimeout(resolve, 1000));
 					return true;
 				}
-			} catch (error) {
-				console.log(`[API Ready] Waiting for server... (${Math.round((Date.now() - startTime) / 1000)}s)`);
+			} catch (_error) {
+				console.log(
+					`[API Ready] Waiting for server... (${Math.round((Date.now() - startTime) / 1000)}s)`
+				);
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, retryInterval));

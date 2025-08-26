@@ -8,7 +8,7 @@ test.describe('Passkey Authentication System', () => {
 		// test('should redirect unauthenticated users to login', async ({ page, context }) => {
 		// 	// Clear authentication state to test unauthenticated behavior
 		// 	await context.clearCookies();
-			
+
 		// 	await page.goto(BASE_URL);
 
 		// 	await expect(page).toHaveURL(/\/login/);

@@ -102,10 +102,10 @@ setup('authenticate', async ({ page, request }) => {
 		if (credentials.length === 0) {
 			console.log('[Auth Setup] No credentials found, adding mock credential for existing user...');
 			await webauthnHelper.addCredential(MOCK_CREDENTIAL);
-			
+
 			// Wait a bit for the credential to be properly registered
 			await page.waitForTimeout(200);
-			
+
 			credentials = await webauthnHelper.getCredentials();
 			console.log(`[Auth Setup] Credentials after adding mock: ${credentials.length}`);
 

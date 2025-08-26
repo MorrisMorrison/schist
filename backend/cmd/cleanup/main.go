@@ -177,15 +177,15 @@ func getDefaultConfig() CleanupConfig {
 					"backend/cmd/schist/test-data-*",
 				},
 				TestDirectories: []string{
-					"frontend/test-results",
-					"frontend/playwright-report",
+					"e2e/test-results",
+					"e2e/playwright-report",
 					"frontend/coverage",
 					"backend/coverage",
 					"backend/test-results",
 				},
 				E2EResults: []string{
-					"frontend/test-results/**",
-					"frontend/playwright-report/**",
+					"e2e/test-results/**",
+					"e2e/playwright-report/**",
 					"**/playwright-report/**",
 					"**/test-results/**",
 				},
@@ -202,7 +202,7 @@ func getDefaultConfig() CleanupConfig {
 					"tmp/**",
 					"/tmp/schist-*",
 					"/var/tmp/schist-*",
-					"frontend/playwright/.auth/user.json",
+					"e2e/playwright/.auth/user.json",
 				},
 				SearchPatterns: []string{
 					"**/node_modules/.cache/**",
@@ -220,14 +220,14 @@ func getDefaultConfig() CleanupConfig {
 					"backend/cmd/schist/test-data-*",
 				},
 				TestDirectories: []string{
-					"frontend/test-results",
-					"frontend/playwright-report",
+					"e2e/test-results",
+					"e2e/playwright-report",
 					"frontend/coverage",
 					"backend/coverage",
 				},
 				E2EResults: []string{
-					"frontend/test-results/**",
-					"frontend/playwright-report/**",
+					"e2e/test-results/**",
+					"e2e/playwright-report/**",
 				},
 				LogFiles: []string{
 					"*.log",
@@ -236,7 +236,7 @@ func getDefaultConfig() CleanupConfig {
 				TempFiles: []string{
 					"*.tmp",
 					"*.temp",
-					"frontend/playwright/.auth/user.json",
+					"e2e/playwright/.auth/user.json",
 				},
 				SearchPatterns: []string{},
 				SystemCleanup:  false,
@@ -251,16 +251,16 @@ func getDefaultConfig() CleanupConfig {
 					"backend/cmd/schist/test-data-worker-4",
 				},
 				TestDirectories: []string{
-					"frontend/test-results",
-					"frontend/playwright-report",
+					"e2e/test-results",
+					"e2e/playwright-report",
 				},
 				E2EResults: []string{
-					"frontend/test-results/**",
-					"frontend/playwright-report/**",
+					"e2e/test-results/**",
+					"e2e/playwright-report/**",
 				},
 				LogFiles: []string{},
 				TempFiles: []string{
-					"frontend/playwright/.auth/user.json",
+					"e2e/playwright/.auth/user.json",
 				},
 				SearchPatterns: []string{},
 				SystemCleanup:  false,

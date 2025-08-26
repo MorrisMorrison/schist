@@ -10,11 +10,7 @@ import { readFileSync, statSync } from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 import { HomePage } from '../pages/HomePage';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
@@ -25,7 +21,7 @@ import { generateTestId } from '../utils/test-data';
 const execFileAsync = promisify(execFile);
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
 
-function findProjectRoot(startDir: string): string {
+function findProjectRoot(startDir: string = __dirname): string {
 	let currentDir = startDir;
 	while (currentDir !== path.dirname(currentDir)) {
 		try {
@@ -152,14 +148,14 @@ export const test = base.extend<{
 	},
 
 	apiHelper: async ({ request }, use, testInfo) => {
-		let apiHelper: ApiHelper;
-
 		const projectName = testInfo.project.name;
-		if (projectName === 'auth-disabled') {
-			apiHelper = new ApiHelper(request, 0, 'http://localhost:8081/api');
-		} else if (projectName === 'auth-enabled') {
-			apiHelper = new ApiHelper(request, 0, 'http://localhost:8082/api');
 
+		// Single E2E service for all projects
+		const baseURL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+		const apiHelper = new ApiHelper(request, 0, `${baseURL}/api`);
+
+		// Load auth token for authenticated projects (not setup)
+		if (projectName === 'e2e') {
 			try {
 				const authData = JSON.parse(readFileSync('playwright/.auth/user.json', 'utf8'));
 				const token = authData.origins?.[0]?.localStorage?.find(
@@ -171,8 +167,6 @@ export const test = base.extend<{
 			} catch (error) {
 				console.warn('Failed to load auth token for API helper:', error);
 			}
-		} else {
-			apiHelper = new ApiHelper(request, testInfo.parallelIndex);
 		}
 
 		await use(apiHelper);
@@ -191,10 +185,10 @@ export const test = base.extend<{
 	},
 
 	// eslint-disable-next-line no-empty-pattern
-	workerBaseURL: async ({}, use, testInfo) => {
-		// parallelIndex: 0 -> port 8081 (auth-disabled), 1 -> port 8082 (auth-enabled), etc.
-		const port = 8081 + (testInfo.parallelIndex || 0);
-		const baseURL = `http://localhost:${port}`;
+	workerBaseURL: async ({}, use) => {
+		// Single E2E service URL for all projects
+		const baseURL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+
 		await use(baseURL);
 	}
 });

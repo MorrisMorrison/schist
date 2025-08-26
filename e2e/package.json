@@ -1,0 +1,34 @@
+{
+	"name": "schist-e2e",
+	"private": true,
+	"version": "1.0.0",
+	"description": "End-to-end tests for Schist application",
+	"scripts": {
+		"test": "npx playwright test",
+		"test:clean": "npx playwright test && npm run cleanup:full",
+		"test:ui": "npx playwright test --ui",
+		"test:debug": "npx playwright test --debug",
+		"test:headed": "npx playwright test --headed",
+		"cleanup": "cd .. && ./scripts/cleanup.sh --profile=e2e-only",
+		"cleanup:full": "cd .. && ./scripts/cleanup.sh --profile=e2e-full",
+		"cleanup-test-data": "cd .. && ./scripts/cleanup.sh --profile=e2e-only",
+		"install-browsers": "npx playwright install --with-deps chromium",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"lint": "prettier --check . && eslint .",
+		"lint:fix": "eslint --fix . && prettier --write ."
+	},
+	"devDependencies": {
+		"@eslint/compat": "^1.2.5",
+		"@eslint/js": "^9.18.0",
+		"@playwright/test": "^1.49.1",
+		"@types/node": "^24.2.1",
+		"eslint": "^9.18.0",
+		"eslint-config-prettier": "^10.0.1",
+		"globals": "^16.0.0",
+		"playwright": "^1.53.0",
+		"prettier": "^3.4.2",
+		"typescript": "^5.0.0",
+		"typescript-eslint": "^8.20.0"
+	}
+}

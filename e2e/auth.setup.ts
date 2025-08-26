@@ -1,23 +1,33 @@
 import { test as setup, expect } from '@playwright/test';
 import { ApiHelper } from './utils/api-helpers';
 import { WebAuthnHelper } from './utils/webauthn-helper';
-import { AUTH_ENABLED_BASE_URL, LOGIN_URL, SETUP_URL } from './utils/routes';
+import { BASE_URL, LOGIN_URL, SETUP_URL } from './utils/routes';
 
 const authFile = 'playwright/.auth/user.json';
 const testUsername = 'testuser';
 
-// Mock credential data for testing
-const MOCK_CREDENTIAL = {
+// Mock credential data for testing - rpId will be set dynamically
+const MOCK_CREDENTIAL_BASE = {
 	credentialId: 'bW9jay1jcmVkZW50aWFsLWlkLWZvci1lMmUtdGVzdGluZw==', // base64 encoded
 	privateKey: 'bW9jay1wcml2YXRlLWtleS1mb3ItZTJlLXRlc3RpbmctdGhpcy1pcy0zMi1ieXRlcy1sb25nIQ==', // base64 encoded
 	userHandle: 'dGVzdHVzZXI=', // base64 encoded 'testuser'
-	signCount: 1,
-	rpId: 'localhost'
+	signCount: 1
 };
 
 setup('authenticate', async ({ page, request }) => {
-	const apiHelper = new ApiHelper(request, 0, `${AUTH_ENABLED_BASE_URL}/api`);
+	const apiHelper = new ApiHelper(request, 0, `${BASE_URL}/api`);
 	let webauthnHelper: WebAuthnHelper | null = null;
+
+	// Determine rpId based on the URL - use hostname to handle both localhost and IP addresses
+	const authURL = new URL(BASE_URL);
+	const rpId = authURL.hostname;
+	console.log(`[Auth Setup] Using rpId: ${rpId} for URL: ${BASE_URL}`);
+
+	// Create mock credential with dynamic rpId
+	const MOCK_CREDENTIAL = {
+		...MOCK_CREDENTIAL_BASE,
+		rpId: rpId
+	};
 
 	try {
 		// Wait for the auth-enabled server to be ready
@@ -92,6 +102,10 @@ setup('authenticate', async ({ page, request }) => {
 		if (credentials.length === 0) {
 			console.log('[Auth Setup] No credentials found, adding mock credential for existing user...');
 			await webauthnHelper.addCredential(MOCK_CREDENTIAL);
+
+			// Wait a bit for the credential to be properly registered
+			await page.waitForTimeout(200);
+
 			credentials = await webauthnHelper.getCredentials();
 			console.log(`[Auth Setup] Credentials after adding mock: ${credentials.length}`);
 
@@ -109,13 +123,7 @@ setup('authenticate', async ({ page, request }) => {
 			{ timeout: 20000 }
 		);
 
-		// Click sign in with passkey
-		await page.getByRole('button', { name: /Sign in with Passkey/i }).click();
-
-		// Add a small delay to ensure the WebAuthn API call is initiated
-		await page.waitForTimeout(500);
-
-		// Ensure authenticator is ready for authentication
+		// Ensure authenticator is ready for authentication BEFORE clicking
 		try {
 			await webauthnHelper.ensureAuthenticatorReady();
 			console.log('[Auth Setup] Authenticator prepared for authentication');
@@ -123,11 +131,17 @@ setup('authenticate', async ({ page, request }) => {
 			console.warn('[Auth Setup] Error preparing authenticator:', error);
 		}
 
+		// Click sign in with passkey
+		await page.getByRole('button', { name: /Sign in with Passkey/i }).click();
+
+		// Add delay to ensure the WebAuthn API call is initiated
+		await page.waitForTimeout(1000);
+
 		// Wait for authentication to complete
 		await authFinishPromise;
 
 		// Should redirect to home page
-		await expect(page).toHaveURL(AUTH_ENABLED_BASE_URL, { timeout: 10000 });
+		await expect(page).toHaveURL(BASE_URL, { timeout: 10000 });
 
 		// Verify authenticated state
 		await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();

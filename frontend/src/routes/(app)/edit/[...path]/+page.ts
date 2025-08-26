@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import type { Document } from '$lib/api/types.js';
+import type { Document } from '$lib/api/types';
 import { apiClient } from '$lib';
 import type { PageLoad } from './$types';
 

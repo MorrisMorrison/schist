@@ -1,4 +1,4 @@
-import type { Folder as FolderType, Document } from '$lib/api/types.js';
+import type { Folder as FolderType, Document } from '$lib/api/types';
 import { folderActions, documentActions } from '$lib/stores/documents.svelte';
 
 export interface DragItem {

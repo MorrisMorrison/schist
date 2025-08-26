@@ -116,10 +116,9 @@ export class ApiHelper {
 		return this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {};
 	}
 
-	private getWorkerSpecificBaseURL(workerIndex?: number): string {
-		const index = workerIndex ?? 0;
-		const port = 8081 + index;
-		return `http://localhost:${port}/api`;
+	private getWorkerSpecificBaseURL(): string {
+		// Single E2E service URL - same for all workers
+		return `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
 	}
 
 	async healthCheck(): Promise<boolean> {
@@ -494,12 +493,30 @@ export class ApiHelper {
 
 	async waitForApiReady(timeoutMs: number = 30000): Promise<boolean> {
 		const startTime = Date.now();
+		let retryInterval = 1000; // Start with 1 second
 
 		while (Date.now() - startTime < timeoutMs) {
-			if (await this.healthCheck()) {
-				return true;
+			try {
+				// Check both health and config endpoints to ensure full readiness
+				const [healthOk, configResponse] = await Promise.all([
+					this.healthCheck(),
+					this.request('GET', '/config')
+				]);
+
+				if (healthOk && configResponse.status === 200) {
+					// Add extra delay to ensure full initialization
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+					return true;
+				}
+			} catch (_error) {
+				console.log(
+					`[API Ready] Waiting for server... (${Math.round((Date.now() - startTime) / 1000)}s)`
+				);
 			}
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+
+			await new Promise((resolve) => setTimeout(resolve, retryInterval));
+			// Exponential backoff up to 3 seconds
+			retryInterval = Math.min(retryInterval * 1.2, 3000);
 		}
 
 		return false;
@@ -743,16 +760,14 @@ export async function waitForDocumentUpdate(
 	return false;
 }
 
-export function getWorkerApiURL(workerIndex?: number): string {
-	const index = workerIndex ?? 0;
-	const port = 8081 + index;
-	return `http://localhost:${port}/api`;
+export function getWorkerApiURL(): string {
+	// Single E2E service URL - same for all workers
+	return `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
 }
 
-export function getWorkerBaseURL(workerIndex?: number): string {
-	const index = workerIndex ?? 0;
-	const port = 8081 + index;
-	return `http://localhost:${port}`;
+export function getWorkerBaseURL(): string {
+	// Single E2E service URL - same for all workers
+	return process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 }
 
 export class MockApiHelper extends ApiHelper {

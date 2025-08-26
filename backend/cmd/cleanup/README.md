@@ -70,7 +70,7 @@ npm run cleanup-e2e        # Clean E2E test data
 **What gets cleaned:**
 - `data/`, `test-data/`, `e2e-data/`
 - `backend/cmd/schist/test-data-*`
-- `frontend/test-results`, `frontend/playwright-report`
+- `e2e/test-results`, `e2e/playwright-report`
 - `frontend/coverage`, `backend/coverage`
 - Log files (`*.log`, `logs/**`)
 - Basic temp files (`*.tmp`, `*.temp`)

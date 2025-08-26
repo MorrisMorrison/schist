@@ -1,2 +1,2 @@
-export { apiClient } from './api/client.js';
-export type * from './api/types.js';
+export { apiClient } from './api/client';
+export type * from './api/types';

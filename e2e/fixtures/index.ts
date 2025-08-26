@@ -1,7 +1,5 @@
 import { ApiHelper } from '../utils/api-helpers';
 
-export { test, expect } from './test-data-fixtures';
-
 export { HomePage } from '../pages/HomePage';
 export { EditorPage } from '../pages/EditorPage';
 export { DocumentViewPage, PageViewPage } from '../pages/DocumentViewPage';
@@ -11,7 +9,6 @@ export { BasePage } from '../pages/BasePage';
 export { SettingsPage } from '../pages/SettingsPage';
 
 export { ApiHelper } from '../utils/api-helpers';
-export * from '../utils/test-data';
 
 export async function setupCleanState(apiHelper: ApiHelper) {
 	await apiHelper.cleanupTestData();
@@ -25,3 +22,6 @@ export async function waitForAppReady(page: import('@playwright/test').Page) {
 		await loadingIndicators.first().waitFor({ state: 'hidden', timeout: 5000 });
 	}
 }
+
+// Re-export test and expect from test-data-fixtures for convenience
+export { test, expect } from './test-data-fixtures';

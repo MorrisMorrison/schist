@@ -87,24 +87,27 @@ export class DocumentViewPage extends BasePage {
 	 * Verify document is loaded and displays content
 	 */
 	async verifyDocumentLoaded(expectedTitle?: string) {
-		// Wait for loading to complete first
-		await this.page.waitForLoadState('networkidle');
+		// Wait for loading to complete first with longer timeout
+		await this.page.waitForLoadState('networkidle', { timeout: 10000 });
 
 		// Wait for loading spinner to disappear if present
 		const loadingSpinner = this.page.locator('.animate-spin');
 		if (await loadingSpinner.isVisible()) {
-			await loadingSpinner.waitFor({ state: 'hidden', timeout: 5000 });
+			await loadingSpinner.waitFor({ state: 'hidden', timeout: 10000 });
 		}
 
-		// Now wait for document title to be visible
-		await this.waitForVisible(this.documentTitle);
+		// Wait for page stability
+		await this.waitForPageStable();
+
+		// Now wait for document title to be visible with longer timeout
+		await this.waitForVisible(this.documentTitle, 15000);
 
 		if (expectedTitle) {
-			await expect(this.documentTitle).toContainText(expectedTitle);
+			await expect(this.documentTitle).toContainText(expectedTitle, { timeout: 10000 });
 		}
 
 		// Ensure document content is visible
-		await this.waitForVisible(this.documentContent);
+		await this.waitForVisible(this.documentContent, 10000);
 	}
 
 	/**

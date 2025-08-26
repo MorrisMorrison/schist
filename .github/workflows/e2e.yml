@@ -15,43 +15,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # Set up Go for backend
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-          cache-dependency-path: backend/go.sum
-      
-      # Set up Node.js (22.12.0 required for Svelte)
-      - name: Set up Node.js
+      - name: Set up Node.js for E2E
         uses: actions/setup-node@v4
         with:
-          node-version: '22.12.0'
+          node-version: '23'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: e2e/package-lock.json
       
-      # Install dependencies
-      - name: Install dependencies
-        run: make install
+      - name: Install E2E dependencies
+        run: cd e2e && npm ci
       
-      # Install Playwright browsers
       - name: Install Playwright browsers
-        run: |
-          cd frontend
-          npx playwright install --with-deps chromium
+        run: cd e2e && npx playwright install --with-deps chromium
       
-      # Run E2E tests (Playwright will start servers automatically)
+      
+      - name: Start E2E service  
+        run: |
+          echo "Starting E2E service..."
+          docker-compose --profile e2e up -d --build
+          
+          # Wait for service to be healthy
+          echo "Waiting for service to become healthy..."
+          timeout 60 bash -c 'while [ "$(docker-compose ps -q schist-e2e | xargs docker inspect --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 1 ]; do echo "Waiting..."; sleep 2; done'
+          
+          # Verify connectivity
+          echo "Verifying service is ready..."
+          for i in {1..10}; do
+            if curl -f -s "http://localhost:3000/api/health" > /dev/null; then
+              echo "✅ Service ready at localhost:3000"
+              break
+            fi
+            echo "Waiting... attempt $i/10"
+            sleep 2
+          done
+      
       - name: Run Playwright tests
-        run: |
-          make e2e
+        run: cd e2e && npx playwright test
         env:
-          PUBLIC_API_URL: http://localhost:8080/api
           CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
       
-      - name: Upload Playwright Report
-        uses: actions/upload-artifact@v4
+      - name: Show service logs on failure
         if: failure()
-        with:
-          name: playwright-report
-          path: frontend/playwright-report/
-          retention-days: 3
+        run: docker-compose logs schist-e2e
+      
+      - name: Cleanup Docker containers
+        if: always()
+        run: docker-compose --profile e2e down --rmi all --volumes --remove-orphans || true

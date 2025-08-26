@@ -1,4 +1,4 @@
-import { apiClient } from '../api/client.js';
+import { apiClient } from '../api/client';
 import type {
 	Document,
 	CreateDocumentRequest,
@@ -6,8 +6,8 @@ import type {
 	Folder,
 	MoveDocumentRequest,
 	WikiLink
-} from '../api/types.js';
-import { getParentPath } from '../utils/path.js';
+} from '../api/types';
+import { getParentPath } from '../utils/path';
 
 interface DocumentsState {
 	documents: Document[];

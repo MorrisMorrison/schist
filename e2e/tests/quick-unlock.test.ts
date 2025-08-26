@@ -1,10 +1,10 @@
 import { test, expect } from '../fixtures';
-import { AUTH_ENABLED_BASE_URL } from '../utils/routes';
+import { BASE_URL } from '../utils/routes';
 
 test.describe('Quick Unlock Feature', () => {
 	test('should show quick unlock button when secrets are locked', async ({ page }) => {
 		// Go to any authenticated page
-		await page.goto(AUTH_ENABLED_BASE_URL);
+		await page.goto(BASE_URL);
 
 		// Should show the quick unlock button when secrets are locked
 		await expect(page.getByTestId('quick-unlock-button')).toBeVisible();
@@ -18,7 +18,7 @@ test.describe('Quick Unlock Feature', () => {
 		await page.setViewportSize({ width: 375, height: 667 });
 
 		// Go to any authenticated page
-		await page.goto(AUTH_ENABLED_BASE_URL);
+		await page.goto(BASE_URL);
 
 		// Open mobile menu (the one that's visible on mobile - md:hidden)
 		await page.locator('button[aria-expanded].md\\:hidden').click();

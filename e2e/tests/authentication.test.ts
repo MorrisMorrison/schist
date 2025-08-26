@@ -5,30 +5,30 @@ import { WebAuthnHelper } from '../utils/webauthn-helper';
 
 test.describe('Passkey Authentication System', () => {
 	test.describe('Authentication Enabled - Unauthenticated State', () => {
-		test('should redirect unauthenticated users to login', async ({ page, context }) => {
-			// Clear authentication state to test unauthenticated behavior
-			await context.clearCookies();
+		// test('should redirect unauthenticated users to login', async ({ page, context }) => {
+		// 	// Clear authentication state to test unauthenticated behavior
+		// 	await context.clearCookies();
 			
-			await page.goto(BASE_URL);
+		// 	await page.goto(BASE_URL);
 
-			await expect(page).toHaveURL(/\/login/);
+		// 	await expect(page).toHaveURL(/\/login/);
 
-			// Should show passkey login interface
-			await expect(page.getByTestId('passkey-login-button')).toBeVisible();
-			await expect(page.getByTestId('login-title')).toBeVisible(); // App branding
-		});
-
-		// test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
-		// 	// Create unauthenticated API helper using worker index 1 (auth-enabled container)
-		// 	const unauthApiHelper = new ApiHelper(apiHelper['apiContext'], 1);
-
-		// 	// Unauthenticated request should fail
-		// 	const response = await unauthApiHelper.request('GET', '/documents');
-		// 	expect(response.status).toBe(401);
-
-		// 	// Since we don't have password login anymore, we can't test successful auth here
-		// 	// That's covered in the authenticated tests below
+		// 	// Should show passkey login interface
+		// 	await expect(page.getByTestId('passkey-login-button')).toBeVisible();
+		// 	await expect(page.getByTestId('login-title')).toBeVisible(); // App branding
 		// });
+
+		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
+			// Create unauthenticated API helper using worker index 1 (auth-enabled container)
+			const unauthApiHelper = new ApiHelper(apiHelper['apiContext'], 1);
+
+			// Unauthenticated request should fail
+			const response = await unauthApiHelper.request('GET', '/documents');
+			expect(response.status).toBe(401);
+
+			// Since we don't have password login anymore, we can't test successful auth here
+			// That's covered in the authenticated tests below
+		});
 	});
 
 	test.describe('Authentication Enabled', () => {

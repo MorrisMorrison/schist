@@ -3,7 +3,7 @@
 	import Navigation from '$lib/components/Navigation.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
-	import KeyboardShortcutsModal from '$lib/components/modal/KeyboardShortcutsModal.svelte';
+	import LazyKeyboardShortcutsModal from '$lib/components/modal/LazyKeyboardShortcutsModal.svelte';
 	import WorkspaceIndicator from '$lib/components/WorkspaceIndicator.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
@@ -166,7 +166,7 @@
 </div>
 
 <QuickSwitcher open={quickSwitcherOpen} onClose={() => (quickSwitcherOpen = false)} />
-<KeyboardShortcutsModal
+<LazyKeyboardShortcutsModal
 	open={keyboardShortcutsOpen}
 	onClose={() => (keyboardShortcutsOpen = false)}
 />

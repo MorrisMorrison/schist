@@ -3,7 +3,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
-	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
+	import LazyMarkdownRenderer from '$lib/components/markdown/LazyMarkdownRenderer.svelte';
 	import ImageLightbox from '$lib/components/ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 	import type { PageData } from './$types';
@@ -110,7 +110,7 @@
 				class="w-full max-w-none"
 				data-testid="shared-document-content"
 			>
-				<MarkdownRenderer content={document.content} />
+				<LazyMarkdownRenderer content={document.content} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">

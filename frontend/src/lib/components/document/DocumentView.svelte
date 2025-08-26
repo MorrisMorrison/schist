@@ -7,7 +7,7 @@
 	import VersionHistoryModal from '../VersionHistoryModal.svelte';
 	import ShareDocumentModal from '../modal/ShareDocumentModal.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
-	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
+	import LazyMarkdownRenderer from '$lib/components/markdown/LazyMarkdownRenderer.svelte';
 	import type { Document, DocumentVersion } from '$lib/api/types';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
@@ -311,7 +311,7 @@
 	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
 		{#if document.content}
 			<div bind:this={contentContainer} class="max-w-none" data-testid="document-content">
-				<MarkdownRenderer content={processedContent} />
+				<LazyMarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">

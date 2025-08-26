@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PreviewProps } from '$lib/types/editor';
-	import MarkdownRenderer from '../markdown/MarkdownRenderer.svelte';
+	import LazyMarkdownRenderer from '../markdown/LazyMarkdownRenderer.svelte';
 	import ImageLightbox from '../ImageLightbox.svelte';
 	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
 	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
@@ -84,7 +84,7 @@
 	data-testid="markdown-preview"
 >
 	<div class="p-4">
-		<MarkdownRenderer content={processedContent} />
+		<LazyMarkdownRenderer content={processedContent} />
 	</div>
 </div>
 

@@ -1,11 +1,14 @@
 package services
 
 import (
+	"os"
 	"testing"
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuthService_ValidateToken(t *testing.T) {
@@ -276,6 +279,222 @@ func BenchmarkAuthService_ValidateToken(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func TestAuthService_GetUser(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "auth-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(testDir)
+
+	userService := NewUserService(testDir)
+	cfg := &config.Config{
+		JWTSecret:      "test-secret",
+		JWTExpiryHours: 24,
+	}
+	authService := NewAuthService(cfg, userService)
+
+	t.Run("returns error for empty username", func(t *testing.T) {
+		_, err := authService.GetUser("")
+		assert.Error(t, err)
+	})
+
+	t.Run("returns error for non-existent user", func(t *testing.T) {
+		_, err := authService.GetUser("non-existent")
+		assert.Error(t, err)
+	})
+
+	t.Run("returns user for existing username", func(t *testing.T) {
+		// Create first user
+		err := userService.CreateFirstUser("testuser", "credential-123")
+		require.NoError(t, err)
+
+		user, err := authService.GetUser("testuser")
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, "testuser", user.Username)
+	})
+}
+
+func TestAuthService_IsFirstSetup(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "auth-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(testDir)
+
+	userService := NewUserService(testDir)
+	cfg := &config.Config{
+		JWTSecret:      "test-secret",
+		JWTExpiryHours: 24,
+	}
+	authService := NewAuthService(cfg, userService)
+
+	t.Run("returns true when no users exist", func(t *testing.T) {
+		isFirstSetup, err := authService.IsFirstSetup()
+		assert.NoError(t, err)
+		assert.True(t, isFirstSetup)
+	})
+
+	t.Run("returns false when users exist", func(t *testing.T) {
+		// Create first user
+		err := userService.CreateFirstUser("testuser", "credential-123")
+		require.NoError(t, err)
+
+		isFirstSetup, err := authService.IsFirstSetup()
+		assert.NoError(t, err)
+		assert.False(t, isFirstSetup)
+	})
+}
+
+func TestAuthService_CreateFirstUser(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "auth-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(testDir)
+
+	userService := NewUserService(testDir)
+	cfg := &config.Config{
+		JWTSecret:      "test-secret",
+		JWTExpiryHours: 24,
+	}
+	authService := NewAuthService(cfg, userService)
+
+	t.Run("creates first user successfully", func(t *testing.T) {
+		err := authService.CreateFirstUser("admin", "credential-123")
+		assert.NoError(t, err)
+
+		// Verify user was created
+		user, err := authService.GetUser("admin")
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, "admin", user.Username)
+		// Note: AuthService User struct doesn't have IsAdmin field
+		// This is expected behavior - AuthService returns a simplified User struct
+	})
+
+	t.Run("fails when users already exist", func(t *testing.T) {
+		// This test uses a fresh service since the previous test already created a user
+		testDir2, err := os.MkdirTemp("", "auth-test-2-*")
+		require.NoError(t, err)
+		defer os.RemoveAll(testDir2)
+
+		userService2 := NewUserService(testDir2)
+		authService2 := NewAuthService(cfg, userService2)
+
+		// Create first user
+		err = authService2.CreateFirstUser("admin", "credential-123")
+		require.NoError(t, err)
+
+		// Try to create first user again
+		err = authService2.CreateFirstUser("admin2", "credential-456")
+		assert.Error(t, err)
+	})
+}
+
+func TestAuthService_GenerateInviteToken(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "auth-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(testDir)
+
+	userService := NewUserService(testDir)
+	cfg := &config.Config{
+		JWTSecret:      "test-secret",
+		JWTExpiryHours: 24,
+	}
+	authService := NewAuthService(cfg, userService)
+
+	t.Run("generates invite token", func(t *testing.T) {
+		token, err := authService.GenerateInviteToken("admin")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+		assert.Len(t, token, 64) // 32 bytes hex-encoded
+	})
+
+	t.Run("generates unique tokens", func(t *testing.T) {
+		token1, err := authService.GenerateInviteToken("admin")
+		require.NoError(t, err)
+
+		token2, err := authService.GenerateInviteToken("admin")
+		require.NoError(t, err)
+
+		assert.NotEqual(t, token1, token2)
+	})
+}
+
+func TestAuthService_CreateUserFromInvite(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "auth-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(testDir)
+
+	userService := NewUserService(testDir)
+	cfg := &config.Config{
+		JWTSecret:      "test-secret",
+		JWTExpiryHours: 24,
+	}
+	authService := NewAuthService(cfg, userService)
+
+	// Create admin user to generate invite tokens
+	err = userService.CreateFirstUser("admin", "admin-credential")
+	require.NoError(t, err)
+
+	t.Run("creates user with valid invite token", func(t *testing.T) {
+		// Generate invite token
+		token, err := authService.GenerateInviteToken("admin")
+		require.NoError(t, err)
+
+		// Create user from invite
+		err = authService.CreateUserFromInvite(token, "newuser", "user-credential")
+		assert.NoError(t, err)
+
+		// Verify user was created
+		user, err := authService.GetUser("newuser")
+		assert.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, "newuser", user.Username)
+		// Note: AuthService User struct doesn't have IsAdmin field
+		// This is expected behavior - AuthService returns a simplified User struct
+	})
+
+	t.Run("fails with invalid invite token", func(t *testing.T) {
+		err := authService.CreateUserFromInvite("invalid-token", "baduser", "user-credential")
+		assert.Error(t, err)
+	})
+}
+
+func TestAuthService_LoginWithPasskey(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "auth-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(testDir)
+
+	userService := NewUserService(testDir)
+	cfg := &config.Config{
+		JWTSecret:      "test-secret",
+		JWTExpiryHours: 24,
+	}
+	authService := NewAuthService(cfg, userService)
+
+	// Create a test user
+	err = userService.CreateFirstUser("testuser", "credential-123")
+	require.NoError(t, err)
+
+	t.Run("returns error for empty credential ID", func(t *testing.T) {
+		_, err := authService.LoginWithPasskey("")
+		assert.Error(t, err)
+		// The method returns ErrInvalidCredentials for empty credential ID
+	})
+
+	t.Run("returns error for non-existent credential", func(t *testing.T) {
+		_, err := authService.LoginWithPasskey("non-existent-credential")
+		assert.Error(t, err)
+	})
+
+	t.Run("returns token for valid credential", func(t *testing.T) {
+		token, err := authService.LoginWithPasskey("credential-123")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
+
+		// Verify token is valid
+		username, err := authService.ValidateToken(token.Token)
+		assert.NoError(t, err)
+		assert.Equal(t, "testuser", username)
+	})
 }
 
 // Helper function to create test tokens

@@ -102,6 +102,10 @@ setup('authenticate', async ({ page, request }) => {
 		if (credentials.length === 0) {
 			console.log('[Auth Setup] No credentials found, adding mock credential for existing user...');
 			await webauthnHelper.addCredential(MOCK_CREDENTIAL);
+			
+			// Wait a bit for the credential to be properly registered
+			await page.waitForTimeout(200);
+			
 			credentials = await webauthnHelper.getCredentials();
 			console.log(`[Auth Setup] Credentials after adding mock: ${credentials.length}`);
 
@@ -119,19 +123,19 @@ setup('authenticate', async ({ page, request }) => {
 			{ timeout: 20000 }
 		);
 
-		// Click sign in with passkey
-		await page.getByRole('button', { name: /Sign in with Passkey/i }).click();
-
-		// Add a small delay to ensure the WebAuthn API call is initiated
-		await page.waitForTimeout(500);
-
-		// Ensure authenticator is ready for authentication
+		// Ensure authenticator is ready for authentication BEFORE clicking
 		try {
 			await webauthnHelper.ensureAuthenticatorReady();
 			console.log('[Auth Setup] Authenticator prepared for authentication');
 		} catch (error) {
 			console.warn('[Auth Setup] Error preparing authenticator:', error);
 		}
+
+		// Click sign in with passkey
+		await page.getByRole('button', { name: /Sign in with Passkey/i }).click();
+
+		// Add delay to ensure the WebAuthn API call is initiated
+		await page.waitForTimeout(1000);
 
 		// Wait for authentication to complete
 		await authFinishPromise;

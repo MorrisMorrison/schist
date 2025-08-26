@@ -493,12 +493,28 @@ export class ApiHelper {
 
 	async waitForApiReady(timeoutMs: number = 30000): Promise<boolean> {
 		const startTime = Date.now();
+		let retryInterval = 1000; // Start with 1 second
 
 		while (Date.now() - startTime < timeoutMs) {
-			if (await this.healthCheck()) {
-				return true;
+			try {
+				// Check both health and config endpoints to ensure full readiness
+				const [healthOk, configResponse] = await Promise.all([
+					this.healthCheck(),
+					this.request('GET', '/config')
+				]);
+
+				if (healthOk && configResponse.status === 200) {
+					// Add extra delay to ensure full initialization
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+					return true;
+				}
+			} catch (error) {
+				console.log(`[API Ready] Waiting for server... (${Math.round((Date.now() - startTime) / 1000)}s)`);
 			}
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+
+			await new Promise((resolve) => setTimeout(resolve, retryInterval));
+			// Exponential backoff up to 3 seconds
+			retryInterval = Math.min(retryInterval * 1.2, 3000);
 		}
 
 		return false;

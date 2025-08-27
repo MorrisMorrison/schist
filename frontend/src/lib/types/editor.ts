@@ -57,10 +57,10 @@ export interface EditorContentProps {
 }
 
 export interface EditorControlsProps {
-	isFullscreen: boolean;
-	isDirty: boolean;
-	lastSaved: Date | null;
-	isPreviewVisible: boolean;
+	isFullscreen?: boolean;
+	isDirty?: boolean;
+	lastSaved?: Date | null;
+	isPreviewVisible?: boolean;
 	onTogglePreview: () => void;
 }
 
@@ -72,17 +72,17 @@ export interface PreviewPanelProps {
 }
 
 export interface EditorStatusBarProps {
-	content: string;
-	theme: EditorTheme;
-	autoSaveEnabled: boolean;
-	isFullscreen: boolean;
+	content?: string;
+	theme?: EditorTheme;
+	autoSaveEnabled?: boolean;
+	isFullscreen?: boolean;
 }
 
 export interface UploadStatusProps {
-	isUploading: boolean;
-	uploadProgress: number;
-	uploadMessage: string | null;
-	uploadError: string | null;
+	isUploading?: boolean;
+	uploadProgress?: number;
+	uploadMessage?: string | null;
+	uploadError?: string | null;
 }
 
 export interface ResizeHandleProps {

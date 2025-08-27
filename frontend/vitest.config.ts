@@ -7,8 +7,21 @@ export default defineConfig({
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
 		exclude: ['e2e/**/*', 'node_modules/**/*'],
-		environment: 'jsdom',
+		browser: {
+			enabled: true,
+			name: 'chromium',
+			provider: 'playwright',
+			headless: true
+		},
 		globals: true,
-		setupFiles: ['src/lib/test/setup.ts']
+		setupFiles: ['src/lib/test/setup.ts'],
+		coverage: {
+			include: ['src/lib/components/**/*.svelte', 'src/lib/utils/**/*.ts'],
+			exclude: ['src/lib/test/**/*']
+		}
+	},
+	// Ensure Svelte components can be tested in browser-like environment
+	ssr: {
+		noExternal: ['@testing-library/svelte']
 	}
 });

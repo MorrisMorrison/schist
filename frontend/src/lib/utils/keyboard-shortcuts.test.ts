@@ -61,14 +61,15 @@ const createMockDocument = () => {
 		contentEditable: 'false'
 	};
 
-	Object.defineProperty(global, 'document', {
+	// Use globalThis instead of global for browser environment
+	Object.defineProperty(globalThis, 'document', {
 		value: {
 			activeElement: mockElement
 		},
 		writable: true
 	});
 
-	Object.defineProperty(global, 'window', {
+	Object.defineProperty(globalThis, 'window', {
 		value: {
 			dispatchEvent: vi.fn()
 		},

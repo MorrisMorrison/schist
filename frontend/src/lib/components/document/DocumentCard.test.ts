@@ -9,14 +9,11 @@ describe('DocumentCard', () => {
 			title: 'Test Document',
 			slug: 'test-document',
 			path: '/test-document',
-			createdAt: '2024-01-01T00:00:00Z',
-			updatedAt: '2024-01-02T00:00:00Z'
+			created: '2024-01-01T00:00:00Z',
+			updated: '2024-01-02T00:00:00Z'
 		},
 		content:
-			'# Test Document\n\nThis is a test document with some **bold** text and a [link](http://example.com).',
-		id: 'test-id',
-		lastModified: '2024-01-02T00:00:00Z',
-		size: 100
+			'# Test Document\n\nThis is a test document with some **bold** text and a [link](http://example.com).'
 	};
 
 	beforeEach(() => {
@@ -119,7 +116,7 @@ describe('DocumentCard', () => {
 			...mockDocument,
 			metaData: {
 				...mockDocument.metaData,
-				path: undefined
+				path: mockDocument.metaData.slug || 'test-document'
 			}
 		};
 

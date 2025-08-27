@@ -61,19 +61,18 @@ const createMockDocument = () => {
 		contentEditable: 'false'
 	};
 
-	// Use globalThis instead of global for browser environment
-	Object.defineProperty(globalThis, 'document', {
-		value: {
-			activeElement: mockElement
-		},
-		writable: true
+	// Mock document.activeElement
+	Object.defineProperty(document, 'activeElement', {
+		value: mockElement,
+		writable: true,
+		configurable: true
 	});
 
-	Object.defineProperty(globalThis, 'window', {
-		value: {
-			dispatchEvent: vi.fn()
-		},
-		writable: true
+	// Mock window.dispatchEvent
+	Object.defineProperty(window, 'dispatchEvent', {
+		value: vi.fn(),
+		writable: true,
+		configurable: true
 	});
 
 	return mockElement;
@@ -323,7 +322,7 @@ describe('keyboard-shortcuts', () => {
 			});
 		});
 
-		test('creates folder with Ctrl+Alt+F', () => {
+		test('creates folder with Ctrl+Alt+F', async () => {
 			const page = createMockPage();
 			const handler = createKeyboardShortcutHandler(page, handlers);
 			const event = createKeyboardEvent('f', { ctrlKey: true, altKey: true });
@@ -332,6 +331,14 @@ describe('keyboard-shortcuts', () => {
 
 			expect(event.preventDefault).toHaveBeenCalled();
 			expect(goto).toHaveBeenCalledWith('/folders');
+
+			// Wait for the setTimeout to complete
+			await new Promise((resolve) => setTimeout(resolve, 150));
+			expect(window.dispatchEvent).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: 'createFolder'
+				})
+			);
 		});
 	});
 

@@ -47,5 +47,4 @@ describe('BlockquoteBlock', () => {
 		expect(strongElement).toBeInTheDocument();
 		expect(strongElement).toHaveTextContent('bold');
 	});
-
 });

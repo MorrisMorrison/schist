@@ -57,5 +57,4 @@ describe('HtmlBlock', () => {
 		expect(listItems?.[0]).toHaveTextContent('Item 1');
 		expect(listItems?.[1]).toHaveTextContent('Item 2');
 	});
-
 });

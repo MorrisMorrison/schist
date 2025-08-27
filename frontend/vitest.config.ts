@@ -10,9 +10,9 @@ export default defineConfig({
 		browser: {
 			enabled: true,
 			name: 'chromium',
-			provider: 'playwright'
+			provider: 'playwright',
+			headless: true
 		},
-		environment: 'happy-dom',
 		globals: true,
 		setupFiles: ['src/lib/test/setup.ts'],
 		coverage: {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, user } from '$lib/test/component-utils';
+import { render } from '$lib/test/component-utils';
 import ImageBlock from './ImageBlock.svelte';
 import type { ImageBlock as ImageBlockType } from '$lib/utils/markdown-blocks';
 

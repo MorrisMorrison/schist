@@ -10,39 +10,15 @@ import (
 )
 
 type JWTAuth struct {
-	authService     *services.AuthService
-	config          *config.Config
-	publicEndpoints []string
+	authService *services.AuthService
+	config      *config.Config
 }
 
 func NewJWTAuth(authService *services.AuthService, config *config.Config) *JWTAuth {
 	return &JWTAuth{
 		authService: authService,
 		config:      config,
-		publicEndpoints: []string{
-			"/api/health",
-			"/api/config",
-			"/api/auth/login",
-			"/api/auth/logout",
-			"/api/auth/login/passkey",
-			"/api/auth/setup/required",
-			"/api/auth/setup/first-user",
-			"/api/auth/setup/invite-user",
-			"/api/passkeys/register/begin",
-			"/api/passkeys/register/finish",
-			"/api/passkeys/authenticate/begin",
-			"/api/passkeys/authenticate/finish",
-		},
 	}
-}
-
-func (ja *JWTAuth) isPublicEndpoint(path string) bool {
-	for _, endpoint := range ja.publicEndpoints {
-		if path == endpoint {
-			return true
-		}
-	}
-	return false
 }
 
 func (ja *JWTAuth) Middleware() gin.HandlerFunc {
@@ -58,7 +34,7 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 		}
 
 		// Check if this is a public endpoint
-		if ja.isPublicEndpoint(c.Request.URL.Path) {
+		if IsPublicEndpoint(c.Request.URL.Path) {
 			c.Next()
 			return
 		}

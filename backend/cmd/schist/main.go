@@ -85,9 +85,21 @@ func setupMiddleware(router *gin.Engine, services *services.Services) {
 	log.Printf("Security headers enabled")
 
 	if services.Config.RateLimitEnabled {
-		router.Use(middleware.RateLimitMiddleware(services.Config.RateLimitRPM))
-		log.Printf("Rate limiting enabled: %d requests per minute", services.Config.RateLimitRPM)
+		router.Use(middleware.TieredRateLimitMiddleware(
+			services.Config.RateLimitRPM,
+			services.Config.ShareRateLimitRPM,
+			services.Config.AssetRateLimitRPM,
+			services.Config.PublicRateLimitRPM,
+		))
+		log.Printf("Tiered rate limiting enabled - Default: %d, Share: %d, Asset: %d, Public: %d RPM",
+			services.Config.RateLimitRPM,
+			services.Config.ShareRateLimitRPM,
+			services.Config.AssetRateLimitRPM,
+			services.Config.PublicRateLimitRPM)
 	}
+
+	router.Use(middleware.ShareSecurityMiddleware())
+	log.Printf("Share security middleware enabled with progressive delays")
 
 	router.Use(middleware.JWTMiddleware(services.AuthService, services.Config))
 	if services.Config.AuthEnabled {

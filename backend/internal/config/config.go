@@ -41,8 +41,11 @@ type Config struct {
 	FrontendURL  string
 	TemplatesDir string
 
-	RateLimitEnabled bool
-	RateLimitRPM     int
+	RateLimitEnabled   bool
+	RateLimitRPM       int
+	ShareRateLimitRPM  int
+	AssetRateLimitRPM  int
+	PublicRateLimitRPM int
 
 	AuthEnabled    bool
 	JWTSecret      string
@@ -67,8 +70,11 @@ func Load() *Config {
 		FrontendURL:  getEnv("SCHIST_FRONTEND_URL", "http://localhost:5173"),
 		TemplatesDir: getEnv("SCHIST_TEMPLATES_DIR", "../../../templates"),
 
-		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
-		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),
+		RateLimitEnabled:   getEnvBool("SCHIST_RATE_LIMIT_ENABLED", environment != "development"),
+		RateLimitRPM:       getEnvInt("SCHIST_RATE_LIMIT_RPM", 300),
+		ShareRateLimitRPM:  getEnvInt("SCHIST_SHARE_RATE_LIMIT_RPM", 10),
+		AssetRateLimitRPM:  getEnvInt("SCHIST_ASSET_RATE_LIMIT_RPM", 1200),
+		PublicRateLimitRPM: getEnvInt("SCHIST_PUBLIC_RATE_LIMIT_RPM", 20),
 
 		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", true),
 		JWTSecret:      jwtSecret,

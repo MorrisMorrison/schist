@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"strings"
@@ -14,12 +15,17 @@ type ShareSecurityTracker struct {
 	failedAttempts map[string]int
 	lastAttempt    map[string]time.Time
 	mu             sync.RWMutex
+	ctx            context.Context
+	cancel         context.CancelFunc
 }
 
 func NewShareSecurityTracker() *ShareSecurityTracker {
+	ctx, cancel := context.WithCancel(context.Background())
 	tracker := &ShareSecurityTracker{
 		failedAttempts: make(map[string]int),
 		lastAttempt:    make(map[string]time.Time),
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 
 	go tracker.cleanupOldEntries()
@@ -30,16 +36,21 @@ func (st *ShareSecurityTracker) cleanupOldEntries() {
 	ticker := time.NewTicker(15 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		st.mu.Lock()
-		now := time.Now()
-		for ip, lastTime := range st.lastAttempt {
-			if now.Sub(lastTime) > time.Hour {
-				delete(st.failedAttempts, ip)
-				delete(st.lastAttempt, ip)
+	for {
+		select {
+		case <-ticker.C:
+			st.mu.Lock()
+			now := time.Now()
+			for ip, lastTime := range st.lastAttempt {
+				if now.Sub(lastTime) > time.Hour {
+					delete(st.failedAttempts, ip)
+					delete(st.lastAttempt, ip)
+				}
 			}
+			st.mu.Unlock()
+		case <-st.ctx.Done():
+			return
 		}
-		st.mu.Unlock()
 	}
 }
 
@@ -88,6 +99,10 @@ func (st *ShareSecurityTracker) clearFailedAttempts(ip string) {
 	delete(st.lastAttempt, ip)
 }
 
+func (st *ShareSecurityTracker) Shutdown() {
+	st.cancel()
+}
+
 var shareTracker = NewShareSecurityTracker()
 
 func ShareSecurityMiddleware() gin.HandlerFunc {
@@ -103,7 +118,13 @@ func ShareSecurityMiddleware() gin.HandlerFunc {
 			log.Printf("SECURITY: Share access delayed for IP %s (%d failed attempts) - delay: %v",
 				ip, shareTracker.getFailedAttempts(ip), delay)
 
-			time.Sleep(delay)
+			select {
+			case <-time.After(delay):
+			case <-c.Request.Context().Done():
+				log.Printf("SECURITY: Share access aborted for IP %s due to client disconnect/context cancel", ip)
+				c.Abort()
+				return
+			}
 
 			if shareTracker.getFailedAttempts(ip) >= 10 {
 				log.Printf("SECURITY: Share access blocked for IP %s (too many failed attempts)", ip)

@@ -51,10 +51,6 @@ func (rl *RateLimiter) CleanupOldLimiters() {
 	}
 }
 
-func RateLimitMiddleware(rpm int) gin.HandlerFunc {
-	return TieredRateLimitMiddleware(rpm, rpm, rpm, rpm)
-}
-
 func TieredRateLimitMiddleware(defaultRPM, shareRPM, assetRPM, publicRPM int) gin.HandlerFunc {
 	defaultLimiter := NewRateLimiter(defaultRPM)
 	shareLimiter := NewRateLimiter(shareRPM)

@@ -72,8 +72,8 @@ func Load() *Config {
 
 		RateLimitEnabled:   getEnvBool("SCHIST_RATE_LIMIT_ENABLED", environment != "development"),
 		RateLimitRPM:       getEnvInt("SCHIST_RATE_LIMIT_RPM", 300),
-		ShareRateLimitRPM:  getEnvInt("SCHIST_SHARE_RATE_LIMIT_RPM", 10),
-		AssetRateLimitRPM:  getEnvInt("SCHIST_ASSET_RATE_LIMIT_RPM", 1200),
+		ShareRateLimitRPM:  getEnvInt("SCHIST_SHARE_RATE_LIMIT_RPM", 10),   // Low limit to prevent sharing abuse
+		AssetRateLimitRPM:  getEnvInt("SCHIST_ASSET_RATE_LIMIT_RPM", 1200), // High limit for frequent asset requests
 		PublicRateLimitRPM: getEnvInt("SCHIST_PUBLIC_RATE_LIMIT_RPM", 20),
 
 		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", true),

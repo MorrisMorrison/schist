@@ -13,7 +13,7 @@ RULES
 5. IF IN DOUBT, ASK RELEVANT QUESTIONS TO USER
 6. DO NOT COMMIT ANY CODE
 
-TOOLS
+REMEMBER
 1. Use `make verify` to validate code changes
 2. Use `make test` to run unit tests
 4. To run any npm related command for svelte, eg `make test` you need to run `nvm use 22.12.0` in the same terminal session. Always change the node version!

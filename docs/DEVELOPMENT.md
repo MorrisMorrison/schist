@@ -128,7 +128,7 @@ cd frontend && npm run test:coverage
 make e2e
 
 # Run specific test
-cd frontend && npx playwright test document-creation
+cd e2e && npx playwright test document-creation
 ```
 
 **API Testing:**

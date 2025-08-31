@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
+import '@testing-library/jest-dom';
 
-// Mock browser APIs that might not be available in jsdom
+// Mock browser APIs that might not be available in happy-dom
 globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
 	observe: vi.fn(),
 	unobserve: vi.fn(),
@@ -26,3 +27,26 @@ Object.defineProperty(globalThis, 'crypto', {
 		})
 	}
 });
+
+// Mock SvelteKit navigation
+vi.mock('$app/navigation', () => ({
+	goto: vi.fn(),
+	preloadData: vi.fn(),
+	beforeNavigate: vi.fn(),
+	afterNavigate: vi.fn()
+}));
+
+// Mock SvelteKit stores
+vi.mock('$app/stores', () => ({
+	page: { subscribe: vi.fn() },
+	navigating: { subscribe: vi.fn() },
+	updated: { subscribe: vi.fn() }
+}));
+
+// Mock SvelteKit environment
+vi.mock('$app/environment', () => ({
+	browser: true,
+	dev: true,
+	building: false,
+	version: 'test'
+}));

@@ -10,18 +10,11 @@
         "backend/cmd/schist/test-data-*"
       ],
       "test_directories": [
-        "frontend/test-results",
-        "frontend/playwright-report",
         "frontend/coverage",
         "backend/coverage", 
         "backend/test-results"
       ],
-      "e2e_results": [
-        "frontend/test-results/**",
-        "frontend/playwright-report/**",
-        "**/playwright-report/**",
-        "**/test-results/**"
-      ],
+      "e2e_results": [],
       "log_files": [
         "*.log",
         "logs/**",
@@ -35,7 +28,7 @@
         "tmp/**",
         "/tmp/schist-*",
         "/var/tmp/schist-*",
-        "frontend/playwright/.auth/user.json"
+        "e2e/playwright/.auth/user.json"
       ],
       "search_patterns": [
         "**/node_modules/.cache/**",
@@ -53,15 +46,10 @@
         "backend/cmd/schist/test-data-*"
       ],
       "test_directories": [
-        "frontend/test-results",
-        "frontend/playwright-report", 
         "frontend/coverage",
         "backend/coverage"
       ],
-      "e2e_results": [
-        "frontend/test-results/**",
-        "frontend/playwright-report/**"
-      ],
+      "e2e_results": [],
       "log_files": [
         "*.log",
         "logs/**"
@@ -69,7 +57,7 @@
       "temp_files": [
         "*.tmp",
         "*.temp",
-        "frontend/playwright/.auth/user.json"
+        "e2e/playwright/.auth/user.json"
       ],
       "search_patterns": [],
       "system_cleanup": false
@@ -83,17 +71,27 @@
         "backend/cmd/schist/test-data-worker-3",
         "backend/cmd/schist/test-data-worker-4"
       ],
-      "test_directories": [
-        "frontend/test-results",
-        "frontend/playwright-report"
+      "test_directories": [],
+      "e2e_results": [],
+      "log_files": [],
+      "temp_files": [],
+      "search_patterns": [],
+      "system_cleanup": false
+    },
+    "e2e-full": {
+      "data_directories": [
+        "backend/cmd/schist/test-data-auth-disabled",
+        "backend/cmd/schist/test-data-auth-enabled", 
+        "backend/cmd/schist/test-data-worker-1",
+        "backend/cmd/schist/test-data-worker-2",
+        "backend/cmd/schist/test-data-worker-3",
+        "backend/cmd/schist/test-data-worker-4"
       ],
-      "e2e_results": [
-        "frontend/test-results/**",
-        "frontend/playwright-report/**"
-      ],
+      "test_directories": [],
+      "e2e_results": [],
       "log_files": [],
       "temp_files": [
-        "frontend/playwright/.auth/user.json"
+        "e2e/playwright/.auth/user.json"
       ],
       "search_patterns": [],
       "system_cleanup": false

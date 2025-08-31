@@ -1,4 +1,4 @@
-import type { PageLoad } from './$types.js';
+import type { PageLoad } from './$types';
 import { authService } from '$lib/auth/auth-service';
 import { redirect } from '@sveltejs/kit';
 

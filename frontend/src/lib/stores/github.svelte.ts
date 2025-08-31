@@ -1,4 +1,4 @@
-import { apiClient } from '../api/client.js';
+import { apiClient } from '../api/client';
 import type {
 	GitHubSettings,
 	GitHubConnectionStatus,
@@ -6,7 +6,7 @@ import type {
 	GitHubSetupRequest,
 	GitHubConnectionTest,
 	GitHubConfigRequest
-} from '../api/types.js';
+} from '../api/types';
 
 interface GitHubState {
 	settings: GitHubSettings | null;

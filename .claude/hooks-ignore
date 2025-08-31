@@ -21,7 +21,7 @@ frontend/build/**
 testdata/**
 fixtures/**
 **/testdata/**
-frontend/e2e/fixtures/**
+e2e/fixtures/**
 
 # Documentation examples
 docs/**/*.go
@@ -71,7 +71,7 @@ backend/cmd/*/generate-hash
 # Test results and reports
 test-results/**
 playwright-report/**
-frontend/playwright-report/**
+e2e/playwright-report/**
 frontend/test-results/**
 
 # Specific files that are allowed to use certain patterns
@@ -82,7 +82,7 @@ external/**
 third_party/**
 
 # Playwright generated files
-frontend/playwright/**
+e2e/playwright/**
 
 # Build artifacts
 frontend/static/**

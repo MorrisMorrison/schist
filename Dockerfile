@@ -37,8 +37,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o schist ./cmd/schi
 # Stage 3: Production image
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates for HTTPS and curl for health checks
+RUN apk --no-cache add ca-certificates curl
 
 WORKDIR /app
 

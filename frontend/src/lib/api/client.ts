@@ -59,7 +59,7 @@ import type {
 	UserInfo,
 	WikiLink,
 	OutgoingLinksResponse
-} from './types.js';
+} from './types';
 import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
 import { parseError } from '$lib/utils/error';
 import { requestDeduplicator, createRequestKey } from '$lib/utils/request-deduplication';

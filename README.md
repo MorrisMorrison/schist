@@ -6,6 +6,10 @@
 
 Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like functionality to the web browser. Schist focuses on simplicity, speed, and ease of use while maintaining the power of interconnected knowledge management.
 
+<img width="1916" height="909" alt="image" src="https://github.com/user-attachments/assets/0685e9df-483f-4c98-928a-e8d8c5f441d0" />
+
+<img width="1913" height="908" alt="image" src="https://github.com/user-attachments/assets/d106f5ed-eb23-4f4e-bc5c-126faba8a074" />
+
 ## Features
 
 ### **Core Wiki Experience**

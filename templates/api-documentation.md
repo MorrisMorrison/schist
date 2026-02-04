@@ -69,7 +69,7 @@ Get a list of resources.
 **Example Request:**
 ```bash
 curl -X GET "https://api.example.com/v1/resource?limit=10&filter=active" \
-     -H "Authorization: Bearer <TOKEN>"
+  -H "Authorization: Bearer <TOKEN>"
 ```
 
 **Example Response:**
@@ -106,7 +106,7 @@ Create a new resource.
 **Example Request:**
 ```bash
 curl -X POST "https://api.example.com/v1/resource" \
-     -H "Authorization: Bearer <TOKEN>" \
+  -H "Authorization: Bearer <TOKEN>" \
      -H "Content-Type: application/json" \
      -d '{"name":"New Resource","description":"Description here"}'
 ```

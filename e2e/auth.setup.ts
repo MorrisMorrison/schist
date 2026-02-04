@@ -8,9 +8,9 @@ const testUsername = 'testuser';
 
 // Mock credential data for testing - rpId will be set dynamically
 const MOCK_CREDENTIAL_BASE = {
-	credentialId: '<MOCK_CREDENTIAL_ID_BASE64>', // base64 encoded
-	privateKey: '<MOCK_PRIVATE_KEY_BASE64>', // base64 encoded
-	userHandle: 'dGVzdHVzZXI=', // base64 encoded 'testuser'
+	credentialId: Buffer.from('mock-credential-id-for-e2e-testing').toString('base64'),
+	privateKey: Buffer.from('mock-private-key-for-e2e-testing-this-is-32-bytes-long!').toString('base64'),
+	userHandle: Buffer.from(testUsername).toString('base64'),
 	signCount: 1
 };
 

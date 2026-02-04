@@ -1,4 +1,4 @@
-.PHONY: all install install-e2e build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend fmt-e2e lint lint-frontend lint-backend lint-e2e e2e e2e-ui e2e-test e2e-grep check verify cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
+.PHONY: all install install-e2e build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend fmt-e2e lint lint-frontend lint-backend lint-e2e e2e e2e-ui e2e-test e2e-grep check verify secret-scan cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
 
 all: build
 
@@ -108,6 +108,9 @@ verify:
 	make fmt
 	make lint
 	make check
+
+secret-scan:
+	./scripts/secret-scan.sh
 
 # Data cleanup commands
 cleanup:

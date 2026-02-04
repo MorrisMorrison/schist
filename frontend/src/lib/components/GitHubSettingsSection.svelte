@@ -246,7 +246,7 @@
 						data-testid="github-token-input"
 						type="password"
 						bind:value={token}
-						placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+						placeholder="github_token_here"
 						required
 						oninput={() => (tokenChanged = true)}
 					/>

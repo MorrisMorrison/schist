@@ -8,28 +8,23 @@ import {
 	createTestPage,
 	createTestFolder,
 	createComplexTestDocument,
-	createComplexTestPage,
 	createSimpleTestDocument,
 	createSimpleTestPage,
-	createNestedFolders,
-	createDocumentsForFolder,
 	TestDocumentData,
 	TestPageData,
 	TestFolderData
 } from '../utils/test-data';
-import { createTestDocuments, createTestFolders } from '../utils/api-helpers';
+import { createTestDocuments } from '../utils/api-helpers';
 
 // Extend test with data fixtures
 export const test = base.extend<{
-	// Pre-created test data
+	// Pre-created test data (not created in backend)
 	testDocument: TestDocumentData;
 	testPage: TestPageData;
 	simpleTestDocument: TestDocumentData;
 	simpleTestPage: TestPageData;
 	complexTestDocument: TestDocumentData;
-	complexTestPage: TestPageData;
 	testFolder: TestFolderData;
-	nestedFolders: TestFolderData[];
 
 	// Setup fixtures that create data in the backend
 	withTestDocument: TestDocumentData;
@@ -37,39 +32,12 @@ export const test = base.extend<{
 	withComplexTestDocument: TestDocumentData;
 	withTestPage: TestPageData;
 	withSimpleTestPage: TestPageData;
-	withTestFolder: TestFolderData;
 	withMultipleDocuments: TestDocumentData[];
-	withMultiplePages: TestPageData[];
-	withNestedStructure: {
-		folders: TestFolderData[];
-		documents: TestDocumentData[];
-		pages: TestPageData[];
-	};
-	withSearchTestData: {
-		textSearchPages: TestPageData[];
-		tagSearchPages: TestPageData[];
-		combinedSearchPages: TestPageData[];
-	};
-	withLargeDataset: {
-		documents: TestDocumentData[];
-		folders: TestFolderData[];
-	};
-	withCrossLinkedContent: {
-		documents: TestDocumentData[];
-		linkingDocument: TestDocumentData;
-	};
 	withSpecialContentTypes: {
 		unicodeDocument: TestDocumentData;
 		largeDocument: TestDocumentData;
 		formattedDocument: TestDocumentData;
 		mixedLineEndingDocument: TestDocumentData;
-	};
-	withNavigationTestData: {
-		parentPage: TestPageData;
-		childPage: TestPageData;
-		grandchildPage: TestPageData;
-		searchablePage: TestPageData;
-		longPage: TestPageData;
 	};
 }>({
 	// Basic test data (not created in backend)
@@ -113,14 +81,6 @@ export const test = base.extend<{
 		await use(document);
 	},
 
-	complexTestPage: async ({ testId }, use) => {
-		const page = createComplexTestPage({
-			title: `Complex ${testId}`,
-			path: `/complex-${testId}`
-		});
-		await use(page);
-	},
-
 	testFolder: async ({ testId }, use) => {
 		const folder = createTestFolder({
 			name: `test-folder-${testId}`,
@@ -129,18 +89,8 @@ export const test = base.extend<{
 		await use(folder);
 	},
 
-	nestedFolders: async ({ testId }, use) => {
-		const folders = createNestedFolders(3).map((folder) => ({
-			...folder,
-			name: `${folder.name}-${testId}`,
-			path: `${folder.path}-${testId}`
-		}));
-		await use(folders);
-	},
-
 	// Data fixtures that actually create content in the backend
 	withTestDocument: async ({ apiHelper, testDocument }, use) => {
-		// Create the document in the backend
 		const result = await apiHelper.createDocument(testDocument);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create test document: ${result.error}`);
@@ -152,7 +102,6 @@ export const test = base.extend<{
 	},
 
 	withSimpleTestDocument: async ({ apiHelper, simpleTestDocument }, use) => {
-		// Create the simple document in the backend
 		const result = await apiHelper.createDocument(simpleTestDocument);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create simple test document: ${result.error}`);
@@ -164,7 +113,6 @@ export const test = base.extend<{
 	},
 
 	withComplexTestDocument: async ({ apiHelper, complexTestDocument }, use) => {
-		// Create the complex document in the backend
 		const result = await apiHelper.createDocument(complexTestDocument);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create complex test document: ${result.error}`);
@@ -176,7 +124,6 @@ export const test = base.extend<{
 	},
 
 	withTestPage: async ({ apiHelper, testPage }, use) => {
-		// Create the page in the backend
 		const result = await apiHelper.createDocument(testPage);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create test page: ${result.error}`);
@@ -188,25 +135,12 @@ export const test = base.extend<{
 	},
 
 	withSimpleTestPage: async ({ apiHelper, simpleTestPage }, use) => {
-		// Create the simple page in the backend
 		const result = await apiHelper.createDocument(simpleTestPage);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create simple test page: ${result.error}`);
 		}
 
 		await use(simpleTestPage);
-
-		// Cleanup is handled by apiHelper fixture
-	},
-
-	withTestFolder: async ({ apiHelper, testFolder }, use) => {
-		// Create the folder in the backend
-		const result = await apiHelper.createFolder(testFolder);
-		if (result.status !== 201) {
-			throw new Error(`Failed to create test folder: ${result.error}`);
-		}
-
-		await use(testFolder);
 
 		// Cleanup is handled by apiHelper fixture
 	},
@@ -235,214 +169,6 @@ export const test = base.extend<{
 		await use(documents);
 
 		// Cleanup is handled by apiHelper fixture
-	},
-
-	withMultiplePages: async ({ apiHelper, testId }, use) => {
-		// Create multiple test pages
-		const pages = [
-			createSimpleTestPage({
-				title: `Page 1 ${testId}`,
-				path: `/page-1-${testId}`,
-				tags: ['test', 'page1']
-			}),
-			createTestPage({
-				title: `Page 2 ${testId}`,
-				path: `/page-2-${testId}`,
-				tags: ['test', 'page2']
-			}),
-			createComplexTestPage({
-				title: `Page 3 ${testId}`,
-				path: `/page-3-${testId}`,
-				tags: ['test', 'page3', 'complex']
-			})
-		];
-
-		await createTestDocuments(apiHelper, pages);
-		await use(pages);
-
-		// Cleanup is handled by apiHelper fixture
-	},
-
-	withNestedStructure: async ({ apiHelper, testId }, use) => {
-		// Create nested folder structure with documents
-		const folders = createNestedFolders(2).map((folder) => ({
-			...folder,
-			name: `${folder.name}-${testId}`,
-			path: `${folder.path}-${testId}`
-		}));
-
-		// Create folders first
-		await createTestFolders(apiHelper, folders);
-
-		// Create documents in each folder
-		const allDocuments: TestDocumentData[] = [];
-		const allPages: TestPageData[] = [];
-		for (const folder of folders) {
-			const folderDocuments = createDocumentsForFolder(folder.path, 2).map((document) => ({
-				...document,
-				title: `${document.title} ${testId}`,
-				path: `${document.path}-${testId}`
-			}));
-			const folderPages = createDocumentsForFolder(folder.path, 2).map((page) => ({
-				...page,
-				title: `${page.title} ${testId}`,
-				path: `${page.path}-${testId}`
-			}));
-			allDocuments.push(...folderDocuments);
-			allPages.push(...folderPages);
-		}
-
-		await createTestDocuments(apiHelper, allDocuments);
-		await createTestDocuments(apiHelper, allPages);
-
-		await use({ folders, documents: allDocuments, pages: allPages });
-
-		// Cleanup is handled by apiHelper fixture
-	},
-
-	withSearchTestData: async ({ apiHelper, testId }, use) => {
-		// Create comprehensive search test data
-		const textSearchPages = [
-			createTestPage({
-				title: `Searchable Content ${testId}`,
-				content:
-					'# Searchable Title\n\nThis page contains unique searchable text that should be found.',
-				path: `/searchable-${testId}`,
-				tags: ['search', 'test']
-			}),
-			createTestPage({
-				title: `Different Title ${testId}`,
-				content: '# Different Content\n\nThis page has different content without special terms.',
-				path: `/different-${testId}`,
-				tags: ['content', 'test']
-			}),
-			createTestPage({
-				title: `Nested Searchable ${testId}`,
-				content: '# Nested Content\n\nThis nested page contains searchable text in a folder.',
-				path: `/folder/nested-searchable-${testId}`,
-				tags: ['search', 'nested']
-			})
-		];
-
-		const tagSearchPages = [
-			createTestPage({
-				title: `Important Document ${testId}`,
-				content: '# Important Documentation\n\nThis is tagged as important.',
-				path: `/important-${testId}`,
-				tags: ['important', 'documentation', 'priority']
-			}),
-			createTestPage({
-				title: `Draft Content ${testId}`,
-				content: '# Draft Content\n\nThis is a draft document.',
-				path: `/draft-${testId}`,
-				tags: ['draft', 'review', 'wip']
-			}),
-			createTestPage({
-				title: `Project Alpha ${testId}`,
-				content: '# Project Alpha\n\nDocumentation for project alpha.',
-				path: `/project-alpha-${testId}`,
-				tags: ['project-alpha', 'documentation']
-			}),
-			createTestPage({
-				title: `Project Beta ${testId}`,
-				content: '# Project Beta\n\nDocumentation for project beta.',
-				path: `/project-beta-${testId}`,
-				tags: ['project-beta', 'documentation']
-			})
-		];
-
-		const combinedSearchPages = [
-			createTestPage({
-				title: `Important Project ${testId}`,
-				content:
-					'# Important Project Documentation\n\nThis combines important content with project tags.',
-				path: `/important-project-${testId}`,
-				tags: ['important', 'project', 'documentation']
-			}),
-			createTestPage({
-				title: `Regular Content ${testId}`,
-				content: '# Regular Content\n\nThis has project tags but no important text.',
-				path: `/regular-${testId}`,
-				tags: ['project', 'content']
-			}),
-			createTestPage({
-				title: `Important Notes ${testId}`,
-				content: '# Important Meeting Notes\n\nImportant content without project tags.',
-				path: `/notes-${testId}`,
-				tags: ['notes', 'meeting']
-			})
-		];
-
-		const allPages = [...textSearchPages, ...tagSearchPages, ...combinedSearchPages];
-		await createTestDocuments(apiHelper, allPages);
-
-		await use({
-			textSearchPages,
-			tagSearchPages,
-			combinedSearchPages
-		});
-	},
-
-	withLargeDataset: async ({ apiHelper, testId }, use) => {
-		// Create a large dataset for performance testing
-		const folders = Array.from({ length: 5 }, (_, i) =>
-			createTestFolder({
-				name: `large-folder-${i}-${testId}`,
-				path: `/large-folder-${i}-${testId}`
-			})
-		);
-
-		const documents = Array.from({ length: 20 }, (_, i) => {
-			const folderIndex = i % folders.length;
-			const folder = folders[folderIndex];
-			return createTestDocument({
-				title: `Large Dataset Doc ${i} ${testId}`,
-				content: `# Document ${i}\n\nThis is document number ${i} in the large dataset.\n\n## Content\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\n### Section ${i}\n\nUt enim ad minim veniam, quis nostrud exercitation ullamco laboris.`,
-				path: `${folder.path}/doc-${i}-${testId}`,
-				tags: [`batch-${Math.floor(i / 5)}`, 'large-dataset', `doc-${i}`]
-			});
-		});
-
-		await createTestFolders(apiHelper, folders);
-		await createTestDocuments(apiHelper, documents);
-
-		await use({ documents, folders });
-	},
-
-	withCrossLinkedContent: async ({ apiHelper, testId }, use) => {
-		// Create documents that link to each other
-		const documents = [
-			createTestDocument({
-				title: `Main Document ${testId}`,
-				content: `# Main Document\n\nThis is the main document that references:\n\n- [Secondary Document](secondary-${testId})\n- [Reference Document](reference-${testId})\n\n## Content\n\nSee related information in the linked documents.`,
-				path: `/main-${testId}`,
-				tags: ['main', 'hub', 'links']
-			}),
-			createTestDocument({
-				title: `Secondary Document ${testId}`,
-				content: `# Secondary Document\n\nThis document is referenced by [Main Document](main-${testId}).\n\n## Back Reference\n\nIt also mentions [Reference Document](reference-${testId}).`,
-				path: `/secondary-${testId}`,
-				tags: ['secondary', 'linked']
-			}),
-			createTestDocument({
-				title: `Reference Document ${testId}`,
-				content: `# Reference Document\n\nThis is referenced by both:\n- [Main Document](main-${testId})\n- [Secondary Document](secondary-${testId})\n\n## Standalone Content\n\nThis document contains reference information.`,
-				path: `/reference-${testId}`,
-				tags: ['reference', 'shared']
-			})
-		];
-
-		const linkingDocument = createTestDocument({
-			title: `Hub Document ${testId}`,
-			content: `# Hub Document\n\nThis document links to all others:\n\n## Primary Links\n- [Main Document](main-${testId})\n- [Secondary Document](secondary-${testId})\n- [Reference Document](reference-${testId})\n\n## Summary\n\nAll documents are interconnected through wiki-style links.`,
-			path: `/hub-${testId}`,
-			tags: ['hub', 'central', 'all-links']
-		});
-
-		const allDocuments = [...documents, linkingDocument];
-		await createTestDocuments(apiHelper, allDocuments);
-
-		await use({ documents, linkingDocument });
 	},
 
 	withSpecialContentTypes: async ({ apiHelper, testId }, use) => {
@@ -516,63 +242,6 @@ function test() {
 			largeDocument,
 			formattedDocument,
 			mixedLineEndingDocument
-		});
-	},
-
-	withNavigationTestData: async ({ apiHelper, testId }, use) => {
-		// Create hierarchical navigation test data
-		const parentPage = createTestPage({
-			title: `Parent Page ${testId}`,
-			content: `# Parent Page\n\nThis is the parent page for navigation testing.\n\n[Child Page](child-${testId})\n[Grandchild Page](nested/grandchild-${testId})`,
-			path: `/parent-${testId}`,
-			tags: ['navigation', 'parent']
-		});
-
-		const childPage = createTestPage({
-			title: `Child Page ${testId}`,
-			content: `# Child Page\n\nThis is a child page.\n\nParent: [Parent Page](parent-${testId})\nChild: [Grandchild Page](nested/grandchild-${testId})`,
-			path: `/child-${testId}`,
-			tags: ['navigation', 'child']
-		});
-
-		const grandchildPage = createTestPage({
-			title: `Grandchild Page ${testId}`,
-			content: `# Grandchild Page\n\nDeep nested page for navigation testing.\n\nParent: [Parent Page](../parent-${testId})\nParent: [Child Page](../child-${testId})`,
-			path: `/nested/grandchild-${testId}`,
-			tags: ['navigation', 'nested']
-		});
-
-		const searchablePage = createTestPage({
-			title: `Searchable Navigation ${testId}`,
-			content: `# Searchable Page\n\nThis page should be found in navigation search results.\n\nKeywords: navigation, search, findable`,
-			path: `/searchable-nav-${testId}`,
-			tags: ['searchable', 'navigation']
-		});
-
-		const longContent =
-			`# Long Content Page\n\n` +
-			Array.from(
-				{ length: 50 },
-				(_, i) =>
-					`## Section ${i + 1}\n\nThis is section ${i + 1} with content that makes the page long enough to test scroll behavior.\n\n`
-			).join('');
-
-		const longPage = createTestPage({
-			title: `Long Page ${testId}`,
-			content: longContent,
-			path: `/long-page-${testId}`,
-			tags: ['long', 'scroll']
-		});
-
-		const pages = [parentPage, childPage, grandchildPage, searchablePage, longPage];
-		await createTestDocuments(apiHelper, pages);
-
-		await use({
-			parentPage,
-			childPage,
-			grandchildPage,
-			searchablePage,
-			longPage
 		});
 	}
 });

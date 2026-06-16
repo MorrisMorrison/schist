@@ -44,7 +44,6 @@ e2e/playwright-report
 e2e/test-results
 e2e/screenshots
 e2e/node_modules
-backend/cmd/schist/test-data-*
 backend/cmd/schist/schist
 project/
 test-token

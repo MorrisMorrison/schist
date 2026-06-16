@@ -8,7 +8,9 @@ async function globalTeardown() {
 	console.log('[Global Teardown] Starting cleanup...');
 
 	try {
-		// Stop Docker containers first (more aggressive cleanup)
+		// The e2e backend runs entirely inside the Docker container (no host volume),
+		// so stopping/removing the container is the complete cleanup — there is no
+		// leftover test data on the host to scrub.
 		console.log('[Global Teardown] Stopping Docker containers...');
 		const dockerComposeDir = path.resolve(process.cwd(), '..');
 
@@ -32,18 +34,6 @@ async function globalTeardown() {
 			} catch (manualError) {
 				console.warn('[Global Teardown] Manual Docker cleanup also failed:', manualError);
 			}
-		}
-
-		// Use the unified cleanup script with e2e-only profile
-		// In CI, we run from e2e directory, so we need to go up one level
-		const cleanupScript = path.resolve(process.cwd(), '../scripts/cleanup.sh');
-		const { stdout, stderr } = await execAsync(`"${cleanupScript}" --profile=e2e-only`);
-
-		if (stdout) {
-			console.log('[Global Teardown] Cleanup output:', stdout);
-		}
-		if (stderr) {
-			console.warn('[Global Teardown] Cleanup warnings:', stderr);
 		}
 
 		console.log('[Global Teardown] Cleanup completed successfully');

@@ -1,0 +1,67 @@
+### Passkeys (WebAuthn)
+### Routes: /api/passkeys/*
+###
+### Passkey registration/authentication is a challenge/response handshake that needs
+### a real browser authenticator (Face ID, Touch ID, Windows Hello, a security key),
+### so the register/finish and authenticate/finish steps CANNOT be completed from a
+### .http file — the `response` payload is produced by the browser's WebAuthn API.
+###
+### These requests are included for completeness and to exercise the begin/status/
+### management endpoints. The begin endpoints are public; list/delete require auth.
+
+@credentialId = REPLACE_WITH_CREDENTIAL_ID
+
+### Begin registration — returns WebAuthn creation options + a sessionId (public)
+# @name registerBegin
+POST {{apiUrl}}/passkeys/register/begin
+Content-Type: application/json
+
+{
+  "name": "My Laptop"
+}
+# => 200 { "options": {...}, "sessionId": "..." }
+
+### Finish registration (public) — `response` must come from navigator.credentials.create()
+POST {{apiUrl}}/passkeys/register/finish
+Content-Type: application/json
+
+{
+  "name": "My Laptop",
+  "sessionId": "{{registerBegin.response.body.sessionId}}",
+  "response": { "REPLACE_WITH": "browser WebAuthn attestation response" }
+}
+
+### Begin authentication — returns assertion options + a sessionId (public, no body)
+# @name authBegin
+POST {{apiUrl}}/passkeys/authenticate/begin
+# => 200 { "options": {...}, "sessionId": "..." }
+
+### Finish authentication (public) — `response` must come from navigator.credentials.get()
+POST {{apiUrl}}/passkeys/authenticate/finish
+Content-Type: application/json
+
+{
+  "sessionId": "{{authBegin.response.body.sessionId}}",
+  "response": { "REPLACE_WITH": "browser WebAuthn assertion response" }
+}
+
+### Passkey/secret-store status (public)
+GET {{apiUrl}}/passkeys/status
+# => 200 { "hasPasskeys": ..., "isUnlocked": ..., "requiresPassword": ... }
+
+### Unlock the encrypted secret store with a passkey credential
+POST {{apiUrl}}/passkeys/unlock
+Content-Type: application/json
+
+{
+  "credentialId": "{{credentialId}}"
+}
+# => 200 { "message": "Secret store unlocked successfully" }
+
+### List the current user's passkeys (requires auth)
+GET {{apiUrl}}/passkeys
+# => 200 { "passkeys": [ { "id": ..., "name": ..., "createdAt": ... } ] }
+
+### Delete one of your passkeys (requires auth; you can only delete your own)
+DELETE {{apiUrl}}/passkeys/{{credentialId}}
+# => 200 { "message": "Passkey deleted successfully" }

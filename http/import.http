@@ -1,0 +1,64 @@
+### Import documents
+### Route: POST /api/import/documents
+###
+### Bulk import of markdown files via multipart/form-data. Fields:
+###   files          one or more file parts (repeat the part per file)
+###   target_path    optional destination folder (defaults to root)
+###   overwrite_mode  "rename" (default) | "overwrite" | "skip"
+###
+### REST Client reads file parts relative to THIS .http file — drop the sample
+### markdown files into the http/ folder or adjust the paths below.
+
+### Import a single markdown file into /imported
+POST {{apiUrl}}/import/documents
+Content-Type: multipart/form-data; boundary=----SchistImportBoundary
+
+------SchistImportBoundary
+Content-Disposition: form-data; name="target_path"
+
+/imported
+------SchistImportBoundary
+Content-Disposition: form-data; name="overwrite_mode"
+
+rename
+------SchistImportBoundary
+Content-Disposition: form-data; name="files"; filename="note.md"
+Content-Type: text/markdown
+
+< ./note.md
+------SchistImportBoundary--
+# => 200 import result summary
+
+### Import multiple files at once
+POST {{apiUrl}}/import/documents
+Content-Type: multipart/form-data; boundary=----SchistImportBoundary
+
+------SchistImportBoundary
+Content-Disposition: form-data; name="overwrite_mode"
+
+overwrite
+------SchistImportBoundary
+Content-Disposition: form-data; name="files"; filename="one.md"
+Content-Type: text/markdown
+
+< ./one.md
+------SchistImportBoundary
+Content-Disposition: form-data; name="files"; filename="two.md"
+Content-Type: text/markdown
+
+< ./two.md
+------SchistImportBoundary--
+
+#############################################
+### Error cases
+#############################################
+
+### No files provided
+POST {{apiUrl}}/import/documents
+Content-Type: multipart/form-data; boundary=----SchistImportBoundary
+
+------SchistImportBoundary
+Content-Disposition: form-data; name="target_path"
+
+/imported
+------SchistImportBoundary--

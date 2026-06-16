@@ -1,0 +1,79 @@
+### GitHub backup & local Git repository
+### Routes: /api/github/*, /api/git/*
+###
+### Schist versions content in a local Git repo and can optionally back it up to a
+### GitHub repository. Setup/sync need a GitHub personal access token. The token is
+### stored in the encrypted secret store, so connection-status and sync require the
+### secret store to be unlocked first (see secrets.http / passkeys.http).
+
+@ghToken = REPLACE_WITH_GITHUB_PAT
+@ghOwner = your-github-username
+@ghRepo = schist-backup
+
+#############################################
+### GitHub backup
+#############################################
+
+### Test a connection without saving anything
+POST {{apiUrl}}/github/test
+Content-Type: application/json
+
+{
+  "token": "{{ghToken}}",
+  "owner": "{{ghOwner}}",
+  "repo": "{{ghRepo}}",
+  "branch": "main"
+}
+# => 200 { "success": true, "message": "Connection test successful" }
+
+### Set up the GitHub integration (persists config + token)
+POST {{apiUrl}}/github/setup
+Content-Type: application/json
+
+{
+  "token": "{{ghToken}}",
+  "owner": "{{ghOwner}}",
+  "repo": "{{ghRepo}}",
+  "branch": "main",
+  "auto_sync": false,
+  "sync_on_save": false
+}
+# => 200 { "message": ..., "repository": ..., "status": ... }
+
+### Non-sensitive GitHub config (no secret unlock required)
+GET {{apiUrl}}/github/config
+# => 200 GitHub settings (owner/repo/branch/flags, no token)
+
+### Connection status (requires the secret store to be unlocked)
+GET {{apiUrl}}/github/connection-status
+# => 200 { "connected": ..., "tokenExists": ..., "pendingChanges": n }
+
+### Update sync configuration (all fields optional)
+PUT {{apiUrl}}/github/config
+Content-Type: application/json
+
+{
+  "auto_sync": true,
+  "sync_on_save": false,
+  "branch": "main"
+}
+
+### Push pending changes to GitHub
+POST {{apiUrl}}/github/sync
+# => 200 sync result, or 400 if the integration isn't enabled
+
+### Disconnect the GitHub integration
+POST {{apiUrl}}/github/disconnect
+# => 200 { "message": "GitHub integration disconnected successfully", ... }
+
+#############################################
+### Local Git repository health
+#############################################
+
+### Check the local Git repository's health
+GET {{apiUrl}}/git/health
+# => 200 { "healthy": true, ... } or 500 with the failure reason
+
+### Repair the local Git repository
+POST {{apiUrl}}/git/repair
+# => 200 { "success": true, "message": "Repository repair completed successfully" }

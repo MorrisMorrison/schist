@@ -1,0 +1,34 @@
+### Version history (Git-backed)
+### Routes: /api/versions/*
+###
+### Every save is committed to Git, so documents have a version history addressed by
+### commit hash. All endpoints take the document `path` as a query parameter.
+
+@docPath = /getting-started
+
+### List versions of a document (newest first)
+# @name versions
+GET {{apiUrl}}/versions?path={{docPath}}
+# => 200 { "path": ..., "versions": [ { "hash": "...", ... } ], "total": n }
+
+### Get a document as it was at a specific commit
+GET {{apiUrl}}/versions/document?path={{docPath}}&hash=REPLACE_WITH_COMMIT_HASH
+# => 200 { "path": ..., "hash": ..., "document": {...} }
+
+### Diff a document between two commits
+GET {{apiUrl}}/versions/diff?path={{docPath}}&hash1=REPLACE_WITH_OLD_HASH&hash2=REPLACE_WITH_NEW_HASH
+# => 200 { "diff": "..." }
+
+### Restore a document to a previous version (params go in the query string, not a body)
+POST {{apiUrl}}/versions/restore?path={{docPath}}&hash=REPLACE_WITH_COMMIT_HASH
+# => 200 { "message": "Document restored successfully", "path": ..., "hash": ... }
+
+#############################################
+### Error cases
+#############################################
+
+### Missing required path parameter
+GET {{apiUrl}}/versions
+
+### Missing hash parameter
+GET {{apiUrl}}/versions/document?path={{docPath}}

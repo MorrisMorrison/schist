@@ -1,6 +1,23 @@
-### Health Check
-GET {{apiUrl}}/health
+### Health & system endpoints
+### Routes: GET /api/health, GET /api/config
+### Both are public (never require auth, even when SCHIST_AUTH_ENABLED=true).
 
-### Health Check with CORS (Development)
+### Health check — verify the API is running
+# @name health
+GET {{apiUrl}}/health
+# => 200 { "status": "ok", "service": "schist" }
+
+### Health check with a CORS origin (development)
 GET {{apiUrl}}/health
 Origin: {{frontendUrl}}
+
+### Runtime config — tells the frontend whether auth is enabled
+# @name config
+GET {{apiUrl}}/config
+# => 200 { "auth_enabled": false }
+
+### CORS preflight — what a browser sends before a cross-origin POST
+OPTIONS {{apiUrl}}/documents
+Origin: {{frontendUrl}}
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type

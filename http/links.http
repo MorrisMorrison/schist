@@ -1,0 +1,19 @@
+### Wiki links — backlinks, outgoing links, broken links
+### Routes: /api/links/*
+###
+### Schist tracks [[Wiki Link]] connections between documents. Path params are
+### catch-all and auto-normalized.
+
+@docPath = getting-started
+
+### All broken links across the wiki (targets that don't resolve)
+GET {{apiUrl}}/links/broken
+# => 200 { "broken_links": [...], "total_documents": n }
+
+### Outgoing links from a document (what it points to)
+GET {{apiUrl}}/links/outgoing/{{docPath}}
+# => 200 { "path": ..., "links": [...], "total": n }
+
+### Backlinks to a document (what points at it)
+GET {{apiUrl}}/links/backlinks/{{docPath}}
+# => 200 { "path": ..., "backlinks": [...documents...], "total": n }

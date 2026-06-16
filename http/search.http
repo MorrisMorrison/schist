@@ -1,17 +1,29 @@
-### Search pages - empty query
+### Search & tags
+### Routes: GET /api/search, GET /api/tags
+###
+### Search is a case-insensitive full-text match over document titles and excludes
+### documents in /trash. The query parameter is `q`.
+
+### Search — empty query (returns all matchable documents)
 GET {{apiUrl}}/search
 
-### Search pages - basic query
+### Search — basic query
 GET {{apiUrl}}/search?q=getting started
 
-### Search pages - single word
+### Search — single word
 GET {{apiUrl}}/search?q=markdown
 
-### Search pages - multiple words
-GET {{apiUrl}}/search?q=wiki pages
+### Search — multiple words
+GET {{apiUrl}}/search?q=wiki documents
 
-### Search pages - with special characters
+### Search — quoted phrase
 GET {{apiUrl}}/search?q="getting started"
 
-### Search pages - URL encoded
+### Search — URL-encoded spaces
 GET {{apiUrl}}/search?q=getting%20started%20guide
+# => 200 { "query": "...", "documents": [...], "total": n }
+
+### All tags with usage counts
+# @name tags
+GET {{apiUrl}}/tags
+# => 200 { "tags": [ { "name": "...", "count": n } ], "total": n }

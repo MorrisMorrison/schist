@@ -1,0 +1,51 @@
+### Public document sharing
+### Routes: /api/shares/*
+###
+### Create read-only public links to documents with an optional expiry. Fetching a
+### shared document by token is public even when auth is enabled; creating, listing
+### and revoking shares require auth when it's enabled.
+
+@shareId = REPLACE_WITH_SHARE_ID
+
+### Create a public share (expiry_days optional; service applies defaults/limits)
+# @name createShare
+POST {{apiUrl}}/shares
+Content-Type: application/json
+
+{
+  "document_path": "/getting-started",
+  "expiry_days": 7
+}
+# => 201 { "id": ..., "token": ..., "share_url": ..., "expires_at": ... }
+
+### Fetch a shared document by token (public — no auth required)
+GET {{apiUrl}}/shares/{{createShare.response.body.token}}
+# => 200 the shared document, or 404 if not found / expired
+
+### List shares owned by the current user
+# @name listShares
+GET {{apiUrl}}/shares
+# => 200 { "shares": [...], "total": n }
+
+### Revoke a share by id
+DELETE {{apiUrl}}/shares/{{shareId}}
+# => 200 { "message": "Share revoked successfully" }
+
+### Clean up all expired shares
+POST {{apiUrl}}/shares/cleanup
+# => 200 { "message": "Expired shares cleaned up successfully" }
+
+#############################################
+### Error cases
+#############################################
+
+### Create a share with a missing required document_path
+POST {{apiUrl}}/shares
+Content-Type: application/json
+
+{
+  "expiry_days": 7
+}
+
+### Fetch a share with a bogus token
+GET {{apiUrl}}/shares/not-a-real-token

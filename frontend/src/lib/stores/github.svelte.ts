@@ -79,24 +79,6 @@ export const githubStore = {
 	}
 };
 
-function getIsGitHubConnected() {
-	return githubStore.connectionStatus?.connected ?? false;
-}
-
-function getIsGitHubEnabled() {
-	return githubStore.settings?.enabled ?? false;
-}
-
-function getCanSync() {
-	return getIsGitHubConnected() && !githubStore.syncing;
-}
-
-const isGitHubConnected = getIsGitHubConnected;
-const isGitHubEnabled = getIsGitHubEnabled;
-const canSync = getCanSync;
-
-export { isGitHubConnected, isGitHubEnabled, canSync };
-
 export const githubActions = {
 	async loadGitHubSettings(force = false) {
 		githubState.loading = true;

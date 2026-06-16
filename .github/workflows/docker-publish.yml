@@ -1,7 +1,9 @@
 name: Build and Push Docker Image
 
 on:
-  workflow_dispatch:  # This enables manual triggering
+  push:
+    branches: [ main ]   # publish :latest on every main commit (Komodo auto-pulls)
+  workflow_dispatch:  # plus manual triggering with an optional explicit tag
     inputs:
       tag:
         description: 'Docker image tag (optional, defaults to branch name)'

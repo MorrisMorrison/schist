@@ -1,10 +1,21 @@
-### List all documents
+### Documents — CRUD, move, existence checks, templates
+### Routes: /api/documents/*, /api/templates
+###
+### Documents are addressed by hierarchical path. The path is a catch-all, so
+### nested docs work directly: GET /api/documents/docs/api/v1
+### Paths are auto-normalized (leading slash added) and slugs/paths are generated
+### from the title when omitted on create.
+
+@docPath = getting-started
+@nestedPath = docs/api/reference
+
+### List all documents (excludes /trash)
+# @name listDocuments
 GET {{apiUrl}}/documents
+# => 200 { "documents": [...], "total": n }
 
-### Get specific document
-GET {{apiUrl}}/documents/getting-started
-
-### Create new document
+### Create a document (slug + path generated from the title)
+# @name createDocument
 POST {{apiUrl}}/documents
 Content-Type: application/json
 
@@ -13,20 +24,125 @@ Content-Type: application/json
     "title": "Getting Started",
     "tags": ["guide", "introduction"]
   },
-  "content": "# Getting Started\n\nWelcome to Schist! This is your first wiki document.\n\n## What is Schist?\n\nSchist is a lightweight, self-hosted markdown wiki.\n\n## Next Steps\n\n1. Create more documents\n2. Link documents together with [[Document Links]]\n3. Organize your knowledge\n\nHappy writing! 📝"
+  "content": "# Getting Started\n\nWelcome to Schist! This is your first wiki document.\n\nLink documents together with [[Project Ideas]]."
 }
+# => 201 { "message": "Document created successfully", "path": "/getting-started" }
 
-### Update existing document
-PUT {{apiUrl}}/documents/getting-started
+### Create a document at an explicit nested path (auto-creates folders)
+POST {{apiUrl}}/documents
 Content-Type: application/json
 
 {
   "metaData": {
-    "title": "Getting Started - Updated",
-    "tags": ["guide", "introduction", "updated"]
+    "title": "API Reference",
+    "path": "/{{nestedPath}}",
+    "tags": ["docs", "api"]
   },
-  "content": "# Getting Started - Updated\n\nWelcome to Schist! This document has been updated.\n\n## Features\n\n- Markdown editing\n- Wiki-style linking\n- Full-text search\n- File-based storage\n\n## Links\n\nCheck out [[Project Ideas]] for inspiration."
+  "content": "# API Reference\n\nNested document — the /docs/api folders are created automatically."
 }
 
-### Delete document
-DELETE {{apiUrl}}/documents/getting-started
+### Get a document by path
+# @name getDocument
+GET {{apiUrl}}/documents/{{docPath}}
+# => 200 single document object { metaData, content }
+
+### Get a nested document by path
+GET {{apiUrl}}/documents/{{nestedPath}}
+
+### Check whether a document exists (HEAD — no body, just status)
+HEAD {{apiUrl}}/documents/{{docPath}}
+# => 200 if it exists, 404 otherwise
+
+### Update a document (full replace; defaults to a manual save)
+PUT {{apiUrl}}/documents/{{docPath}}
+Content-Type: application/json
+
+{
+  "metaData": {
+    "title": "Getting Started",
+    "path": "/{{docPath}}",
+    "tags": ["guide", "introduction", "updated"]
+  },
+  "content": "# Getting Started (updated)\n\nThis revision was saved manually."
+}
+# => 200 the updated document object
+
+### Update with saveType "auto" (autosave — handled like a draft commit)
+PUT {{apiUrl}}/documents/{{docPath}}
+Content-Type: application/json
+
+{
+  "saveType": "auto",
+  "metaData": {
+    "title": "Getting Started",
+    "path": "/{{docPath}}",
+    "tags": ["guide", "introduction"]
+  },
+  "content": "# Getting Started\n\nAutosaved keystroke draft."
+}
+
+### Move / rename a document by changing the path in metadata on PUT
+PUT {{apiUrl}}/documents/{{docPath}}
+Content-Type: application/json
+
+{
+  "metaData": {
+    "title": "Getting Started",
+    "path": "/guides/getting-started",
+    "tags": ["guide"]
+  },
+  "content": "# Getting Started\n\nMoved under /guides via a path change."
+}
+
+### Move a document explicitly via the move endpoint
+POST {{apiUrl}}/documents/move
+Content-Type: application/json
+
+{
+  "oldPath": "/guides/getting-started",
+  "newPath": "/getting-started"
+}
+# => 200 { "message": "Document moved successfully", "oldPath": ..., "newPath": ... }
+
+### Soft delete — moves the document to /trash
+DELETE {{apiUrl}}/documents/{{docPath}}
+# => 200 { "message": "Document moved to trash successfully", "path": ... }
+
+### Permanently delete — only when the path is already under /trash
+DELETE {{apiUrl}}/documents/trash/{{docPath}}
+# => 200 { "message": "Document permanently deleted", "path": ... }
+
+### Document templates available for new documents
+# @name templates
+GET {{apiUrl}}/templates
+# => 200 { "templates": [...], "total": n }
+
+#############################################
+### Error cases
+#############################################
+
+### Get a non-existent document
+GET {{apiUrl}}/documents/this-does-not-exist
+# => 404
+
+### Create with no metadata / no title (validation error)
+POST {{apiUrl}}/documents
+Content-Type: application/json
+
+{
+  "content": "# Orphan\n\nNo metadata at all."
+}
+
+### Create with malformed JSON (bad request)
+POST {{apiUrl}}/documents
+Content-Type: application/json
+
+{ "metaData": { "title": "Broken" }, }
+
+### Move with a missing required field (oldPath/newPath are required)
+POST {{apiUrl}}/documents/move
+Content-Type: application/json
+
+{
+  "oldPath": "/getting-started"
+}

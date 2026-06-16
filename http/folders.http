@@ -1,0 +1,61 @@
+### Folders — tree, contents, create, rename, move, delete
+### Routes: /api/folders/*
+###
+### Folders are created implicitly when documents are placed inside them, and can
+### also be managed explicitly here. Paths are catch-all and auto-normalized.
+
+@folderPath = docs
+
+### Full folder tree with document counts
+# @name folderTree
+GET {{apiUrl}}/folders
+# => 200 { "folders": [...], "total": n }
+
+### Contents/metadata of a specific folder
+GET {{apiUrl}}/folders/{{folderPath}}
+# => 200 single folder object with immediate children
+
+### Create a folder
+POST {{apiUrl}}/folders
+Content-Type: application/json
+
+{
+  "path": "/projects/2024"
+}
+# => 201 { "message": "Folder created successfully", "path": "/projects/2024" }
+
+### Rename a folder (newName is the new leaf name, not a full path)
+PUT {{apiUrl}}/folders/projects/2024
+Content-Type: application/json
+
+{
+  "newName": "archive"
+}
+# => 200 { "message": "Folder renamed successfully", ... }
+
+### Move a folder to a new location
+POST {{apiUrl}}/folders/move
+Content-Type: application/json
+
+{
+  "oldPath": "/projects/archive",
+  "newPath": "/archive"
+}
+# => 200 { "message": "Folder moved successfully", ... }
+
+### Delete a folder and all its contents (cannot delete the root "/")
+DELETE {{apiUrl}}/folders/archive
+# => 200 { "message": "Folder deleted successfully", "path": "/archive" }
+
+#############################################
+### Error cases
+#############################################
+
+### Create a folder with a missing required path
+POST {{apiUrl}}/folders
+Content-Type: application/json
+
+{}
+
+### Get a non-existent folder
+GET {{apiUrl}}/folders/nope/does-not-exist

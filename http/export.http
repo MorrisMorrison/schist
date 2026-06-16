@@ -1,0 +1,28 @@
+### Export
+### Routes: /api/export/*
+###
+### Exports return file downloads, not JSON. A single document comes back as
+### markdown; folders and the full wiki come back as a .zip. Path params are
+### catch-all and auto-normalized.
+
+@docPath = getting-started
+@folderPath = docs
+
+### Export one document as markdown
+GET {{apiUrl}}/export/document/{{docPath}}
+# => 200 text/markdown (Content-Disposition: attachment)
+
+### Export a folder as a zip archive
+GET {{apiUrl}}/export/folder/{{folderPath}}
+# => 200 application/zip
+
+### Export the entire wiki as a zip archive
+GET {{apiUrl}}/export/all
+# => 200 application/zip
+
+#############################################
+### Error cases
+#############################################
+
+### Export a non-existent document
+GET {{apiUrl}}/export/document/does-not-exist

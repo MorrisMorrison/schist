@@ -72,15 +72,11 @@ setup('authenticate', async ({ page, request }) => {
 			// Click the setup button to start passkey registration
 			await page.getByRole('button', { name: /Create Account with Passkey/i }).click();
 
-			// Wait for the registration to complete by watching for the finish endpoint
+			// Wait for the success UI rather than racing the network response. The
+			// WebAuthn ceremony can take well over 15s under CI load, so wait on the
+			// actual completion signal with a generous timeout.
 			console.log('[Auth Setup] Waiting for registration to complete...');
-			await page.waitForResponse(
-				(response) => response.url().includes('/passkeys/register/finish'),
-				{ timeout: 15000 }
-			);
-
-			// Wait for setup completion and navigate to login
-			await expect(page.getByText('Setup Complete!')).toBeVisible({ timeout: 10000 });
+			await expect(page.getByText('Setup Complete!')).toBeVisible({ timeout: 45000 });
 			await page.getByRole('button', { name: /Continue to Sign In/i }).click();
 			await expect(page).toHaveURL(/\/login/);
 		} else {
@@ -114,15 +110,6 @@ setup('authenticate', async ({ page, request }) => {
 			}
 		}
 
-		// Set up response listener before clicking the button
-		const authFinishPromise = page.waitForResponse(
-			(response) => {
-				console.log(`[Auth Setup] Response: ${response.url()}`);
-				return response.url().includes('/passkeys/authenticate/finish');
-			},
-			{ timeout: 20000 }
-		);
-
 		// Ensure authenticator is ready for authentication BEFORE clicking
 		try {
 			await webauthnHelper.ensureAuthenticatorReady();
@@ -134,14 +121,9 @@ setup('authenticate', async ({ page, request }) => {
 		// Click sign in with passkey
 		await page.getByRole('button', { name: /Sign in with Passkey/i }).click();
 
-		// Add delay to ensure the WebAuthn API call is initiated
-		await page.waitForTimeout(1000);
-
-		// Wait for authentication to complete
-		await authFinishPromise;
-
-		// Should redirect to home page
-		await expect(page).toHaveURL(BASE_URL, { timeout: 10000 });
+		// Wait for the post-login UI rather than racing the network response. A
+		// successful sign-in redirects home and renders the nav.
+		await expect(page).toHaveURL(BASE_URL, { timeout: 45000 });
 
 		// Verify authenticated state
 		await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();

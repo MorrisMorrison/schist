@@ -33,7 +33,7 @@ run-backend-test:
 	cd backend && go test ./...
 
 run-docker:
-	docker-compose --profile prod up --build
+	docker compose --profile prod up --build
 
 run-backend:
 	cd backend/cmd/schist && go run main.go

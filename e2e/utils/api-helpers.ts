@@ -90,12 +90,6 @@ interface FolderListData {
 	}>;
 }
 
-interface DocumentData {
-	metaData?: {
-		title?: string;
-	};
-	content?: string;
-}
 export class ApiHelper {
 	private apiContext: APIRequestContext;
 	private baseURL: string;
@@ -709,89 +703,3 @@ export async function createTestDocuments(
 	}
 }
 
-export async function createTestFolders(
-	apiHelper: ApiHelper,
-	folders: TestFolderData[]
-): Promise<void> {
-	for (const folderData of folders) {
-		const result = await apiHelper.createFolder(folderData);
-		expect(result.status).toBe(201);
-	}
-}
-
-export async function verifyDocumentExists(
-	apiHelper: ApiHelper,
-	path: string,
-	expectedTitle?: string
-): Promise<void> {
-	const result = await apiHelper.getDocument(path);
-	expect(result.status).toBe(200);
-
-	if (expectedTitle) {
-		const documentData = result.data as DocumentData;
-		expect(documentData?.metaData?.title).toBe(expectedTitle);
-	}
-}
-
-export async function verifyFolderExists(apiHelper: ApiHelper, path: string): Promise<void> {
-	const result = await apiHelper.getFolder(path);
-	expect(result.status).toBe(200);
-}
-
-export async function waitForDocumentUpdate(
-	apiHelper: ApiHelper,
-	path: string,
-	expectedContent?: string,
-	timeoutMs: number = 10000
-): Promise<boolean> {
-	const startTime = Date.now();
-
-	while (Date.now() - startTime < timeoutMs) {
-		const result = await apiHelper.getDocument(path);
-		if (result.status === 200) {
-			const documentData = result.data as DocumentData;
-			if (!expectedContent || documentData?.content?.includes(expectedContent)) {
-				return true;
-			}
-		}
-		await new Promise((resolve) => setTimeout(resolve, 500));
-	}
-
-	return false;
-}
-
-export function getWorkerApiURL(): string {
-	// Single E2E service URL - same for all workers
-	return `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
-}
-
-export function getWorkerBaseURL(): string {
-	// Single E2E service URL - same for all workers
-	return process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
-}
-
-export class MockApiHelper extends ApiHelper {
-	private shouldFail = false;
-	private failureStatus = 500;
-	private failureMessage = 'Mock API failure';
-
-	setFailure(shouldFail: boolean, status: number = 500, message: string = 'Mock API failure') {
-		this.shouldFail = shouldFail;
-		this.failureStatus = status;
-		this.failureMessage = message;
-	}
-
-	async createDocument(): Promise<ApiResponse> {
-		if (this.shouldFail) {
-			return { status: this.failureStatus, error: this.failureMessage };
-		}
-		return super.createDocument({} as TestDocumentData);
-	}
-
-	async getDocument(): Promise<ApiResponse> {
-		if (this.shouldFail) {
-			return { status: this.failureStatus, error: this.failureMessage };
-		}
-		return { status: 200, data: {} };
-	}
-}

@@ -483,6 +483,3 @@ export class DocumentViewPage extends BasePage {
 		return this.documentMetadata;
 	}
 }
-
-// Legacy export for backwards compatibility
-export const PageViewPage = DocumentViewPage;

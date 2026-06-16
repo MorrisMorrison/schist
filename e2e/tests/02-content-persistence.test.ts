@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { createTestPage as createTestDocument } from '../utils/test-data';
+import { createTestDocument } from '../utils/test-data';
 
 test.describe('Content Persistence and Data Integrity', () => {
 	test('should persist content across browser sessions', async ({

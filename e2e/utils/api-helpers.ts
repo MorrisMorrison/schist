@@ -90,16 +90,16 @@ interface FolderListData {
 	}>;
 }
 
+const DEFAULT_API_URL = `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
+
 export class ApiHelper {
 	private apiContext: APIRequestContext;
 	private baseURL: string;
-	private workerIndex: number;
 	private authToken?: string;
 
-	constructor(apiContext: APIRequestContext, _workerIndex?: number, baseURL?: string) {
+	constructor(apiContext: APIRequestContext, baseURL: string = DEFAULT_API_URL) {
 		this.apiContext = apiContext;
-		this.workerIndex = _workerIndex ?? 0;
-		this.baseURL = baseURL || this.getWorkerSpecificBaseURL(this.workerIndex);
+		this.baseURL = baseURL;
 	}
 
 	setAuthToken(token: string) {
@@ -108,11 +108,6 @@ export class ApiHelper {
 
 	private getAuthHeaders(): { [key: string]: string } {
 		return this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {};
-	}
-
-	private getWorkerSpecificBaseURL(): string {
-		// Single E2E service URL - same for all workers
-		return `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
 	}
 
 	async healthCheck(): Promise<boolean> {

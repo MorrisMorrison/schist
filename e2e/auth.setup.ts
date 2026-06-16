@@ -15,7 +15,7 @@ const MOCK_CREDENTIAL_BASE = {
 };
 
 setup('authenticate', async ({ page, request }) => {
-	const apiHelper = new ApiHelper(request, 0, `${BASE_URL}/api`);
+	const apiHelper = new ApiHelper(request, `${BASE_URL}/api`);
 	let webauthnHelper: WebAuthnHelper | null = null;
 
 	// Determine rpId based on the URL - use hostname to handle both localhost and IP addresses

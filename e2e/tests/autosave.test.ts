@@ -4,15 +4,15 @@ test.describe('Auto-save Functionality', () => {
 	test('should auto-save content without navigation', async ({
 		editorPage,
 		documentViewPage,
-		withSimpleTestPage: testPage
+		withSimpleTestDocument: testDocument
 	}) => {
 		// Navigate to edit page
-		await editorPage.navigateToEdit(testPage.path!);
+		await editorPage.navigateToEdit(testDocument.path!);
 		await editorPage.verifyLoaded();
 
 		// Verify initial content
-		await editorPage.verifyTitle(testPage.title);
-		await editorPage.verifyContent(testPage.title);
+		await editorPage.verifyTitle(testDocument.title);
+		await editorPage.verifyContent(testDocument.title);
 
 		// Make changes to trigger auto-save
 		const newContent = '\n\nAdditional content added for auto-save test.';
@@ -22,21 +22,21 @@ test.describe('Auto-save Functionality', () => {
 		await editorPage.waitForAutoSave();
 
 		// Verify we're still on the edit page (no navigation occurred)
-		await editorPage.expectUrl(`/edit${testPage.path}`);
+		await editorPage.expectUrl(`/edit${testDocument.path}`);
 
 		// Navigate to view page to verify auto-save worked
-		await documentViewPage.navigateToPage(testPage.path!);
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToPage(testDocument.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 		await documentViewPage.verifyContentContains('Additional content added for auto-save test');
 	});
 
 	test('should handle auto-save errors gracefully', async ({
 		editorPage,
-		withSimpleTestPage: testPage,
+		withSimpleTestDocument: testDocument,
 		page
 	}) => {
 		// Navigate to edit
-		await editorPage.navigateToEdit(testPage.path!);
+		await editorPage.navigateToEdit(testDocument.path!);
 		await editorPage.verifyLoaded();
 
 		// Simulate network failure by intercepting API calls

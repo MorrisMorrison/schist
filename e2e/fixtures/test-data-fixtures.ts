@@ -5,13 +5,10 @@
 import { test as base } from './test-setup';
 import {
 	createTestDocument,
-	createTestPage,
 	createTestFolder,
 	createComplexTestDocument,
 	createSimpleTestDocument,
-	createSimpleTestPage,
 	TestDocumentData,
-	TestPageData,
 	TestFolderData
 } from '../utils/test-data';
 import { createTestDocuments } from '../utils/api-helpers';
@@ -20,9 +17,7 @@ import { createTestDocuments } from '../utils/api-helpers';
 export const test = base.extend<{
 	// Pre-created test data (not created in backend)
 	testDocument: TestDocumentData;
-	testPage: TestPageData;
 	simpleTestDocument: TestDocumentData;
-	simpleTestPage: TestPageData;
 	complexTestDocument: TestDocumentData;
 	testFolder: TestFolderData;
 
@@ -30,8 +25,6 @@ export const test = base.extend<{
 	withTestDocument: TestDocumentData;
 	withSimpleTestDocument: TestDocumentData;
 	withComplexTestDocument: TestDocumentData;
-	withTestPage: TestPageData;
-	withSimpleTestPage: TestPageData;
 	withMultipleDocuments: TestDocumentData[];
 	withSpecialContentTypes: {
 		unicodeDocument: TestDocumentData;
@@ -49,28 +42,12 @@ export const test = base.extend<{
 		await use(document);
 	},
 
-	testPage: async ({ testId }, use) => {
-		const page = createTestPage({
-			title: `Test Page ${testId}`,
-			path: `/test-page-${testId}`
-		});
-		await use(page);
-	},
-
 	simpleTestDocument: async ({ testId }, use) => {
 		const document = createSimpleTestDocument({
 			title: `Simple ${testId}`,
 			path: `/simple-${testId}`
 		});
 		await use(document);
-	},
-
-	simpleTestPage: async ({ testId }, use) => {
-		const page = createSimpleTestPage({
-			title: `Simple ${testId}`,
-			path: `/simple-${testId}`
-		});
-		await use(page);
 	},
 
 	complexTestDocument: async ({ testId }, use) => {
@@ -119,28 +96,6 @@ export const test = base.extend<{
 		}
 
 		await use(complexTestDocument);
-
-		// Cleanup is handled by apiHelper fixture
-	},
-
-	withTestPage: async ({ apiHelper, testPage }, use) => {
-		const result = await apiHelper.createDocument(testPage);
-		if (result.status !== 201) {
-			throw new Error(`Failed to create test page: ${result.error}`);
-		}
-
-		await use(testPage);
-
-		// Cleanup is handled by apiHelper fixture
-	},
-
-	withSimpleTestPage: async ({ apiHelper, simpleTestPage }, use) => {
-		const result = await apiHelper.createDocument(simpleTestPage);
-		if (result.status !== 201) {
-			throw new Error(`Failed to create simple test page: ${result.error}`);
-		}
-
-		await use(simpleTestPage);
 
 		// Cleanup is handled by apiHelper fixture
 	},

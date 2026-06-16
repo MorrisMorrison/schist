@@ -1,15 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-	normalizePath,
-	encodePath,
-	buildApiEndpoint,
-	createNavigationPath,
-	convertAssetPath,
-	generateSlug,
-	getParentPath,
-	getDepth,
-	isValidPath
-} from './path';
+import { normalizePath, encodePath, buildApiEndpoint, generateSlug, getParentPath } from './path';
 
 describe('normalizePath', () => {
 	it('should return "/" for empty string', () => {
@@ -81,36 +71,6 @@ describe('buildApiEndpoint', () => {
 	});
 });
 
-describe('createNavigationPath', () => {
-	it('should create encoded navigation paths', () => {
-		expect(createNavigationPath('/docs/hello world')).toBe('/docs/hello%20world');
-		expect(createNavigationPath('docs/file (1).md')).toBe('/docs/file%20(1).md');
-	});
-
-	it('should normalize input', () => {
-		expect(createNavigationPath('docs//hello world//')).toBe('/docs/hello%20world');
-	});
-});
-
-describe('convertAssetPath', () => {
-	it('should convert /assets/ to /uploads/', () => {
-		expect(convertAssetPath('/assets/image.png')).toBe('/uploads/image.png');
-		expect(convertAssetPath('/assets/folder/image.jpg')).toBe('/uploads/folder/image.jpg');
-	});
-
-	it('should throw error for invalid asset paths', () => {
-		expect(() => convertAssetPath('/images/test.png')).toThrow(
-			'Invalid asset path: must start with /assets/'
-		);
-		expect(() => convertAssetPath('assets/test.png')).toThrow(
-			'Invalid asset path: must start with /assets/'
-		);
-		expect(() => convertAssetPath('/test.png')).toThrow(
-			'Invalid asset path: must start with /assets/'
-		);
-	});
-});
-
 describe('generateSlug', () => {
 	it('should convert to lowercase', () => {
 		expect(generateSlug('Hello World')).toBe('hello-world');
@@ -153,68 +113,6 @@ describe('getParentPath', () => {
 
 	it('should handle single level paths', () => {
 		expect(getParentPath('/docs')).toBe('/');
-	});
-});
-
-describe('getDepth', () => {
-	it('should return correct depth', () => {
-		expect(getDepth('/')).toBe(0);
-		expect(getDepth('/docs')).toBe(1);
-		expect(getDepth('/docs/api')).toBe(2);
-		expect(getDepth('/docs/api/v1')).toBe(3);
-	});
-
-	it('should handle empty path', () => {
-		expect(getDepth('')).toBe(0);
-	});
-
-	it('should handle trailing slashes', () => {
-		expect(getDepth('/docs/')).toBe(1);
-		expect(getDepth('/docs/api/')).toBe(2);
-	});
-});
-
-describe('isValidPath', () => {
-	it('should validate correct paths', () => {
-		expect(isValidPath('/')).toBe(true);
-		expect(isValidPath('/docs')).toBe(true);
-		expect(isValidPath('/docs/api/v1')).toBe(true);
-		expect(isValidPath('/docs/hello-world')).toBe(true);
-	});
-
-	it('should reject empty path', () => {
-		expect(isValidPath('')).toBe(false);
-	});
-
-	it('should reject paths without leading slash', () => {
-		expect(isValidPath('docs')).toBe(false);
-		expect(isValidPath('docs/api')).toBe(false);
-	});
-
-	it('should reject double slashes', () => {
-		expect(isValidPath('//docs')).toBe(false);
-		expect(isValidPath('/docs//api')).toBe(false);
-	});
-
-	it('should reject trailing slashes (except root)', () => {
-		expect(isValidPath('/docs/')).toBe(false);
-		expect(isValidPath('/docs/api/')).toBe(false);
-	});
-
-	it('should reject invalid characters', () => {
-		expect(isValidPath('/docs<test')).toBe(false);
-		expect(isValidPath('/docs>test')).toBe(false);
-		expect(isValidPath('/docs:test')).toBe(false);
-		expect(isValidPath('/docs"test')).toBe(false);
-		expect(isValidPath('/docs|test')).toBe(false);
-		expect(isValidPath('/docs?test')).toBe(false);
-		expect(isValidPath('/docs*test')).toBe(false);
-	});
-
-	it('should reject control characters', () => {
-		expect(isValidPath('/docs\x00test')).toBe(false);
-		expect(isValidPath('/docs\x01test')).toBe(false);
-		expect(isValidPath('/docs\x1ftest')).toBe(false);
 	});
 });
 

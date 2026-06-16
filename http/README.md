@@ -1,76 +1,91 @@
 # HTTP API Test Files
 
-This directory contains `.http` files for testing the Schist API endpoints using VS Code REST Client extension or similar tools.
+`.http` request collections for testing the Schist API with the
+[VS Code REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)
+extension (or any compatible client, such as the JetBrains HTTP client).
+
+The files are organised one-per-resource and together cover every route registered
+in `backend/internal/handlers/api._handler.go`.
 
 ## Files
 
-- `health.http` - Health check and CORS testing
-- `pages.http` - CRUD operations for wiki pages  
-- `search.http` - Search functionality tests
-- `page-service-tests.http` - **Comprehensive PageService API testing** (recommended starting point)
-- `VSCODE_SETUP.md` - Detailed VS Code REST Client setup guide
+| File | Endpoints |
+| --- | --- |
+| `health.http` | `GET /health`, `GET /config`, CORS preflight |
+| `auth.http` | `/auth/*` — setup, passkey login, invites, user management |
+| `documents.http` | `/documents/*` (CRUD, move, HEAD) and `/templates` |
+| `folders.http` | `/folders/*` — tree, contents, create, rename, move, delete |
+| `assets.http` | `/assets/*` upload/serve/delete and the static `/uploads/*` mirror |
+| `search.http` | `GET /search` and `GET /tags` |
+| `links.http` | `/links/*` — broken links, outgoing links, backlinks |
+| `versions.http` | `/versions/*` — history, view-at-commit, diff, restore |
+| `import.http` | `POST /import/documents` — bulk markdown import |
+| `export.http` | `/export/*` — single document, folder zip, full wiki zip |
+| `shares.http` | `/shares/*` — public read-only share links |
+| `github.http` | `/github/*` GitHub backup and `/git/*` local repo health |
+| `secrets.http` | `/secrets/*` — encrypted secret store |
+| `passkeys.http` | `/passkeys/*` — WebAuthn registration, auth, unlock, management |
 
 ## Usage
 
-### With VS Code REST Client Extension
+1. Install the **REST Client** extension in VS Code.
+2. **Select an environment**: `Ctrl/Cmd+Shift+P` → "Rest Client: Switch Environment":
+   - `dev` — frontend dev server on `:5173`, backend on `:8080`
+   - `local` — backend on `:8080`, frontend on `:3000`
+   - `docker` — everything on `:8080`
+   - `prod` — everything on `:8080`
+3. Open a file and click **Send Request** above any request.
 
-**Quick Setup**: See [VSCODE_SETUP.md](./VSCODE_SETUP.md) for detailed instructions.
+### Variables
 
-1. Install the "REST Client" extension in VS Code
-2. **Select environment**: Press `Ctrl+Shift+P` → "Rest Client: Switch Environment":
-   - `dev` - Development (separate frontend at :5173, backend at :8080)
-   - `local` - Local backend only (:8080) 
-   - `docker` - Docker deployment (:8080)
-   - `prod` - Production (:8080)
-3. Open any `.http` file (start with `page-service-tests.http`)
-4. Click "Send Request" above each HTTP request
-5. View responses in the new tab that opens
+Environment values live in `http-client.env.json`:
 
-### Environment Variables
+- `{{baseUrl}}` — server root (e.g. `http://localhost:8080`)
+- `{{apiUrl}}` — API base (`{{baseUrl}}/api`)
+- `{{frontendUrl}}` — frontend origin (used for CORS examples)
+- `{{authToken}}` — JWT for protected routes when auth is enabled (shared, empty by default)
 
-The `.http` files use variables from `http-client.env.json`:
+Each file also defines local `@variables` at the top (paths, ids, tokens) — edit
+those placeholders to point at real data in your instance.
 
-- `{{apiUrl}}` - API base URL
-- `{{frontendUrl}}` - Frontend URL (for CORS testing)
-- `{{baseUrl}}` - Server base URL
+### Request chaining
 
-### With curl (alternative)
+Many requests are named (`# @name createShare`) so later requests can reference
+their responses, e.g. `GET {{apiUrl}}/shares/{{createShare.response.body.token}}`.
+Run the named request first, then the dependent one in the same session.
 
-```bash
-# Health check
-curl http://localhost:8080/api/health
+## Authentication
 
-# List Documents
-curl http://localhost:8080/api/documents
+Auth is **optional** and **disabled by default** (`SCHIST_AUTH_ENABLED=false`), so
+most requests work as-is. When enabled, protected endpoints require a
+`Bearer <jwt>` token:
 
-# Create Document
-curl -X POST http://localhost:8080/api/documents \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Test Page", "content": "# Test\n\nThis is a test."}'
-
-# Search
-curl "http://localhost:8080/api/search?q=test"
+```
+Authorization: Bearer {{authToken}}
 ```
 
-## Server Setup
+`/health`, `/config`, the `/auth/login*` + `/auth/setup/*` routes, the
+`/passkeys/{register,authenticate}/*` begin/finish routes, and `GET /shares/:token`
+stay public even when auth is on. Obtain a JWT via `POST /auth/login/passkey`
+(see `auth.http`) — note that minting a real passkey credential requires a browser
+authenticator (see `passkeys.http`).
 
-Make sure the backend server is running:
+## Notes on file uploads
+
+`assets.http` and `import.http` use `multipart/form-data` and reference files
+relative to the `.http` file (e.g. `< ./sample.png`). Ready-to-use fixtures are
+bundled in this folder — `sample.png` (a 1×1 PNG) for uploads and `note.md` /
+`one.md` / `two.md` for imports — so those requests run as-is. Swap in your own
+files or adjust the paths to test with real content.
+
+## Server setup
 
 ```bash
-# Development mode (with CORS)
+# Development mode (CORS enabled)
 ENV=development make run-backend
 
 # Production mode
 make run-backend
 ```
 
-## Expected Responses
-
-All endpoints return JSON responses:
-
-- `GET /api/health` → `{"status": "ok", "service": "schist"}`
-- `GET /api/doocuments` → `{"pages": [], "total": 0}`
-- `POST /api/documents` → `{"message": "Page created successfully"}`
-- `GET /api/search` → `{"query": "...", "results": [], "total": 0}`
-
-Note: These are placeholder responses. Real implementations will return actual data from the file system.
+The backend listens on `http://localhost:8080` by default.

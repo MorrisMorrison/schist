@@ -1,0 +1,51 @@
+### Assets — upload, serve, delete
+### Routes: /api/assets/*  (+ the static /uploads/* mirror)
+###
+### Uploads are multipart/form-data with a single `file` field. Supported types:
+### JPEG, PNG, GIF, WebP, SVG. Size limit 10MB. The server returns a generated
+### name; serve and delete use the path under /assets returned at upload time.
+
+@assetPath = images/REPLACE_WITH_GENERATED_NAME.png
+
+### Upload an image
+### REST Client reads the file relative to THIS .http file. Drop a sample image
+### next to it (e.g. http/sample.png) or point the path at any local image.
+# @name uploadAsset
+POST {{apiUrl}}/assets/upload
+Content-Type: multipart/form-data; boundary=----SchistFormBoundary
+
+------SchistFormBoundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./sample.png
+------SchistFormBoundary--
+# => 201 { "message": "Asset uploaded successfully", "asset": { "path": "/assets/images/...", ... } }
+
+### Serve an uploaded asset via the API route
+GET {{apiUrl}}/assets/{{assetPath}}
+# => 200 binary file content
+
+### Serve the same asset via the static mirror (served at the server root, not /api)
+GET {{baseUrl}}/uploads/{{assetPath}}
+
+### Delete an uploaded asset
+DELETE {{apiUrl}}/assets/{{assetPath}}
+# => 200 { "message": "Asset deleted successfully", "path": ... }
+
+#############################################
+### Error cases
+#############################################
+
+### Upload with no file field
+POST {{apiUrl}}/assets/upload
+Content-Type: multipart/form-data; boundary=----SchistFormBoundary
+
+------SchistFormBoundary
+Content-Disposition: form-data; name="notfile"
+
+oops
+------SchistFormBoundary--
+
+### Serve a missing asset
+GET {{apiUrl}}/assets/images/does-not-exist.png

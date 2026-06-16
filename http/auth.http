@@ -1,0 +1,81 @@
+### Authentication & user management
+### Routes: /api/auth/*
+###
+### Auth is OPTIONAL. When SCHIST_AUTH_ENABLED=false (default) every endpoint is
+### open and the login flow is unnecessary. When enabled, protected endpoints
+### expect an `Authorization: Bearer <jwt>` header (see {{authToken}} below).
+###
+### Real passkey login can't be driven from a .http file (WebAuthn needs a browser
+### authenticator). Use passkeys.http to register/authenticate in the browser, then
+### POST /auth/login/passkey here with the resulting credential id to mint a JWT.
+
+@username = admin
+@credentialId = REPLACE_WITH_CREDENTIAL_ID
+@inviteToken = REPLACE_WITH_INVITE_TOKEN
+
+### Is first-time setup required? (public)
+# @name setupRequired
+GET {{apiUrl}}/auth/setup/required
+# => 200 { "requires_setup": true|false }
+
+### Create the first user (public, only works while no users exist)
+POST {{apiUrl}}/auth/setup/first-user
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "credential_id": "{{credentialId}}"
+}
+
+### Create a user from an invite token (public)
+POST {{apiUrl}}/auth/setup/invite-user
+Content-Type: application/json
+
+{
+  "token": "{{inviteToken}}",
+  "username": "invitee",
+  "credential_id": "{{credentialId}}"
+}
+
+### Log in with a registered passkey credential id -> returns a JWT (public)
+# @name login
+POST {{apiUrl}}/auth/login/passkey
+Content-Type: application/json
+
+{
+  "credentialId": "{{credentialId}}"
+}
+# => 200 { "token": "...", "user": {...} }
+# Chain the token into protected requests via {{login.response.body.token}}.
+
+### Current authenticated user (requires auth)
+GET {{apiUrl}}/auth/me
+Authorization: Bearer {{login.response.body.token}}
+
+### Generate an invite link for onboarding a new user (requires auth)
+# @name invite
+POST {{apiUrl}}/auth/invite
+Authorization: Bearer {{login.response.body.token}}
+# => 201 { "token": "...", "invite_url": "..." }
+
+### Log out (public, stateless — client just drops the token)
+POST {{apiUrl}}/auth/logout
+
+### List all users (requires auth)
+GET {{apiUrl}}/auth/users
+Authorization: Bearer {{login.response.body.token}}
+
+### Create a user directly (requires auth)
+POST {{apiUrl}}/auth/users
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "username": "editor",
+  "is_admin": false,
+  "credential_id": "{{credentialId}}"
+}
+
+### Delete a user (requires auth)
+DELETE {{apiUrl}}/auth/users/editor
+Authorization: Bearer {{login.response.body.token}}

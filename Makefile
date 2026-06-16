@@ -1,4 +1,4 @@
-.PHONY: all install install-e2e build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend fmt-e2e lint lint-frontend lint-backend lint-e2e e2e e2e-ui e2e-test e2e-grep check verify secret-scan cleanup cleanup-dry-run cleanup-full cleanup-full-dry-run cleanup-e2e
+.PHONY: all install install-e2e build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend fmt-e2e lint lint-frontend lint-backend lint-e2e e2e e2e-ui e2e-test e2e-grep check verify secret-scan cleanup cleanup-dry-run cleanup-e2e
 
 all: build
 
@@ -112,18 +112,18 @@ verify:
 secret-scan:
 	./scripts/secret-scan.sh
 
-# Data cleanup commands
+# Remove generated test/build artifacts (all gitignored, safe to regenerate).
+# Scoped `git clean`: only the listed throwaway paths are touched — never .env,
+# node_modules, or any tracked source. Works the same on Linux, macOS, and Windows.
+CLEANUP_PATHS = e2e/test-results e2e/playwright-report e2e/screenshots e2e/playwright \
+	data backend/data backend/cmd/schist/data frontend/coverage backend/coverage \
+	backend/schist backend/cmd/schist/schist
+
 cleanup:
-	./scripts/cleanup.sh --profile=safe
+	git clean -fdx -- $(CLEANUP_PATHS)
 
 cleanup-dry-run:
-	./scripts/cleanup.sh --profile=safe --dry-run --verbose
-
-cleanup-full:
-	./scripts/cleanup.sh --profile=full
-
-cleanup-full-dry-run:
-	./scripts/cleanup.sh --profile=full --dry-run --verbose
+	git clean -ndx -- $(CLEANUP_PATHS)
 
 cleanup-e2e:
-	./scripts/cleanup.sh --profile=e2e-only
+	git clean -fdx -- e2e/test-results e2e/playwright-report e2e/screenshots e2e/playwright

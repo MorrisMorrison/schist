@@ -2,15 +2,6 @@ import type { Asset } from '$lib/api/types';
 
 export type EditorTheme = 'light' | 'dark';
 
-export interface ToolbarButton {
-	id: string;
-	label: string;
-	icon: string;
-	action: () => void;
-	shortcut?: string;
-	active?: boolean;
-}
-
 export interface EditorConfig {
 	theme: EditorTheme;
 	lineNumbers: boolean;
@@ -118,15 +109,3 @@ export type FormattingType =
 	| 'wikiLink'
 	| 'code'
 	| 'quote';
-
-export interface KeyboardShortcuts {
-	[key: string]: FormattingType;
-}
-
-export interface EditorEvents {
-	contentChange: (content: string) => void;
-	save: (content: string) => void;
-	focus: () => void;
-	blur: () => void;
-	selectionChange: (selection: { from: number; to: number }) => void;
-}

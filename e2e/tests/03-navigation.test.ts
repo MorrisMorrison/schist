@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { createTestPage } from '../utils/test-data';
+import { createTestDocument } from '../utils/test-data';
 
 test.describe('Navigation and Routing', () => {
 	test('should handle deep path navigation correctly', async ({
@@ -8,19 +8,19 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create nested pages manually for this complex navigation test
-		const parentDocument = createTestPage({
+		const parentDocument = createTestDocument({
 			title: `Parent ${testId}`,
 			content: '# Parent Page\n\nThis is a parent page.',
 			path: `/parent-${testId}`
 		});
 
-		const childDocument = createTestPage({
+		const childDocument = createTestDocument({
 			title: `Child ${testId}`,
 			content: '# Child Page\n\nThis is a child page.',
 			path: `/parent-${testId}/child-${testId}`
 		});
 
-		const grandchildDocument = createTestPage({
+		const grandchildDocument = createTestDocument({
 			title: `Grandchild ${testId}`,
 			content: '# Grandchild Page\n\nThis is a grandchild page.',
 			path: `/parent-${testId}/child-${testId}/grandchild-${testId}`
@@ -58,42 +58,42 @@ test.describe('Navigation and Routing', () => {
 	test('should handle URL changes correctly', async ({
 		documentViewPage,
 		editorPage,
-		withSimpleTestPage
+		withSimpleTestDocument
 	}) => {
-		const testPage = withSimpleTestPage;
+		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToPage(testPage.path!);
-		await documentViewPage.verifyPageLoaded(testPage.title);
-		await documentViewPage.verifyPageUrl(testPage.path!);
+		await documentViewPage.navigateToPage(testDocument.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
+		await documentViewPage.verifyPageUrl(testDocument.path!);
 
-		await editorPage.navigateToEdit(testPage.path!);
+		await editorPage.navigateToEdit(testDocument.path!);
 		await editorPage.verifyLoaded();
-		await editorPage.expectUrl(`/edit${testPage.path!}`);
+		await editorPage.expectUrl(`/edit${testDocument.path!}`);
 
 		await editorPage.cancel();
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 	});
 
 	test('should handle browser back/forward navigation', async ({
 		homePage,
 		documentViewPage,
 		editorPage,
-		withSimpleTestPage,
+		withSimpleTestDocument,
 		page
 	}) => {
-		const testPage = withSimpleTestPage;
+		const testDocument = withSimpleTestDocument;
 
 		await homePage.navigate();
 		await homePage.verifyLoaded();
 
-		await documentViewPage.navigateToPage(testPage.path!);
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToPage(testDocument.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 
 		await documentViewPage.editPage();
 		await editorPage.verifyLoaded();
 
 		await page.goBack();
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 
 		await page.goForward();
 		await editorPage.verifyLoaded();
@@ -105,18 +105,18 @@ test.describe('Navigation and Routing', () => {
 
 	test('should maintain navigation state across page refreshes', async ({
 		documentViewPage,
-		withSimpleTestPage,
+		withSimpleTestDocument,
 		page
 	}) => {
-		const testPage = withSimpleTestPage;
+		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToPage(testPage.path!);
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToPage(testDocument.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 
 		await page.reload();
 
-		await documentViewPage.verifyPageLoaded(testPage.title);
-		await documentViewPage.verifyPageUrl(testPage.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
+		await documentViewPage.verifyPageUrl(testDocument.path!);
 	});
 
 	test('should handle navigation from search results', async ({
@@ -126,7 +126,7 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create a searchable page manually for this search-specific test
-		const searchableDocument = createTestPage({
+		const searchableDocument = createTestDocument({
 			title: `Searchable ${testId}`,
 			content: `# Searchable Content ${testId}\n\nThis page contains unique searchable content for testing.`,
 			path: `/searchable-${testId}`,
@@ -152,13 +152,13 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create two pages manually for this concurrent navigation test
-		const document1 = createTestPage({
+		const document1 = createTestDocument({
 			title: `Concurrent 1 ${testId}`,
 			content: '# Concurrent Page 1',
 			path: `/concurrent-1-${testId}`
 		});
 
-		const document2 = createTestPage({
+		const document2 = createTestDocument({
 			title: `Concurrent 2 ${testId}`,
 			content: '# Concurrent Page 2',
 			path: `/concurrent-2-${testId}`
@@ -187,7 +187,7 @@ test.describe('Navigation and Routing', () => {
 			.map((_, i) => `## Section ${i + 1}\n\nThis is section ${i + 1} with some content.\n\n`)
 			.join('');
 
-		const longDocument = createTestPage({
+		const longDocument = createTestDocument({
 			title: `Long Page ${testId}`,
 			content: `# Long Page\n\n${longContent}`,
 			path: `/long-page-${testId}`

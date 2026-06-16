@@ -4,11 +4,11 @@ test.describe('Version History Functionality', () => {
 	test('should display version history and allow comparison', async ({
 		documentViewPage,
 		editorPage,
-		withSimpleTestPage: testPage,
+		withSimpleTestDocument: testDocument,
 		page
 	}) => {
-		await documentViewPage.navigateToPage(testPage.path!);
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToPage(testDocument.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 
 		const versionButton = page.locator('button[title="View version history"]');
 		if (await versionButton.isVisible()) {
@@ -52,11 +52,11 @@ test.describe('Version History Functionality', () => {
 	test('should handle version restoration workflow', async ({
 		documentViewPage,
 		editorPage,
-		withSimpleTestPage: testPage,
+		withSimpleTestDocument: testDocument,
 		page
 	}) => {
-		await documentViewPage.navigateToPage(testPage.path!);
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToPage(testDocument.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 
 		await documentViewPage.editPage();
 		await editorPage.verifyLoaded();
@@ -95,12 +95,12 @@ test.describe('Version History Functionality', () => {
 	test('should handle version comparison workflow', async ({
 		documentViewPage,
 		editorPage,
-		withSimpleTestPage: testPage,
+		withSimpleTestDocument: testDocument,
 		page
 	}) => {
 		// Navigate to the page and create multiple versions
-		await documentViewPage.navigateToPage(testPage.path!);
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.navigateToPage(testDocument.path!);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 
 		// Create first edit
 		await documentViewPage.editPage();

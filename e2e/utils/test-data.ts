@@ -155,7 +155,3 @@ export function createTestFolder(overrides: Partial<TestFolderData> = {}): TestF
 	};
 }
 
-export type TestPageData = TestDocumentData;
-export const createTestPage = createTestDocument;
-export const createSimpleTestPage = createSimpleTestDocument;
-export const createComplexTestPage = createComplexTestDocument;

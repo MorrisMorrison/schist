@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { createTestPage as createTestDocument } from '../utils/test-data';
+import { createTestDocument } from '../utils/test-data';
 
 // serial enforces not running in parallel
 test.describe.serial('Document Lifecycle', () => {

@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { createTestPage } from '../utils/test-data';
+import { createTestDocument } from '../utils/test-data';
 
 test.describe.serial('Search Integration with Folder Tree', () => {
 	test('should filter folder tree by text query', async ({ folderPage, page }) => {
@@ -126,7 +126,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.createFolder('empty-folder-no-matches');
 
 		// Add matching content to first folder only
-		const matchingDocument = createTestPage({
+		const matchingDocument = createTestDocument({
 			title: `Unique Content ${testId}`,
 			content: '# Unique Content\n\nThis is unique searchable content.',
 			path: '/folder-with-matches/unique-page',
@@ -136,7 +136,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await apiHelper.createDocument(matchingDocument);
 
 		// Add non-matching content to second folder
-		const nonMatchingPage = createTestPage({
+		const nonMatchingPage = createTestDocument({
 			title: `Different Content ${testId}`,
 			content: '# Different Content\n\nThis content does not match.',
 			path: '/empty-folder-no-matches/different-page'
@@ -200,19 +200,19 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 	}) => {
 		// Create pages with tags that share prefixes
 		const pages = [
-			createTestPage({
+			createTestDocument({
 				title: `Prefix Test 1 ${testId}`,
 				content: '# Prefix Test\n\nTesting prefix matching.',
 				path: '/prefix-test-1',
 				tags: ['project-alpha', 'important']
 			}),
-			createTestPage({
+			createTestDocument({
 				title: `Prefix Test 2 ${testId}`,
 				content: '# Another Prefix Test\n\nMore prefix testing.',
 				path: '/prefix-test-2',
 				tags: ['project-beta', 'documentation']
 			}),
-			createTestPage({
+			createTestDocument({
 				title: `Non-matching ${testId}`,
 				content: '# Different Content\n\nNo matching tags.',
 				path: '/non-matching',
@@ -253,7 +253,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		page
 	}) => {
 		// Create searchable content
-		const testDocument = createTestPage({
+		const testDocument = createTestDocument({
 			title: `Persistent Search ${testId}`,
 			content: '# Persistent Search\n\nTesting search persistence.',
 			path: '/persistent-search',

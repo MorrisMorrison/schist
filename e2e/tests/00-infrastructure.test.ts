@@ -17,9 +17,9 @@ test.describe('E2E Infrastructure', () => {
 		expect(healthCheck).toBe(true);
 	});
 
-	test('test data generation works', async ({ testPage, testFolder }) => {
-		expect(testPage.title).toBeTruthy();
-		expect(testPage.content).toBeTruthy();
+	test('test data generation works', async ({ testDocument, testFolder }) => {
+		expect(testDocument.title).toBeTruthy();
+		expect(testDocument.content).toBeTruthy();
 		expect(testFolder.name).toBeTruthy();
 		expect(testFolder.path).toBeTruthy();
 	});
@@ -29,11 +29,11 @@ test.describe('E2E Infrastructure', () => {
 		await expectVisibleText(homePage.pageTitle, '');
 	});
 
-	test('fixtures create backend data', async ({ withTestPage, documentViewPage }) => {
+	test('fixtures create backend data', async ({ withTestDocument, documentViewPage }) => {
 		// Navigate to the page created by the fixture
-		await documentViewPage.navigateToPage(withTestPage.path!);
-		await documentViewPage.verifyPageLoaded(withTestPage.title);
-		await expectVisibleText(documentViewPage.pageTitle, withTestPage.title);
+		await documentViewPage.navigateToPage(withTestDocument.path!);
+		await documentViewPage.verifyPageLoaded(withTestDocument.title);
+		await expectVisibleText(documentViewPage.pageTitle, withTestDocument.title);
 	});
 });
 
@@ -70,13 +70,13 @@ test.describe('Basic App Functionality', () => {
 		await expect(editorPage.saveButton).toBeVisible();
 	});
 
-	test('can create and view a page', async ({ editorPage, documentViewPage, testPage }) => {
+	test('can create and view a page', async ({ editorPage, documentViewPage, testDocument }) => {
 		// Create page through editor
 		await editorPage.navigateToNew();
-		await editorPage.fillPageDetails(testPage.title, testPage.content);
+		await editorPage.fillPageDetails(testDocument.title, testDocument.content);
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify we're now viewing the page
-		await documentViewPage.verifyPageLoaded(testPage.title);
+		await documentViewPage.verifyPageLoaded(testDocument.title);
 	});
 });

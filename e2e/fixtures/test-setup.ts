@@ -16,6 +16,7 @@ import { ApiHelper } from '../utils/api-helpers';
 import { generateTestId } from '../utils/test-data';
 
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
+const SERVICE_URL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 export const test = base.extend<{
 	homePage: HomePage;
@@ -25,35 +26,34 @@ export const test = base.extend<{
 	settingsPage: SettingsPage;
 	apiHelper: ApiHelper;
 	testId: string;
-	workerBaseURL: string;
 }>({
-	homePage: async ({ page, workerBaseURL }, use) => {
+	homePage: async ({ page }, use) => {
 		page.setDefaultNavigationTimeout(DEFAULT_NAVIGATION_TIMEOUT_MILLIS);
-		await page.goto(workerBaseURL);
+		await page.goto(SERVICE_URL);
 		const homePage = new HomePage(page);
 		await use(homePage);
 	},
 
-	editorPage: async ({ page, workerBaseURL }, use) => {
-		await page.goto(workerBaseURL);
+	editorPage: async ({ page }, use) => {
+		await page.goto(SERVICE_URL);
 		const editorPage = new EditorPage(page);
 		await use(editorPage);
 	},
 
-	documentViewPage: async ({ page, workerBaseURL }, use) => {
-		await page.goto(workerBaseURL);
+	documentViewPage: async ({ page }, use) => {
+		await page.goto(SERVICE_URL);
 		const documentViewPage = new DocumentViewPage(page);
 		await use(documentViewPage);
 	},
 
-	folderPage: async ({ page, workerBaseURL }, use) => {
-		await page.goto(workerBaseURL);
+	folderPage: async ({ page }, use) => {
+		await page.goto(SERVICE_URL);
 		const folderPage = new FolderPage(page);
 		await use(folderPage);
 	},
 
-	settingsPage: async ({ page, workerBaseURL }, use) => {
-		await page.goto(workerBaseURL);
+	settingsPage: async ({ page }, use) => {
+		await page.goto(SERVICE_URL);
 		const settingsPage = new SettingsPage(page);
 		await use(settingsPage);
 	},
@@ -61,9 +61,7 @@ export const test = base.extend<{
 	apiHelper: async ({ request }, use, testInfo) => {
 		const projectName = testInfo.project.name;
 
-		// Single E2E service for all projects
-		const baseURL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
-		const apiHelper = new ApiHelper(request, 0, `${baseURL}/api`);
+		const apiHelper = new ApiHelper(request, `${SERVICE_URL}/api`);
 
 		// Load auth token for authenticated projects (not setup)
 		if (projectName === 'e2e') {
@@ -93,14 +91,6 @@ export const test = base.extend<{
 	testId: async ({}, use) => {
 		const testId = generateTestId();
 		await use(testId);
-	},
-
-	// eslint-disable-next-line no-empty-pattern
-	workerBaseURL: async ({}, use) => {
-		// Single E2E service URL for all projects
-		const baseURL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
-
-		await use(baseURL);
 	}
 });
 

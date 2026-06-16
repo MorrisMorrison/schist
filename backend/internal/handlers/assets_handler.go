@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -11,17 +12,13 @@ import (
 func (h *APIHandler) uploadAsset(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "No file provided",
-		})
+		HandleError(c, errors.NewValidationError("No file provided").WithCause(err))
 		return
 	}
 
 	asset, err := h.AssetService.UploadImage(file)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -38,9 +35,7 @@ func (h *APIHandler) serveAsset(c *gin.Context) {
 
 	fullPath, err := h.AssetService.GetAssetPath(assetPath)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewNotFoundError("asset", assetPath).WithCause(err))
 		return
 	}
 
@@ -52,17 +47,13 @@ func (h *APIHandler) deleteAsset(c *gin.Context) {
 
 	assetPath := strings.TrimPrefix(path, "/assets")
 	if assetPath == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid asset path",
-		})
+		HandleError(c, errors.NewValidationError("Invalid asset path"))
 		return
 	}
 
 	err := h.AssetService.DeleteAsset("assets" + assetPath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewFileSystemError("delete asset", err))
 		return
 	}
 

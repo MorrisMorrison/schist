@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -12,9 +13,7 @@ func (h *APIHandler) getFolder(c *gin.Context) {
 
 	folder, err := h.DocumentService.GetFolder(path)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -24,9 +23,7 @@ func (h *APIHandler) getFolder(c *gin.Context) {
 func (h *APIHandler) getFolderTree(c *gin.Context) {
 	folders, err := h.DocumentService.GetFolderTree()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewDatabaseError("get folder tree", err))
 		return
 	}
 
@@ -42,10 +39,8 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 	}
 
 	var req CreateFolderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request: " + err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
@@ -53,9 +48,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 
 	err := h.DocumentService.CreateFolder(path)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -73,19 +66,14 @@ func (h *APIHandler) renameFolder(c *gin.Context) {
 	}
 
 	var req RenameRequest
-	err := c.BindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
-	err = h.DocumentService.RenameFolder(path, req.NewName)
+	err := h.DocumentService.RenameFolder(path, req.NewName)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -101,9 +89,7 @@ func (h *APIHandler) deleteFolder(c *gin.Context) {
 
 	err := h.DocumentService.DeleteFolder(path)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -120,22 +106,17 @@ func (h *APIHandler) moveFolder(c *gin.Context) {
 	}
 
 	var req MoveFolderRequest
-	err := c.BindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	req.OldPath = utils.EnsureLeadingSlash(req.OldPath)
 	req.NewPath = utils.EnsureLeadingSlash(req.NewPath)
 
-	err = h.DocumentService.MoveFolder(req.OldPath, req.NewPath)
+	err := h.DocumentService.MoveFolder(req.OldPath, req.NewPath)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 

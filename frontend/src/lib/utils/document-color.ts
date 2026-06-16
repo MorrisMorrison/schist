@@ -73,23 +73,3 @@ export function getDocumentColor(title: string): string {
 	// Fallback to default gray
 	return DEFAULT_COLOR;
 }
-
-/**
- * Get a lighter variant of the document color for backgrounds
- */
-export function getDocumentColorLight(title: string): string {
-	const baseColor = getDocumentColor(title);
-
-	// Convert to lighter variant by replacing /90 with /20
-	return baseColor.replace(/\/90/g, '/20');
-}
-
-/**
- * Get document color with custom opacity
- */
-export function getDocumentColorWithOpacity(title: string, opacity: number = 90): string {
-	const baseColor = getDocumentColor(title);
-
-	// Replace the opacity value
-	return baseColor.replace(/\/90/g, `/${opacity}`);
-}

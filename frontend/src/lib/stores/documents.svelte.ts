@@ -672,27 +672,6 @@ export const currentFolderDocuments = () => {
 	);
 };
 
-// Convenience exports
-export const documents = () => documentsState.documents;
-export const currentDocument = () => documentsState.currentDocument;
-export const isLoading = () => documentsState.loading;
-export const error = () => documentsState.error;
-
-export const searchQuery = () => searchState.query;
-export const selectedTags = () => searchState.selectedTags;
-export const searchResults = () => searchState.results;
-export const isSearching = () => searchState.loading;
-
-export const folders = () => foldersState.folders;
-export const isFoldersLoading = () => foldersState.loading;
-export const foldersError = () => foldersState.error;
-
-export const backlinks = () => linksState.backlinks;
-export const outgoingLinks = () => linksState.outgoingLinks;
-export const isBacklinksLoading = () => linksState.backlinksLoading;
-export const isOutgoingLinksLoading = () => linksState.outgoingLinksLoading;
-export const linksError = () => linksState.error;
-
 // Action exports
 export const documentActions = createDocumentActions();
 export const searchActions = createSearchActions();

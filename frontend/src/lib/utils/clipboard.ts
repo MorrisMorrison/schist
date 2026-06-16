@@ -54,19 +54,3 @@ export function isClipboardSupported(): boolean {
 		false
 	);
 }
-
-export async function requestClipboardPermission(): Promise<boolean> {
-	if (!navigator.permissions || !navigator.clipboard) {
-		return false;
-	}
-
-	try {
-		const permission = await navigator.permissions.query({
-			name: 'clipboard-write' as PermissionName
-		});
-		return permission.state === 'granted' || permission.state === 'prompt';
-	} catch (error) {
-		console.warn('Could not check clipboard permissions:', error);
-		return false;
-	}
-}

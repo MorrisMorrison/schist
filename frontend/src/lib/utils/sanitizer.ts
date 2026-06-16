@@ -95,8 +95,3 @@ export function sanitizeHtml(dirty: string): string {
 		return '';
 	}
 }
-
-export function sanitizeMarkdownHtml(html: string): string {
-	console.warn('sanitizeMarkdownHtml is deprecated - migrate to component-based rendering');
-	return sanitizeHtml(html);
-}

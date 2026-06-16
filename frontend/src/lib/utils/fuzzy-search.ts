@@ -123,28 +123,6 @@ export function fuzzySearchDocuments(documents: Document[], query: string): Docu
 }
 
 /**
- * Highlight matching text in search results
- */
-export function highlightMatches(text: string, query: string): string {
-	if (!query.trim()) return text;
-
-	const queryLower = query.toLowerCase();
-	const textLower = text.toLowerCase();
-
-	// Simple substring highlighting
-	const index = textLower.indexOf(queryLower);
-	if (index !== -1) {
-		const before = text.substring(0, index);
-		const match = text.substring(index, index + query.length);
-		const after = text.substring(index + query.length);
-
-		return `${before}<mark class="bg-yellow-200 dark:bg-yellow-900">${match}</mark>${after}`;
-	}
-
-	return text;
-}
-
-/**
  * Extract recent documents from localStorage
  */
 export function getRecentDocumentPaths(): string[] {

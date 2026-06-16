@@ -69,12 +69,12 @@ export default defineConfig({
 	],
 
 	// Only use webServer for local development, not in CI
-	// In CI, the services are started by GitHub Actions using docker-compose
+	// In CI, the services are started by GitHub Actions using docker compose
 	...(isCI
 		? {}
 		: {
 				webServer: {
-					command: 'docker-compose --profile e2e up --build',
+					command: 'docker compose --profile e2e up --build',
 					port: 3000,
 					reuseExistingServer: true,
 					timeout: 180 * 1000 // 3 minutes for local Docker builds

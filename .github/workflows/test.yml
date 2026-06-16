@@ -36,7 +36,12 @@ jobs:
       
       - name: Install frontend dependencies
         run: cd frontend && npm ci
-      
+
+      # Unit tests run in Vitest browser mode (provider: playwright, chromium),
+      # so the browser binary must be present on the runner.
+      - name: Install Playwright browser
+        run: cd frontend && npx playwright install --with-deps chromium
+
       - name: Run frontend unit tests
         run: cd frontend && npm run test:unit
       

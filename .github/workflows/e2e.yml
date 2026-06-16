@@ -11,7 +11,13 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+    # docker-compose.yml's prod `schist` service declares SCHIST_JWT_SECRET as a
+    # required variable (${SCHIST_JWT_SECRET:?...}). Compose interpolates every
+    # service before applying --profile, so this must be set even though only the
+    # e2e profile runs. A throwaway value is fine for tests.
+    env:
+      SCHIST_JWT_SECRET: test-jwt-secret-for-e2e-testing-32-bytes-long
+
     steps:
       - uses: actions/checkout@v4
       

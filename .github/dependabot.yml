@@ -1,0 +1,48 @@
+version: 2
+updates:
+  # GitHub Actions used by the workflows in .github/workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Go backend module
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      go-deps:
+        patterns: ["*"]
+
+  # Frontend (SvelteKit) npm dependencies
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      frontend-dev:
+        dependency-type: development
+        update-types: ["minor", "patch"]
+      frontend-prod:
+        dependency-type: production
+        update-types: ["minor", "patch"]
+
+  # E2E (Playwright) npm dependencies
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+    groups:
+      e2e-deps:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # Base images in the root Dockerfile
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

@@ -19,12 +19,12 @@ jobs:
       SCHIST_JWT_SECRET: test-jwt-secret-for-e2e-testing-32-bytes-long
 
     steps:
-      - uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v6
+
       - name: Set up Node.js for E2E
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '23'
+          node-version: '22.12.0'
           cache: 'npm'
           cache-dependency-path: e2e/package-lock.json
       

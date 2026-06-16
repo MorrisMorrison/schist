@@ -33,6 +33,20 @@ type SecretListResponse struct {
 
 // UnlockSecretsHandler removed - using passkey-based unlock through UnlockWithPasskeyHandler
 
+// RequireUnlockedSecrets aborts the request with 401 when the secret store is
+// locked. Applied to the secret read/write routes so each handler no longer has
+// to repeat the unlock check.
+func RequireUnlockedSecrets(services *services.Services) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !services.SecretManager.IsUnlocked() {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Secret store is locked"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 func SecretsStatusHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hasPasskeys, _ := services.SecretManager.HasPasskeys()
@@ -51,11 +65,6 @@ func SecretsStatusHandler(services *services.Services) gin.HandlerFunc {
 
 func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !services.SecretManager.IsUnlocked() {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Secret store is locked"})
-			return
-		}
-
 		secrets, err := services.SecretManager.ListSecrets()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -72,11 +81,6 @@ func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 
 func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !services.SecretManager.IsUnlocked() {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Secret store is locked"})
-			return
-		}
-
 		var req CreateSecretRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -100,11 +104,6 @@ func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !services.SecretManager.IsUnlocked() {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Secret store is locked"})
-			return
-		}
-
 		key := c.Param("key")
 		if key == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Key parameter is required"})
@@ -129,11 +128,6 @@ func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 func DeleteSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !services.SecretManager.IsUnlocked() {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Secret store is locked"})
-			return
-		}
-
 		key := c.Param("key")
 		if key == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Key parameter is required"})
@@ -159,11 +153,6 @@ func LockSecretsHandler(services *services.Services) gin.HandlerFunc {
 
 func GetSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !services.SecretManager.IsUnlocked() {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Secret store is locked"})
-			return
-		}
-
 		key := c.Param("key")
 		if key == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Key parameter is required"})

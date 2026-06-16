@@ -9,6 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// gitHubStatus is the combined settings + connection-status payload returned by
+// the GitHub setup/config/disconnect endpoints.
+type gitHubStatus struct {
+	*services.GitHubSettings
+	*services.GitHubConnectionStatus
+}
+
+func newGitHubStatus(settings *services.GitHubSettings, conn *services.GitHubConnectionStatus) gitHubStatus {
+	return gitHubStatus{GitHubSettings: settings, GitHubConnectionStatus: conn}
+}
+
 func (h *APIHandler) setupGitHub(c *gin.Context) {
 	var req services.GitHubSetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -56,13 +67,7 @@ func (h *APIHandler) setupGitHub(c *gin.Context) {
 		return
 	}
 
-	status := struct {
-		*services.GitHubSettings
-		*services.GitHubConnectionStatus
-	}{
-		GitHubSettings:         config,
-		GitHubConnectionStatus: connectionStatus,
-	}
+	status := newGitHubStatus(config, connectionStatus)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "GitHub repository setup successfully",
@@ -151,13 +156,7 @@ func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 	}
 
 	// Return combined response for config update
-	status := struct {
-		*services.GitHubSettings
-		*services.GitHubConnectionStatus
-	}{
-		GitHubSettings:         config,
-		GitHubConnectionStatus: connectionStatus,
-	}
+	status := newGitHubStatus(config, connectionStatus)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "GitHub configuration updated successfully",
@@ -279,13 +278,7 @@ func (h *APIHandler) disconnectGitHub(c *gin.Context) {
 		PendingChanges: 0,
 	}
 
-	status := struct {
-		*services.GitHubSettings
-		*services.GitHubConnectionStatus
-	}{
-		GitHubSettings:         config,
-		GitHubConnectionStatus: connectionStatus,
-	}
+	status := newGitHubStatus(config, connectionStatus)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "GitHub integration disconnected successfully",

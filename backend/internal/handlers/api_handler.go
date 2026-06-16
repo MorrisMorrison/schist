@@ -136,8 +136,12 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 
 	secrets := routerGroup.Group("/secrets")
 	{
+		// Public within the secrets group: lock and status work regardless of lock state.
 		secrets.POST("/lock", LockSecretsHandler(h.Services))
 		secrets.GET("/status", SecretsStatusHandler(h.Services))
+
+		// Everything below requires the secret store to be unlocked.
+		secrets.Use(RequireUnlockedSecrets(h.Services))
 		secrets.GET("", ListSecretsHandler(h.Services))
 		secrets.POST("", CreateSecretHandler(h.Services))
 		secrets.GET("/:key", GetSecretHandler(h.Services))

@@ -73,8 +73,10 @@ authenticator (see `passkeys.http`).
 ## Notes on file uploads
 
 `assets.http` and `import.http` use `multipart/form-data` and reference files
-relative to the `.http` file (e.g. `< ./sample.png`). Drop a sample image / markdown
-file into this `http/` folder, or adjust the paths, before sending those requests.
+relative to the `.http` file (e.g. `< ./sample.png`). Ready-to-use fixtures are
+bundled in this folder — `sample.png` (a 1×1 PNG) for uploads and `note.md` /
+`one.md` / `two.md` for imports — so those requests run as-is. Swap in your own
+files or adjust the paths to test with real content.
 
 ## Server setup
 

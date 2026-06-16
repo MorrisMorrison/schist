@@ -15,18 +15,18 @@ jobs:
       PUBLIC_API_URL: http://localhost:8080/api
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       # Set up Go for backend
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
+          go-version: '1.23'
           cache-dependency-path: backend/go.sum
       
       # Set up Node.js for frontend  
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22.12.0'
           cache: 'npm'
@@ -43,7 +43,7 @@ jobs:
     needs: build
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Build Docker image
         run: |

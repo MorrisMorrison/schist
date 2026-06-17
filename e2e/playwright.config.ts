@@ -47,7 +47,10 @@ export default defineConfig({
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
-		viewport: { width: 1280, height: 720 }
+		viewport: { width: 1280, height: 720 },
+		// The CI container runs as root, where Chromium refuses to launch without
+		// --no-sandbox.
+		...(isCI ? { launchOptions: { args: ['--no-sandbox'] } } : {})
 	},
 
 	projects: [

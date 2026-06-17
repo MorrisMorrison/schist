@@ -33,55 +33,48 @@ jobs:
     # required variable (${SCHIST_JWT_SECRET:?...}). Compose interpolates every
     # service before applying --profile, so this must be set even though only the
     # e2e profile runs. A throwaway value is fine for tests.
+    #
+    # COMPOSE_PROJECT_NAME is run-unique so the two parallel runner replicas get
+    # their own containers + network and don't collide.
     env:
       SCHIST_JWT_SECRET: test-jwt-secret-for-e2e-testing-32-bytes-long
+      COMPOSE_PROJECT_NAME: schist-e2e-${{ github.run_id }}
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Node.js for E2E
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22.12.0'
-          cache: 'npm'
-          cache-dependency-path: e2e/package-lock.json
-      
-      - name: Install E2E dependencies
-        run: cd e2e && npm ci
-      
-      - name: Install Playwright browsers
-        run: cd e2e && npx playwright install --with-deps chromium
-      
-      
-      - name: Start E2E service  
+      - name: Start E2E service
         run: |
-          echo "Starting E2E service..."
+          set -euo pipefail
           docker compose --profile e2e up -d --build
-          
-          # Wait for service to be healthy
+
           echo "Waiting for service to become healthy..."
-          timeout 60 bash -c 'while [ "$(docker compose ps -q schist-e2e | xargs docker inspect --format "{{.State.Health.Status}}" | grep -c healthy)" -lt 1 ]; do echo "Waiting..."; sleep 2; done'
-          
-          # Verify connectivity
-          echo "Verifying service is ready..."
-          for i in {1..10}; do
-            if curl -f -s "http://localhost:3000/api/health" > /dev/null; then
-              echo "✅ Service ready at localhost:3000"
-              break
-            fi
-            echo "Waiting... attempt $i/10"
-            sleep 2
-          done
-      
+          timeout 120 bash -c '
+            until [ "$(docker compose --profile e2e ps -q schist-e2e | xargs -r docker inspect --format "{{.State.Health.Status}}" 2>/dev/null)" = "healthy" ]; do
+              echo "Waiting..."; sleep 2;
+            done'
+
       - name: Run Playwright tests
-        run: cd e2e && npx playwright test
-        env:
-          CI: true
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
-      
+        run: |
+          set -euo pipefail
+          # The runner is Docker-out-of-Docker, so published ports aren't reachable
+          # from this job and WebAuthn needs a localhost/https secure context. Run
+          # Playwright in a container that SHARES the app container's network
+          # namespace, so the browser reaches the app on http://localhost:8080 -- a
+          # valid WebAuthn origin matching the server's SCHIST_FRONTEND_URL.
+          APP="$(docker compose --profile e2e ps -q schist-e2e)"
+          docker run --rm \
+            --network "container:${APP}" \
+            --ipc=host \
+            -v "$PWD/e2e:/e2e" -w /e2e \
+            -e CI=true \
+            -e PLAYWRIGHT_BASE_URL=http://localhost:8080 \
+            mcr.microsoft.com/playwright:v1.55.0-noble \
+            sh -c "npm ci && npx playwright test"
+
       - name: Show service logs on failure
         if: failure()
-        run: docker compose logs schist-e2e
+        run: docker compose --profile e2e logs schist-e2e
 
       - name: Upload Playwright report and traces on failure
         if: failure()

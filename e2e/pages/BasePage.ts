@@ -25,13 +25,6 @@ export abstract class BasePage {
 	}
 
 	/**
-	 * Get page title
-	 */
-	async getTitle(): Promise<string> {
-		return await this.page.title();
-	}
-
-	/**
 	 * Check if current URL matches expected path
 	 */
 	async expectUrl(expectedPath: string) {
@@ -65,34 +58,6 @@ export abstract class BasePage {
 	async fillInput(locator: Locator, value: string) {
 		await locator.fill(value);
 		await expect(locator).toHaveValue(value);
-	}
-
-	/**
-	 * Click button and wait for any navigation
-	 */
-	async clickAndWait(locator: Locator) {
-		await Promise.all([this.page.waitForLoadState('networkidle'), locator.click()]);
-	}
-
-	/**
-	 * Take screenshot with a descriptive name
-	 */
-	async screenshot(name: string) {
-		await this.page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
-	}
-
-	/**
-	 * Scroll element into view
-	 */
-	async scrollIntoView(locator: Locator) {
-		await locator.scrollIntoViewIfNeeded();
-	}
-
-	/**
-	 * Wait for network requests to complete
-	 */
-	async waitForApiResponse(urlPattern: string | RegExp) {
-		return this.page.waitForResponse(urlPattern);
 	}
 
 	/**

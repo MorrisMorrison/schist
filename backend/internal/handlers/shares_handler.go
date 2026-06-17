@@ -3,6 +3,8 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
+	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,74 +23,58 @@ type ShareResponse struct {
 	CreatedBy    string `json:"created_by"`
 }
 
-func (h *APIHandler) createShare(c *gin.Context) {
-	var req CreateShareRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body: " + err.Error(),
-		})
-		return
-	}
-
-	// Get authenticated user
-	username, exists := c.Get("authenticated_user")
-	if !exists {
-		username = "anonymous"
-	}
-
-	// Use requested expiry days (ShareService will apply defaults and limits)
-	expiryDays := req.ExpiryDays
-
-	share, err := h.ShareService.CreateShare(req.DocumentPath, username.(string), expiryDays)
-	if err != nil {
-		if err.Error() == "document not found: document not found" {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Document not found",
-			})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create share: " + err.Error(),
-		})
-		return
-	}
-
-	// Build share URL using frontend URL from config
-	shareURL := h.Config.FrontendURL + "/share/" + share.Token
-
-	response := ShareResponse{
+func (h *APIHandler) toShareResponse(share services.ShareToken) ShareResponse {
+	return ShareResponse{
 		ID:           share.ID,
 		DocumentPath: share.DocumentPath,
 		Token:        share.Token,
-		ShareURL:     shareURL,
+		ShareURL:     h.Config.FrontendURL + "/share/" + share.Token,
 		CreatedAt:    share.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		ExpiresAt:    share.ExpiresAt.Format("2006-01-02T15:04:05Z"),
 		CreatedBy:    share.CreatedBy,
 	}
+}
 
-	c.JSON(http.StatusCreated, response)
+func (h *APIHandler) createShare(c *gin.Context) {
+	var req CreateShareRequest
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
+		return
+	}
+
+	username, ok := currentUser(c)
+	if !ok {
+		username = "anonymous"
+	}
+
+	// Use requested expiry days (ShareService will apply defaults and limits)
+	share, err := h.ShareService.CreateShare(req.DocumentPath, username, req.ExpiryDays)
+	if err != nil {
+		if err.Error() == "document not found: document not found" {
+			HandleError(c, errors.NewNotFoundError("document", req.DocumentPath).WithCause(err))
+			return
+		}
+		HandleError(c, errors.NewInternalError("Failed to create share: "+err.Error()).WithCause(err))
+		return
+	}
+
+	c.JSON(http.StatusCreated, h.toShareResponse(*share))
 }
 
 func (h *APIHandler) getSharedDocument(c *gin.Context) {
 	token := c.Param("token")
 	if token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Token is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("token"))
 		return
 	}
 
 	document, err := h.ShareService.GetSharedDocument(token)
 	if err != nil {
 		if err.Error() == "share not found" || err.Error() == "share has expired" {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Share not found or expired",
-			})
+			HandleError(c, errors.NewNotFoundError("share", token).WithCause(err))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get shared document: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Failed to get shared document: "+err.Error()).WithCause(err))
 		return
 	}
 
@@ -98,40 +84,23 @@ func (h *APIHandler) getSharedDocument(c *gin.Context) {
 func (h *APIHandler) listShares(c *gin.Context) {
 	username := "anonymous"
 	if h.Config.AuthEnabled {
-		var exists bool
-		userVal, exists := c.Get("authenticated_user")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authentication required",
-			})
+		u, ok := currentUser(c)
+		if !ok {
+			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 			return
 		}
-		username, _ = userVal.(string)
+		username = u
 	}
 
 	shares, err := h.ShareService.ListShares(username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to list shares: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Failed to list shares: "+err.Error()).WithCause(err))
 		return
 	}
 
-	// Convert to response format
-	var responses []ShareResponse
+	responses := make([]ShareResponse, 0, len(shares))
 	for _, share := range shares {
-		// Build share URL using frontend URL from config
-		shareURL := h.Config.FrontendURL + "/share/" + share.Token
-
-		responses = append(responses, ShareResponse{
-			ID:           share.ID,
-			DocumentPath: share.DocumentPath,
-			Token:        share.Token,
-			ShareURL:     shareURL,
-			CreatedAt:    share.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			ExpiresAt:    share.ExpiresAt.Format("2006-01-02T15:04:05Z"),
-			CreatedBy:    share.CreatedBy,
-		})
+		responses = append(responses, h.toShareResponse(share))
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -143,36 +112,27 @@ func (h *APIHandler) listShares(c *gin.Context) {
 func (h *APIHandler) revokeShare(c *gin.Context) {
 	shareID := c.Param("id")
 	if shareID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Share ID is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("id"))
 		return
 	}
 
 	username := "anonymous"
 	if h.Config.AuthEnabled {
-		var exists bool
-		userVal, exists := c.Get("authenticated_user")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authentication required",
-			})
+		u, ok := currentUser(c)
+		if !ok {
+			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 			return
 		}
-		username, _ = userVal.(string)
+		username = u
 	}
 
 	err := h.ShareService.RevokeShare(shareID, username)
 	if err != nil {
 		if err.Error() == "share not found or not owned by user" {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Share not found",
-			})
+			HandleError(c, errors.NewNotFoundError("share", shareID).WithCause(err))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to revoke share: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Failed to revoke share: "+err.Error()).WithCause(err))
 		return
 	}
 
@@ -184,9 +144,7 @@ func (h *APIHandler) revokeShare(c *gin.Context) {
 func (h *APIHandler) cleanupExpiredShares(c *gin.Context) {
 	err := h.ShareService.CleanupExpiredShares()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to cleanup expired shares: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Failed to cleanup expired shares: "+err.Error()).WithCause(err))
 		return
 	}
 

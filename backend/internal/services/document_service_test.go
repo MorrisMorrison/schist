@@ -305,9 +305,7 @@ func TestDocumentService_BuildFilePath(t *testing.T) {
 
 func TestDocumentService_ErrorCases(t *testing.T) {
 	t.Run("invalid data directory", func(t *testing.T) {
-		if os.Geteuid() == 0 {
-			t.Skip("skipping: relies on filesystem permissions that root bypasses")
-		}
+		skipIfRoot(t)
 		// Create file service with invalid directory
 		// For error testing, we need to create services with invalid path
 		invalidPath := "/invalid/path/that/does/not/exist"
@@ -322,9 +320,7 @@ func TestDocumentService_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("read-only directory", func(t *testing.T) {
-		if os.Geteuid() == 0 {
-			t.Skip("skipping: relies on filesystem permissions that root bypasses")
-		}
+		skipIfRoot(t)
 		testDir, cleanup := setupTestDir(t)
 		defer cleanup()
 

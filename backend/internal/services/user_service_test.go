@@ -560,6 +560,7 @@ func TestUserService_Integration(t *testing.T) {
 
 func TestUserService_ErrorCases(t *testing.T) {
 	t.Run("invalid data directory", func(t *testing.T) {
+		skipIfRoot(t)
 		// Use an invalid directory path
 		invalidPath := "/invalid/path/that/does/not/exist"
 		userService := services.NewUserService(invalidPath)
@@ -573,10 +574,7 @@ func TestUserService_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("read-only directory", func(t *testing.T) {
-		// Skip this test if running as root (common in CI containers)
-		if os.Getuid() == 0 {
-			t.Skip("Skipping read-only directory test when running as root")
-		}
+		skipIfRoot(t)
 
 		testDir, err := os.MkdirTemp("", "user-service-readonly-*")
 		require.NoError(t, err)

@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build All
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
     env:
       PUBLIC_API_URL: http://localhost:8080/api
     
@@ -39,7 +39,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
     needs: build
     
     steps:

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 )
 
@@ -39,7 +40,7 @@ type SecretListResponse struct {
 func RequireUnlockedSecrets(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !services.SecretManager.IsUnlocked() {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Secret store is locked"})
+			HandleError(c, errors.NewUnauthorizedError("Secret store is locked"))
 			c.Abort()
 			return
 		}
@@ -67,7 +68,7 @@ func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		secrets, err := services.SecretManager.ListSecrets()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -82,19 +83,19 @@ func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req CreateSecretRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+			HandleError(c, apiErr)
 			return
 		}
 
 		if req.Key == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Key is required"})
+			HandleError(c, errors.NewMissingRequiredFieldError("key"))
 			return
 		}
 
 		err := services.SecretManager.SetSecret(req.Key, req.Value)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -106,19 +107,19 @@ func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Key parameter is required"})
+			HandleError(c, errors.NewMissingRequiredFieldError("key"))
 			return
 		}
 
 		var req UpdateSecretRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+			HandleError(c, apiErr)
 			return
 		}
 
 		err := services.SecretManager.SetSecret(key, req.Value)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -130,13 +131,13 @@ func DeleteSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Key parameter is required"})
+			HandleError(c, errors.NewMissingRequiredFieldError("key"))
 			return
 		}
 
 		err := services.SecretManager.DeleteSecret(key)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -155,13 +156,13 @@ func GetSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := c.Param("key")
 		if key == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Key parameter is required"})
+			HandleError(c, errors.NewMissingRequiredFieldError("key"))
 			return
 		}
 
 		value, err := services.SecretManager.GetSecret(key)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Secret not found"})
+			HandleError(c, errors.NewNotFoundError("secret", key).WithCause(err))
 			return
 		}
 

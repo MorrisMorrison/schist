@@ -12,6 +12,7 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 )
 
@@ -81,14 +82,14 @@ var sessionStore = make(map[string]*webauthn.SessionData)
 func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req BeginRegistrationRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+			HandleError(c, apiErr)
 			return
 		}
 
 		options, session, err := services.PasskeyService.BeginRegistration(req.Name)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -108,15 +109,15 @@ func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFun
 func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req FinishRegistrationRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+			HandleError(c, apiErr)
 			return
 		}
 
 		// Retrieve the session
 		session, exists := sessionStore[req.SessionID]
 		if !exists {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired session"})
+			HandleError(c, errors.NewValidationError("invalid or expired session"))
 			return
 		}
 
@@ -126,13 +127,13 @@ func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFu
 		// Parse the WebAuthn response
 		parsedResponse, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(req.Response))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid WebAuthn response"})
+			HandleError(c, errors.NewValidationError("invalid WebAuthn response"))
 			return
 		}
 
 		credentialID, err := services.PasskeyService.FinishRegistration(req.Name, session, parsedResponse)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -149,7 +150,7 @@ func BeginPasskeyAuthenticationHandler(services *services.Services) gin.HandlerF
 	return func(c *gin.Context) {
 		options, session, err := services.PasskeyService.BeginAuthentication()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -169,15 +170,15 @@ func BeginPasskeyAuthenticationHandler(services *services.Services) gin.HandlerF
 func FinishPasskeyAuthenticationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req FinishAuthenticationRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+			HandleError(c, apiErr)
 			return
 		}
 
 		// Retrieve the session
 		session, exists := sessionStore[req.SessionID]
 		if !exists {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired session"})
+			HandleError(c, errors.NewValidationError("invalid or expired session"))
 			return
 		}
 
@@ -187,13 +188,13 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 		// Parse the WebAuthn response
 		parsedResponse, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(req.Response))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid WebAuthn response"})
+			HandleError(c, errors.NewValidationError("invalid WebAuthn response"))
 			return
 		}
 
 		credentialID, err := services.PasskeyService.FinishAuthentication(session, parsedResponse)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -208,21 +209,21 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 
 func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		username, exists := c.Get("authenticated_user")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		username, ok := currentUser(c)
+		if !ok {
+			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 			return
 		}
 
-		user, err := services.UserService.GetUserByUsername(username.(string))
+		user, err := services.UserService.GetUserByUsername(username)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
 			return
 		}
 
 		credentials, err := services.PasskeyService.ListCredentials()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 
@@ -248,14 +249,14 @@ func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 func UnlockWithPasskeyHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req UnlockWithPasskeyRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+			HandleError(c, apiErr)
 			return
 		}
 
 		err := services.SecretManager.UnlockWithPasskey(req.CredentialID)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to unlock with passkey: " + err.Error()})
+			HandleError(c, errors.NewUnauthorizedError("Failed to unlock with passkey: "+err.Error()).WithCause(err))
 			return
 		}
 
@@ -267,30 +268,30 @@ func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		credentialID := c.Param("id")
 		if credentialID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Credential ID is required"})
+			HandleError(c, errors.NewMissingRequiredFieldError("id"))
 			return
 		}
 
-		username, exists := c.Get("authenticated_user")
-		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		username, ok := currentUser(c)
+		if !ok {
+			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 			return
 		}
 
-		user, err := services.UserService.GetUserByUsername(username.(string))
+		user, err := services.UserService.GetUserByUsername(username)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
 			return
 		}
 
 		if !slices.Contains(user.PasskeyIDs, credentialID) {
-			c.JSON(http.StatusForbidden, gin.H{"error": "You can only delete your own passkeys"})
+			HandleError(c, errors.NewForbiddenError("You can only delete your own passkeys"))
 			return
 		}
 
 		err = services.PasskeyService.DeleteCredential(credentialID)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Passkey not found"})
+			HandleError(c, errors.NewNotFoundError("passkey", credentialID).WithCause(err))
 			return
 		}
 
@@ -302,7 +303,7 @@ func PasskeyStatusHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hasPasskeys, err := services.PasskeyService.HasCredentials()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 			return
 		}
 

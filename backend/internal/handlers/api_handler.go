@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
-	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -187,9 +187,7 @@ func (h *APIHandler) search(c *gin.Context) {
 	query := c.Query("q")
 	documents, err := h.DocumentService.Search(query)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -202,9 +200,7 @@ func (h *APIHandler) search(c *gin.Context) {
 func (h *APIHandler) getAllTags(c *gin.Context) {
 	tagCounts, err := h.DocumentService.GetAllTags()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -230,9 +226,7 @@ func (h *APIHandler) getAllTags(c *gin.Context) {
 func (h *APIHandler) getTemplates(c *gin.Context) {
 	templates, err := h.Services.TemplateService.GetTemplates()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -243,13 +237,11 @@ func (h *APIHandler) getTemplates(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentLinks(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	links, err := h.LinkService.GetOutgoingLinks(path)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewNotFoundError("document", path).WithCause(err))
 		return
 	}
 
@@ -261,13 +253,11 @@ func (h *APIHandler) getDocumentLinks(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentBacklinks(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	backlinks, err := h.LinkService.GetBacklinks(path)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -289,9 +279,7 @@ func (h *APIHandler) getDocumentBacklinks(c *gin.Context) {
 func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 	brokenLinks, err := h.LinkService.GetBrokenLinks()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -304,17 +292,13 @@ func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 func (h *APIHandler) importDocuments(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid form data: " + err.Error(),
-		})
+		HandleError(c, errors.NewValidationError("Invalid form data: "+err.Error()).WithCause(err))
 		return
 	}
 
 	files := form.File["files"]
 	if len(files) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "No files provided",
-		})
+		HandleError(c, errors.NewValidationError("No files provided"))
 		return
 	}
 
@@ -329,9 +313,7 @@ func (h *APIHandler) importDocuments(c *gin.Context) {
 
 	result, err := h.DocumentService.ImportDocuments(files, options)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Import failed: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Import failed: "+err.Error()).WithCause(err))
 		return
 	}
 
@@ -344,18 +326,14 @@ type PasskeyLoginRequest struct {
 
 func (h *APIHandler) loginWithPasskey(c *gin.Context) {
 	var req PasskeyLoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	response, err := h.AuthService.LoginWithPasskey(req.CredentialID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Authentication failed",
-		})
+		HandleError(c, errors.NewInternalError("Authentication failed").WithCause(err))
 		return
 	}
 
@@ -369,19 +347,15 @@ func (h *APIHandler) logout(c *gin.Context) {
 }
 
 func (h *APIHandler) getCurrentUser(c *gin.Context) {
-	username, exists := c.Get("authenticated_user")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Not authenticated",
-		})
+	username, ok := currentUser(c)
+	if !ok {
+		HandleError(c, errors.NewUnauthorizedError("Not authenticated"))
 		return
 	}
 
-	user, err := h.AuthService.GetUser(username.(string))
+	user, err := h.AuthService.GetUser(username)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "User not found",
-		})
+		HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
 		return
 	}
 
@@ -397,9 +371,7 @@ type SetupStatusResponse struct {
 func (h *APIHandler) checkSetupRequired(c *gin.Context) {
 	isFirstSetup, err := h.AuthService.IsFirstSetup()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to check setup status",
-		})
+		HandleError(c, errors.NewInternalError("Failed to check setup status").WithCause(err))
 		return
 	}
 
@@ -415,25 +387,19 @@ type CreateFirstUserRequest struct {
 
 func (h *APIHandler) createFirstUser(c *gin.Context) {
 	var req CreateFirstUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	if req.Username == "" || req.CredentialID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Username and credential ID are required",
-		})
+		HandleError(c, errors.NewValidationError("Username and credential ID are required"))
 		return
 	}
 
 	err := h.AuthService.CreateFirstUser(req.Username, req.CredentialID)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"error": "Failed to create first user: " + err.Error(),
-		})
+		HandleError(c, errors.NewConflictError("Failed to create first user: "+err.Error()).WithCause(err))
 		return
 	}
 
@@ -452,19 +418,15 @@ type GenerateInviteTokenResponse struct {
 }
 
 func (h *APIHandler) generateInviteToken(c *gin.Context) {
-	username, exists := c.Get("authenticated_user")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Authentication required",
-		})
+	username, ok := currentUser(c)
+	if !ok {
+		HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 		return
 	}
 
-	token, err := h.AuthService.GenerateInviteToken(username.(string))
+	token, err := h.AuthService.GenerateInviteToken(username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate invite token: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Failed to generate invite token: "+err.Error()).WithCause(err))
 		return
 	}
 
@@ -484,25 +446,19 @@ type CreateUserFromInviteRequest struct {
 
 func (h *APIHandler) createUserFromInvite(c *gin.Context) {
 	var req CreateUserFromInviteRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	if req.Username == "" || req.CredentialID == "" || req.Token == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Username, credential ID, and token are required",
-		})
+		HandleError(c, errors.NewValidationError("Username, credential ID, and token are required"))
 		return
 	}
 
 	err := h.AuthService.CreateUserFromInvite(req.Token, req.Username, req.CredentialID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Failed to create user from invite: " + err.Error(),
-		})
+		HandleError(c, errors.NewValidationError("Failed to create user from invite: "+err.Error()).WithCause(err))
 		return
 	}
 
@@ -521,18 +477,14 @@ type CreateUserRequest struct {
 func (h *APIHandler) createUser(c *gin.Context) {
 	// TODO: Add admin authentication middleware
 	var req CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request body",
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	err := h.Services.UserService.CreateUser(req.Username, req.IsAdmin, req.CredentialID)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewConflictError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -546,9 +498,7 @@ func (h *APIHandler) listUsers(c *gin.Context) {
 	// TODO: Add admin authentication middleware
 	users, err := h.Services.UserService.ListUsers()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -561,17 +511,13 @@ func (h *APIHandler) deleteUser(c *gin.Context) {
 	// TODO: Add admin authentication middleware
 	username := c.Param("username")
 	if username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Username is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("username"))
 		return
 	}
 
 	err := h.Services.UserService.DeleteUser(username)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
 		return
 	}
 

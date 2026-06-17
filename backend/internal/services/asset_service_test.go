@@ -412,11 +412,7 @@ func TestAssetService_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("read-only directory", func(t *testing.T) {
-		// Skip this test if running as root (common in CI containers)
-		// Root can write to read-only directories, making the test unreliable
-		if os.Getuid() == 0 {
-			t.Skip("Skipping read-only directory test when running as root")
-		}
+		skipIfRoot(t)
 
 		testDir, cleanup := setupTestDir(t)
 		defer cleanup()

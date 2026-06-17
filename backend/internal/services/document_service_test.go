@@ -108,50 +108,6 @@ func TestDocumentService_CreateDocument(t *testing.T) {
 	})
 }
 
-func TestDocumentService_ReadDocument(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
-
-	documentService := setupDocumentService(t, testDir)
-
-	t.Run("reads existing page successfully", func(t *testing.T) {
-		// Create a test page first
-		originalPage := createTestPage()
-		err := documentService.CreateDocument(originalPage)
-		require.NoError(t, err)
-
-		// Read it back
-		readPage, err := documentService.ReadDocument(originalPage.MetaData.Slug)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, readPage)
-		assert.NotNil(t, readPage.MetaData)
-		assert.Equal(t, originalPage.MetaData.Title, readPage.MetaData.Title)
-		assert.Equal(t, "\n"+originalPage.Content, readPage.Content)
-		assert.Equal(t, originalPage.MetaData.Tags, readPage.MetaData.Tags)
-	})
-
-	t.Run("returns error for non-existent page", func(t *testing.T) {
-		_, err := documentService.ReadDocument("non-existent")
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "could not read file")
-	})
-
-	t.Run("rejects page without front matter", func(t *testing.T) {
-		simplePage := "# Simple Page\n\nJust content, no metadata."
-		filePath := filepath.Join(testDir, "simple.md")
-		err := os.WriteFile(filePath, []byte(simplePage), 0600)
-		require.NoError(t, err)
-
-		page, err := documentService.ReadDocument("simple")
-
-		assert.Error(t, err)
-		assert.Nil(t, page)
-		assert.Contains(t, err.Error(), "could not deserialize document")
-	})
-}
-
 func TestDocumentService_UpdateDocument(t *testing.T) {
 	testDir, cleanup := setupTestDir(t)
 	defer cleanup()
@@ -169,12 +125,12 @@ func TestDocumentService_UpdateDocument(t *testing.T) {
 		originalPage.Content = "# Updated Title\n\nUpdated content."
 		originalCreated := originalPage.MetaData.Created
 
-		err = documentService.UpdateDocument(originalPage)
+		err = documentService.UpdateDocumentWithSaveType(originalPage, "manual")
 
 		assert.NoError(t, err)
 
 		// Read back and verify
-		updatedPage, err := documentService.ReadDocument(originalPage.MetaData.Slug)
+		updatedPage, err := documentService.GetDocumentByPath("/" + originalPage.MetaData.Slug)
 		require.NoError(t, err)
 
 		assert.Equal(t, "Updated Title", updatedPage.MetaData.Title)
@@ -349,6 +305,7 @@ func TestDocumentService_BuildFilePath(t *testing.T) {
 
 func TestDocumentService_ErrorCases(t *testing.T) {
 	t.Run("invalid data directory", func(t *testing.T) {
+		skipIfRoot(t)
 		// Create file service with invalid directory
 		// For error testing, we need to create services with invalid path
 		invalidPath := "/invalid/path/that/does/not/exist"
@@ -363,6 +320,7 @@ func TestDocumentService_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("read-only directory", func(t *testing.T) {
+		skipIfRoot(t)
 		testDir, cleanup := setupTestDir(t)
 		defer cleanup()
 
@@ -398,18 +356,18 @@ func TestDocumentService_Integration(t *testing.T) {
 		slug := page.MetaData.Slug
 
 		// Read
-		readPage, err := documentService.ReadDocument(slug)
+		readPage, err := documentService.GetDocumentByPath("/" + slug)
 		assert.NoError(t, err)
 		assert.Equal(t, page.MetaData.Title, readPage.MetaData.Title)
 
 		// Update
 		readPage.MetaData.Title = "Updated Title"
 		readPage.Content = "Updated content"
-		err = documentService.UpdateDocument(readPage)
+		err = documentService.UpdateDocumentWithSaveType(readPage, "manual")
 		assert.NoError(t, err)
 
 		// Read again to verify update
-		updatedPage, err := documentService.ReadDocument(slug)
+		updatedPage, err := documentService.GetDocumentByPath("/" + slug)
 		assert.NoError(t, err)
 		assert.Equal(t, "Updated Title", updatedPage.MetaData.Title)
 		assert.Equal(t, "\nUpdated content", updatedPage.Content)
@@ -419,7 +377,7 @@ func TestDocumentService_Integration(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify deletion
-		_, err = documentService.ReadDocument(slug)
+		_, err = documentService.GetDocumentByPath("/" + slug)
 		assert.Error(t, err)
 	})
 }
@@ -994,52 +952,6 @@ func TestDocumentService_GetAllTags(t *testing.T) {
 		for _, expectedTag := range expectedTags {
 			assert.Contains(t, tags, expectedTag)
 		}
-	})
-}
-
-func TestDocumentService_CreateDocumentInFolder(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
-
-	documentService := setupDocumentService(t, testDir)
-
-	t.Run("creates document in existing folder", func(t *testing.T) {
-		// Create folder first
-		err := documentService.CreateFolder("/docs")
-		require.NoError(t, err)
-
-		doc := &models.Document{
-			MetaData: &models.DocumentMetaData{
-				Title: "Test Doc",
-			},
-			Content: "Test content",
-		}
-
-		err = documentService.CreateDocumentInFolder("/docs", doc)
-		assert.NoError(t, err)
-
-		assert.Equal(t, "/docs/test-doc", doc.MetaData.Path)
-		assert.Equal(t, "test-doc", doc.MetaData.Slug)
-
-		// Verify document was created
-		retrieved, err := documentService.GetDocumentByPath("/docs/test-doc")
-		assert.NoError(t, err)
-		assert.Equal(t, "Test Doc", retrieved.MetaData.Title)
-	})
-
-	t.Run("creates document in non-existent folder path", func(t *testing.T) {
-		doc := &models.Document{
-			MetaData: &models.DocumentMetaData{
-				Title: "Test Doc",
-			},
-			Content: "Test content",
-		}
-
-		// CreateDocumentInFolder creates the document with the folder path
-		// It doesn't validate folder existence - just path format
-		err := documentService.CreateDocumentInFolder("/some-path", doc)
-		assert.NoError(t, err)
-		assert.Equal(t, "/some-path/test-doc", doc.MetaData.Path)
 	})
 }
 

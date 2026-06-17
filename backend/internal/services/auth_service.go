@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -14,10 +15,21 @@ type AuthService struct {
 	userService *UserService
 }
 
+// User is the response DTO for an authenticated user. It deliberately omits
+// the sensitive fields on models.User (passkey ids, admin flag).
 type User struct {
 	Username  string    `json:"username"`
 	CreatedAt time.Time `json:"created_at"`
 	LastLogin time.Time `json:"last_login"`
+}
+
+// newUserDTO maps the internal user model to the User response DTO.
+func newUserDTO(u *models.User) User {
+	return User{
+		Username:  u.Username,
+		CreatedAt: u.CreatedAt,
+		LastLogin: u.LastLogin,
+	}
 }
 
 type Claims struct {
@@ -60,11 +72,8 @@ func (s *AuthService) LoginWithPasskey(credentialId string) (*LoginResponse, err
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
-	authUser := User{
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-		LastLogin: time.Now(),
-	}
+	authUser := newUserDTO(user)
+	authUser.LastLogin = time.Now()
 
 	return &LoginResponse{
 		Token: token,
@@ -97,11 +106,8 @@ func (s *AuthService) GetUser(username string) (*User, error) {
 		return nil, errors.New("user not found")
 	}
 
-	return &User{
-		Username:  user.Username,
-		CreatedAt: user.CreatedAt,
-		LastLogin: user.LastLogin,
-	}, nil
+	dto := newUserDTO(user)
+	return &dto, nil
 }
 
 func (s *AuthService) IsFirstSetup() (bool, error) {

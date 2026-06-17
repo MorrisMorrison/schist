@@ -1,6 +1,7 @@
 import { EditorView } from '@codemirror/view';
 import type { Asset } from '$lib/api/types';
 import { apiClient } from '$lib/api/client';
+import { getErrorMessage } from './error';
 
 export interface ImagePasteOptions {
 	onUploadStart?: () => void;
@@ -45,7 +46,7 @@ class ImagePasteHandler {
 			view.dispatch(transaction);
 			this.options.onUploadComplete?.(asset);
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+			const errorMessage = getErrorMessage(error, 'Upload failed');
 			this.options.onUploadError?.(errorMessage);
 		}
 	}

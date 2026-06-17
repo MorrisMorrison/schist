@@ -1,5 +1,6 @@
 import { apiClient } from '$lib/api/client';
 import type { SecretsStatus, CreateSecretRequest, UpdateSecretRequest } from '$lib/api/types';
+import { getErrorMessage } from '$lib/utils/error';
 
 export interface SecretInfo {
 	key: string;
@@ -37,7 +38,7 @@ function createSecretStore() {
 				secretState.loading = false;
 				return status;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to load secrets status';
+				const errorMsg = getErrorMessage(error, 'Failed to load secrets status');
 				secretState.error = errorMsg;
 				secretState.loading = false;
 				throw error;
@@ -59,7 +60,7 @@ function createSecretStore() {
 				secretState.loading = false;
 				return secrets;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to load secrets';
+				const errorMsg = getErrorMessage(error, 'Failed to load secrets');
 				secretState.error = errorMsg;
 				secretState.loading = false;
 				throw error;
@@ -78,7 +79,7 @@ function createSecretStore() {
 				secretState.secrets = [];
 				secretState.loading = false;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to lock secrets';
+				const errorMsg = getErrorMessage(error, 'Failed to lock secrets');
 				secretState.error = errorMsg;
 				secretState.loading = false;
 				throw error;
@@ -97,7 +98,7 @@ function createSecretStore() {
 
 				secretState.loading = false;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to create secret';
+				const errorMsg = getErrorMessage(error, 'Failed to create secret');
 				secretState.error = errorMsg;
 				secretState.loading = false;
 				throw error;
@@ -120,7 +121,7 @@ function createSecretStore() {
 				await this.loadSecrets();
 				secretState.loading = false;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to update secret';
+				const errorMsg = getErrorMessage(error, 'Failed to update secret');
 				secretState.error = errorMsg;
 				secretState.loading = false;
 				throw error;
@@ -140,7 +141,7 @@ function createSecretStore() {
 
 				secretState.loading = false;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to delete secret';
+				const errorMsg = getErrorMessage(error, 'Failed to delete secret');
 				secretState.error = errorMsg;
 				secretState.loading = false;
 				throw error;

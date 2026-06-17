@@ -1,5 +1,6 @@
 import { apiClient } from '$lib/api/client';
 import type { Template } from '$lib/api/types';
+import { getErrorMessage } from '$lib/utils/error';
 
 export interface TemplatesState {
 	templates: Template[];
@@ -35,7 +36,7 @@ function createTemplatesStore() {
 				templatesState.loaded = true;
 				templatesState.error = null;
 			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : 'Failed to load templates';
+				const errorMessage = getErrorMessage(error, 'Failed to load templates');
 				console.error('Failed to load templates:', error);
 
 				templatesState.templates = [];

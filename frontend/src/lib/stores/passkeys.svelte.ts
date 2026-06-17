@@ -5,6 +5,7 @@ import {
 	WebAuthnError,
 	isWebAuthnSupported
 } from '$lib/utils/webauthn';
+import { getErrorMessage } from '$lib/utils/error';
 
 export interface PasskeyInfo {
 	id: string;
@@ -47,7 +48,7 @@ function createPasskeyStore() {
 				passkeyState.loading = false;
 				return status;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to load passkey status';
+				const errorMsg = getErrorMessage(error, 'Failed to load passkey status');
 				passkeyState.error = errorMsg;
 				passkeyState.loading = false;
 				throw error;
@@ -66,7 +67,7 @@ function createPasskeyStore() {
 				passkeyState.loading = false;
 				return passkeys;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to load passkeys';
+				const errorMsg = getErrorMessage(error, 'Failed to load passkeys');
 				passkeyState.error = errorMsg;
 				passkeyState.loading = false;
 				throw error;
@@ -134,7 +135,7 @@ function createPasskeyStore() {
 
 				passkeyState.loading = false;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to delete passkey';
+				const errorMsg = getErrorMessage(error, 'Failed to delete passkey');
 				passkeyState.error = errorMsg;
 				passkeyState.loading = false;
 				throw error;
@@ -204,7 +205,7 @@ function createPasskeyStore() {
 
 				passkeyState.loading = false;
 			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Failed to unlock with passkey';
+				const errorMsg = getErrorMessage(error, 'Failed to unlock with passkey');
 				passkeyState.error = errorMsg;
 				passkeyState.loading = false;
 				throw error;

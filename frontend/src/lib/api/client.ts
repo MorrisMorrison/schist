@@ -3,7 +3,6 @@ import type {
 	Document,
 	CreateDocumentRequest,
 	UpdateDocumentRequest,
-	HealthResponse,
 	DocumentListResponse,
 	Folder,
 	FolderTreeResponse,
@@ -36,8 +35,6 @@ import type {
 	CreateShareRequest,
 	ShareListResponse,
 	PasskeyStatus,
-	PasskeyCreateRequest,
-	PasskeyCreateResponse,
 	PasskeyUnlockRequest,
 	PasskeyListResponse,
 	WebAuthnBeginRegistrationRequest,
@@ -241,10 +238,6 @@ class SchістApiClient {
 		return this.request<T>(endpoint, options, { enableDeduplication: true, force });
 	}
 
-	async health(): Promise<HealthResponse> {
-		return this.request<HealthResponse>('/health');
-	}
-
 	async getConfig(): Promise<AppConfig> {
 		if (this.configCache) {
 			return this.configCache;
@@ -315,12 +308,6 @@ class SchістApiClient {
 		return this.request<Document>(`/documents/${encodeURIComponent(slug)}`, {
 			method: 'PUT',
 			body: JSON.stringify(normalizedDocumentData)
-		});
-	}
-
-	async deleteDocument(path: string): Promise<void> {
-		await this.request<void>(buildApiEndpoint('/documents', path), {
-			method: 'DELETE'
 		});
 	}
 
@@ -544,13 +531,6 @@ class SchістApiClient {
 		});
 	}
 
-	async deleteAsset(path: string): Promise<void> {
-		const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-		await this.request<void>(`/assets/${cleanPath}`, {
-			method: 'DELETE'
-		});
-	}
-
 	async importDocuments(files: FileList, options: ImportOptions): Promise<ImportResult> {
 		const formData = new FormData();
 
@@ -725,13 +705,6 @@ class SchістApiClient {
 		return this.deduplicatedRequest<PasskeyListResponse>('/passkeys', {}, force);
 	}
 
-	async createPasskey(request: PasskeyCreateRequest): Promise<PasskeyCreateResponse> {
-		return this.request<PasskeyCreateResponse>('/passkeys', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
-	}
-
 	async deletePasskey(credentialId: string): Promise<{ message: string }> {
 		return this.request<{ message: string }>(`/passkeys/${credentialId}`, {
 			method: 'DELETE'
@@ -852,17 +825,6 @@ class SchістApiClient {
 	// User management methods
 	async listUsers(): Promise<{ users: UserInfo[] }> {
 		return this.request<{ users: UserInfo[] }>('/auth/users');
-	}
-
-	async createUser(request: {
-		username: string;
-		is_admin: boolean;
-		credential_id: string;
-	}): Promise<{ message: string; username: string }> {
-		return this.request<{ message: string; username: string }>('/auth/users', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
 	}
 
 	async deleteUser(username: string): Promise<{ message: string }> {

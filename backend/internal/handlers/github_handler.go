@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -20,50 +21,43 @@ func newGitHubStatus(settings *services.GitHubSettings, conn *services.GitHubCon
 	return gitHubStatus{GitHubSettings: settings, GitHubConnectionStatus: conn}
 }
 
+// validateGitHubRepoRequest checks the required token/owner/repo fields shared by
+// the setup and test-connection endpoints.
+func validateGitHubRepoRequest(req *services.GitHubSetupRequest) *errors.APIError {
+	if strings.TrimSpace(req.Token) == "" {
+		return errors.NewValidationError("GitHub token is required")
+	}
+	if strings.TrimSpace(req.Owner) == "" {
+		return errors.NewValidationError("Repository owner is required")
+	}
+	if strings.TrimSpace(req.Repo) == "" {
+		return errors.NewValidationError("Repository name is required")
+	}
+	return nil
+}
+
 func (h *APIHandler) setupGitHub(c *gin.Context) {
 	var req services.GitHubSetupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request: " + err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
-	if strings.TrimSpace(req.Token) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "GitHub token is required",
-		})
-		return
-	}
-
-	if strings.TrimSpace(req.Owner) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Repository owner is required",
-		})
-		return
-	}
-
-	if strings.TrimSpace(req.Repo) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Repository name is required",
-		})
+	if apiErr := validateGitHubRepoRequest(&req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	repoInfo, err := h.GitHubService.SetupRepository(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("Failed to setup GitHub repository: %v", err),
-		})
+		HandleError(c, errors.NewValidationError(fmt.Sprintf("Failed to setup GitHub repository: %v", err)).WithCause(err))
 		return
 	}
 
 	config := h.GitHubService.GetGitHubSettings()
 	connectionStatus, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Setup completed but failed to get connection status: %v", err),
-		})
+		HandleError(c, errors.NewInternalError(fmt.Sprintf("Setup completed but failed to get connection status: %v", err)).WithCause(err))
 		return
 	}
 
@@ -88,9 +82,7 @@ func (h *APIHandler) getGitHubConfig(c *gin.Context) {
 func (h *APIHandler) getGitHubConnectionStatus(c *gin.Context) {
 	status, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get GitHub connection status: %v", err),
-		})
+		HandleError(c, errors.NewInternalError(fmt.Sprintf("Failed to get GitHub connection status: %v", err)).WithCause(err))
 		return
 	}
 
@@ -99,24 +91,18 @@ func (h *APIHandler) getGitHubConnectionStatus(c *gin.Context) {
 
 func (h *APIHandler) syncToGitHub(c *gin.Context) {
 	if !h.GitHubService.IsEnabled() {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "GitHub integration is not enabled",
-		})
+		HandleError(c, errors.NewValidationError("GitHub integration is not enabled"))
 		return
 	}
 
 	result, err := h.GitHubService.SyncToGitHub()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Sync failed: %v", err),
-		})
+		HandleError(c, errors.NewInternalError(fmt.Sprintf("Sync failed: %v", err)).WithCause(err))
 		return
 	}
 
 	if !result.Success && len(result.Errors) > 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": result.Errors[0],
-		})
+		HandleError(c, errors.NewValidationError(result.Errors[0]))
 		return
 	}
 
@@ -125,33 +111,25 @@ func (h *APIHandler) syncToGitHub(c *gin.Context) {
 
 func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 	if !h.GitHubService.IsEnabled() {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "GitHub integration is not enabled",
-		})
+		HandleError(c, errors.NewValidationError("GitHub integration is not enabled"))
 		return
 	}
 
 	var req services.GitHubConfigRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request: " + err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	if err := h.GitHubService.UpdateConfiguration(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("Failed to update configuration: %v", err),
-		})
+		HandleError(c, errors.NewValidationError(fmt.Sprintf("Failed to update configuration: %v", err)).WithCause(err))
 		return
 	}
 
 	config := h.GitHubService.GetGitHubSettings()
 	connectionStatus, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Configuration updated but failed to get connection status: %v", err),
-		})
+		HandleError(c, errors.NewInternalError(fmt.Sprintf("Configuration updated but failed to get connection status: %v", err)).WithCause(err))
 		return
 	}
 
@@ -166,36 +144,19 @@ func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 
 func (h *APIHandler) testGitHubConnection(c *gin.Context) {
 	var req services.GitHubSetupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request: " + err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
-	if strings.TrimSpace(req.Token) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "GitHub token is required",
-		})
-		return
-	}
-
-	if strings.TrimSpace(req.Owner) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Repository owner is required",
-		})
-		return
-	}
-
-	if strings.TrimSpace(req.Repo) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Repository name is required",
-		})
+	if apiErr := validateGitHubRepoRequest(&req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	err := h.GitHubService.TestConnection(req.Token, req.Owner, req.Repo, req.Branch)
 	if err != nil {
+		// Domain response: the frontend reads the success flag on this endpoint.
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   fmt.Sprintf("Connection test failed: %v", err),
@@ -265,9 +226,7 @@ func (h *APIHandler) repairGitRepository(c *gin.Context) {
 
 func (h *APIHandler) disconnectGitHub(c *gin.Context) {
 	if err := h.GitHubService.Disconnect(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to disconnect GitHub integration: %v", err),
-		})
+		HandleError(c, errors.NewInternalError(fmt.Sprintf("Failed to disconnect GitHub integration: %v", err)).WithCause(err))
 		return
 	}
 

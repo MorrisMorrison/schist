@@ -127,17 +127,19 @@ func (gs *GitHubService) getToken() (string, error) {
 	return gs.secretManager.GetGitHubToken()
 }
 
+// newGitHubClient builds a GitHub API client authenticated with the given token.
+func newGitHubClient(ctx context.Context, token string) *github.Client {
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	return github.NewClient(oauth2.NewClient(ctx, ts))
+}
+
 func (gs *GitHubService) initializeClient() error {
 	token, err := gs.getToken()
 	if err != nil {
 		return err
 	}
 
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(gs.ctx, ts)
-	gs.client = github.NewClient(tc)
+	gs.client = newGitHubClient(gs.ctx, token)
 
 	return nil
 }
@@ -155,11 +157,7 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, fmt.Errorf("repository name is required")
 	}
 
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: req.Token},
-	)
-	tc := oauth2.NewClient(gs.ctx, ts)
-	tempClient := github.NewClient(tc)
+	tempClient := newGitHubClient(gs.ctx, req.Token)
 
 	repo, _, err := tempClient.Repositories.Get(gs.ctx, req.Owner, req.Repo)
 	if err != nil {
@@ -464,11 +462,7 @@ func (gs *GitHubService) TestConnection(token, owner, repo, branch string) error
 		branch = "main"
 	}
 
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(gs.ctx, ts)
-	tempClient := github.NewClient(tc)
+	tempClient := newGitHubClient(gs.ctx, token)
 
 	repoInfo, _, err := tempClient.Repositories.Get(gs.ctx, owner, repo)
 	if err != nil {

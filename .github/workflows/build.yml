@@ -4,8 +4,26 @@ name: Build
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '.github/workflows/build.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

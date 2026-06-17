@@ -4,8 +4,26 @@ name: E2E Tests
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'e2e/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/e2e.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'e2e/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/e2e.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   e2e:

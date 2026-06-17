@@ -98,12 +98,6 @@ export interface TemplatesResponse {
 	total: number;
 }
 
-export interface ApiResponse<T> {
-	data?: T;
-	error?: string;
-	success: boolean;
-}
-
 export interface HealthResponse {
 	status: string;
 	timestamp: string;
@@ -121,10 +115,6 @@ export interface Asset {
 export interface AssetUploadResponse {
 	message: string;
 	asset: Asset;
-}
-
-export interface AssetUploadError {
-	error: string;
 }
 
 export class ApiError extends Error {
@@ -238,21 +228,7 @@ export interface ImportResult {
 // Export-related types
 export type ExportType = 'document' | 'folder' | 'all';
 
-export interface ExportOptions {
-	path?: string;
-	type: ExportType;
-	format?: string; // "zip" or "markdown"
-	include_meta?: boolean;
-}
-
 // GitHub integration types
-export interface GitHubConfig {
-	token: string;
-	owner: string;
-	repository: string;
-	branch: string;
-}
-
 export interface GitHubSettings {
 	enabled: boolean;
 	owner: string;
@@ -317,13 +293,6 @@ export interface GitHubSetupResponse {
 	sync_on_save: boolean;
 }
 
-export interface GitHubSyncResponse {
-	message: string;
-	success_count: number;
-	failure_count: number;
-	failures: string[];
-}
-
 // Authentication
 export interface User {
 	username: string;
@@ -331,18 +300,9 @@ export interface User {
 	last_login: string;
 }
 
-export interface PasskeyLoginRequest {
-	credentialId: string;
-}
-
 export interface LoginResponse {
 	token: string;
 	user: User;
-}
-
-export interface AuthError {
-	error: string;
-	message?: string;
 }
 
 export interface AppConfig {
@@ -399,16 +359,6 @@ export interface CreateUserFromInviteRequest {
 export interface CreateFirstUserRequest {
 	username: string;
 	credential_id: string;
-}
-
-export interface CreateUserRequest {
-	username: string;
-	is_admin: boolean;
-	credential_id: string;
-}
-
-export interface UserListResponse {
-	users: User[];
 }
 
 // Passkey types

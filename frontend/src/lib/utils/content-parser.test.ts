@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	extractTitleFromContent,
 	excludeCodeBlocks,
-	extractHashtagsFromContent,
-	getHashtagSuggestions,
-	hasHashtagsInContent,
-	parseDocumentMetadata
+	extractHashtagsFromContent
 } from './content-parser';
 
 describe('Content Parser', () => {
@@ -140,118 +137,6 @@ describe('Content Parser', () => {
 			const content = '# Header\n\nText with #realtag here';
 			const tags = extractHashtagsFromContent(content);
 			expect(tags).toEqual(['realtag']);
-		});
-	});
-
-	describe('getHashtagSuggestions', () => {
-		const existingTags = ['javascript', 'typescript', 'svelte', 'react', 'vue', 'angular'];
-
-		it('should return matching suggestions', () => {
-			const suggestions = getHashtagSuggestions('script', existingTags);
-			expect(suggestions).toEqual(['javascript', 'typescript']);
-		});
-
-		it('should be case insensitive', () => {
-			const suggestions = getHashtagSuggestions('JAVA', existingTags);
-			expect(suggestions).toEqual(['javascript']);
-		});
-
-		it('should limit results', () => {
-			const suggestions = getHashtagSuggestions('a', existingTags, 3);
-			expect(suggestions.length).toBeLessThanOrEqual(3);
-		});
-
-		it('should return empty array for empty input', () => {
-			const suggestions = getHashtagSuggestions('', existingTags, 0);
-			expect(suggestions).toEqual([]);
-		});
-
-		it('should return empty array when no matches', () => {
-			const suggestions = getHashtagSuggestions('xyz', existingTags);
-			expect(suggestions).toEqual([]);
-		});
-
-		it('should handle partial matches anywhere in tag', () => {
-			const suggestions = getHashtagSuggestions('elte', existingTags);
-			expect(suggestions).toEqual(['svelte']);
-		});
-	});
-
-	describe('hasHashtagsInContent', () => {
-		it('should return true when content has hashtags', () => {
-			const content = 'Text with #hashtag';
-			expect(hasHashtagsInContent(content)).toBe(true);
-		});
-
-		it('should return false when content has no hashtags', () => {
-			const content = 'Text without hashtags';
-			expect(hasHashtagsInContent(content)).toBe(false);
-		});
-
-		it('should return false when hashtags are only in code blocks', () => {
-			const content = 'Text without hashtags ```\n#codehashtag\n```';
-			expect(hasHashtagsInContent(content)).toBe(false);
-		});
-
-		it('should return false when hashtags are only in inline code', () => {
-			const content = 'Text without hashtags `#inlinehashtag`';
-			expect(hasHashtagsInContent(content)).toBe(false);
-		});
-
-		it('should return true when hashtags exist outside code', () => {
-			const content = 'Text with #hashtag and ```\n#codehashtag\n```';
-			expect(hasHashtagsInContent(content)).toBe(true);
-		});
-	});
-
-	describe('parseDocumentMetadata', () => {
-		it('should parse title and tags from content', () => {
-			const content = '# My Document\n\nThis is content with #tag1 and #tag2.';
-			const metadata = parseDocumentMetadata(content);
-
-			expect(metadata).toEqual({
-				title: 'My Document',
-				tags: ['tag1', 'tag2']
-			});
-		});
-
-		it('should handle content with title but no tags', () => {
-			const content = '# Document Title\n\nContent without hashtags.';
-			const metadata = parseDocumentMetadata(content);
-
-			expect(metadata).toEqual({
-				title: 'Document Title',
-				tags: []
-			});
-		});
-
-		it('should handle content with tags but no title', () => {
-			const content = 'Content with #tag1 but no heading.';
-			const metadata = parseDocumentMetadata(content);
-
-			expect(metadata).toEqual({
-				title: 'Untitled Document',
-				tags: ['tag1']
-			});
-		});
-
-		it('should handle empty content', () => {
-			const metadata = parseDocumentMetadata('');
-
-			expect(metadata).toEqual({
-				title: 'Untitled Document',
-				tags: []
-			});
-		});
-
-		it('should exclude hashtags from code blocks', () => {
-			const content = '# Title\n\nContent with #realtag and ```\n#faketag\n```';
-			const metadata = parseDocumentMetadata(content);
-
-			expect(metadata).toEqual({
-				title: 'Title',
-				tags: ['realtag']
-			});
 		});
 	});
 });

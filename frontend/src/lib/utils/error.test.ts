@@ -1,13 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import {
-	parseError,
-	formatErrorForLogging,
-	isAuthenticationError,
-	isValidationError,
-	isNotFoundError,
-	createRetryHandler,
-	type APIErrorResponse
-} from './error';
+import { describe, it, expect } from 'vitest';
+import { parseError, isNotFoundError, type APIErrorResponse } from './error';
 
 describe('parseError', () => {
 	it('should parse API error responses correctly', () => {
@@ -167,99 +159,9 @@ describe('error classification', () => {
 	});
 });
 
-describe('formatErrorForLogging', () => {
-	it('should format error with context for logging', () => {
-		const error = { error: 'Test error', code: 'VALIDATION_ERROR' as const };
-		const context = { userId: '123', action: 'create_document' };
-
-		const result = formatErrorForLogging(error, context);
-		const parsed = JSON.parse(result);
-
-		expect(parsed.message).toBe('Please check your input and try again.');
-		expect(parsed.code).toBe('VALIDATION_ERROR');
-		expect(parsed.context).toEqual(context);
-		expect(parsed.timestamp).toBeDefined();
-	});
-});
-
 describe('error type checkers', () => {
-	it('should identify authentication errors', () => {
-		const authErrors = [{ code: 'UNAUTHORIZED' as const }, 'You need to sign in', 'HTTP 401 error'];
-
-		authErrors.forEach((error) => {
-			expect(isAuthenticationError(error)).toBe(true);
-		});
-
-		expect(isAuthenticationError({ code: 'VALIDATION_ERROR' as const })).toBe(false);
-	});
-
-	it('should identify validation errors', () => {
-		const validationErrors = [
-			{ code: 'VALIDATION_ERROR' as const },
-			{ code: 'INVALID_REQUEST' as const },
-			{ code: 'MISSING_REQUIRED_FIELD' as const }
-		];
-
-		validationErrors.forEach((error) => {
-			expect(isValidationError(error)).toBe(true);
-		});
-
-		expect(isValidationError({ code: 'UNAUTHORIZED' as const })).toBe(false);
-	});
-
 	it('should identify not found errors', () => {
 		expect(isNotFoundError({ code: 'RESOURCE_NOT_FOUND' as const })).toBe(true);
 		expect(isNotFoundError({ code: 'VALIDATION_ERROR' as const })).toBe(false);
-	});
-});
-
-describe('createRetryHandler', () => {
-	it('should retry retryable errors', async () => {
-		let attemptCount = 0;
-		const mockAction = vi.fn(async () => {
-			attemptCount++;
-			if (attemptCount < 3) {
-				throw { code: 'NETWORK_ERROR' };
-			}
-			return 'success';
-		});
-
-		const retryHandler = createRetryHandler(mockAction, 3, 10);
-		const result = await retryHandler();
-
-		expect(result).toBe('success');
-		expect(mockAction).toHaveBeenCalledTimes(3);
-	});
-
-	it('should not retry non-retryable errors', async () => {
-		const mockAction = vi.fn(async () => {
-			throw { code: 'VALIDATION_ERROR' };
-		});
-
-		const retryHandler = createRetryHandler(mockAction, 3, 10);
-
-		await expect(retryHandler()).rejects.toEqual({ code: 'VALIDATION_ERROR' });
-		expect(mockAction).toHaveBeenCalledTimes(1);
-	});
-
-	it('should throw after max retries', async () => {
-		const mockAction = vi.fn(async () => {
-			throw { code: 'NETWORK_ERROR' };
-		});
-
-		const retryHandler = createRetryHandler(mockAction, 2, 10);
-
-		await expect(retryHandler()).rejects.toEqual({ code: 'NETWORK_ERROR' });
-		expect(mockAction).toHaveBeenCalledTimes(2);
-	});
-
-	it('should succeed on first try if no error', async () => {
-		const mockAction = vi.fn(async () => 'success');
-
-		const retryHandler = createRetryHandler(mockAction, 3, 10);
-		const result = await retryHandler();
-
-		expect(result).toBe('success');
-		expect(mockAction).toHaveBeenCalledTimes(1);
 	});
 });

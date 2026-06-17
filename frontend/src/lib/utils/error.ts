@@ -288,67 +288,7 @@ function getSeverityFromCode(code?: ErrorCode): 'error' | 'warning' | 'info' {
 	return 'info';
 }
 
-export function formatErrorForLogging(error: unknown, context?: Record<string, unknown>): string {
-	const parsed = parseError(error);
-	const logData = {
-		message: parsed.message,
-		code: parsed.code,
-		details: parsed.details,
-		severity: parsed.severity,
-		context,
-		timestamp: new Date().toISOString()
-	};
-	return JSON.stringify(logData);
-}
-
-export function isAuthenticationError(error: unknown): boolean {
-	const parsed = parseError(error);
-	return (
-		parsed.code === 'UNAUTHORIZED' ||
-		parsed.message.toLowerCase().includes('sign in') ||
-		parsed.message.includes('401')
-	);
-}
-
-export function isValidationError(error: unknown): boolean {
-	const parsed = parseError(error);
-	return (
-		parsed.code === 'VALIDATION_ERROR' ||
-		parsed.code === 'INVALID_REQUEST' ||
-		parsed.code === 'MISSING_REQUIRED_FIELD'
-	);
-}
-
 export function isNotFoundError(error: unknown): boolean {
 	const parsed = parseError(error);
 	return parsed.code === 'RESOURCE_NOT_FOUND';
-}
-
-export function createRetryHandler<T>(
-	originalAction: () => Promise<T>,
-	maxRetries = 3,
-	delay = 1000,
-	maxDelay = 30000
-) {
-	return async function retryWithBackoff(): Promise<T> {
-		let lastError: unknown;
-
-		for (let attempt = 1; attempt <= maxRetries; attempt++) {
-			try {
-				return await originalAction();
-			} catch (error) {
-				lastError = error;
-				const parsed = parseError(error);
-
-				if (!parsed.isRetryable || attempt === maxRetries) {
-					throw error;
-				}
-
-				const backoffDelay = Math.min(delay * Math.pow(2, attempt - 1), maxDelay);
-				await new Promise((resolve) => setTimeout(resolve, backoffDelay));
-			}
-		}
-
-		throw lastError;
-	};
 }

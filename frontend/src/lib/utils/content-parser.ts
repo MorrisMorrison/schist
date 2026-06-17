@@ -33,35 +33,3 @@ export function extractHashtagsFromContent(content: string): string[] {
 	const tags = matches.map((tag) => tag.slice(1));
 	return [...new Set(tags)];
 }
-
-export function getHashtagSuggestions(
-	input: string,
-	existingTags: string[],
-	limit: number = 5
-): string[] {
-	if (!input) return [];
-
-	const inputLower = input.toLowerCase();
-
-	return existingTags.filter((tag) => tag.toLowerCase().includes(inputLower)).slice(0, limit);
-}
-
-export function hasHashtagsInContent(content: string): boolean {
-	const contentWithoutCode = excludeCodeBlocks(content);
-	return HASHTAG_REGEX.test(contentWithoutCode);
-}
-
-export interface ParsedDocumentMetadata {
-	title: string;
-	tags: string[];
-}
-
-export function parseDocumentMetadata(content: string): ParsedDocumentMetadata {
-	const title = extractTitleFromContent(content);
-	const tags = extractHashtagsFromContent(content);
-
-	return {
-		title,
-		tags
-	};
-}

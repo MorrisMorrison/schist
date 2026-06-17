@@ -63,25 +63,6 @@ export function buildApiEndpoint(baseEndpoint: string, path: string): string {
 }
 
 /**
- * Creates a safe navigation path for goto() calls by encoding the path.
- */
-export function createNavigationPath(path: string): string {
-	return encodePath(path);
-}
-
-/**
- * Converts asset paths from frontend format (/assets/...) to backend format (/uploads/...).
- * Validates that the path actually starts with /assets/ before conversion.
- */
-export function convertAssetPath(path: string): string {
-	if (!path.startsWith('/assets/')) {
-		throw new Error('Invalid asset path: must start with /assets/');
-	}
-
-	return path.replace('/assets/', '/uploads/');
-}
-
-/**
  * Generates a URL-safe slug from a title string.
  * Converts to lowercase, removes special characters, and replaces spaces with hyphens.
  */
@@ -107,46 +88,4 @@ export function getParentPath(path: string): string {
 		return '/';
 	}
 	return '/' + segments.slice(0, -1).join('/');
-}
-
-/**
- * Gets the depth (nesting level) of a path.
- * For example: "/" returns 0, "/folder" returns 1, "/folder/subfolder" returns 2
- */
-export function getDepth(path: string): number {
-	if (!path || path === '/') {
-		return 0;
-	}
-	return path.split('/').filter((segment) => segment !== '').length;
-}
-
-/**
- * Validates if a path is properly formatted and safe.
- * Checks for proper structure and invalid characters.
- */
-export function isValidPath(path: string): boolean {
-	if (!path) {
-		return false;
-	}
-
-	if (!path.startsWith('/')) {
-		return false;
-	}
-
-	if (path.includes('//')) {
-		return false;
-	}
-
-	if (path.length > 1 && path.endsWith('/')) {
-		return false;
-	}
-
-	// Check for invalid characters (basic validation)
-	// eslint-disable-next-line no-control-regex
-	const invalidChars = /[<>:"|?*\x00-\x1f]/;
-	if (invalidChars.test(path)) {
-		return false;
-	}
-
-	return true;
 }

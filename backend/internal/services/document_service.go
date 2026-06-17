@@ -180,14 +180,14 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 	return nil
 }
 
-func (d *DocumentService) DeleteDocument(slug string) error {
-	filePath := d.buildFilePath(slug)
+func (d *DocumentService) DeleteDocument(path string) error {
+	filePath := d.buildFilePathFromPath(path)
 
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to delete document file: %w", err)
 	}
 
-	documentPath := "/" + strings.TrimSuffix(slug, MARKDOWN_FILE_ENDING)
+	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
 	d.commitDocumentChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
 
 	return nil
@@ -240,10 +240,6 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 	}
 
 	return documents, nil
-}
-
-func (d *DocumentService) buildFilePath(slug string) string {
-	return d.dataDir + "/" + slug + MARKDOWN_FILE_ENDING
 }
 
 func (d *DocumentService) buildFilePathFromPath(path string) string {

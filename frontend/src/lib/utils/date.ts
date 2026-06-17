@@ -47,18 +47,3 @@ export function formatDate(dateString?: string): string {
 	if (!dateString) return '';
 	return new Date(dateString).toLocaleDateString();
 }
-
-/**
- * Format a date string into a detailed format
- * @param dateString - ISO date string to format
- * @returns Detailed formatted date string
- */
-export function formatDetailedDate(dateString?: string): string {
-	if (!dateString) return '';
-	return new Date(dateString).toLocaleDateString('en-US', {
-		weekday: 'long',
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric'
-	});
-}

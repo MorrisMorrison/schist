@@ -18,7 +18,7 @@ import nginx from 'highlight.js/lib/languages/nginx';
 
 let initialized = false;
 
-export function initializeHighlighting(): void {
+function initializeHighlighting(): void {
 	if (initialized) return;
 
 	hljs.registerLanguage('javascript', javascript);

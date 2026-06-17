@@ -21,8 +21,10 @@ export default defineConfig({
 
 	workers: isCI ? 1 : 1,
 
-	/* Global timeout for each test */
-	timeout: 20 * 1000,
+	/* Global timeout for each test. 60s for self-hosted hardware: the VPS runner
+	   is slower than GitHub-hosted, and the WebAuthn ceremony in auth.setup can
+	   take ~45s under load. */
+	timeout: 60 * 1000,
 
 	/* Expect timeout for assertions */
 	expect: {
@@ -45,7 +47,10 @@ export default defineConfig({
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
-		viewport: { width: 1280, height: 720 }
+		viewport: { width: 1280, height: 720 },
+		// The CI container runs as root, where Chromium refuses to launch without
+		// --no-sandbox.
+		...(isCI ? { launchOptions: { args: ['--no-sandbox'] } } : {})
 	},
 
 	projects: [

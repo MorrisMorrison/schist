@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/MorrisMorrison/schist/internal/utils"
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *APIHandler) exportDocument(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	content, filename, err := h.DocumentService.ExportDocument(path)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Export failed: " + err.Error(),
-		})
+		HandleError(c, errors.NewNotFoundError("document", path).WithCause(err))
 		return
 	}
 
@@ -27,13 +25,11 @@ func (h *APIHandler) exportDocument(c *gin.Context) {
 }
 
 func (h *APIHandler) exportFolder(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	content, filename, err := h.DocumentService.ExportFolder(path)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Export failed: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Export failed: "+err.Error()).WithCause(err))
 		return
 	}
 
@@ -47,9 +43,7 @@ func (h *APIHandler) exportFolder(c *gin.Context) {
 func (h *APIHandler) exportAll(c *gin.Context) {
 	content, filename, err := h.DocumentService.ExportAll()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Export failed: " + err.Error(),
-		})
+		HandleError(c, errors.NewInternalError("Export failed: "+err.Error()).WithCause(err))
 		return
 	}
 

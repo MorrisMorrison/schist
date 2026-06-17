@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -10,9 +11,7 @@ import (
 func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "path parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("path"))
 		return
 	}
 
@@ -20,9 +19,7 @@ func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 
 	versions, err := h.DocumentService.GetDocumentVersions(path)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -36,17 +33,13 @@ func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "path parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("path"))
 		return
 	}
 
 	commitHash := c.Query("hash")
 	if commitHash == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "hash parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("hash"))
 		return
 	}
 
@@ -54,9 +47,7 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 
 	document, err := h.DocumentService.GetDocumentAtVersion(path, commitHash)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -70,25 +61,19 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "path parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("path"))
 		return
 	}
 
 	hash1 := c.Query("hash1")
 	if hash1 == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "hash1 parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("hash1"))
 		return
 	}
 
 	hash2 := c.Query("hash2")
 	if hash2 == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "hash2 parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("hash2"))
 		return
 	}
 
@@ -96,9 +81,7 @@ func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 
 	diff, err := h.DocumentService.CompareDocumentVersions(path, hash1, hash2)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 		return
 	}
 
@@ -110,17 +93,13 @@ func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
 	path := c.Query("path")
 	if path == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "path parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("path"))
 		return
 	}
 
 	commitHash := c.Query("hash")
 	if commitHash == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "hash parameter is required",
-		})
+		HandleError(c, errors.NewMissingRequiredFieldError("hash"))
 		return
 	}
 
@@ -128,9 +107,7 @@ func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
 
 	err := h.DocumentService.RestoreDocumentToVersion(path, commitHash)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
 		return
 	}
 

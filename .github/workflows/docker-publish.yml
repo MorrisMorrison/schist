@@ -3,6 +3,12 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ main ]   # publish :latest on every main commit (Komodo auto-pulls)
+    paths:               # ...but only when something in the image actually changed
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker-publish.yml'
   workflow_dispatch:  # plus manual triggering with an optional explicit tag
     inputs:
       tag:
@@ -11,13 +17,17 @@ on:
         default: 'latest'
         type: string
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write

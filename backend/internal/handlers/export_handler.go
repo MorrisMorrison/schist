@@ -5,12 +5,11 @@ import (
 	"net/http"
 
 	"github.com/MorrisMorrison/schist/internal/errors"
-	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *APIHandler) exportDocument(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	content, filename, err := h.DocumentService.ExportDocument(path)
 	if err != nil {
@@ -26,7 +25,7 @@ func (h *APIHandler) exportDocument(c *gin.Context) {
 }
 
 func (h *APIHandler) exportFolder(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	content, filename, err := h.DocumentService.ExportFolder(path)
 	if err != nil {

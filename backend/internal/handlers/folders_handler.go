@@ -9,7 +9,7 @@ import (
 )
 
 func (h *APIHandler) getFolder(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	folder, err := h.DocumentService.GetFolder(path)
 	if err != nil {
@@ -59,7 +59,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 }
 
 func (h *APIHandler) renameFolder(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	type RenameRequest struct {
 		NewName string `json:"newName" binding:"required"`
@@ -85,7 +85,7 @@ func (h *APIHandler) renameFolder(c *gin.Context) {
 }
 
 func (h *APIHandler) deleteFolder(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	err := h.DocumentService.DeleteFolder(path)
 	if err != nil {

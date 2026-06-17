@@ -8,7 +8,6 @@ import (
 	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
-	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -238,7 +237,7 @@ func (h *APIHandler) getTemplates(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentLinks(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	links, err := h.LinkService.GetOutgoingLinks(path)
 	if err != nil {
@@ -254,7 +253,7 @@ func (h *APIHandler) getDocumentLinks(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentBacklinks(c *gin.Context) {
-	path := utils.EnsureLeadingSlash(c.Param("path"))
+	path := pathParam(c)
 
 	backlinks, err := h.LinkService.GetBacklinks(path)
 	if err != nil {

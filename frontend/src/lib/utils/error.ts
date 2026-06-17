@@ -32,6 +32,13 @@ export interface ParsedError {
 	severity: 'error' | 'warning' | 'info';
 }
 
+/**
+ * Returns the message of an Error, or the provided fallback for non-Error values.
+ */
+export function getErrorMessage(error: unknown, fallback: string): string {
+	return error instanceof Error ? error.message : fallback;
+}
+
 export function parseError(error: unknown): ParsedError {
 	if (error instanceof Response) {
 		return {

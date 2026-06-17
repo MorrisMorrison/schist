@@ -50,20 +50,6 @@ export class WebAuthnHelper {
 	}
 
 	/**
-	 * Simulate user presence (touching the passkey)
-	 */
-	async simulateUserPresence(): Promise<void> {
-		if (!this.client || !this.authenticatorId) {
-			throw new Error('WebAuthn not initialized. Call setup() first.');
-		}
-
-		await this.client.send('WebAuthn.setUserVerified', {
-			authenticatorId: this.authenticatorId,
-			isUserVerified: true
-		});
-	}
-
-	/**
 	 * Add a pre-existing credential to the virtual authenticator
 	 */
 	async addCredential(credential: {
@@ -113,19 +99,6 @@ export class WebAuthnHelper {
 	}
 
 	/**
-	 * Clear all credentials from the virtual authenticator
-	 */
-	async clearCredentials(): Promise<void> {
-		if (!this.client || !this.authenticatorId) {
-			return; // Nothing to clear if not initialized
-		}
-
-		await this.client.send('WebAuthn.clearCredentials', {
-			authenticatorId: this.authenticatorId
-		});
-	}
-
-	/**
 	 * Remove the virtual authenticator and cleanup
 	 */
 	async cleanup(): Promise<void> {
@@ -150,31 +123,6 @@ export class WebAuthnHelper {
 	}
 
 	/**
-	 * Helper method to wait for and handle passkey registration
-	 */
-	async waitForRegistration(timeout: number = 10000): Promise<void> {
-		const startTime = Date.now();
-
-		while (Date.now() - startTime < timeout) {
-			const credentials = await this.getCredentials();
-			if (credentials.length > 0) {
-				console.log(`[WebAuthn] Registration completed. Credentials: ${credentials.length}`);
-				return;
-			}
-			await new Promise((resolve) => setTimeout(resolve, 100));
-		}
-
-		throw new Error('Passkey registration timed out');
-	}
-
-	/**
-	 * Helper method to simulate a complete passkey authentication flow
-	 */
-	async simulateAuthentication(): Promise<void> {
-		await this.simulateUserPresence();
-	}
-
-	/**
 	 * Enhanced presence simulation that ensures the authenticator is ready
 	 */
 	async ensureAuthenticatorReady(): Promise<void> {
@@ -188,16 +136,4 @@ export class WebAuthnHelper {
 			isUserVerified: true
 		});
 	}
-}
-
-/**
- * Create a WebAuthn helper for use in tests
- */
-export async function createWebAuthnHelper(
-	page: Page,
-	options?: Partial<VirtualAuthenticatorOptions>
-): Promise<WebAuthnHelper> {
-	const helper = new WebAuthnHelper(page);
-	await helper.setup(options);
-	return helper;
 }

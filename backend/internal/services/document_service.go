@@ -165,25 +165,6 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 	return nil
 }
 
-func (d *DocumentService) ReadDocument(slug string) (*models.Document, error) {
-	filePath := d.buildFilePath(slug)
-	fileContent, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("could not read file %s", slug)
-	}
-
-	document, err := serializer.DeserializeDocument(fileContent)
-	if err != nil {
-		return nil, fmt.Errorf("could not deserialize document")
-	}
-
-	return document, nil
-}
-
-func (d *DocumentService) UpdateDocument(document *models.Document) error {
-	return d.UpdateDocumentWithSaveType(document, "manual")
-}
-
 func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, saveType string) error {
 	document.MetaData.Updated = time.Now()
 
@@ -314,24 +295,6 @@ func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, erro
 	}
 
 	return document, nil
-}
-
-func (d *DocumentService) CreateDocumentInFolder(folderPath string, document *models.Document) error {
-	if err := utils.ValidatePath(folderPath); err != nil {
-		return fmt.Errorf("invalid folder path: %w", err)
-	}
-
-	if document.MetaData.Slug == "" {
-		document.MetaData.Slug = utils.GenerateSlug(document.MetaData.Title)
-	}
-
-	document.MetaData.Path = utils.NormalizePath(folderPath + "/" + document.MetaData.Slug)
-
-	now := time.Now()
-	document.MetaData.Created = now
-	document.MetaData.Updated = now
-
-	return d.saveDocument(document)
 }
 
 func (d *DocumentService) MoveDocument(oldPath, newPath string) error {

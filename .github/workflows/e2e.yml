@@ -56,21 +56,33 @@ jobs:
 
       - name: Run Playwright tests
         run: |
-          set -euo pipefail
+          set -uo pipefail
           # The runner is Docker-out-of-Docker, so published ports aren't reachable
           # from this job and WebAuthn needs a localhost/https secure context. Run
           # Playwright in a container that SHARES the app container's network
           # namespace, so the browser reaches the app on http://localhost:8080 -- a
           # valid WebAuthn origin matching the server's SCHIST_FRONTEND_URL.
+          #
+          # Code is streamed in with `docker cp` rather than a bind mount: under
+          # DooD, `-v` source paths resolve on the host, not in this job, so a mount
+          # would hand the sibling container an empty dir.
           APP="$(docker compose --profile e2e ps -q schist-e2e)"
-          docker run --rm \
+          CID="$(docker create \
             --network "container:${APP}" \
             --ipc=host \
-            -v "$PWD/e2e:/e2e" -w /e2e \
+            -w /e2e \
             -e CI=true \
             -e PLAYWRIGHT_BASE_URL=http://localhost:8080 \
             mcr.microsoft.com/playwright:v1.55.0-noble \
-            sh -c "npm ci && npx playwright test"
+            sh -c 'npm ci && npx playwright test')"
+          docker cp ./e2e/. "${CID}:/e2e"
+          RC=0
+          docker start -a "${CID}" || RC=$?
+          # Pull reports/traces back out for the artifact upload step.
+          docker cp "${CID}:/e2e/playwright-report" ./e2e/ 2>/dev/null || true
+          docker cp "${CID}:/e2e/test-results" ./e2e/ 2>/dev/null || true
+          docker rm -f "${CID}" >/dev/null 2>&1 || true
+          exit $RC
 
       - name: Show service logs on failure
         if: failure()

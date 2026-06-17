@@ -13,6 +13,7 @@
 		"install-browsers": "npx playwright install --with-deps chromium",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
+		"typecheck": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",
 		"lint:fix": "eslint --fix . && prettier --write ."
 	},

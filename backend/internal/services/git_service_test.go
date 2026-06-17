@@ -92,6 +92,9 @@ func TestNewGitService(t *testing.T) {
 	})
 
 	t.Run("handles invalid directory path", func(t *testing.T) {
+		if os.Geteuid() == 0 {
+			t.Skip("skipping: relies on filesystem permissions that root bypasses")
+		}
 		invalidPath := "/invalid/path/that/does/not/exist"
 
 		_, err := services.NewGitService(invalidPath)
@@ -101,6 +104,9 @@ func TestNewGitService(t *testing.T) {
 	})
 
 	t.Run("handles permission denied directory", func(t *testing.T) {
+		if os.Geteuid() == 0 {
+			t.Skip("skipping: relies on filesystem permissions that root bypasses")
+		}
 		testDir, cleanup := setupGitTestDir(t)
 		defer cleanup()
 

@@ -25,16 +25,12 @@
 	onMount(async () => {
 		// Check if setup is required first
 		try {
-			console.log('Checking setup status...');
 			const response = await apiClient.checkSetupRequired();
-			console.log('Setup response:', response);
 			if (response.requires_setup) {
 				// Setup required, redirect to setup page
-				console.log('Setup required, redirecting to /setup');
 				await goto('/setup');
 				return;
 			}
-			console.log('Setup not required, showing login');
 		} catch (err) {
 			console.error('Failed to check setup status:', err);
 		}

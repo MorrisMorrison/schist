@@ -19,14 +19,14 @@
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
-		"@playwright/test": "^1.55.0",
+		"@playwright/test": "^1.61.0",
 		"@types/node": "^25.9.3",
 		"eslint": "^9.18.0",
 		"eslint-config-prettier": "^10.0.1",
 		"globals": "^17.6.0",
 		"playwright": "^1.53.0",
-		"prettier": "^3.4.2",
+		"prettier": "^3.8.4",
 		"typescript": "^5.0.0",
-		"typescript-eslint": "^8.20.0"
+		"typescript-eslint": "^8.61.1"
 	}
 }

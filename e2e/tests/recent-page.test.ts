@@ -1,5 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { test as fixtureTest } from '../fixtures';
+import { test, expect } from '../fixtures';
 
 test.describe('Recent Page', () => {
 	test.beforeEach(async ({ page }) => {
@@ -22,12 +21,6 @@ test.describe('Recent Page', () => {
 
 		await expect(page.locator('text=No recent activity')).toBeVisible();
 		await expect(page.locator('text=Loading...')).not.toBeVisible();
-	});
-
-	test('should work with direct URL access', async ({ page }) => {
-		await page.goto('/recent');
-
-		await expect(page.locator('h1')).toContainText('Recent Documents');
 	});
 
 	test('should display error state when API fails', async ({ page }) => {
@@ -55,35 +48,35 @@ test.describe('Recent Page', () => {
 	});
 });
 
-fixtureTest.describe('Recent Page with Data', () => {
-	fixtureTest.beforeEach(async ({ page }) => {
+test.describe('Recent Page with Data', () => {
+	test.beforeEach(async ({ page }) => {
 		await page.goto('/');
 	});
 
-	fixtureTest(
-		'should display recent documents after navigation',
-		async ({ page, withMultipleDocuments: _withMultipleDocuments }) => {
-			// Test data is automatically available via the withMultipleDocuments fixture
-			await page.click('[data-testid="nav-recent"]');
+	test('should display recent documents after navigation', async ({
+		page,
+		withMultipleDocuments: _withMultipleDocuments
+	}) => {
+		// Test data is automatically available via the withMultipleDocuments fixture
+		await page.click('[data-testid="nav-recent"]');
 
-			await expect(page.locator('h1')).toContainText('Recent Documents');
+		await expect(page.locator('h1')).toContainText('Recent Documents');
 
-			await expect(page.locator('[data-testid="document-card"]').first()).toBeVisible();
+		await expect(page.locator('[data-testid="document-card"]').first()).toBeVisible();
 
-			await expect(page.locator('text=No recent activity')).not.toBeVisible();
-			await expect(page.locator('text=Loading...')).not.toBeVisible();
-		}
-	);
+		await expect(page.locator('text=No recent activity')).not.toBeVisible();
+		await expect(page.locator('text=Loading...')).not.toBeVisible();
+	});
 
-	fixtureTest(
-		'should display multiple documents in recent view',
-		async ({ page, withMultipleDocuments }) => {
-			await page.goto('/recent');
+	test('should display multiple documents in recent view', async ({
+		page,
+		withMultipleDocuments
+	}) => {
+		await page.goto('/recent');
 
-			await expect(page.locator('h1')).toContainText('Recent Documents');
-			await expect(page.locator('[data-testid="document-card"]')).toHaveCount(
-				withMultipleDocuments.length
-			);
-		}
-	);
+		await expect(page.locator('h1')).toContainText('Recent Documents');
+		await expect(page.locator('[data-testid="document-card"]')).toHaveCount(
+			withMultipleDocuments.length
+		);
+	});
 });

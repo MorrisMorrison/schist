@@ -11,13 +11,7 @@ export class SettingsPage extends BasePage {
 	readonly githubBranchInput: Locator;
 	readonly githubTestConnectionButton: Locator;
 	readonly githubSetupButton: Locator;
-	readonly githubDisconnectButton: Locator;
-	readonly githubSyncNowButton: Locator;
-	readonly githubErrorAlert: Locator;
-	readonly githubErrorMessage: Locator;
 	readonly githubConnectionTestResult: Locator;
-	readonly githubStatusConnected: Locator;
-	readonly githubStatusDisconnected: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -31,13 +25,7 @@ export class SettingsPage extends BasePage {
 		this.githubBranchInput = page.getByTestId('github-branch-input');
 		this.githubTestConnectionButton = page.getByTestId('github-test-connection-button');
 		this.githubSetupButton = page.getByTestId('github-setup-button');
-		this.githubDisconnectButton = page.getByTestId('github-disconnect-button');
-		this.githubSyncNowButton = page.getByTestId('github-sync-now-button');
-		this.githubErrorAlert = page.getByTestId('github-error-alert');
-		this.githubErrorMessage = page.getByTestId('github-error-message');
 		this.githubConnectionTestResult = page.getByTestId('github-connection-test-result');
-		this.githubStatusConnected = page.getByTestId('github-status-connected');
-		this.githubStatusDisconnected = page.getByTestId('github-status-disconnected');
 	}
 
 	async navigate() {
@@ -54,10 +42,6 @@ export class SettingsPage extends BasePage {
 		await this.githubSetupTab.click();
 	}
 
-	async clickSyncTab() {
-		await this.githubSyncTab.click();
-	}
-
 	async fillGitHubForm(token: string, owner: string, repository: string, branch: string = 'main') {
 		await this.githubTokenInput.fill(token);
 		await this.githubOwnerInput.fill(owner);
@@ -67,17 +51,5 @@ export class SettingsPage extends BasePage {
 
 	async testConnection() {
 		await this.githubTestConnectionButton.click();
-	}
-
-	async setupGitHub() {
-		await this.githubSetupButton.click();
-	}
-
-	async disconnectGitHub() {
-		await this.githubDisconnectButton.click();
-	}
-
-	async syncNow() {
-		await this.githubSyncNowButton.click();
 	}
 }

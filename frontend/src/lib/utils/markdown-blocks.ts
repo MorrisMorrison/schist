@@ -80,15 +80,6 @@ export interface ImageBlock extends BaseBlock {
 	raw: string;
 }
 
-export interface WikiLinkBlock extends BaseBlock {
-	type: 'wiki_link';
-	target: string;
-	displayText: string;
-	path: string;
-	exists: boolean;
-	raw: string;
-}
-
 export type MarkdownBlock =
 	| HeadingBlock
 	| ParagraphBlock
@@ -99,8 +90,7 @@ export type MarkdownBlock =
 	| TableBlock
 	| HtmlBlock
 	| HrBlock
-	| ImageBlock
-	| WikiLinkBlock;
+	| ImageBlock;
 let blockIdCounter = 0;
 function generateBlockId(): string {
 	return `block-${Date.now()}-${++blockIdCounter}`;
@@ -555,13 +545,7 @@ async function processInlineMarkdown(text: string): Promise<string> {
 export function initializeMarkdownInteractions(container: HTMLElement): void {
 	if (!container) return;
 
-	const copyButtons = container.querySelectorAll('.copy-button');
 	const wikiLinks = container.querySelectorAll('.wiki-link');
-
-	copyButtons.forEach((button) => {
-		button.removeEventListener('click', handleCopyClick);
-		button.addEventListener('click', handleCopyClick);
-	});
 
 	wikiLinks.forEach((link) => {
 		link.removeEventListener('click', handleWikiLinkClick);
@@ -584,95 +568,4 @@ function handleWikiLinkClick(event: Event): void {
 	} else {
 		goto(`/documents${targetPath}`);
 	}
-}
-
-async function handleCopyClick(event: Event): Promise<void> {
-	event.preventDefault();
-	event.stopPropagation();
-
-	const button = event.currentTarget as HTMLButtonElement;
-	const copyText = button.getAttribute('data-copy-text');
-
-	if (!copyText) return;
-
-	const decodedText = copyText
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'")
-		.replace(/&lt;/g, '<')
-		.replace(/&gt;/g, '>')
-		.replace(/&amp;/g, '&');
-
-	try {
-		if (navigator.clipboard && window.isSecureContext) {
-			await navigator.clipboard.writeText(decodedText);
-		} else {
-			const textarea = document.createElement('textarea');
-			textarea.value = decodedText;
-			textarea.style.position = 'fixed';
-			textarea.style.left = '-999999px';
-			document.body.appendChild(textarea);
-			textarea.select();
-			document.execCommand('copy');
-			document.body.removeChild(textarea);
-		}
-
-		showCopyFeedback(button, true);
-	} catch (error) {
-		console.error('Copy failed:', error);
-		showCopyFeedback(button, false);
-	}
-}
-
-function showCopyFeedback(button: HTMLElement, success: boolean): void {
-	const originalContent = button.cloneNode(true) as HTMLElement;
-
-	button.innerHTML = '';
-
-	const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-	svg.setAttribute('class', `copy-icon ${success ? 'text-green-600' : 'text-red-600'}`);
-	svg.setAttribute('width', '16');
-	svg.setAttribute('height', '16');
-	svg.setAttribute('viewBox', '0 0 24 24');
-	svg.setAttribute('fill', 'none');
-	svg.setAttribute('stroke', 'currentColor');
-	svg.setAttribute('stroke-width', '2');
-	svg.setAttribute('stroke-linecap', 'round');
-	svg.setAttribute('stroke-linejoin', 'round');
-
-	if (success) {
-		const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-		polyline.setAttribute('points', '20,6 9,17 4,12');
-		svg.appendChild(polyline);
-		button.setAttribute('title', 'Copied!');
-	} else {
-		const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-		circle.setAttribute('cx', '12');
-		circle.setAttribute('cy', '12');
-		circle.setAttribute('r', '10');
-		svg.appendChild(circle);
-
-		const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-		line1.setAttribute('x1', '12');
-		line1.setAttribute('y1', '8');
-		line1.setAttribute('x2', '12');
-		line1.setAttribute('y2', '12');
-		svg.appendChild(line1);
-
-		const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-		line2.setAttribute('x1', '12');
-		line2.setAttribute('y1', '16');
-		line2.setAttribute('x2', '12.01');
-		line2.setAttribute('y2', '16');
-		svg.appendChild(line2);
-
-		button.setAttribute('title', 'Copy failed');
-	}
-
-	button.appendChild(svg);
-
-	setTimeout(() => {
-		button.innerHTML = '';
-		button.appendChild(originalContent);
-		button.setAttribute('title', 'Copy code');
-	}, 2000);
 }

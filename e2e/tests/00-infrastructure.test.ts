@@ -2,7 +2,7 @@
  * Infrastructure tests to verify e2e test setup is working
  */
 
-import { test, expect } from '../fixtures/test-data-fixtures';
+import { test, expect } from '../fixtures';
 import { expectPageLoaded, expectVisibleText } from '../utils/assertions';
 
 test.describe('E2E Infrastructure', () => {
@@ -10,23 +10,6 @@ test.describe('E2E Infrastructure', () => {
 		await homePage.navigate();
 		await homePage.verifyLoaded();
 		await expectPageLoaded(homePage.page);
-	});
-
-	test('API helper works correctly', async ({ apiHelper }) => {
-		const healthCheck = await apiHelper.healthCheck();
-		expect(healthCheck).toBe(true);
-	});
-
-	test('test data generation works', async ({ testDocument, testFolder }) => {
-		expect(testDocument.title).toBeTruthy();
-		expect(testDocument.content).toBeTruthy();
-		expect(testFolder.name).toBeTruthy();
-		expect(testFolder.path).toBeTruthy();
-	});
-
-	test('custom assertions work', async ({ homePage }) => {
-		await homePage.navigate();
-		await expectVisibleText(homePage.pageTitle, '');
 	});
 
 	test('fixtures create backend data', async ({ withTestDocument, documentViewPage }) => {

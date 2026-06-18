@@ -20,7 +20,12 @@ concurrency:
 jobs:
   frontend-tests:
     name: Frontend Tests
-    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    # NOT a cheap job: the unit tests run in Vitest browser mode (real headless
+    # Chromium). On a fresh GitHub-hosted runner `playwright install --with-deps`
+    # hangs on apt; the self-hosted box already has the browser + deps. Keep this
+    # on the self-hosted runner alongside e2e.
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - name: Set up Node.js

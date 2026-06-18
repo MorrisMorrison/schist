@@ -29,6 +29,7 @@ jobs:
   build:
     name: Build All
     runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    timeout-minutes: 20
     env:
       PUBLIC_API_URL: http://localhost:8080/api
     
@@ -58,6 +59,7 @@ jobs:
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    timeout-minutes: 20
     needs: build
     
     steps:

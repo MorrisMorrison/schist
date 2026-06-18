@@ -31,29 +31,31 @@ test.describe.serial('Document Move', () => {
 
 		const folderTree = page.getByTestId('folder-tree');
 
+		// Both the source document and the target folder are created in setup, so
+		// both tree items are preconditions for the drag-and-drop move flow.
 		const documentTreeItem = folderTree.getByText(testDocument.title);
 		const folderTreeItem = folderTree.getByText(testFolderName);
+		await expect(documentTreeItem).toBeVisible();
+		await expect(folderTreeItem).toBeVisible();
 
-		if ((await documentTreeItem.isVisible()) && (await folderTreeItem.isVisible())) {
-			// Perform drag and drop
-			await documentTreeItem.dragTo(folderTreeItem);
+		// Perform drag and drop
+		await documentTreeItem.dragTo(folderTreeItem);
 
-			// Navigate to the target folder and wait for the document to appear there
-			await folderPage.openSubFolder(testFolderName);
-			await folderPage.verifyFolderLoaded(testFolderName);
+		// Navigate to the target folder and wait for the document to appear there
+		await folderPage.openSubFolder(testFolderName);
+		await folderPage.verifyFolderLoaded(testFolderName);
 
-			// Verify the document was moved to the target folder
-			await folderPage.verifyContainsDocument(testDocument.title);
+		// Verify the document was moved to the target folder
+		await folderPage.verifyContainsDocument(testDocument.title);
 
-			// Click on the moved document to navigate to it
-			const documentLink = folderPage.documents.getByText(testDocument.title);
-			await documentLink.waitFor({ state: 'visible' });
-			await documentLink.click();
+		// Click on the moved document to navigate to it
+		const documentLink = folderPage.documents.getByText(testDocument.title);
+		await documentLink.waitFor({ state: 'visible' });
+		await documentLink.click();
 
-			// Verify we navigated to the document view
-			await documentViewPage.verifyDocumentLoaded(testDocument.title);
-			await documentViewPage.expectUrl(`/documents/${testFolderName}${testDocumentPath}`);
-		}
+		// Verify we navigated to the document view
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.expectUrl(`/documents/${testFolderName}${testDocumentPath}`);
 	});
 
 	test('should prevent moving document to invalid locations', async ({

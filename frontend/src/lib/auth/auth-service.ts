@@ -58,12 +58,12 @@ class AuthService {
 		this.initialized = true;
 	}
 
-	async loginWithPasskey(credentialId: string) {
+	async loginWithPasskey(authTicket: string) {
 		authActions.setLoading(true);
 		authActions.clearError();
 
 		try {
-			const response = await apiClient.loginWithPasskey(credentialId);
+			const response = await apiClient.loginWithPasskey(authTicket);
 			authActions.setAuth(response.token, response.user);
 
 			// Trigger secrets store sync after successful auth

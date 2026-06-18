@@ -220,9 +220,22 @@ export async function registerPasskey(name: string): Promise<string> {
 }
 
 /**
+ * Result of a completed WebAuthn assertion.
+ *
+ * `authTicket` is the short-lived, single-use token minted by the server only
+ * after it verifies the assertion; it is exchanged for a JWT by the login flow.
+ * `credentialId` remains available for flows (e.g. secrets unlock) that key off
+ * the public credential identifier.
+ */
+export interface PasskeyAuthenticationResult {
+	credentialId: string;
+	authTicket: string;
+}
+
+/**
  * Authenticate using a registered passkey
  */
-export async function authenticateWithPasskey(): Promise<string> {
+export async function authenticateWithPasskey(): Promise<PasskeyAuthenticationResult> {
 	if (!navigator.credentials || !window.PublicKeyCredential) {
 		throw new WebAuthnError('WebAuthn is not supported in this browser', 'NOT_SUPPORTED');
 	}
@@ -250,7 +263,10 @@ export async function authenticateWithPasskey(): Promise<string> {
 		};
 
 		const finishResponse = await apiClient.finishPasskeyAuthentication(finishRequest);
-		return finishResponse.credentialId;
+		return {
+			credentialId: finishResponse.credentialId,
+			authTicket: finishResponse.authTicket
+		};
 	} catch (error) {
 		if (error instanceof DOMException) {
 			switch (error.name) {

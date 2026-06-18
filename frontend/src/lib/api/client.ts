@@ -156,7 +156,16 @@ class SchistApiClient {
 				delete (config.headers as Record<string, string>)['Content-Type'];
 			}
 
-			const response = await fetch(url, config);
+			// A 401 can be a transient server hiccup (the backend briefly
+			// overloaded or restarting) rather than a genuinely invalid session.
+			// Retry a couple of times before the 401 handler tears the session down
+			// and bounces the user to /login: a valid token recovers on retry, an
+			// invalid one keeps returning 401.
+			let response = await fetch(url, config);
+			for (let attempt = 0; response.status === 401 && attempt < 2; attempt++) {
+				await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+				response = await fetch(url, config);
+			}
 
 			if (!response.ok) {
 				const errorText = await response.text();

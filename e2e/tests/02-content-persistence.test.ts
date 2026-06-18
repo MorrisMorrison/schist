@@ -1,4 +1,6 @@
 import { test, expect } from '../fixtures';
+import { DocumentViewPage } from '../pages/DocumentViewPage';
+import { EditorPage } from '../pages/EditorPage';
 import { createTestDocument } from '../utils/test-data';
 
 test.describe('Content Persistence and Data Integrity', () => {
@@ -16,7 +18,6 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await documentViewPage.page.close();
 		const newPage = await context.newPage();
 
-		const { DocumentViewPage } = await import('../pages/DocumentViewPage');
 		const newDocumentView = new DocumentViewPage(newPage);
 
 		await newDocumentView.navigateToDocument(testDocument.path!);
@@ -36,7 +37,6 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await editorPage.verifyLoaded();
 
 		const page2 = await context.newPage();
-		const { EditorPage } = await import('../pages/EditorPage');
 		const editorPage2 = new EditorPage(page2);
 
 		await editorPage2.navigateToEdit(testDocument.path!);

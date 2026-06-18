@@ -10,7 +10,7 @@ e2e/
 ├── playwright.config.ts   # Playwright configuration
 ├── auth.setup.ts          # Authentication setup script
 ├── global-teardown.ts     # Global cleanup script
-├── tests/                 # Test files (22 test suites)
+├── tests/                 # Test files (21 test suites)
 ├── pages/                 # Page Object Models
 ├── fixtures/              # Test fixtures and utilities
 └── utils/                 # Helper functions and constants

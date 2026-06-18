@@ -14,6 +14,8 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Upload, AlertCircle, CheckCircle } from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import InlineError from '$lib/components/ui/InlineError.svelte';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	interface Props {
 		open?: boolean;
@@ -88,7 +90,7 @@
 				}, 2000);
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to import documents';
+			error = getErrorMessage(err, 'Failed to import documents');
 		} finally {
 			isLoading = false;
 		}
@@ -190,10 +192,7 @@
 				</div>
 
 				{#if error}
-					<div class="flex items-center gap-2 rounded-md bg-red-50 p-3 text-sm text-red-700">
-						<AlertCircle class="h-4 w-4 flex-shrink-0" />
-						{error}
-					</div>
+					<InlineError message={error} class="p-3" />
 				{/if}
 
 				<DialogFooter>

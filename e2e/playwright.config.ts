@@ -19,7 +19,10 @@ export default defineConfig({
 
 	retries: isCI ? 2 : 0,
 
-	workers: isCI ? 1 : 1,
+	/* Run with a single worker: the suite shares one backend instance and a single
+	   auth/storage state, and several suites use test.describe.serial, so parallel
+	   workers would cause cross-test data interference. */
+	workers: 1,
 
 	/* Global timeout for each test. 60s for self-hosted hardware: the VPS runner
 	   is slower than GitHub-hosted, and the WebAuthn ceremony in auth.setup can

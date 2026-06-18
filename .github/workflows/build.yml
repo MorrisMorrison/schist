@@ -28,7 +28,7 @@ concurrency:
 jobs:
   build:
     name: Build All
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
     env:
       PUBLIC_API_URL: http://localhost:8080/api
     
@@ -57,7 +57,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
     needs: build
     
     steps:

@@ -27,7 +27,7 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest   # cheap+deploy-critical → GitHub-hosted (self-hosted runner is reserved for e2e)
     permissions:
       contents: read
       packages: write

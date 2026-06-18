@@ -16,6 +16,7 @@
 	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
 	import UnsavedChangesModal from '$lib/components/modal/UnsavedChangesModal.svelte';
 	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
 
@@ -97,7 +98,7 @@
 			goto(`/documents${response.metaData.path}`);
 		} catch (error) {
 			console.error('Failed to create page:', error);
-			createError = error instanceof Error ? error.message : 'Failed to create page';
+			createError = getErrorMessage(error, 'Failed to create page');
 		} finally {
 			isCreating = false;
 		}

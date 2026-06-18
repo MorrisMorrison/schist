@@ -12,8 +12,7 @@
 				outline:
 					'text-black dark:text-white border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors',
 				secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors',
-				ghost: 'hover:bg-accent hover:text-accent-foreground transition-colors',
-				link: 'text-primary underline-offset-4 hover:underline transition-colors'
+				ghost: 'hover:bg-accent hover:text-accent-foreground transition-colors'
 			},
 			size: {
 				default: 'h-9 px-4 py-2 has-[>svg]:px-3',

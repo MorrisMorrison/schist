@@ -26,9 +26,9 @@ describe('Badge', () => {
 		expect(container.querySelector('span')).not.toBeInTheDocument();
 	});
 
-	it('renders destructive variant', () => {
+	it('renders outline variant', () => {
 		const { container } = render(Badge, {
-			props: { variant: 'destructive' }
+			props: { variant: 'outline' }
 		});
 
 		const badge = container.querySelector('span');

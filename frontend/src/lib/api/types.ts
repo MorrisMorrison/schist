@@ -98,11 +98,6 @@ export interface TemplatesResponse {
 	total: number;
 }
 
-export interface HealthResponse {
-	status: string;
-	timestamp: string;
-}
-
 export interface Asset {
 	name: string;
 	original_name: string;
@@ -115,17 +110,6 @@ export interface Asset {
 export interface AssetUploadResponse {
 	message: string;
 	asset: Asset;
-}
-
-export class ApiError extends Error {
-	constructor(
-		message: string,
-		public status?: number,
-		public response?: Response
-	) {
-		super(message);
-		this.name = 'ApiError';
-	}
 }
 
 export interface Folder {
@@ -224,9 +208,6 @@ export interface ImportResult {
 	failed_count: number;
 	skipped_count: number;
 }
-
-// Export-related types
-export type ExportType = 'document' | 'folder' | 'all';
 
 // GitHub integration types
 export interface GitHubSettings {
@@ -372,15 +353,6 @@ export interface PasskeyStatus {
 	hasPasskeys: boolean;
 	isUnlocked: boolean;
 	requiresPassword: boolean;
-}
-
-export interface PasskeyCreateRequest {
-	name: string;
-}
-
-export interface PasskeyCreateResponse {
-	credentialId: string;
-	message: string;
 }
 
 export interface PasskeyUnlockRequest {

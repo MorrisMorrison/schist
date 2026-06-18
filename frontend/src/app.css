@@ -185,11 +185,6 @@
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
-	--color-chart-1: var(--chart-1);
-	--color-chart-2: var(--chart-2);
-	--color-chart-3: var(--chart-3);
-	--color-chart-4: var(--chart-4);
-	--color-chart-5: var(--chart-5);
 	--color-sidebar: var(--sidebar);
 	--color-sidebar-foreground: var(--sidebar-foreground);
 	--color-sidebar-primary: var(--sidebar-primary);
@@ -202,14 +197,6 @@
 	/* Additional color variables for new components */
 	--color-text: var(--foreground);
 	--color-text-secondary: var(--muted-foreground);
-	--color-text-tertiary: var(--muted-foreground);
-	--color-background-secondary: var(--secondary);
-	--color-background-tertiary: var(--accent);
-	--color-primary-hover: var(--primary);
-	--color-primary-rgb: 51 65 85;
-	--color-error: var(--destructive);
-	--color-error-rgb: 239 68 68;
-	--color-error-hover: var(--destructive);
 }
 
 @layer base {
@@ -311,48 +298,13 @@
 	.text-blue-primary {
 		color: var(--blue-primary);
 	}
-	.text-blue-secondary {
-		color: var(--blue-secondary);
-	}
-	.text-blue-muted {
-		color: var(--blue-muted);
-	}
-	.bg-blue-primary {
-		background-color: var(--blue-primary);
-	}
-	.bg-blue-secondary {
-		background-color: var(--blue-secondary);
-	}
 	.bg-blue-muted {
 		background-color: var(--blue-bg);
-	}
-
-	/* Red utilities */
-	.text-red-primary {
-		color: var(--red-primary);
-	}
-	.text-red-secondary {
-		color: var(--red-secondary);
-	}
-	.text-red-muted {
-		color: var(--red-muted);
-	}
-	.bg-red-primary {
-		background-color: var(--red-primary);
-	}
-	.bg-red-secondary {
-		background-color: var(--red-secondary);
-	}
-	.bg-red-muted {
-		background-color: var(--red-bg);
 	}
 
 	/* Hover utilities */
 	.hover\:bg-gray-hover:hover {
 		background-color: var(--gray-hover);
-	}
-	.hover\:bg-gray-active:hover {
-		background-color: var(--gray-active);
 	}
 
 	.prose {

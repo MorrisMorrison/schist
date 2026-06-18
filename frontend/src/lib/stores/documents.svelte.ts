@@ -8,6 +8,7 @@ import type {
 	WikiLink
 } from '../api/types';
 import { getParentPath } from '../utils/path';
+import { getErrorMessage } from '$lib/utils/error';
 
 interface DocumentsState {
 	documents: Document[];
@@ -107,7 +108,7 @@ function createDocumentActions() {
 				updateDocumentsState({
 					documents: [],
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to load documents'
+					error: getErrorMessage(error, 'Failed to load documents')
 				});
 				return [];
 			}
@@ -134,7 +135,7 @@ function createDocumentActions() {
 			} catch (error) {
 				updateDocumentsState({
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to load document',
+					error: getErrorMessage(error, 'Failed to load document'),
 					currentDocument: null
 				});
 				throw error;
@@ -167,7 +168,7 @@ function createDocumentActions() {
 			} catch (error) {
 				updateDocumentsState({
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to create document'
+					error: getErrorMessage(error, 'Failed to create document')
 				});
 				throw error;
 			}
@@ -195,7 +196,7 @@ function createDocumentActions() {
 			} catch (error) {
 				updateDocumentsState({
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to update document'
+					error: getErrorMessage(error, 'Failed to update document')
 				});
 				throw error;
 			}
@@ -220,7 +221,7 @@ function createDocumentActions() {
 			} catch (error) {
 				updateDocumentsState({
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to delete document'
+					error: getErrorMessage(error, 'Failed to delete document')
 				});
 				throw error;
 			}
@@ -240,7 +241,7 @@ function createDocumentActions() {
 				return document;
 			} catch (error) {
 				documentsState.loading = false;
-				documentsState.error = error instanceof Error ? error.message : 'Failed to load document';
+				documentsState.error = getErrorMessage(error, 'Failed to load document');
 				documentsState.currentDocument = null;
 				throw error;
 			}
@@ -281,7 +282,7 @@ function createDocumentActions() {
 				return updatedDocument;
 			} catch (error) {
 				documentsState.loading = false;
-				documentsState.error = error instanceof Error ? error.message : 'Failed to update document';
+				documentsState.error = getErrorMessage(error, 'Failed to update document');
 				throw error;
 			}
 		},
@@ -302,7 +303,7 @@ function createDocumentActions() {
 				folderActions.loadFolderTree(true).catch(console.error);
 			} catch (error) {
 				documentsState.loading = false;
-				documentsState.error = error instanceof Error ? error.message : 'Failed to delete document';
+				documentsState.error = getErrorMessage(error, 'Failed to delete document');
 				throw error;
 			}
 		},
@@ -326,7 +327,7 @@ function createDocumentActions() {
 				return result;
 			} catch (error) {
 				documentsState.loading = false;
-				documentsState.error = error instanceof Error ? error.message : 'Failed to move document';
+				documentsState.error = getErrorMessage(error, 'Failed to move document');
 				throw error;
 			}
 		},
@@ -349,7 +350,7 @@ function createDocumentActions() {
 				linksState.backlinksLoading = false;
 			} catch (error) {
 				linksState.backlinksLoading = false;
-				linksState.error = error instanceof Error ? error.message : 'Failed to load backlinks';
+				linksState.error = getErrorMessage(error, 'Failed to load backlinks');
 			}
 		},
 
@@ -363,7 +364,7 @@ function createDocumentActions() {
 				linksState.outgoingLinksLoading = false;
 			} catch (error) {
 				linksState.outgoingLinksLoading = false;
-				linksState.error = error instanceof Error ? error.message : 'Failed to load outgoing links';
+				linksState.error = getErrorMessage(error, 'Failed to load outgoing links');
 			}
 		},
 
@@ -413,7 +414,7 @@ function createSearchActions() {
 			} catch (error) {
 				updateSearchState({
 					loading: false,
-					error: error instanceof Error ? error.message : 'Search failed',
+					error: getErrorMessage(error, 'Search failed'),
 					results: []
 				});
 				throw error;
@@ -471,7 +472,7 @@ function createSearchActions() {
 				return results;
 			} catch (error) {
 				searchState.loading = false;
-				searchState.error = error instanceof Error ? error.message : 'Search failed';
+				searchState.error = getErrorMessage(error, 'Search failed');
 				searchState.results = [];
 				throw error;
 			}
@@ -492,7 +493,7 @@ function createFolderActions() {
 				return folders;
 			} catch (error) {
 				foldersState.loading = false;
-				foldersState.error = error instanceof Error ? error.message : 'Failed to load folder tree';
+				foldersState.error = getErrorMessage(error, 'Failed to load folder tree');
 				throw error;
 			}
 		},
@@ -510,7 +511,7 @@ function createFolderActions() {
 				return result;
 			} catch (error) {
 				foldersState.loading = false;
-				foldersState.error = error instanceof Error ? error.message : 'Failed to create folder';
+				foldersState.error = getErrorMessage(error, 'Failed to create folder');
 				throw error;
 			}
 		},
@@ -528,7 +529,7 @@ function createFolderActions() {
 				return result;
 			} catch (error) {
 				foldersState.loading = false;
-				foldersState.error = error instanceof Error ? error.message : 'Failed to rename folder';
+				foldersState.error = getErrorMessage(error, 'Failed to rename folder');
 				throw error;
 			}
 		},
@@ -549,7 +550,7 @@ function createFolderActions() {
 				return result;
 			} catch (error) {
 				foldersState.loading = false;
-				foldersState.error = error instanceof Error ? error.message : 'Failed to delete folder';
+				foldersState.error = getErrorMessage(error, 'Failed to delete folder');
 				throw error;
 			}
 		},
@@ -571,7 +572,7 @@ function createFolderActions() {
 				return result;
 			} catch (error) {
 				foldersState.loading = false;
-				foldersState.error = error instanceof Error ? error.message : 'Failed to move folder';
+				foldersState.error = getErrorMessage(error, 'Failed to move folder');
 				throw error;
 			}
 		},

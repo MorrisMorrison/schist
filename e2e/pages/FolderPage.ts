@@ -309,38 +309,4 @@ export class FolderPage extends BasePage {
 	async canCreateDocument(): Promise<boolean> {
 		return await this.createDocumentButton.isVisible();
 	}
-
-	async canCreatePage(): Promise<boolean> {
-		return await this.canCreateDocument();
-	}
-
-	async createPageInFolder() {
-		return await this.createDocumentInFolder();
-	}
-
-	async openPage(pageName: string) {
-		return await this.openDocument(pageName);
-	}
-
-	async getPageNames(): Promise<string[]> {
-		return await this.getDocumentNames();
-	}
-
-	async verifyContainsPage(pageName: string) {
-		return await this.verifyContainsDocument(pageName);
-	}
-
-	async getPageCount(): Promise<number> {
-		return await this.getDocumentCount();
-	}
-
-	get pages() {
-		return this.documents;
-	}
-	get pageItems() {
-		return this.documentItems;
-	}
-	get createPageButton() {
-		return this.createDocumentButton;
-	}
 }

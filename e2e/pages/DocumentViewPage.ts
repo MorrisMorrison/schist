@@ -343,32 +343,8 @@ export class DocumentViewPage extends BasePage {
 		return this.verifyDocumentLoaded(expectedTitle);
 	}
 
-	async getPageTitle(): Promise<string> {
-		return this.getDocumentTitle();
-	}
-
-	async getPageContent(): Promise<string> {
-		return this.getDocumentContent();
-	}
-
-	async getPageTags(): Promise<string[]> {
-		return this.getDocumentTags();
-	}
-
 	async editPage() {
 		return this.editDocument();
-	}
-
-	async deletePage() {
-		return this.deleteDocument();
-	}
-
-	async movePage() {
-		return this.moveDocument();
-	}
-
-	async verifyPageNotFound() {
-		return this.verifyDocumentNotFound();
 	}
 
 	async verifyPageUrl(expectedPath: string) {
@@ -472,14 +448,5 @@ export class DocumentViewPage extends BasePage {
 	// Legacy property aliases
 	get pageTitle() {
 		return this.documentTitle;
-	}
-	get pageContent() {
-		return this.documentContent;
-	}
-	get pageTags() {
-		return this.documentTags;
-	}
-	get pageMetadata() {
-		return this.documentMetadata;
 	}
 }

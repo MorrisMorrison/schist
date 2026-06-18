@@ -14,12 +14,6 @@
 	$effect(() => {
 		container = previewContainer;
 	});
-
-	function _handleScroll() {
-		if (onScroll) {
-			onScroll();
-		}
-	}
 </script>
 
 <div class="flex w-1/2 min-w-0 flex-col">

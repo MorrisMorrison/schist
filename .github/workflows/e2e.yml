@@ -99,7 +99,7 @@ jobs:
             -w /e2e \
             -e CI=true \
             -e PLAYWRIGHT_BASE_URL=http://localhost:8080 \
-            mcr.microsoft.com/playwright:v1.55.0-noble \
+            mcr.microsoft.com/playwright:v1.61.0-noble \
             sh -c 'npm ci && npx playwright test')"
           docker cp ./e2e/. "${CID}:/e2e"
           RC=0

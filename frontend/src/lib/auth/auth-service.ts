@@ -1,6 +1,7 @@
 import { goto } from '$app/navigation';
 import { apiClient } from '$lib/api/client';
 import { authActions, authStore } from '$lib/stores/auth.svelte';
+import { isUnauthorizedError } from '$lib/utils/error';
 
 const PUBLIC_ROUTES = ['/login', '/setup'];
 const PUBLIC_ROUTE_PREFIXES = ['/share/'];
@@ -42,13 +43,12 @@ class AuthService {
 				const user = await apiClient.getCurrentUser();
 				authActions.updateUser(user);
 			} catch (error) {
-				authActions.clearAuth();
-
-				if (error instanceof Error) {
-					const errorData = JSON.parse(error.message);
-					if (errorData.code === 'UNAUTHORIZED') {
-						return;
-					}
+				// Only clear auth on a genuine 401. A transient/network failure of
+				// getCurrentUser (slow or briefly unavailable server) must NOT log the
+				// user out -- doing so bounces an authenticated session to /login on a
+				// flaky request.
+				if (isUnauthorizedError(error)) {
+					authActions.clearAuth();
 				}
 			} finally {
 				authActions.setLoading(false);

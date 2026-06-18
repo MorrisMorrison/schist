@@ -18,7 +18,6 @@
 
 	let {
 		onFormat,
-		theme = 'light',
 		disabled = false,
 		onFullscreenToggle,
 		isFullscreen = false
@@ -113,11 +112,7 @@
 	const listButtons = $derived(buttonGroups().lists || []);
 	const insertButtons = $derived(buttonGroups().insert || []);
 
-	const themeClasses = $derived(
-		theme === 'dark'
-			? 'bg-card border-border text-foreground'
-			: 'bg-card border-border text-foreground'
-	);
+	const themeClasses = 'bg-card border-border text-foreground';
 
 	function handleButtonClick(type: FormattingType) {
 		if (disabled) return;

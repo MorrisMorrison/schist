@@ -58,10 +58,10 @@ import type {
 	OutgoingLinksResponse
 } from './types';
 import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
-import { parseError } from '$lib/utils/error';
+import { parseError, getErrorCodeFromStatus } from '$lib/utils/error';
 import { requestDeduplicator, createRequestKey } from '$lib/utils/request-deduplication';
 
-class SchістApiClient {
+class SchistApiClient {
 	private baseUrl: string;
 	private authToken: string | null = null;
 	private configCache: AppConfig | null = null;
@@ -90,35 +90,24 @@ class SchістApiClient {
 		return '/api';
 	}
 
-	private getApiUrl(): string {
-		return this.baseUrl;
+	private authHeaders(): Record<string, string> {
+		const headers: Record<string, string> = {};
+		if (this.authToken) {
+			headers.Authorization = `Bearer ${this.authToken}`;
+		}
+		return headers;
 	}
 
-	private getErrorCodeFromStatus(status: number): string | undefined {
-		switch (status) {
-			case 400:
-				return 'VALIDATION_ERROR';
-			case 401:
-				return 'UNAUTHORIZED';
-			case 403:
-				return 'FORBIDDEN';
-			case 404:
-				return 'RESOURCE_NOT_FOUND';
-			case 409:
-				return 'RESOURCE_CONFLICT';
-			case 408:
-				return 'TIMEOUT_ERROR';
-			case 429:
-				return 'TIMEOUT_ERROR';
-			case 500:
-				return 'INTERNAL_ERROR';
-			case 502:
-			case 503:
-			case 504:
-				return 'SERVICE_UNAVAILABLE';
-			default:
-				return undefined;
-		}
+	private normalizeDocumentData<T extends CreateDocumentRequest | UpdateDocumentRequest>(
+		documentData: T
+	): T {
+		return {
+			...documentData,
+			metaData: {
+				...documentData.metaData,
+				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
+			}
+		};
 	}
 
 	private async handleAuthenticationError() {
@@ -144,7 +133,7 @@ class SchістApiClient {
 		const { enableDeduplication = false, force = false } = deduplicateOptions;
 
 		const executeRequest = async (): Promise<T> => {
-			const url = `${this.getApiUrl()}${endpoint}`;
+			const url = `${this.baseUrl}${endpoint}`;
 
 			const defaultHeaders: Record<string, string> = {
 				'Content-Type': 'application/json',
@@ -178,7 +167,7 @@ class SchістApiClient {
 				} catch {
 					errorData = {
 						error: errorText || response.statusText || `HTTP ${response.status} Error`,
-						code: this.getErrorCodeFromStatus(response.status)
+						code: getErrorCodeFromStatus(response.status)
 					};
 				}
 
@@ -215,7 +204,7 @@ class SchістApiClient {
 			return await executeRequest();
 		} catch (error) {
 			const parsedError = parseError(error);
-			const url = `${this.getApiUrl()}${endpoint}`;
+			const url = `${this.baseUrl}${endpoint}`;
 			console.error('API Request error', {
 				url,
 				error: parsedError.message,
@@ -282,13 +271,7 @@ class SchістApiClient {
 	}
 
 	async createDocument(documentData: CreateDocumentRequest): Promise<CreateDocumentResponse> {
-		const normalizedDocumentData = {
-			...documentData,
-			metaData: {
-				...documentData.metaData,
-				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
-			}
-		};
+		const normalizedDocumentData = this.normalizeDocumentData(documentData);
 
 		return this.request<CreateDocumentResponse>('/documents', {
 			method: 'POST',
@@ -297,13 +280,7 @@ class SchістApiClient {
 	}
 
 	async updateDocument(slug: string, documentData: UpdateDocumentRequest): Promise<Document> {
-		const normalizedDocumentData = {
-			...documentData,
-			metaData: {
-				...documentData.metaData,
-				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
-			}
-		};
+		const normalizedDocumentData = this.normalizeDocumentData(documentData);
 
 		return this.request<Document>(`/documents/${encodeURIComponent(slug)}`, {
 			method: 'PUT',
@@ -316,17 +293,12 @@ class SchістApiClient {
 	}
 
 	async checkDocumentExists(path: string): Promise<boolean> {
-		const url = `${this.getApiUrl()}${buildApiEndpoint('/documents', path)}`;
-
-		const headers: Record<string, string> = {};
-		if (this.authToken) {
-			headers.Authorization = `Bearer ${this.authToken}`;
-		}
+		const url = `${this.baseUrl}${buildApiEndpoint('/documents', path)}`;
 
 		try {
 			const response = await fetch(url, {
 				method: 'HEAD',
-				headers
+				headers: this.authHeaders()
 			});
 
 			if (response.status === 200) {
@@ -361,11 +333,7 @@ class SchістApiClient {
 		saveType: 'manual' | 'auto' = 'manual'
 	): Promise<Document> {
 		const normalizedDocumentData = {
-			...documentData,
-			metaData: {
-				...documentData.metaData,
-				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
-			},
+			...this.normalizeDocumentData(documentData),
 			saveType
 		};
 
@@ -484,7 +452,7 @@ class SchістApiClient {
 		const formData = new FormData();
 		formData.append('file', file);
 
-		const url = `${this.getApiUrl()}/assets/upload`;
+		const url = `${this.baseUrl}/assets/upload`;
 
 		return new Promise((resolve, reject) => {
 			const xhr = new XMLHttpRequest();
@@ -523,8 +491,8 @@ class SchістApiClient {
 			xhr.open('POST', url);
 
 			// Add authorization header if we have a token
-			if (this.authToken) {
-				xhr.setRequestHeader('Authorization', `Bearer ${this.authToken}`);
+			for (const [name, value] of Object.entries(this.authHeaders())) {
+				xhr.setRequestHeader(name, value);
 			}
 
 			xhr.send(formData);
@@ -550,7 +518,7 @@ class SchістApiClient {
 	getAssetUrl(path: string): string {
 		const uploadsPath = path.replace('/assets/', '/uploads/');
 
-		const apiUrl = this.getApiUrl();
+		const apiUrl = this.baseUrl;
 
 		if (apiUrl === '/api') {
 			return uploadsPath;
@@ -562,17 +530,12 @@ class SchістApiClient {
 
 	async exportDocument(path: string): Promise<void> {
 		const encodedPath = this.encodePath(path);
-		const url = `${this.getApiUrl()}/export/document${encodedPath}`;
+		const url = `${this.baseUrl}/export/document${encodedPath}`;
 
 		try {
-			const headers: Record<string, string> = {};
-			if (this.authToken) {
-				headers.Authorization = `Bearer ${this.authToken}`;
-			}
-
 			const response = await fetch(url, {
 				method: 'GET',
-				headers
+				headers: this.authHeaders()
 			});
 
 			if (!response.ok) {
@@ -605,13 +568,13 @@ class SchістApiClient {
 
 	async exportFolder(path: string): Promise<void> {
 		const encodedPath = this.encodePath(path);
-		const url = `${this.getApiUrl()}/export/folder${encodedPath}`;
+		const url = `${this.baseUrl}/export/folder${encodedPath}`;
 
 		window.open(url, '_blank');
 	}
 
 	async exportAll(): Promise<void> {
-		const url = `${this.getApiUrl()}/export/all`;
+		const url = `${this.baseUrl}/export/all`;
 
 		window.open(url, '_blank');
 	}
@@ -849,6 +812,6 @@ class SchістApiClient {
 	}
 }
 
-export const apiClient = new SchістApiClient();
+export const apiClient = new SchistApiClient();
 
-export { SchістApiClient };
+export { SchistApiClient };

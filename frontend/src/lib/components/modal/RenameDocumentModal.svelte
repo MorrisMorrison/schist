@@ -9,9 +9,11 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Edit, AlertCircle } from '@lucide/svelte';
+	import { Edit } from '@lucide/svelte';
+	import InlineError from '$lib/components/ui/InlineError.svelte';
 	import type { Document } from '$lib/api/types';
 	import { generateSlug } from '$lib/utils/path';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	interface Props {
 		document?: Document;
@@ -82,7 +84,7 @@
 			});
 			onRenamed(currentPath, updatedDocument.metaData?.path || newPath);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to rename document';
+			error = getErrorMessage(err, 'Failed to rename document');
 		} finally {
 			isLoading = false;
 		}
@@ -127,10 +129,7 @@
 					/>
 
 					{#if error && documentTitle}
-						<div class="flex items-center gap-2 rounded-md bg-red-50 p-2 text-sm text-red-700">
-							<AlertCircle class="h-4 w-4 flex-shrink-0" />
-							{error}
-						</div>
+						<InlineError message={error} />
 					{/if}
 
 					<div class="bg-secondary rounded-lg border p-4">
@@ -142,19 +141,6 @@
 						</div>
 					</div>
 				</div>
-
-				<!-- <div class="space-y-3">
-
-
-					<div class="bg-secondary rounded-lg border p-4">
-						<div class="space-y-2">
-							<span class="text-secondary text-sm font-medium">Path:</span>
-							<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-blue-600">
-								{currentPath}
-							</code>
-						</div>
-					</div>
-				</div> -->
 			</div>
 
 			<DialogFooter>

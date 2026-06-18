@@ -253,17 +253,6 @@
 		});
 	}
 
-	function getFilteredRootPages() {
-		const rootPages = getPagesForFolder('/');
-
-		if (!unifiedSearchQuery.trim()) {
-			return rootPages;
-		}
-
-		const { textQuery, tagFilters } = parseUnifiedQuery(unifiedSearchQuery.toLowerCase());
-		return rootPages.filter((page) => pageMatchesFilters(page, textQuery, tagFilters));
-	}
-
 	function getFilteredPagesForFolder(folderPath: string) {
 		const folderPages = getPagesForFolder(folderPath);
 
@@ -309,12 +298,11 @@
 		oncollapseall?.();
 	}
 
-	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
-		if (!enableContextMenu) return;
-
-		event.preventDefault();
-		event.stopPropagation();
-
+	// Compute a viewport-clamped position for a context menu from a pointer/keyboard event.
+	function computeMenuPosition(
+		event: MouseEvent | KeyboardEvent,
+		menuHeight: number
+	): { x: number; y: number } {
 		const target = event.currentTarget as HTMLElement;
 		const rect = target.getBoundingClientRect();
 
@@ -329,7 +317,6 @@
 		}
 
 		const menuWidth = 160;
-		const menuHeight = 120;
 
 		if (x + menuWidth > window.innerWidth) {
 			x = window.innerWidth - menuWidth - 10;
@@ -341,7 +328,16 @@
 			y = window.innerHeight - menuHeight - 10;
 		}
 
-		contextMenuPosition = { x, y };
+		return { x, y };
+	}
+
+	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
+		if (!enableContextMenu) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+
+		contextMenuPosition = computeMenuPosition(event, 120);
 		contextMenuOpen = folder.path;
 	}
 
@@ -410,33 +406,7 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		const target = event.currentTarget as HTMLElement;
-		const rect = target.getBoundingClientRect();
-
-		let x: number, y: number;
-
-		if (event instanceof MouseEvent) {
-			x = event.clientX + 5;
-			y = event.clientY - 50;
-		} else {
-			x = rect.left;
-			y = rect.bottom + 2;
-		}
-
-		const menuWidth = 160;
-		const menuHeight = 80;
-
-		if (x + menuWidth > window.innerWidth) {
-			x = window.innerWidth - menuWidth - 10;
-		}
-		if (y < 0) {
-			y = 10;
-		}
-		if (y + menuHeight > window.innerHeight) {
-			y = window.innerHeight - menuHeight - 10;
-		}
-
-		pageContextMenuPosition = { x, y };
+		pageContextMenuPosition = computeMenuPosition(event, 80);
 		pageContextMenuOpen = page.metaData?.path || '';
 	}
 
@@ -475,20 +445,13 @@
 		closeContextMenu();
 	}
 
-	$effect(() => {
-		document.addEventListener('click', handleOutsideClick);
-		return () => {
-			document.removeEventListener('click', handleOutsideClick);
-		};
-	});
-
 	function getCurrentFolderFromPath(path: string): FolderType | null {
 		if (path === '/') {
 			return {
 				name: '/',
 				path: '/',
 				created: new Date().toISOString(),
-				document_count: getFilteredRootPages().length,
+				document_count: getFilteredPagesForFolder('/').length,
 				sub_folders: filteredFolders
 			};
 		}
@@ -597,7 +560,7 @@
 						name: '/',
 						path: '/',
 						created: new Date().toISOString(),
-						document_count: getFilteredRootPages().length,
+						document_count: getFilteredPagesForFolder('/').length,
 						sub_folders: filteredFolders
 					}}
 					depth={0}
@@ -608,7 +571,7 @@
 					{showPages}
 					{showPageCounts}
 					{enableContextMenu}
-					filteredPages={getFilteredRootPages()}
+					filteredPages={getFilteredPagesForFolder('/')}
 					{selectedPath}
 					{currentPath}
 					isDragging={dragAndDrop.isDragging}

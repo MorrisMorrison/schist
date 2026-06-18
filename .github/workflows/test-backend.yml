@@ -20,7 +20,8 @@ concurrency:
 jobs:
   backend-tests:
     name: Backend Tests
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - name: Set up Go

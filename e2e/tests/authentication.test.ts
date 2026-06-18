@@ -135,22 +135,22 @@ test.describe('Passkey Authentication System', () => {
 	});
 
 	test.describe('Authentication Configuration', () => {
-		test('should return correct config when auth is enabled', async ({ apiHelper }) => {
+		test('config and health endpoints are accessible and report auth enabled', async ({
+			apiHelper
+		}) => {
+			// Config endpoint is reachable without authentication and reports auth enabled
+			const configResponse = await apiHelper.request('GET', '/config');
+			expect(configResponse.status).toBe(200);
+			expect(configResponse.data).toHaveProperty('auth_enabled');
+
 			const config = await apiHelper.getConfig();
 			expect(config).toHaveProperty('auth_enabled');
 			expect(config.auth_enabled).toBe(true);
-		});
 
-		test('config endpoint should be accessible without authentication', async ({ apiHelper }) => {
-			const response = await apiHelper.request('GET', '/config');
-			expect(response.status).toBe(200);
-			expect(response.data).toHaveProperty('auth_enabled');
-		});
-
-		test('health endpoint should always be accessible', async ({ apiHelper }) => {
-			const response = await apiHelper.request('GET', '/health');
-			expect(response.status).toBe(200);
-			expect(response.data).toHaveProperty('status', 'ok');
+			// Health endpoint is always accessible
+			const healthResponse = await apiHelper.request('GET', '/health');
+			expect(healthResponse.status).toBe(200);
+			expect(healthResponse.data).toHaveProperty('status', 'ok');
 		});
 	});
 

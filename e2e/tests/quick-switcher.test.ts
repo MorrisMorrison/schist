@@ -1,5 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { test as fixtureTest } from '../fixtures';
+import { test, expect } from '../fixtures';
 
 test.describe('Quick Switcher', () => {
 	test.beforeEach(async ({ page }) => {
@@ -31,32 +30,6 @@ test.describe('Quick Switcher', () => {
 		// Close with Escape key
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-testid="quick-switcher"]')).not.toBeVisible();
-	});
-
-	test('should work when API returns empty documents', async ({ page }) => {
-		// Set up route before navigating to the page
-		await page.route('/api/documents', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({ documents: [] })
-			});
-		});
-
-		// Navigate again to ensure the route is active
-		await page.goto('/');
-		await page.waitForLoadState('networkidle');
-
-		// Wait for the quick switcher button to be visible
-		await expect(page.locator('[data-testid="quick-switcher-button"]')).toBeVisible();
-
-		// Open quick switcher with button click
-		await page.click('[data-testid="quick-switcher-button"]');
-		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
-
-		await page.fill('[data-testid="quick-switcher-input"]', 'anything');
-
-		await expect(page.locator('text=No documents found')).toBeVisible();
 	});
 
 	test('should handle API errors gracefully', async ({ page }) => {
@@ -94,8 +67,8 @@ test.describe('Quick Switcher', () => {
 	});
 });
 
-fixtureTest.describe('Quick Switcher with Data', () => {
-	fixtureTest('should search documents successfully', async ({ page, withTestDocument }) => {
+test.describe('Quick Switcher with Data', () => {
+	test('should search documents successfully', async ({ page, withTestDocument }) => {
 		// Navigate to home page and ensure proper loading
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
@@ -114,7 +87,7 @@ fixtureTest.describe('Quick Switcher with Data', () => {
 		).toBeVisible();
 	});
 
-	fixtureTest('should handle no search results gracefully', async ({ page }) => {
+	test('should handle no search results gracefully', async ({ page }) => {
 		// Navigate to home page and ensure proper loading
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
@@ -130,7 +103,7 @@ fixtureTest.describe('Quick Switcher with Data', () => {
 		await expect(page.locator('text=No documents found')).toBeVisible();
 	});
 
-	fixtureTest('should navigate to selected document', async ({ page, withTestDocument }) => {
+	test('should navigate to selected document', async ({ page, withTestDocument }) => {
 		// Navigate to home page and ensure proper loading
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');

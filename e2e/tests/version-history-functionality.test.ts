@@ -10,20 +10,21 @@ test.describe('Version History Functionality', () => {
 		await documentViewPage.navigateToPage(testDocument.path!);
 		await documentViewPage.verifyPageLoaded(testDocument.title);
 
+		// The version-history button is the entry point for this feature and is
+		// always rendered once version metadata has loaded for a saved document.
 		const versionButton = page.locator('button[title="View version history"]');
-		if (await versionButton.isVisible()) {
-			await versionButton.click();
+		await expect(versionButton).toBeVisible();
+		await versionButton.click();
 
-			const modal = page.locator('[role="dialog"]');
-			await expect(modal).toBeVisible();
+		const modal = page.locator('[role="dialog"]');
+		await expect(modal).toBeVisible();
 
-			const modalTitle = modal.locator('[data-slot="dialog-title"]:has-text("Version History")');
-			await expect(modalTitle).toBeVisible();
+		const modalTitle = modal.locator('[data-slot="dialog-title"]:has-text("Version History")');
+		await expect(modalTitle).toBeVisible();
 
-			const closeButton = modal.locator('button:has-text("Close")').first();
-			await closeButton.click();
-			await expect(modal).not.toBeVisible();
-		}
+		const closeButton = modal.getByRole('button', { name: 'Close', exact: true }).first();
+		await closeButton.click();
+		await expect(modal).not.toBeVisible();
 
 		await documentViewPage.editPage();
 		await editorPage.verifyLoaded();
@@ -32,21 +33,22 @@ test.describe('Version History Functionality', () => {
 
 		await documentViewPage.verifyContentContains('Second version content');
 
-		if (await versionButton.isVisible()) {
-			await versionButton.click();
-			const modal = page.locator('[role="dialog"]');
-			await expect(modal).toBeVisible();
+		await expect(versionButton).toBeVisible();
+		await versionButton.click();
+		const reopenedModal = page.locator('[role="dialog"]');
+		await expect(reopenedModal).toBeVisible();
 
-			const versionItems = modal.locator('[data-testid="version-item"], .border.rounded-lg');
+		const versionItems = reopenedModal.locator('[data-testid="version-item"], .border.rounded-lg');
 
-			if ((await versionItems.count()) > 0) {
-				const selectButtons = modal.locator('button:has-text("Select")');
-				expect(await selectButtons.count()).toBeGreaterThan(0);
-			}
-
-			const closeButton = modal.locator('button:has-text("Close")');
-			await closeButton.click();
+		// The number of version entries depends on backend history retention, so the
+		// presence of "Select" buttons is asserted only when version items exist.
+		if ((await versionItems.count()) > 0) {
+			const selectButtons = reopenedModal.locator('button:has-text("Select")');
+			expect(await selectButtons.count()).toBeGreaterThan(0);
 		}
+
+		const reopenedCloseButton = reopenedModal.getByRole('button', { name: 'Close', exact: true });
+		await reopenedCloseButton.click();
 	});
 
 	test('should handle version restoration workflow', async ({
@@ -69,27 +71,30 @@ test.describe('Version History Functionality', () => {
 		await editorPage.saveAndExpectNavigation();
 
 		const versionButton = page.locator('button[title="View version history"]');
-		if (await versionButton.isVisible()) {
-			await versionButton.click();
+		await expect(versionButton).toBeVisible();
+		await versionButton.click();
 
-			const modal = page.locator('[role="dialog"]');
-			await expect(modal).toBeVisible();
+		const modal = page.locator('[role="dialog"]');
+		await expect(modal).toBeVisible();
 
-			const restoreButtons = modal.locator('button:has-text("Restore")');
+		const restoreButtons = modal.locator('button:has-text("Restore")');
 
-			if ((await restoreButtons.count()) > 0) {
-				await restoreButtons.first().click();
+		// Restore buttons only appear for non-current versions; whether any exist
+		// depends on how many historical versions the backend retained.
+		if ((await restoreButtons.count()) > 0) {
+			await restoreButtons.first().click();
 
-				const confirmDialog = page.locator('h2:has-text("Restore Version")');
-				if (await confirmDialog.isVisible()) {
-					const cancelButton = modal.locator('button:has-text("Cancel")');
-					await cancelButton.click();
-				}
+			// The restore confirmation dialog is optional UX (some flows restore
+			// immediately), so it is asserted with a bounded wait rather than forced.
+			const confirmDialog = page.locator('h2:has-text("Restore Version")');
+			if (await confirmDialog.isVisible({ timeout: 2000 }).catch(() => false)) {
+				const cancelButton = modal.locator('button:has-text("Cancel")');
+				await cancelButton.click();
 			}
-
-			const closeButton = modal.locator('button:has-text("Close")');
-			await closeButton.click();
 		}
+
+		const closeButton = modal.getByRole('button', { name: 'Close', exact: true });
+		await closeButton.click();
 	});
 
 	test('should handle version comparison workflow', async ({
@@ -114,44 +119,44 @@ test.describe('Version History Functionality', () => {
 		await editorPage.typeContent('\n\nSecond comparison edit.');
 		await editorPage.saveAndExpectNavigation();
 
-		// Open version history
+		// Open version history. The version-history button is the feature entry
+		// point and is always present for a saved document.
 		const versionButton = page.locator('button[title="View version history"]');
-		if (await versionButton.isVisible()) {
-			await versionButton.click();
+		await expect(versionButton).toBeVisible();
+		await versionButton.click();
 
-			const modal = page.locator('[role="dialog"]');
-			await expect(modal).toBeVisible();
+		const modal = page.locator('[role="dialog"]');
+		await expect(modal).toBeVisible();
 
-			// Look for version selection buttons
-			const selectButtons = modal.locator('button:has-text("Select")');
+		// Look for version selection buttons. Comparison requires at least two
+		// selectable versions; the count depends on backend history retention, so
+		// the compare/diff branch below stays conditional.
+		const selectButtons = modal.locator('button:has-text("Select")');
 
-			if ((await selectButtons.count()) >= 2) {
-				// Select two versions for comparison
-				await selectButtons.nth(0).click();
-				await selectButtons.nth(1).click();
+		if ((await selectButtons.count()) >= 2) {
+			// Select two versions for comparison
+			await selectButtons.nth(0).click();
+			await selectButtons.nth(1).click();
 
-				// Look for compare button
-				const compareButton = modal.locator('button:has-text("Compare")');
-				if (await compareButton.isVisible()) {
-					await compareButton.click();
+			// Compare becomes available once two versions are selected.
+			const compareButton = modal.locator('button:has-text("Compare")');
+			await expect(compareButton).toBeVisible();
+			await compareButton.click();
 
-					// Verify diff view opens
-					const diffTitle = modal.locator('h2:has-text("Comparing Versions")');
-					if (await diffTitle.isVisible()) {
-						// Verify diff content is displayed
-						const diffViewer = modal.locator('.font-mono');
-						await expect(diffViewer).toBeVisible();
+			// Verify diff view opens and renders diff content.
+			const diffTitle = modal.locator('h2:has-text("Comparing Versions")');
+			await expect(diffTitle).toBeVisible();
 
-						// Close diff view
-						const closeDiffButton = modal.locator('button:has-text("Close Diff")');
-						await closeDiffButton.click();
-					}
-				}
-			}
+			const diffViewer = modal.locator('.font-mono');
+			await expect(diffViewer).toBeVisible();
 
-			// Close the version history modal
-			const closeButton = modal.locator('button:has-text("Close")');
-			await closeButton.click();
+			// Close diff view
+			const closeDiffButton = modal.locator('button:has-text("Close Diff")');
+			await closeDiffButton.click();
 		}
+
+		// Close the version history modal
+		const closeButton = modal.getByRole('button', { name: 'Close', exact: true });
+		await closeButton.click();
 	});
 });

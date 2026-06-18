@@ -30,20 +30,6 @@ concurrency:
 jobs:
   e2e:
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
-    # Job-level: a single repo-wide lane so only ONE e2e job runs at a time
-    # across all branches/PRs. The suite is resource-heavy (full Docker app
-    # stack + Chromium); several on the shared self-hosted runner at once starve
-    # each other's CPU and the SPA misses its visibility timeouts, surfacing as
-    # spurious `toBeVisible` "element(s) not found" failures on otherwise-passing
-    # tests (they cluster late in a run and on retries, as concurrent load
-    # builds). cancel-in-progress is false here so queued runs from *other* PRs
-    # are not dropped -- they take turns; same-PR supersession is still handled
-    # by the workflow-level concurrency above. (GitHub concurrency caps a group
-    # at 1; for N>1 parallel e2e the lever is fewer runner replicas or a
-    # dedicated e2e runner, not re-grouping here.)
-    concurrency:
-      group: e2e-global-lane
-      cancel-in-progress: false
     timeout-minutes: 10
     # docker-compose.yml's prod `schist` service declares SCHIST_JWT_SECRET as a
     # required variable (${SCHIST_JWT_SECRET:?...}). Compose interpolates every

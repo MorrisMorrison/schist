@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { secretStore } from '$lib/stores/secrets.svelte';
 	import { authStore } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -16,7 +15,8 @@
 	import InfoBox from '$lib/components/ui/info-box.svelte';
 	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
 	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from '@lucide/svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import LoadingRow from '$lib/components/LoadingRow.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let showUnlockModal = $state(false);
 	let showCreateModal = $state(false);
@@ -25,22 +25,17 @@
 	let deletingSecret = $state<string | null>(null);
 	let reloadingAfterUnlock = $state(false);
 
-	onMount(async () => {
+	async function loadSecretsStatus() {
 		await secretStore.loadStatus();
 		// If secrets are already unlocked but we don't have the list, load it
 		if (secretStore.secretsUnlocked && secretStore.secrets.length === 0) {
 			await secretStore.loadSecrets();
 		}
-	});
+	}
 
 	$effect(() => {
 		if (authStore.token && authStore.user) {
-			secretStore.loadStatus().then(() => {
-				// If secrets are already unlocked but we don't have the list, load it
-				if (secretStore.secretsUnlocked && secretStore.secrets.length === 0) {
-					secretStore.loadSecrets();
-				}
-			});
+			loadSecretsStatus();
 		}
 	});
 
@@ -71,10 +66,7 @@
 		reloadingAfterUnlock = true;
 
 		try {
-			await secretStore.loadStatus();
-			if (secretStore.secretsUnlocked && secretStore.secrets.length === 0) {
-				await secretStore.loadSecrets();
-			}
+			await loadSecretsStatus();
 		} catch (error) {
 			console.warn('Failed to reload secrets after unlock:', error);
 		} finally {
@@ -171,27 +163,23 @@
 
 		<!-- Initial Setup Section -->
 		{#if !secretStore.hasSecrets && !secretStore.requiresPassword && !secretStore.secretsUnlocked}
-			<div class="space-y-4 py-8 text-center">
-				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-					<Key class="text-muted-foreground h-8 w-8" />
-				</div>
-				<div>
-					<h3 class="text-lg font-medium">Secure Your API Keys & Secrets</h3>
-					<p class="text-muted-foreground mt-1 text-sm">
-						Store API keys, passwords, and other sensitive information encrypted and reference them
-						in your documents.
-					</p>
-				</div>
-				<div class="space-y-2">
-					<Button onclick={handleUnlock} class="bg-primary">
-						<Plus class="mr-2 h-4 w-4" />
-						Set Up Passkey & Create First Secret
-					</Button>
-					<p class="text-muted-foreground text-xs">
-						You'll set up a passkey to encrypt your secrets, then add your first secret.
-					</p>
-				</div>
-			</div>
+			<EmptyState
+				icon={Key}
+				title="Secure Your API Keys & Secrets"
+				description="Store API keys, passwords, and other sensitive information encrypted and reference them in your documents."
+			>
+				{#snippet action()}
+					<div class="space-y-2">
+						<Button onclick={handleUnlock} class="bg-primary">
+							<Plus class="mr-2 h-4 w-4" />
+							Set Up Passkey & Create First Secret
+						</Button>
+						<p class="text-muted-foreground text-xs">
+							You'll set up a passkey to encrypt your secrets, then add your first secret.
+						</p>
+					</div>
+				{/snippet}
+			</EmptyState>
 
 			<!-- Secret List Section -->
 		{:else if secretStore.secretsUnlocked && secretStore.secrets.length > 0}
@@ -201,10 +189,7 @@
 				</div>
 
 				{#if secretStore.loading && secretStore.secrets.length === 0}
-					<div class="flex items-center justify-center py-6">
-						<LoadingSpinner size="md" />
-						<span class="text-muted-foreground ml-2 text-sm">Loading secrets...</span>
-					</div>
+					<LoadingRow text="Loading secrets..." />
 				{:else}
 					<div class="space-y-2">
 						{#each secretStore.secrets as secret (secret.key)}
@@ -263,18 +248,16 @@
 
 			<!-- Locked State -->
 		{:else if (secretStore.hasSecrets || secretStore.requiresPassword) && !secretStore.secretsUnlocked}
-			<div class="space-y-4 py-6 text-center">
-				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-					<Lock class="text-muted-foreground h-8 w-8" />
-				</div>
-				<div>
-					<h3 class="text-lg font-medium">Secrets Locked</h3>
-					<p class="text-muted-foreground mt-1 text-sm">
-						Your secrets are encrypted and locked. Use your passkey to manage them.
-					</p>
-				</div>
-				<Button onclick={handleUnlock}>Unlock Secrets</Button>
-			</div>
+			<EmptyState
+				icon={Lock}
+				title="Secrets Locked"
+				description="Your secrets are encrypted and locked. Use your passkey to manage them."
+				padding="py-6"
+			>
+				{#snippet action()}
+					<Button onclick={handleUnlock}>Unlock Secrets</Button>
+				{/snippet}
+			</EmptyState>
 		{/if}
 	</CardContent>
 </Card>

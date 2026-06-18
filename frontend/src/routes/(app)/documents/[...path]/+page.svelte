@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import { goto } from '$app/navigation';
@@ -25,14 +25,16 @@
 	const decodedPath = $derived(decodeURIComponent(path));
 	const fullPath = $derived(`/${decodedPath}`);
 
-	onMount(() => {
-		loadContent();
-	});
-
 	onDestroy(() => {
 		documentLoader.cleanup();
 	});
 
+	// Load on mount and whenever the path changes. This $effect already covers
+	// the initial mount, so a separate onMount(loadContent) would double-invoke
+	// loadContent -- two concurrent loads race through the shared loading
+	// optimizer (each start() clears the other's pending min-display timer),
+	// which can strand the spinner and prevent the not-found/document view from
+	// ever rendering.
 	$effect(() => {
 		if (path !== undefined) {
 			loadContent();

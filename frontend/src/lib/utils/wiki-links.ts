@@ -6,6 +6,7 @@ import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { apiClient } from '$lib/api/client';
 import { goto } from '$app/navigation';
+import { generateSlug } from '$lib/utils/path';
 import type { Document } from '$lib/api/types';
 
 let documentsCache: Document[] = [];
@@ -27,15 +28,6 @@ async function getDocuments(): Promise<Document[]> {
 		}
 	}
 	return documentsCache;
-}
-
-function generateSlug(title: string): string {
-	return title
-		.toLowerCase()
-		.replace(/\s+/g, '-')
-		.replace(/[^\w-]/g, '')
-		.replace(/-+/g, '-')
-		.replace(/^-|-$/g, '');
 }
 
 async function documentExists(documentName: string): Promise<boolean> {

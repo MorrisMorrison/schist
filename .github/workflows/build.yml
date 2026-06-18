@@ -33,7 +33,7 @@ jobs:
       PUBLIC_API_URL: http://localhost:8080/api
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       # Set up Go for backend
       - name: Set up Go
@@ -61,7 +61,7 @@ jobs:
     needs: build
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Build Docker image
         run: docker build -t "schist-test:${GITHUB_RUN_ID}" .

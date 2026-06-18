@@ -7,6 +7,11 @@ export default defineConfig({
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
 		exclude: ['e2e/**/*', 'node_modules/**/*'],
+		// Run test files one at a time. Browser-mode tests each drive a headless
+		// Chromium; the default file-parallelism launches several at once and
+		// spikes CPU on the shared self-hosted runner. Serial files keep one
+		// browser alive at a time (lower peak CPU, modestly slower wall-clock).
+		fileParallelism: false,
 		browser: {
 			enabled: true,
 			name: 'chromium',

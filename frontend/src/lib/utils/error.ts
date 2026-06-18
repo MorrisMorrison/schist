@@ -292,3 +292,8 @@ export function isNotFoundError(error: unknown): boolean {
 	const parsed = parseError(error);
 	return parsed.code === 'RESOURCE_NOT_FOUND';
 }
+
+export function isUnauthorizedError(error: unknown): boolean {
+	const parsed = parseError(error);
+	return parsed.code === 'UNAUTHORIZED';
+}

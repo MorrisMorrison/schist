@@ -67,7 +67,7 @@ func Load() *Config {
 		FrontendURL:  getEnv("SCHIST_FRONTEND_URL", "http://localhost:5173"),
 		TemplatesDir: getEnv("SCHIST_TEMPLATES_DIR", "../../../templates"),
 
-		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", false),
+		RateLimitEnabled: getEnvBool("SCHIST_RATE_LIMIT_ENABLED", true),
 		RateLimitRPM:     getEnvInt("SCHIST_RATE_LIMIT_RPM", 100),
 
 		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", true),

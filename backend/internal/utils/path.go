@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -231,7 +232,11 @@ func SafeFilePath(dataDir, path string) (string, error) {
 		return "", fmt.Errorf("failed to resolve asset path: %w", err)
 	}
 
-	if !strings.HasPrefix(absFullPath, absDataDir) {
+	// Ensure the resolved path stays within the data directory. Using
+	// filepath.Rel avoids the sibling-prefix bypass that a plain HasPrefix
+	// check has (e.g. "/app/data-evil" would otherwise match "/app/data").
+	rel, err := filepath.Rel(absDataDir, absFullPath)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 		return "", fmt.Errorf("invalid asset path: outside data directory")
 	}
 

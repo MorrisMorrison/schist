@@ -69,6 +69,7 @@ test.describe.serial('Document Lifecycle', () => {
 
 	test('should delete a document', async ({
 		documentViewPage,
+		apiHelper,
 		withSimpleTestDocument: documentToDelete
 	}) => {
 		// Navigate to the document
@@ -80,6 +81,17 @@ test.describe.serial('Document Lifecycle', () => {
 
 		// Verify redirect and document no longer exists
 		await documentViewPage.expectUrl('/');
+
+		// Wait for the deletion to propagate server-side before asserting the 404
+		// UI. The backing store removes the document asynchronously, so a fresh
+		// GET can briefly still return it (read-after-delete) -- navigating too
+		// early then renders the document instead of the not-found page.
+		await expect
+			.poll(
+				async () => (await apiHelper.request('GET', `/documents${documentToDelete.path!}`)).status,
+				{ timeout: 10000 }
+			)
+			.toBe(404);
 
 		// Try to navigate to deleted document - should show 404
 		await documentViewPage.navigateToDocument(documentToDelete.path!);

@@ -7,9 +7,7 @@ export class HomePage extends BasePage {
 	readonly quickSwitcherButton: Locator;
 	readonly quickSwitcherInput: Locator;
 	readonly quickSwitcherResults: Locator;
-	readonly recentPages: Locator;
 	readonly sidebar: Locator;
-	readonly navigation: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -27,9 +25,7 @@ export class HomePage extends BasePage {
 		this.quickSwitcherResults = page
 			.getByTestId('quick-switcher-results')
 			.or(page.locator('[role="dialog"] button'));
-		this.recentPages = page.getByTestId('recent-pages');
 		this.sidebar = page.getByTestId('sidebar');
-		this.navigation = page.getByTestId('main-navigation').or(page.locator('nav'));
 	}
 
 	async navigate() {
@@ -68,53 +64,5 @@ export class HomePage extends BasePage {
 	async clickSearchResult(resultText: string) {
 		const result = this.quickSwitcherResults.getByText(resultText);
 		await result.click();
-	}
-
-	async goToPages() {
-		const pagesLink = this.navigation
-			.getByTestId('nav-documents')
-			.or(this.navigation.getByRole('link', { name: /documents/i }));
-		await pagesLink.click();
-		await this.page.waitForURL('/pages');
-	}
-
-	async goToFolders() {
-		const foldersLink = this.navigation
-			.getByTestId('nav-folders')
-			.or(this.navigation.getByRole('link', { name: /folders/i }));
-		await foldersLink.click();
-		await this.page.waitForURL('/folders');
-	}
-
-	async hasRecentPages(): Promise<boolean> {
-		return await this.elementExists('[data-testid="recent-pages"]');
-	}
-
-	async getRecentPageTitles(): Promise<string[]> {
-		const pageLinks = this.recentPages.locator('a');
-		return await pageLinks.allTextContents();
-	}
-
-	async clickRecentPage(pageTitle: string) {
-		const pageLink = this.recentPages.getByRole('link', { name: pageTitle });
-		await pageLink.click();
-	}
-
-	async toggleSidebar() {
-		const sidebarToggle = this.page
-			.getByTestId('sidebar-toggle')
-			.or(this.page.getByRole('button', { name: /toggle sidebar|menu/i }));
-		if (await sidebarToggle.isVisible()) {
-			await sidebarToggle.click();
-		}
-	}
-
-	async verifySearchWorks(searchTerm: string, expectedResult: string) {
-		await this.search(searchTerm);
-
-		await this.waitForVisible(this.quickSwitcherResults.first());
-
-		const result = this.quickSwitcherResults.getByText(expectedResult);
-		await expect(result).toBeVisible();
 	}
 }

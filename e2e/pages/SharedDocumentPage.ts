@@ -21,8 +21,6 @@ export class SharedDocumentPage extends BasePage {
 
 	// Footer elements
 	readonly footer: Locator;
-	readonly printButton: Locator;
-	readonly githubLink: Locator;
 	readonly documentPathDisplay: Locator;
 
 	// Content elements
@@ -33,7 +31,6 @@ export class SharedDocumentPage extends BasePage {
 
 	// Error states
 	readonly notFoundMessage: Locator;
-	readonly expiredMessage: Locator;
 	readonly loadingMessage: Locator;
 
 	constructor(page: Page) {
@@ -56,8 +53,6 @@ export class SharedDocumentPage extends BasePage {
 
 		// Footer elements
 		this.footer = page.locator('footer');
-		this.printButton = page.getByRole('button', { name: /print/i });
-		this.githubLink = page.getByRole('link', { name: /schist/i });
 		this.documentPathDisplay = page.locator('code');
 
 		// Content elements
@@ -68,7 +63,6 @@ export class SharedDocumentPage extends BasePage {
 
 		// Error states
 		this.notFoundMessage = page.getByText(/page not found/i);
-		this.expiredMessage = page.getByText(/expired/i);
 		this.loadingMessage = page.getByText(/loading content/i);
 	}
 
@@ -78,15 +72,6 @@ export class SharedDocumentPage extends BasePage {
 	async navigateToSharedDocument(token: string) {
 		await this.goto(`/share/${token}`);
 		await this.waitForLoad();
-	}
-
-	/**
-	 * Extract token from current URL
-	 */
-	getTokenFromUrl(): string {
-		const url = this.page.url();
-		const match = url.match(/\/share\/([^?#]+)/);
-		return match ? match[1] : '';
 	}
 
 	/**
@@ -161,29 +146,6 @@ export class SharedDocumentPage extends BasePage {
 	}
 
 	/**
-	 * Click the print button
-	 */
-	async clickPrint() {
-		await this.printButton.click();
-		// Note: We can't easily test actual printing in e2e,
-		// but we can verify the button works
-	}
-
-	/**
-	 * Click on the GitHub link
-	 */
-	async clickGitHubLink() {
-		// Since this opens in a new tab, we handle it specially
-		const [newPage] = await Promise.all([
-			this.page.context().waitForEvent('page'),
-			this.githubLink.click()
-		]);
-
-		await newPage.waitForLoadState();
-		return newPage;
-	}
-
-	/**
 	 * Verify the document path is displayed in footer
 	 */
 	async verifyDocumentPath(expectedPath: string) {
@@ -212,13 +174,6 @@ export class SharedDocumentPage extends BasePage {
 	 */
 	async verifyNotFound() {
 		await expect(this.notFoundMessage).toBeVisible();
-	}
-
-	/**
-	 * Verify shared document is expired
-	 */
-	async verifyExpired() {
-		await expect(this.expiredMessage).toBeVisible();
 	}
 
 	/**
@@ -263,37 +218,10 @@ export class SharedDocumentPage extends BasePage {
 	}
 
 	/**
-	 * Get the document title text
-	 */
-	async getDocumentTitle(): Promise<string> {
-		return (await this.documentTitle.textContent()) || '';
-	}
-
-	/**
 	 * Get the document content text
 	 */
 	async getDocumentContent(): Promise<string> {
 		return (await this.documentContent.textContent()) || '';
-	}
-
-	/**
-	 * Get all document tags
-	 */
-	async getDocumentTags(): Promise<string[]> {
-		const tags = await this.documentTags.allTextContents();
-		return tags.filter((tag) => tag.trim().length > 0);
-	}
-
-	/**
-	 * Check if the document has any content
-	 */
-	async hasContent(): Promise<boolean> {
-		const content = await this.documentContent.textContent();
-		return (
-			(await this.documentContent.isVisible()) &&
-			typeof content === 'string' &&
-			content.trim().length > 0
-		);
 	}
 
 	/**

@@ -17,7 +17,11 @@ export default defineConfig({
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: isCI,
 
-	retries: isCI ? 2 : 0,
+	/* 3 retries on CI: the self-hosted VPS runner is slow and variable, so a few
+	   timing-sensitive tests (page/document render waits) occasionally exceed their
+	   visibility timeouts on a bad moment. They pass on a subsequent attempt; the
+	   extra retry keeps a lone transient flake from failing the whole run. */
+	retries: isCI ? 3 : 0,
 
 	/* Run with a single worker: the suite shares one backend instance and a single
 	   auth/storage state, and several suites use test.describe.serial, so parallel

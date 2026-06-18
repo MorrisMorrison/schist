@@ -474,26 +474,44 @@ func TestAuthService_LoginWithPasskey(t *testing.T) {
 	err = userService.CreateFirstUser("testuser", "credential-123")
 	require.NoError(t, err)
 
-	t.Run("returns error for empty credential ID", func(t *testing.T) {
-		_, err := authService.LoginWithPasskey("")
-		assert.Error(t, err)
-		// The method returns ErrInvalidCredentials for empty credential ID
-	})
-
-	t.Run("returns error for non-existent credential", func(t *testing.T) {
-		_, err := authService.LoginWithPasskey("non-existent-credential")
+	t.Run("issuing a ticket for unknown credential fails", func(t *testing.T) {
+		_, err := authService.IssueAuthTicket("non-existent-credential")
 		assert.Error(t, err)
 	})
 
-	t.Run("returns token for valid credential", func(t *testing.T) {
-		token, err := authService.LoginWithPasskey("credential-123")
+	t.Run("exchanging an unknown ticket fails", func(t *testing.T) {
+		_, err := authService.LoginWithPasskeyTicket("not-a-real-ticket")
+		assert.Error(t, err)
+	})
+
+	t.Run("verified ticket exchanges for a valid token", func(t *testing.T) {
+		// A ticket is only issued after a verified assertion (here simulated by
+		// calling IssueAuthTicket directly with a known-good credential).
+		ticket, err := authService.IssueAuthTicket("credential-123")
+		require.NoError(t, err)
+		require.NotEmpty(t, ticket)
+
+		resp, err := authService.LoginWithPasskeyTicket(ticket)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, token)
+		require.NotNil(t, resp)
+		assert.NotEmpty(t, resp.Token)
 
 		// Verify token is valid
-		username, err := authService.ValidateToken(token.Token)
+		username, err := authService.ValidateToken(resp.Token)
 		assert.NoError(t, err)
 		assert.Equal(t, "testuser", username)
+	})
+
+	t.Run("tickets are single-use", func(t *testing.T) {
+		ticket, err := authService.IssueAuthTicket("credential-123")
+		require.NoError(t, err)
+
+		_, err = authService.LoginWithPasskeyTicket(ticket)
+		require.NoError(t, err)
+
+		// Second exchange must fail.
+		_, err = authService.LoginWithPasskeyTicket(ticket)
+		assert.Error(t, err)
 	})
 }
 

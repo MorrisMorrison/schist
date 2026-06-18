@@ -1,4 +1,5 @@
 import { apiClient } from '../api/client';
+import { getErrorMessage } from '$lib/utils/error';
 import type {
 	GitHubSettings,
 	GitHubConnectionStatus,
@@ -91,7 +92,7 @@ export const githubActions = {
 			return settings;
 		} catch (error) {
 			githubState.loading = false;
-			githubState.error = error instanceof Error ? error.message : 'Failed to load GitHub settings';
+			githubState.error = getErrorMessage(error, 'Failed to load GitHub settings');
 			throw error;
 		}
 	},
@@ -107,8 +108,7 @@ export const githubActions = {
 			return connectionStatus;
 		} catch (error) {
 			githubState.loading = false;
-			githubState.error =
-				error instanceof Error ? error.message : 'Failed to load GitHub connection status';
+			githubState.error = getErrorMessage(error, 'Failed to load GitHub connection status');
 			throw error;
 		}
 	},
@@ -131,8 +131,7 @@ export const githubActions = {
 			return setupResult;
 		} catch (error) {
 			githubState.loading = false;
-			githubState.error =
-				error instanceof Error ? error.message : 'Failed to setup GitHub integration';
+			githubState.error = getErrorMessage(error, 'Failed to setup GitHub integration');
 			throw error;
 		}
 	},
@@ -151,8 +150,7 @@ export const githubActions = {
 			return { settings, connectionStatus };
 		} catch (error) {
 			githubState.loading = false;
-			githubState.error =
-				error instanceof Error ? error.message : 'Failed to update GitHub settings';
+			githubState.error = getErrorMessage(error, 'Failed to update GitHub settings');
 			throw error;
 		}
 	},
@@ -169,11 +167,10 @@ export const githubActions = {
 			return result;
 		} catch (error) {
 			githubState.testingConnection = false;
-			githubState.error =
-				error instanceof Error ? error.message : 'Failed to test GitHub connection';
+			githubState.error = getErrorMessage(error, 'Failed to test GitHub connection');
 			githubState.connectionTest = {
 				success: false,
-				message: error instanceof Error ? error.message : 'Connection test failed'
+				message: getErrorMessage(error, 'Connection test failed')
 			};
 			throw error;
 		}
@@ -239,8 +236,7 @@ export const githubActions = {
 			return result;
 		} catch (error) {
 			githubState.loading = false;
-			githubState.error =
-				error instanceof Error ? error.message : 'Failed to disconnect from GitHub';
+			githubState.error = getErrorMessage(error, 'Failed to disconnect from GitHub');
 			throw error;
 		}
 	},
@@ -283,8 +279,7 @@ export const githubActions = {
 
 			return result;
 		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : 'Failed to check Git repository health';
+			const errorMessage = getErrorMessage(error, 'Failed to check Git repository health');
 
 			githubState.checkingHealth = false;
 			githubState.gitHealthStatus = { healthy: false, error: errorMessage };
@@ -316,8 +311,7 @@ export const githubActions = {
 
 			return result;
 		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : 'Failed to repair Git repository';
+			const errorMessage = getErrorMessage(error, 'Failed to repair Git repository');
 
 			githubState.repairingRepository = false;
 			githubState.lastRepairResult = {

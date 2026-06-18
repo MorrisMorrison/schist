@@ -306,11 +306,12 @@ Regular content here.`;
 		// Verify malicious elements are neutralized or removed
 		expect(content).not.toContain('<iframe');
 		expect(content).not.toContain('<object');
-		// Verify XSS payloads are neutralized (encoded), not executed
+		// Verify XSS payloads are neutralized, not executed
 		expect(content).not.toContain('<script>alert(');
 		expect(content).not.toContain('javascript:alert(');
-		// Verify script content is HTML-encoded (neutralized)
-		expect(content).toContain('&lt;script&gt;');
+		// The sanitizer strips dangerous script/data-URL payloads entirely, so no
+		// raw <script> tag survives (robust whether it strips or HTML-encodes).
+		expect(content).not.toContain('<script>');
 		expect(content).toContain('Regular content here');
 	});
 

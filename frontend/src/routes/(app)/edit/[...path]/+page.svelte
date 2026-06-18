@@ -14,6 +14,7 @@
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	let { data }: { data: PageData } = $props();
 
@@ -116,7 +117,7 @@
 			await goto(`/documents/${newPath}`);
 		} catch (error) {
 			console.error('Failed to save document:', error);
-			saveError = error instanceof Error ? error.message : 'Failed to save document';
+			saveError = getErrorMessage(error, 'Failed to save document');
 		} finally {
 			isSaving = false;
 		}
@@ -135,7 +136,7 @@
 			goto('/');
 		} catch (error) {
 			console.error('Failed to delete document:', error);
-			saveError = error instanceof Error ? error.message : 'Failed to delete document';
+			saveError = getErrorMessage(error, 'Failed to delete document');
 		} finally {
 			isDeleting = false;
 		}
@@ -204,7 +205,7 @@
 			originalContent = content;
 		} catch (error) {
 			console.error('Failed to auto-save page:', error);
-			saveError = error instanceof Error ? error.message : 'Failed to auto-save page';
+			saveError = getErrorMessage(error, 'Failed to auto-save page');
 		} finally {
 			isSaving = false;
 		}

@@ -157,6 +157,34 @@
 		});
 	}
 
+	function buildExtensions() {
+		return [
+			basicSetup,
+			markdown(),
+			theme === 'dark' ? darkTheme : lightTheme,
+			drawSelection(),
+			wikiLinksExtension(),
+			hashtagExtension(),
+			combinedAutocompletionExtension(),
+			createScrollSyncExtension(),
+			EditorView.updateListener.of((update) => {
+				if (update.docChanged && onContentChange) {
+					const newContent = update.state.doc.toString();
+					onContentChange(newContent);
+				}
+			}),
+			EditorView.lineWrapping,
+			EditorState.readOnly.of(readonly),
+			imagePasteExtension({
+				onUploadStart: onUploadStart || (() => {}),
+				onUploadProgress: onUploadProgress || (() => {}),
+				onUploadComplete: onUploadComplete || (() => {}),
+				onUploadError: onUploadError || (() => {})
+			}),
+			editorLayoutTheme
+		];
+	}
+
 	function initializeEditor() {
 		if (!editorElement) return;
 
@@ -166,31 +194,7 @@
 
 		const state = EditorState.create({
 			doc: content,
-			extensions: [
-				basicSetup,
-				markdown(),
-				theme === 'dark' ? darkTheme : lightTheme,
-				drawSelection(),
-				wikiLinksExtension(),
-				hashtagExtension(),
-				combinedAutocompletionExtension(),
-				createScrollSyncExtension(),
-				EditorView.updateListener.of((update) => {
-					if (update.docChanged && onContentChange) {
-						const newContent = update.state.doc.toString();
-						onContentChange(newContent);
-					}
-				}),
-				EditorView.lineWrapping,
-				EditorState.readOnly.of(readonly),
-				imagePasteExtension({
-					onUploadStart: onUploadStart || (() => {}),
-					onUploadProgress: onUploadProgress || (() => {}),
-					onUploadComplete: onUploadComplete || (() => {}),
-					onUploadError: onUploadError || (() => {})
-				}),
-				editorLayoutTheme
-			]
+			extensions: buildExtensions()
 		});
 
 		editorView = new EditorView({
@@ -298,34 +302,8 @@
 	// Reactive theme updates
 	$effect(() => {
 		if (editorView && theme) {
-			const extensions = [
-				basicSetup,
-				markdown(),
-				theme === 'dark' ? darkTheme : lightTheme,
-				drawSelection(),
-				wikiLinksExtension(),
-				hashtagExtension(),
-				combinedAutocompletionExtension(),
-				createScrollSyncExtension(),
-				EditorView.updateListener.of((update) => {
-					if (update.docChanged && onContentChange) {
-						const newContent = update.state.doc.toString();
-						onContentChange(newContent);
-					}
-				}),
-				EditorView.lineWrapping,
-				EditorState.readOnly.of(readonly),
-				imagePasteExtension({
-					onUploadStart: onUploadStart || (() => {}),
-					onUploadProgress: onUploadProgress || (() => {}),
-					onUploadComplete: onUploadComplete || (() => {}),
-					onUploadError: onUploadError || (() => {})
-				}),
-				editorLayoutTheme
-			];
-
 			editorView.dispatch({
-				effects: StateEffect.reconfigure.of(extensions)
+				effects: StateEffect.reconfigure.of(buildExtensions())
 			});
 		}
 	});

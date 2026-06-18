@@ -53,11 +53,23 @@ export default defineConfig({
 		baseURL: baseURL,
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
-		video: 'retain-on-failure',
+		// Only record video while a test is being retried, not for every passing
+		// test: continuous webm encoding is real CPU on the self-hosted box, and a
+		// retry video plus the on-first-retry trace + failure screenshot is enough
+		// to debug failures.
+		video: 'on-first-retry',
 		viewport: { width: 1280, height: 720 },
-		// The CI container runs as root, where Chromium refuses to launch without
-		// --no-sandbox.
-		...(isCI ? { launchOptions: { args: ['--no-sandbox'] } } : {})
+		launchOptions: {
+			args: [
+				// /dev/shm is tiny in containers; without this Chromium can thrash or
+				// crash under memory pressure.
+				'--disable-dev-shm-usage',
+				'--disable-gpu',
+				// The CI container runs as root, where Chromium refuses to launch
+				// without --no-sandbox.
+				...(isCI ? ['--no-sandbox'] : [])
+			]
+		}
 	},
 
 	projects: [

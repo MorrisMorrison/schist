@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { HeadingBlock } from '$lib/utils/markdown-blocks';
+	import { sanitizeHtml } from '$lib/utils/sanitizer';
 
 	let { block }: { block: HeadingBlock } = $props();
 
@@ -14,17 +15,17 @@
 </script>
 
 {#if block.level === 1}
-	<h1 class={headingClasses[1]}>{@html block.text}</h1>
+	<h1 class={headingClasses[1]}>{@html sanitizeHtml(block.text)}</h1>
 {:else if block.level === 2}
-	<h2 class={headingClasses[2]}>{@html block.text}</h2>
+	<h2 class={headingClasses[2]}>{@html sanitizeHtml(block.text)}</h2>
 {:else if block.level === 3}
-	<h3 class={headingClasses[3]}>{@html block.text}</h3>
+	<h3 class={headingClasses[3]}>{@html sanitizeHtml(block.text)}</h3>
 {:else if block.level === 4}
-	<h4 class={headingClasses[4]}>{@html block.text}</h4>
+	<h4 class={headingClasses[4]}>{@html sanitizeHtml(block.text)}</h4>
 {:else if block.level === 5}
-	<h5 class={headingClasses[5]}>{@html block.text}</h5>
+	<h5 class={headingClasses[5]}>{@html sanitizeHtml(block.text)}</h5>
 {:else if block.level === 6}
-	<h6 class={headingClasses[6]}>{@html block.text}</h6>
+	<h6 class={headingClasses[6]}>{@html sanitizeHtml(block.text)}</h6>
 {/if}
 
 <style>

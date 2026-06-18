@@ -17,8 +17,6 @@ import { createTestDocuments } from '../utils/api-helpers';
 export const test = base.extend<{
 	// Pre-created test data (not created in backend)
 	testDocument: TestDocumentData;
-	simpleTestDocument: TestDocumentData;
-	complexTestDocument: TestDocumentData;
 	testFolder: TestFolderData;
 
 	// Setup fixtures that create data in the backend
@@ -38,22 +36,6 @@ export const test = base.extend<{
 		const document = createTestDocument({
 			title: `Test Document ${testId}`,
 			path: `/test-document-${testId}`
-		});
-		await use(document);
-	},
-
-	simpleTestDocument: async ({ testId }, use) => {
-		const document = createSimpleTestDocument({
-			title: `Simple ${testId}`,
-			path: `/simple-${testId}`
-		});
-		await use(document);
-	},
-
-	complexTestDocument: async ({ testId }, use) => {
-		const document = createComplexTestDocument({
-			title: `Complex ${testId}`,
-			path: `/complex-${testId}`
 		});
 		await use(document);
 	},
@@ -78,7 +60,11 @@ export const test = base.extend<{
 		// Cleanup is handled by apiHelper fixture
 	},
 
-	withSimpleTestDocument: async ({ apiHelper, simpleTestDocument }, use) => {
+	withSimpleTestDocument: async ({ apiHelper, testId }, use) => {
+		const simpleTestDocument = createSimpleTestDocument({
+			title: `Simple ${testId}`,
+			path: `/simple-${testId}`
+		});
 		const result = await apiHelper.createDocument(simpleTestDocument);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create simple test document: ${result.error}`);
@@ -89,7 +75,11 @@ export const test = base.extend<{
 		// Cleanup is handled by apiHelper fixture
 	},
 
-	withComplexTestDocument: async ({ apiHelper, complexTestDocument }, use) => {
+	withComplexTestDocument: async ({ apiHelper, testId }, use) => {
+		const complexTestDocument = createComplexTestDocument({
+			title: `Complex ${testId}`,
+			path: `/complex-${testId}`
+		});
 		const result = await apiHelper.createDocument(complexTestDocument);
 		if (result.status !== 201) {
 			throw new Error(`Failed to create complex test document: ${result.error}`);

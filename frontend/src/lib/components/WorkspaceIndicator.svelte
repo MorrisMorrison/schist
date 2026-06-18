@@ -1,17 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { Users } from '@lucide/svelte';
 	import { workspaceStore } from '$lib/stores/workspace.svelte';
 	import { authStore } from '$lib/stores/auth.svelte';
 
-	// Load workspace info when component mounts and user is authenticated
-	onMount(() => {
-		if (authStore.user) {
-			workspaceStore.loadUsers();
-		}
-	});
-
-	// Also load when auth state changes
+	// Load workspace info on mount and whenever the auth state changes
 	$effect(() => {
 		if (authStore.user) {
 			workspaceStore.loadUsers();

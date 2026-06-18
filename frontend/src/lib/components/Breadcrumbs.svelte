@@ -16,7 +16,7 @@
 		return rawSegments.map((segment, index, array) => {
 			const fullPath = '/' + array.slice(0, index + 1).join('/');
 			return {
-				name: segment.charAt(0) + segment.slice(1),
+				name: segment,
 				path: fullPath,
 				isLast: index === array.length - 1
 			};

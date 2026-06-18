@@ -92,14 +92,29 @@ test.describe('Navigation and Routing', () => {
 		await documentViewPage.editPage();
 		await editorPage.verifyLoaded();
 
+		// edit -> document view. Wait for the URL to settle after each history
+		// move before asserting the DOM: page.goBack/goForward resolve on the
+		// 'load' event, but SPA history navigation is client-side (popstate) and
+		// may not fire one, so the assertion can otherwise race the re-render.
 		await page.goBack();
+		await documentViewPage.verifyPageUrl(testDocument.path!);
 		await documentViewPage.verifyPageLoaded(testDocument.title);
 
+		// document view -> edit
 		await page.goForward();
+		await editorPage.expectUrl(`/edit${testDocument.path!}`);
 		await editorPage.verifyLoaded();
 
+		// edit -> document view. Settle here before the next back: two goBack()
+		// calls fired back-to-back race (the second can run before the first
+		// popstate is processed), which intermittently lands somewhere other than
+		// home on a slow runner.
 		await page.goBack();
+		await documentViewPage.verifyPageUrl(testDocument.path!);
+
+		// document view -> home (origin root, nothing after the host)
 		await page.goBack();
+		await expect(page).toHaveURL(/\/\/[^/]+\/?$/);
 		await homePage.verifyLoaded();
 	});
 

@@ -50,11 +50,16 @@ jobs:
     # service before applying --profile, so this must be set even though only the
     # e2e profile runs. A throwaway value is fine for tests.
     #
-    # COMPOSE_PROJECT_NAME is run-unique so the two parallel runner replicas get
-    # their own containers + network and don't collide.
+    # COMPOSE_PROJECT_NAME must be unique per run AND per attempt: a rerun keeps
+    # the same run_id, so without run_attempt it reuses the previous attempt's
+    # containers. A cancelled/failed attempt can leave a backend that already has
+    # a registered user, making the rerun see `requires_setup: false` -- which
+    # sends auth.setup down the existing-user path and fails (the virtual
+    # authenticator is fresh and can't reproduce the prior run's passkey). Scoping
+    # by attempt guarantees a clean backend every time.
     env:
       SCHIST_JWT_SECRET: test-jwt-secret-for-e2e-testing-32-bytes-long
-      COMPOSE_PROJECT_NAME: schist-e2e-${{ github.run_id }}
+      COMPOSE_PROJECT_NAME: schist-e2e-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - uses: actions/checkout@v6
@@ -62,7 +67,12 @@ jobs:
       - name: Start E2E service
         run: |
           set -euo pipefail
-          docker compose --profile e2e up -d --build
+          # Defensive: drop any leftovers from a previous attempt with this
+          # project name (e.g. a cancelled run whose cleanup step didn't finish),
+          # then build fresh so the backend starts with an empty datastore
+          # (requires_setup: true) and auth.setup runs the first-time passkey flow.
+          docker compose --profile e2e down -v --remove-orphans 2>/dev/null || true
+          docker compose --profile e2e up -d --build --force-recreate
 
           echo "Waiting for service to become healthy..."
           timeout 120 bash -c '

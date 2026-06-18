@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
 
 test.describe('Markdown Features', () => {
 	test('sidebar plus button creates new document', async ({ page }) => {

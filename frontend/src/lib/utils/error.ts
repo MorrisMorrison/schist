@@ -210,7 +210,7 @@ function getStatusMessage(status: number): string {
 	}
 }
 
-function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
+export function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
 	switch (status) {
 		case 400:
 			return 'VALIDATION_ERROR';

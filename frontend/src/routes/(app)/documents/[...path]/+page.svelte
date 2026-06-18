@@ -9,7 +9,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Home, Plus, RotateCcw, Search } from '@lucide/svelte';
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
-	import { isNotFoundError } from '$lib/utils/error';
+	import { isNotFoundError, getErrorMessage } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 
@@ -66,7 +66,7 @@
 				}
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load content';
+			error = getErrorMessage(err, 'Failed to load content');
 		} finally {
 			isLoadingContent = false;
 			documentLoader.stopLoading();

@@ -55,7 +55,7 @@ test.describe.serial('Document Rename', () => {
 			}
 		} else {
 			// If document not visible in tree, navigate directly to document view
-			await documentViewPage.navigateToDocument(testDocumentPath);
+			await documentViewPage.navigateToDocument(testDocument.path!);
 			await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 			// Look for document context menu (might be in document header or actions menu)

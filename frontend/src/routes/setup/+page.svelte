@@ -14,6 +14,7 @@
 	import { Fingerprint, AlertCircle, CheckCircle } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import { registerPasskey } from '$lib/utils/webauthn';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	let username = $state('');
 	let isLoading = $state(false);
@@ -82,7 +83,7 @@
 			currentStep = 3;
 		} catch (err) {
 			console.error('Setup failed:', err);
-			error = err instanceof Error ? err.message : 'Setup failed. Please try again.';
+			error = getErrorMessage(err, 'Setup failed. Please try again.');
 			currentStep = 1;
 		} finally {
 			isLoading = false;

@@ -43,12 +43,8 @@
 	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
 	const hasChanges = $derived(
 		githubStore.connectionStatus && githubStore.connectionStatus.connected && githubStore.settings
-			? (() => {
-					return (
-						branch !== githubStore.settings.branch ||
-						(backupMode === 'auto') !== githubStore.settings.auto_sync
-					);
-				})()
+			? branch !== githubStore.settings.branch ||
+					(backupMode === 'auto') !== githubStore.settings.auto_sync
 			: canTestConnection
 	);
 
@@ -71,17 +67,8 @@
 			formError = 'Repository name is required';
 			return false;
 		}
-		if (!branch.trim()) {
-			formError = 'Branch name is required';
-			return false;
-		}
-		if (syncInterval < 5) {
-			formError = 'Sync interval must be at least 5 minutes';
-			return false;
-		}
 
-		formError = '';
-		return true;
+		return validateSettingsUpdate();
 	}
 
 	function validateSettingsUpdate(): boolean {

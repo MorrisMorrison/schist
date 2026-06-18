@@ -31,10 +31,14 @@ updates:
         dependency-type: production
         update-types: ["minor", "patch"]
     ignore:
-      # Hold eslint/typescript MAJORS: they outpace typescript-eslint@8's peer
-      # ranges (eslint "^8.40 || 9", typescript ">=4.8.4 <6.0.0") and break
-      # `npm ci`. Remove once typescript-eslint ships support for the new major.
+      # Hold eslint / @eslint/js / typescript MAJORS: they outpace
+      # typescript-eslint@8's peer ranges (eslint "^8.40 || 9", typescript
+      # ">=4.8.4 <6.0.0") and break `npm ci`. @eslint/js is versioned in lockstep
+      # with eslint, so its major must be held too. Remove once typescript-eslint
+      # ships support for the new major.
       - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
@@ -49,9 +53,12 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     ignore:
-      # Same as /frontend: eslint 10 / typescript 6 majors broke e2e's npm ci
-      # against typescript-eslint@8. Lift when typescript-eslint supports them.
+      # Same as /frontend: eslint 10 / @eslint/js 10 / typescript 6 majors broke
+      # e2e's npm ci against typescript-eslint@8. Lift when typescript-eslint
+      # supports them.
       - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]

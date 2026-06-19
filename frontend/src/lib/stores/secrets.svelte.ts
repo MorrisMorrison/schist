@@ -1,6 +1,6 @@
 import { apiClient } from '$lib/api/client';
 import type { SecretsStatus, CreateSecretRequest, UpdateSecretRequest } from '$lib/api/types';
-import { getErrorMessage } from '$lib/utils/error';
+import { runAsync } from './resource.svelte';
 
 export interface SecretInfo {
 	key: string;
@@ -12,15 +12,13 @@ export interface SecretStoreState {
 	secrets: SecretInfo[];
 	loading: boolean;
 	error: string | null;
-	unlocking: boolean;
 }
 
 const defaultSecretState: SecretStoreState = {
 	status: null,
 	secrets: [],
 	loading: false,
-	error: null,
-	unlocking: false
+	error: null
 };
 
 const secretState: SecretStoreState = $state<SecretStoreState>(defaultSecretState);
@@ -28,81 +26,59 @@ const secretState: SecretStoreState = $state<SecretStoreState>(defaultSecretStat
 function createSecretStore() {
 	return {
 		async loadStatus(): Promise<SecretsStatus> {
-			secretState.loading = true;
-			secretState.error = null;
-
-			try {
-				const status = await apiClient.getSecretsStatus();
-
-				secretState.status = status;
-				secretState.loading = false;
-				return status;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to load secrets status');
-				secretState.error = errorMsg;
-				secretState.loading = false;
-				throw error;
-			}
+			return runAsync(
+				secretState,
+				async () => {
+					const status = await apiClient.getSecretsStatus();
+					secretState.status = status;
+					return status;
+				},
+				'Failed to load secrets status'
+			);
 		},
 
 		async loadSecrets(): Promise<SecretInfo[]> {
-			secretState.loading = true;
-			secretState.error = null;
+			return runAsync(
+				secretState,
+				async () => {
+					const response = await apiClient.listSecrets();
+					const secrets = response.secrets.map((key) => ({
+						key,
+						hasValue: true
+					}));
 
-			try {
-				const response = await apiClient.listSecrets();
-				const secrets = response.secrets.map((key) => ({
-					key,
-					hasValue: true
-				}));
-
-				secretState.secrets = secrets;
-				secretState.loading = false;
-				return secrets;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to load secrets');
-				secretState.error = errorMsg;
-				secretState.loading = false;
-				throw error;
-			}
+					secretState.secrets = secrets;
+					return secrets;
+				},
+				'Failed to load secrets'
+			);
 		},
 
 		async lock(): Promise<void> {
-			secretState.loading = true;
-			secretState.error = null;
+			await runAsync(
+				secretState,
+				async () => {
+					await apiClient.lockSecrets();
 
-			try {
-				await apiClient.lockSecrets();
-
-				// Clear sensitive data and reload status
-				await this.loadStatus();
-				secretState.secrets = [];
-				secretState.loading = false;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to lock secrets');
-				secretState.error = errorMsg;
-				secretState.loading = false;
-				throw error;
-			}
+					// Clear sensitive data and reload status
+					await this.loadStatus();
+					secretState.secrets = [];
+				},
+				'Failed to lock secrets'
+			);
 		},
 
 		async createSecret(request: CreateSecretRequest): Promise<void> {
-			secretState.loading = true;
-			secretState.error = null;
+			await runAsync(
+				secretState,
+				async () => {
+					await apiClient.createSecret(request);
 
-			try {
-				await apiClient.createSecret(request);
-
-				await this.loadSecrets();
-				await this.loadStatus();
-
-				secretState.loading = false;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to create secret');
-				secretState.error = errorMsg;
-				secretState.loading = false;
-				throw error;
-			}
+					await this.loadSecrets();
+					await this.loadStatus();
+				},
+				'Failed to create secret'
+			);
 		},
 
 		async getSecret(key: string): Promise<string> {
@@ -111,41 +87,30 @@ function createSecretStore() {
 		},
 
 		async updateSecret(key: string, request: UpdateSecretRequest): Promise<void> {
-			secretState.loading = true;
-			secretState.error = null;
+			await runAsync(
+				secretState,
+				async () => {
+					await apiClient.updateSecret(key, request);
 
-			try {
-				await apiClient.updateSecret(key, request);
-
-				// Reload secrets after update
-				await this.loadSecrets();
-				secretState.loading = false;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to update secret');
-				secretState.error = errorMsg;
-				secretState.loading = false;
-				throw error;
-			}
+					// Reload secrets after update
+					await this.loadSecrets();
+				},
+				'Failed to update secret'
+			);
 		},
 
 		async deleteSecret(key: string): Promise<void> {
-			secretState.loading = true;
-			secretState.error = null;
+			await runAsync(
+				secretState,
+				async () => {
+					await apiClient.deleteSecret(key);
 
-			try {
-				await apiClient.deleteSecret(key);
-
-				// Reload secrets and status after deletion
-				await this.loadSecrets();
-				await this.loadStatus();
-
-				secretState.loading = false;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to delete secret');
-				secretState.error = errorMsg;
-				secretState.loading = false;
-				throw error;
-			}
+					// Reload secrets and status after deletion
+					await this.loadSecrets();
+					await this.loadStatus();
+				},
+				'Failed to delete secret'
+			);
 		},
 
 		clearError() {
@@ -171,9 +136,6 @@ export const secretStore = {
 	get error() {
 		return secretState.error;
 	},
-	get unlocking() {
-		return secretState.unlocking;
-	},
 
 	// Derived getters
 	get secretsUnlocked() {
@@ -195,13 +157,6 @@ export const secretStore = {
 	// Action methods
 	...createSecretStore()
 };
-
-// Derived exports for convenience
-export const secretsUnlocked = () => secretStore.secretsUnlocked;
-export const hasSecrets = () => secretStore.hasSecrets;
-export const requiresPassword = () => secretStore.requiresPassword;
-export const hasPasskeys = () => secretStore.hasPasskeys;
-export const requiresSetup = () => secretStore.requiresSetup;
 
 // Helper function to process secret placeholders in text
 export function parseSecretPlaceholders(text: string): { placeholder: string; key: string }[] {
@@ -234,23 +189,6 @@ export async function replaceSecretPlaceholders(
 		} catch (error) {
 			console.warn(`Failed to replace secret placeholder ${placeholder}:`, error);
 		}
-	}
-
-	return processedText;
-}
-
-// Helper function to add visual indicators for locked secret placeholders
-export function addSecretPlaceholderIndicators(text: string, isUnlocked: boolean): string {
-	if (isUnlocked) {
-		return text;
-	}
-
-	const placeholders = parseSecretPlaceholders(text);
-
-	let processedText = text;
-	for (const { placeholder, key } of placeholders) {
-		const indicator = `<span class="secret-placeholder bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md font-mono text-sm border border-amber-200 dark:border-amber-700" title="Secret '${key}' is locked. Unlock secrets to view the value.">${placeholder} 🔒</span>`;
-		processedText = processedText.replace(placeholder, indicator);
 	}
 
 	return processedText;

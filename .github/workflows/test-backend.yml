@@ -20,7 +20,7 @@ concurrency:
 jobs:
   backend-tests:
     name: Backend Tests
-    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # self-hosted VPS (e2e is the GitHub-hosted job)
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7

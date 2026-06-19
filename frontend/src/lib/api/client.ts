@@ -74,6 +74,20 @@ class SchistApiClient {
 		this.authToken = token;
 	}
 
+	// Prefer the in-memory token, but fall back to localStorage so a request that
+	// fires before the auth store has called setAuthToken() (a module-init race)
+	// still carries the Bearer token instead of going out unauthenticated and
+	// triggering a spurious 401 -> global logout -> /login redirect. The key must
+	// match AUTH_STORAGE_KEY in stores/auth.svelte.ts.
+	private getAuthToken(): string | null {
+		if (this.authToken) return this.authToken;
+		try {
+			return typeof localStorage !== 'undefined' ? localStorage.getItem('schist_auth_token') : null;
+		} catch {
+			return null;
+		}
+	}
+
 	private determineApiUrl(): string {
 		if (env.PUBLIC_API_URL) {
 			return env.PUBLIC_API_URL;
@@ -92,8 +106,9 @@ class SchistApiClient {
 
 	private authHeaders(): Record<string, string> {
 		const headers: Record<string, string> = {};
-		if (this.authToken) {
-			headers.Authorization = `Bearer ${this.authToken}`;
+		const token = this.getAuthToken();
+		if (token) {
+			headers.Authorization = `Bearer ${token}`;
 		}
 		return headers;
 	}
@@ -111,6 +126,14 @@ class SchistApiClient {
 	}
 
 	private async handleAuthenticationError() {
+		// A single 401 can be transient (a brief server hiccup, or a request that
+		// raced token attachment) rather than a genuinely dead session. Confirm the
+		// session is actually invalid before tearing it down -- otherwise a stray
+		// 401 bounces a valid session to /login.
+		if (await this.isSessionStillValid()) {
+			return;
+		}
+
 		// Clear auth state through the store (will automatically clear API client token)
 		const { authActions } = await import('$lib/stores/auth.svelte');
 		authActions.clearAuth();
@@ -119,6 +142,41 @@ class SchistApiClient {
 		const { authService } = await import('$lib/auth/auth-service');
 		const returnUrl = window.location.pathname + window.location.search;
 		await authService.requireAuth(returnUrl);
+	}
+
+	private revalidating: Promise<boolean> | null = null;
+
+	// Re-check the stored token against /auth/me to decide whether a 401 was real.
+	// Returns true if the session is still good (so we must NOT log out). Only a
+	// confirmed 401 counts as invalid; a 200 keeps the session, and anything
+	// inconclusive (network error, 404, 5xx) also keeps it -- we never tear down a
+	// session on uncertainty. Deduplicated so a burst of 401s shares one check, and
+	// it uses a raw fetch (not request()) to avoid re-entering this handler.
+	private async isSessionStillValid(): Promise<boolean> {
+		if (this.revalidating) return this.revalidating;
+		this.revalidating = (async () => {
+			const token = this.getAuthToken();
+			if (!token) return false;
+			for (let attempt = 0; attempt < 2; attempt++) {
+				try {
+					const res = await fetch(`${this.baseUrl}/auth/me`, {
+						headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+					});
+					if (res.ok) return true;
+					if (res.status === 401) return false;
+					// 404 / 5xx: inconclusive -> retry, then keep the session below
+				} catch {
+					// network error: inconclusive -> retry, then keep the session below
+				}
+				await new Promise((resolve) => setTimeout(resolve, 300));
+			}
+			return true;
+		})();
+		try {
+			return await this.revalidating;
+		} finally {
+			this.revalidating = null;
+		}
 	}
 
 	private encodePath(path: string): string {
@@ -140,8 +198,9 @@ class SchistApiClient {
 				Accept: 'application/json'
 			};
 
-			if (this.authToken) {
-				defaultHeaders.Authorization = `Bearer ${this.authToken}`;
+			const token = this.getAuthToken();
+			if (token) {
+				defaultHeaders.Authorization = `Bearer ${token}`;
 			}
 
 			const config: RequestInit = {

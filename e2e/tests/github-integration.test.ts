@@ -19,43 +19,27 @@ test.describe('GitHub Integration', () => {
 			await expect(settingsPage.githubSetupButton).toBeVisible();
 		});
 
-		test('should keep setup button disabled when form is empty', async ({ settingsPage }) => {
+		test('should progressively enable buttons as required fields are filled', async ({
+			settingsPage
+		}) => {
 			await settingsPage.clickSetupTab();
 
-			await expect(settingsPage.githubSetupButton).toBeDisabled();
-		});
-
-		test('should enable buttons as form fields are filled', async ({ settingsPage }) => {
-			await settingsPage.clickSetupTab();
-
+			// Empty form: both action buttons disabled
 			await expect(settingsPage.githubTestConnectionButton).toBeDisabled();
 			await expect(settingsPage.githubSetupButton).toBeDisabled();
 
+			// Partially filled: still disabled until all required fields are present
 			await settingsPage.githubTokenInput.fill('test-token');
-			await settingsPage.githubOwnerInput.fill('test-owner');
-			await settingsPage.githubRepositoryInput.fill('test-repo');
-
-			await expect(settingsPage.githubTestConnectionButton).toBeEnabled();
-			await expect(settingsPage.githubSetupButton).toBeEnabled();
-		});
-
-		test('should enable test connection button when form is filled', async ({ settingsPage }) => {
-			await settingsPage.clickSetupTab();
-
 			await expect(settingsPage.githubTestConnectionButton).toBeDisabled();
-
-			await settingsPage.fillGitHubForm('test-token', 'test-owner', 'test-repo');
-
-			await expect(settingsPage.githubTestConnectionButton).toBeEnabled();
-		});
-
-		test('should enable setup button when form is valid', async ({ settingsPage }) => {
-			await settingsPage.clickSetupTab();
-
 			await expect(settingsPage.githubSetupButton).toBeDisabled();
 
-			await settingsPage.fillGitHubForm('test-token', 'test-owner', 'test-repo');
+			await settingsPage.githubOwnerInput.fill('test-owner');
+			await expect(settingsPage.githubTestConnectionButton).toBeDisabled();
+			await expect(settingsPage.githubSetupButton).toBeDisabled();
 
+			// All required fields filled: both buttons enabled
+			await settingsPage.githubRepositoryInput.fill('test-repo');
+			await expect(settingsPage.githubTestConnectionButton).toBeEnabled();
 			await expect(settingsPage.githubSetupButton).toBeEnabled();
 		});
 	});
@@ -82,31 +66,6 @@ test.describe('GitHub Integration', () => {
 		});
 
 		test('should disable sync tab when not connected', async ({ settingsPage }) => {
-			await expect(settingsPage.githubSyncTab).toBeDisabled();
-		});
-	});
-
-	test.describe('Button States', () => {
-		test('should keep test connection button disabled until form is filled', async ({
-			settingsPage
-		}) => {
-			await settingsPage.clickSetupTab();
-
-			await expect(settingsPage.githubTestConnectionButton).toBeDisabled();
-
-			await settingsPage.githubTokenInput.fill('test-token');
-			await expect(settingsPage.githubTestConnectionButton).toBeDisabled();
-
-			await settingsPage.githubOwnerInput.fill('test-owner');
-			await expect(settingsPage.githubTestConnectionButton).toBeDisabled();
-
-			await settingsPage.githubRepositoryInput.fill('test-repo');
-			await expect(settingsPage.githubTestConnectionButton).toBeEnabled();
-		});
-	});
-
-	test.describe('Sync Tab', () => {
-		test('should be disabled when GitHub is not connected', async ({ settingsPage }) => {
 			await expect(settingsPage.githubSyncTab).toBeDisabled();
 		});
 	});

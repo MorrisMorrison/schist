@@ -32,7 +32,12 @@ export default ts.config(
 					varsIgnorePattern: '^_',
 					caughtErrorsIgnorePattern: '^_'
 				}
-			]
+			],
+			// eslint-plugin-svelte enabled this in its recommended set: it wants every
+			// goto()/pushState()/replaceState() path wrapped in resolve() for typed
+			// routing. Adopting that is a deliberate refactor across ~40 call sites, so
+			// it shouldn't be forced by a dependency bump -- defer it to its own PR.
+			'svelte/no-navigation-without-resolve': 'off'
 		}
 	},
 	{

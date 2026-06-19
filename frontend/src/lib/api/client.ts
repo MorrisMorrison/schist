@@ -58,10 +58,10 @@ import type {
 	OutgoingLinksResponse
 } from './types';
 import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
-import { parseError } from '$lib/utils/error';
+import { parseError, getErrorCodeFromStatus } from '$lib/utils/error';
 import { requestDeduplicator, createRequestKey } from '$lib/utils/request-deduplication';
 
-class SchістApiClient {
+class SchistApiClient {
 	private baseUrl: string;
 	private authToken: string | null = null;
 	private configCache: AppConfig | null = null;
@@ -72,6 +72,20 @@ class SchістApiClient {
 
 	setAuthToken(token: string | null) {
 		this.authToken = token;
+	}
+
+	// Prefer the in-memory token, but fall back to localStorage so a request that
+	// fires before the auth store has called setAuthToken() (a module-init race)
+	// still carries the Bearer token instead of going out unauthenticated and
+	// triggering a spurious 401 -> global logout -> /login redirect. The key must
+	// match AUTH_STORAGE_KEY in stores/auth.svelte.ts.
+	private getAuthToken(): string | null {
+		if (this.authToken) return this.authToken;
+		try {
+			return typeof localStorage !== 'undefined' ? localStorage.getItem('schist_auth_token') : null;
+		} catch {
+			return null;
+		}
 	}
 
 	private determineApiUrl(): string {
@@ -90,38 +104,36 @@ class SchістApiClient {
 		return '/api';
 	}
 
-	private getApiUrl(): string {
-		return this.baseUrl;
+	private authHeaders(): Record<string, string> {
+		const headers: Record<string, string> = {};
+		const token = this.getAuthToken();
+		if (token) {
+			headers.Authorization = `Bearer ${token}`;
+		}
+		return headers;
 	}
 
-	private getErrorCodeFromStatus(status: number): string | undefined {
-		switch (status) {
-			case 400:
-				return 'VALIDATION_ERROR';
-			case 401:
-				return 'UNAUTHORIZED';
-			case 403:
-				return 'FORBIDDEN';
-			case 404:
-				return 'RESOURCE_NOT_FOUND';
-			case 409:
-				return 'RESOURCE_CONFLICT';
-			case 408:
-				return 'TIMEOUT_ERROR';
-			case 429:
-				return 'TIMEOUT_ERROR';
-			case 500:
-				return 'INTERNAL_ERROR';
-			case 502:
-			case 503:
-			case 504:
-				return 'SERVICE_UNAVAILABLE';
-			default:
-				return undefined;
-		}
+	private normalizeDocumentData<T extends CreateDocumentRequest | UpdateDocumentRequest>(
+		documentData: T
+	): T {
+		return {
+			...documentData,
+			metaData: {
+				...documentData.metaData,
+				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
+			}
+		};
 	}
 
 	private async handleAuthenticationError() {
+		// A single 401 can be transient (a brief server hiccup, or a request that
+		// raced token attachment) rather than a genuinely dead session. Confirm the
+		// session is actually invalid before tearing it down -- otherwise a stray
+		// 401 bounces a valid session to /login.
+		if (await this.isSessionStillValid()) {
+			return;
+		}
+
 		// Clear auth state through the store (will automatically clear API client token)
 		const { authActions } = await import('$lib/stores/auth.svelte');
 		authActions.clearAuth();
@@ -130,6 +142,41 @@ class SchістApiClient {
 		const { authService } = await import('$lib/auth/auth-service');
 		const returnUrl = window.location.pathname + window.location.search;
 		await authService.requireAuth(returnUrl);
+	}
+
+	private revalidating: Promise<boolean> | null = null;
+
+	// Re-check the stored token against /auth/me to decide whether a 401 was real.
+	// Returns true if the session is still good (so we must NOT log out). Only a
+	// confirmed 401 counts as invalid; a 200 keeps the session, and anything
+	// inconclusive (network error, 404, 5xx) also keeps it -- we never tear down a
+	// session on uncertainty. Deduplicated so a burst of 401s shares one check, and
+	// it uses a raw fetch (not request()) to avoid re-entering this handler.
+	private async isSessionStillValid(): Promise<boolean> {
+		if (this.revalidating) return this.revalidating;
+		this.revalidating = (async () => {
+			const token = this.getAuthToken();
+			if (!token) return false;
+			for (let attempt = 0; attempt < 2; attempt++) {
+				try {
+					const res = await fetch(`${this.baseUrl}/auth/me`, {
+						headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+					});
+					if (res.ok) return true;
+					if (res.status === 401) return false;
+					// 404 / 5xx: inconclusive -> retry, then keep the session below
+				} catch {
+					// network error: inconclusive -> retry, then keep the session below
+				}
+				await new Promise((resolve) => setTimeout(resolve, 300));
+			}
+			return true;
+		})();
+		try {
+			return await this.revalidating;
+		} finally {
+			this.revalidating = null;
+		}
 	}
 
 	private encodePath(path: string): string {
@@ -144,15 +191,16 @@ class SchістApiClient {
 		const { enableDeduplication = false, force = false } = deduplicateOptions;
 
 		const executeRequest = async (): Promise<T> => {
-			const url = `${this.getApiUrl()}${endpoint}`;
+			const url = `${this.baseUrl}${endpoint}`;
 
 			const defaultHeaders: Record<string, string> = {
 				'Content-Type': 'application/json',
 				Accept: 'application/json'
 			};
 
-			if (this.authToken) {
-				defaultHeaders.Authorization = `Bearer ${this.authToken}`;
+			const token = this.getAuthToken();
+			if (token) {
+				defaultHeaders.Authorization = `Bearer ${token}`;
 			}
 
 			const config: RequestInit = {
@@ -167,7 +215,16 @@ class SchістApiClient {
 				delete (config.headers as Record<string, string>)['Content-Type'];
 			}
 
-			const response = await fetch(url, config);
+			// A 401 can be a transient server hiccup (the backend briefly
+			// overloaded or restarting) rather than a genuinely invalid session.
+			// Retry a couple of times before the 401 handler tears the session down
+			// and bounces the user to /login: a valid token recovers on retry, an
+			// invalid one keeps returning 401.
+			let response = await fetch(url, config);
+			for (let attempt = 0; response.status === 401 && attempt < 2; attempt++) {
+				await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+				response = await fetch(url, config);
+			}
 
 			if (!response.ok) {
 				const errorText = await response.text();
@@ -178,7 +235,7 @@ class SchістApiClient {
 				} catch {
 					errorData = {
 						error: errorText || response.statusText || `HTTP ${response.status} Error`,
-						code: this.getErrorCodeFromStatus(response.status)
+						code: getErrorCodeFromStatus(response.status)
 					};
 				}
 
@@ -215,7 +272,7 @@ class SchістApiClient {
 			return await executeRequest();
 		} catch (error) {
 			const parsedError = parseError(error);
-			const url = `${this.getApiUrl()}${endpoint}`;
+			const url = `${this.baseUrl}${endpoint}`;
 			console.error('API Request error', {
 				url,
 				error: parsedError.message,
@@ -282,13 +339,7 @@ class SchістApiClient {
 	}
 
 	async createDocument(documentData: CreateDocumentRequest): Promise<CreateDocumentResponse> {
-		const normalizedDocumentData = {
-			...documentData,
-			metaData: {
-				...documentData.metaData,
-				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
-			}
-		};
+		const normalizedDocumentData = this.normalizeDocumentData(documentData);
 
 		return this.request<CreateDocumentResponse>('/documents', {
 			method: 'POST',
@@ -297,13 +348,7 @@ class SchістApiClient {
 	}
 
 	async updateDocument(slug: string, documentData: UpdateDocumentRequest): Promise<Document> {
-		const normalizedDocumentData = {
-			...documentData,
-			metaData: {
-				...documentData.metaData,
-				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
-			}
-		};
+		const normalizedDocumentData = this.normalizeDocumentData(documentData);
 
 		return this.request<Document>(`/documents/${encodeURIComponent(slug)}`, {
 			method: 'PUT',
@@ -316,17 +361,12 @@ class SchістApiClient {
 	}
 
 	async checkDocumentExists(path: string): Promise<boolean> {
-		const url = `${this.getApiUrl()}${buildApiEndpoint('/documents', path)}`;
-
-		const headers: Record<string, string> = {};
-		if (this.authToken) {
-			headers.Authorization = `Bearer ${this.authToken}`;
-		}
+		const url = `${this.baseUrl}${buildApiEndpoint('/documents', path)}`;
 
 		try {
 			const response = await fetch(url, {
 				method: 'HEAD',
-				headers
+				headers: this.authHeaders()
 			});
 
 			if (response.status === 200) {
@@ -361,11 +401,7 @@ class SchістApiClient {
 		saveType: 'manual' | 'auto' = 'manual'
 	): Promise<Document> {
 		const normalizedDocumentData = {
-			...documentData,
-			metaData: {
-				...documentData.metaData,
-				...(documentData.metaData.path && { path: normalizePath(documentData.metaData.path) })
-			},
+			...this.normalizeDocumentData(documentData),
 			saveType
 		};
 
@@ -484,7 +520,7 @@ class SchістApiClient {
 		const formData = new FormData();
 		formData.append('file', file);
 
-		const url = `${this.getApiUrl()}/assets/upload`;
+		const url = `${this.baseUrl}/assets/upload`;
 
 		return new Promise((resolve, reject) => {
 			const xhr = new XMLHttpRequest();
@@ -523,8 +559,8 @@ class SchістApiClient {
 			xhr.open('POST', url);
 
 			// Add authorization header if we have a token
-			if (this.authToken) {
-				xhr.setRequestHeader('Authorization', `Bearer ${this.authToken}`);
+			for (const [name, value] of Object.entries(this.authHeaders())) {
+				xhr.setRequestHeader(name, value);
 			}
 
 			xhr.send(formData);
@@ -550,7 +586,7 @@ class SchістApiClient {
 	getAssetUrl(path: string): string {
 		const uploadsPath = path.replace('/assets/', '/uploads/');
 
-		const apiUrl = this.getApiUrl();
+		const apiUrl = this.baseUrl;
 
 		if (apiUrl === '/api') {
 			return uploadsPath;
@@ -562,17 +598,12 @@ class SchістApiClient {
 
 	async exportDocument(path: string): Promise<void> {
 		const encodedPath = this.encodePath(path);
-		const url = `${this.getApiUrl()}/export/document${encodedPath}`;
+		const url = `${this.baseUrl}/export/document${encodedPath}`;
 
 		try {
-			const headers: Record<string, string> = {};
-			if (this.authToken) {
-				headers.Authorization = `Bearer ${this.authToken}`;
-			}
-
 			const response = await fetch(url, {
 				method: 'GET',
-				headers
+				headers: this.authHeaders()
 			});
 
 			if (!response.ok) {
@@ -605,13 +636,13 @@ class SchістApiClient {
 
 	async exportFolder(path: string): Promise<void> {
 		const encodedPath = this.encodePath(path);
-		const url = `${this.getApiUrl()}/export/folder${encodedPath}`;
+		const url = `${this.baseUrl}/export/folder${encodedPath}`;
 
 		window.open(url, '_blank');
 	}
 
 	async exportAll(): Promise<void> {
-		const url = `${this.getApiUrl()}/export/all`;
+		const url = `${this.baseUrl}/export/all`;
 
 		window.open(url, '_blank');
 	}
@@ -849,6 +880,6 @@ class SchістApiClient {
 	}
 }
 
-export const apiClient = new SchістApiClient();
+export const apiClient = new SchistApiClient();
 
-export { SchістApiClient };
+export { SchistApiClient };

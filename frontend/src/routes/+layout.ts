@@ -17,11 +17,10 @@ export const load: LayoutLoad = async ({ url }) => {
 		return {};
 	}
 
-	if (authService.isAuthEnabled()) {
-		const isAuthenticated = await authService.requireAuth(url.pathname);
-		if (!isAuthenticated) {
-			throw redirect(303, `/login?returnUrl=${encodeURIComponent(url.pathname)}`);
-		}
+	// requireAuth() no-ops (returns true) when auth is disabled, so no isAuthEnabled() guard is needed.
+	const isAuthenticated = await authService.requireAuth(url.pathname);
+	if (!isAuthenticated) {
+		throw redirect(303, `/login?returnUrl=${encodeURIComponent(url.pathname)}`);
 	}
 
 	// Layout only handles auth - components handle their own data loading

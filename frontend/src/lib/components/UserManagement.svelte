@@ -14,6 +14,7 @@
 	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { getErrorMessage } from '$lib/utils/error';
 	import type { UserInfo } from '$lib/api/types';
 
 	let users: UserInfo[] = $state([]);
@@ -50,7 +51,7 @@
 			showInviteDialog = true;
 		} catch (err) {
 			console.error('Failed to generate invite:', err);
-			error = err instanceof Error ? err.message : 'Failed to generate invite';
+			error = getErrorMessage(err, 'Failed to generate invite');
 		} finally {
 			generatingInvite = false;
 		}
@@ -82,7 +83,7 @@
 			await loadUsers();
 		} catch (err) {
 			console.error('Failed to delete user:', err);
-			error = err instanceof Error ? err.message : 'Failed to delete user';
+			error = getErrorMessage(err, 'Failed to delete user');
 		}
 	}
 

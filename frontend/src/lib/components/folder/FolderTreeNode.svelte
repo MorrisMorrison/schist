@@ -114,11 +114,7 @@
 		}
 	}
 
-	function isCurrentFile(path: string): boolean {
-		return `/documents${path}` === currentPath;
-	}
-
-	function isSelectedFile(path: string): boolean {
+	function isFileAtCurrentPath(path: string): boolean {
 		return `/documents${path}` === currentPath;
 	}
 
@@ -273,8 +269,8 @@
 						{draggedItem}
 						{dropTarget}
 						{dragOverTarget}
-						isSelected={isSelectedFile(page.metaData.path)}
-						isCurrent={isCurrentFile(page.metaData.path)}
+						isSelected={isFileAtCurrentPath(page.metaData.path)}
+						isCurrent={isFileAtCurrentPath(page.metaData.path)}
 						{enableContextMenu}
 						onSelect={() => onDocumentSelect?.({ document: page })}
 						onContextMenu={(e) => onDocumentContextMenu?.(e, page)}

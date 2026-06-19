@@ -13,20 +13,21 @@
 		"install-browsers": "npx playwright install --with-deps chromium",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
+		"typecheck": "tsc --noEmit",
 		"lint": "prettier --check . && eslint .",
 		"lint:fix": "eslint --fix . && prettier --write ."
 	},
 	"devDependencies": {
-		"@eslint/compat": "^1.2.5",
+		"@eslint/compat": "^2.1.0",
 		"@eslint/js": "^9.18.0",
-		"@playwright/test": "^1.55.0",
+		"@playwright/test": "^1.61.0",
 		"@types/node": "^25.9.3",
 		"eslint": "^9.34.0",
 		"eslint-config-prettier": "^10.0.1",
 		"globals": "^17.6.0",
 		"playwright": "^1.53.0",
-		"prettier": "^3.4.2",
+		"prettier": "^3.8.4",
 		"typescript": "^5.9.2",
-		"typescript-eslint": "^8.20.0"
+		"typescript-eslint": "^8.61.1"
 	}
 }

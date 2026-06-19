@@ -30,17 +30,15 @@ concurrency:
 jobs:
   e2e:
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
-    # Job-level: a single repo-wide lane so only ONE e2e job runs at a time
-    # across all branches/PRs. The suite is resource-heavy (full Docker app
-    # stack + Chromium); several on the shared self-hosted runner at once starve
-    # each other's CPU and the SPA misses its visibility timeouts, surfacing as
-    # spurious `toBeVisible` "element(s) not found" failures on otherwise-passing
-    # tests (they cluster late in a run and on retries, as concurrent load
-    # builds). cancel-in-progress is false here so queued runs from *other* PRs
-    # are not dropped -- they take turns; same-PR supersession is still handled
-    # by the workflow-level concurrency above. (GitHub concurrency caps a group
-    # at 1; for N>1 parallel e2e the lever is fewer runner replicas or a
-    # dedicated e2e runner, not re-grouping here.)
+    # Serialize e2e repo-wide: only ONE e2e job runs at a time, regardless of how
+    # many runner instances exist. Each e2e run is a full Docker app stack +
+    # Chromium; the limiting resource is host RAM, not the runner count, and the
+    # DooD host can safely run ~one at a time -- two concurrent runs starve each
+    # other until the app container is OOM-killed (tests then see
+    # ERR_CONNECTION_REFUSED / spurious logouts). This lane is a no-op at 1 runner
+    # and protective at 2+, so it's set-once and needs no change when scaling
+    # runners. Cheap jobs still parallelize across instances; only e2e is
+    # single-laned. cancel-in-progress:false so queued PR runs aren't dropped.
     concurrency:
       group: e2e-global-lane
       cancel-in-progress: false
@@ -99,7 +97,7 @@ jobs:
             -w /e2e \
             -e CI=true \
             -e PLAYWRIGHT_BASE_URL=http://localhost:8080 \
-            mcr.microsoft.com/playwright:v1.55.0-noble \
+            mcr.microsoft.com/playwright:v1.61.0-noble \
             sh -c 'npm ci && npx playwright test')"
           docker cp ./e2e/. "${CID}:/e2e"
           RC=0

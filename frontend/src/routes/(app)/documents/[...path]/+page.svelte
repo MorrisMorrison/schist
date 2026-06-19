@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import { goto } from '$app/navigation';
@@ -9,7 +9,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Home, Plus, RotateCcw, Search } from '@lucide/svelte';
 	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
-	import { isNotFoundError } from '$lib/utils/error';
+	import { isNotFoundError, getErrorMessage } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
 
@@ -25,14 +25,16 @@
 	const decodedPath = $derived(decodeURIComponent(path));
 	const fullPath = $derived(`/${decodedPath}`);
 
-	onMount(() => {
-		loadContent();
-	});
-
 	onDestroy(() => {
 		documentLoader.cleanup();
 	});
 
+	// Load on mount and whenever the path changes. This $effect already covers
+	// the initial mount, so a separate onMount(loadContent) would double-invoke
+	// loadContent -- two concurrent loads race through the shared loading
+	// optimizer (each start() clears the other's pending min-display timer),
+	// which can strand the spinner and prevent the not-found/document view from
+	// ever rendering.
 	$effect(() => {
 		if (path !== undefined) {
 			loadContent();
@@ -66,7 +68,7 @@
 				}
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load content';
+			error = getErrorMessage(err, 'Failed to load content');
 		} finally {
 			isLoadingContent = false;
 			documentLoader.stopLoading();

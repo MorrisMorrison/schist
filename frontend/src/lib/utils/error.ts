@@ -210,7 +210,7 @@ function getStatusMessage(status: number): string {
 	}
 }
 
-function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
+export function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
 	switch (status) {
 		case 400:
 			return 'VALIDATION_ERROR';
@@ -291,4 +291,9 @@ function getSeverityFromCode(code?: ErrorCode): 'error' | 'warning' | 'info' {
 export function isNotFoundError(error: unknown): boolean {
 	const parsed = parseError(error);
 	return parsed.code === 'RESOURCE_NOT_FOUND';
+}
+
+export function isUnauthorizedError(error: unknown): boolean {
+	const parsed = parseError(error);
+	return parsed.code === 'UNAUTHORIZED';
 }

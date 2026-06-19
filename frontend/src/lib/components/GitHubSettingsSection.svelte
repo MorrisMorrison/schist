@@ -43,12 +43,8 @@
 	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
 	const hasChanges = $derived(
 		githubStore.connectionStatus && githubStore.connectionStatus.connected && githubStore.settings
-			? (() => {
-					return (
-						branch !== githubStore.settings.branch ||
-						(backupMode === 'auto') !== githubStore.settings.auto_sync
-					);
-				})()
+			? branch !== githubStore.settings.branch ||
+					(backupMode === 'auto') !== githubStore.settings.auto_sync
 			: canTestConnection
 	);
 
@@ -71,17 +67,8 @@
 			formError = 'Repository name is required';
 			return false;
 		}
-		if (!branch.trim()) {
-			formError = 'Branch name is required';
-			return false;
-		}
-		if (syncInterval < 5) {
-			formError = 'Sync interval must be at least 5 minutes';
-			return false;
-		}
 
-		formError = '';
-		return true;
+		return validateSettingsUpdate();
 	}
 
 	function validateSettingsUpdate(): boolean {
@@ -254,7 +241,7 @@
 						Create a token at <a
 							href="https://github.com/settings/tokens"
 							target="_blank"
-							class="text-blue-600 hover:underline">GitHub Settings</a
+							class="text-blue-600 hover:underline dark:text-blue-400">GitHub Settings</a
 						> with repo permissions.
 					</p>
 				</div>
@@ -375,8 +362,9 @@
 							<div class="flex items-center gap-2">
 								{#if githubStore.connectionStatus?.connected}
 									<CheckCircle class="h-4 w-4 text-green-500" />
-									<span data-testid="github-status-connected" class="text-sm text-green-600"
-										>Connected</span
+									<span
+										data-testid="github-status-connected"
+										class="text-sm text-green-600 dark:text-green-400">Connected</span
 									>
 								{:else}
 									<AlertCircle class="h-4 w-4 text-red-500" />
@@ -469,7 +457,9 @@
 	{#if activeTab === 'sync'}
 		<div class="space-y-4">
 			{#if !isConnected}
-				<div class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700">
+				<div
+					class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+				>
 					<AlertCircle class="h-4 w-4 flex-shrink-0" />
 					GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.
 				</div>
@@ -512,10 +502,13 @@
 						<div class="flex items-center gap-2">
 							{#if githubStore.gitHealthStatus.healthy}
 								<CheckCircle class="h-4 w-4 text-green-500" />
-								<span class="text-sm text-green-600">Repository is healthy</span>
+								<span class="text-sm text-green-600 dark:text-green-400">Repository is healthy</span
+								>
 							{:else}
 								<AlertCircle class="h-4 w-4 text-red-500" />
-								<span class="text-sm text-red-600">Repository health issues detected</span>
+								<span class="text-sm text-red-600 dark:text-red-400"
+									>Repository health issues detected</span
+								>
 							{/if}
 						</div>
 
@@ -530,8 +523,8 @@
 						<div
 							class="flex items-start gap-2 rounded-md p-3 text-sm {githubStore.lastRepairResult
 								.success
-								? 'border border-green-200 bg-green-50 text-green-700'
-								: 'border border-red-200 bg-red-50 text-red-700'}"
+								? 'border border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-400'
+								: 'border border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400'}"
 						>
 							{#if githubStore.lastRepairResult.success}
 								<CheckCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
@@ -579,7 +572,9 @@
 					<div class="flex items-center gap-2">
 						{#if githubStore.lastSyncResult.success}
 							<CheckCircle class="h-4 w-4 text-green-500" />
-							<span class="font-medium text-green-600">Last Sync Successful</span>
+							<span class="font-medium text-green-600 dark:text-green-400"
+								>Last Sync Successful</span
+							>
 						{:else}
 							<AlertCircle class="h-4 w-4 text-red-500" />
 							<span class="text-destructive font-medium">Last Sync Failed</span>

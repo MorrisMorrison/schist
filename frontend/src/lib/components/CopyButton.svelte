@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { copyToClipboard, isClipboardSupported } from '$lib/utils/clipboard';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	interface Props {
 		text: string;
@@ -43,7 +44,7 @@
 			}
 		} catch (error) {
 			copyState = 'error';
-			errorMessage = error instanceof Error ? error.message : 'Copy failed';
+			errorMessage = getErrorMessage(error, 'Copy failed');
 			setTimeout(() => {
 				copyState = 'idle';
 				errorMessage = '';

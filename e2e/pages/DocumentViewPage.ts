@@ -28,13 +28,11 @@ export class DocumentViewPage extends BasePage {
 	readonly links: Locator;
 	readonly images: Locator;
 	readonly codeBlocks: Locator;
-	readonly copyButtons: Locator;
 
 	// Error states
 	readonly notFoundMessage: Locator;
 	readonly notFoundHeading: Locator;
 	readonly errorMessage: Locator;
-	readonly loadingSpinner: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -62,7 +60,6 @@ export class DocumentViewPage extends BasePage {
 		this.links = this.documentContent.locator('a');
 		this.images = this.documentContent.locator('img');
 		this.codeBlocks = this.documentContent.locator('pre, code');
-		this.copyButtons = page.getByTestId('copy-button');
 
 		// Error states (using actual UI text)
 		this.notFoundMessage = page
@@ -72,7 +69,6 @@ export class DocumentViewPage extends BasePage {
 			.getByTestId('not-found-heading')
 			.or(page.getByRole('heading', { name: 'Document Not Found' }));
 		this.errorMessage = page.getByTestId('error-message');
-		this.loadingSpinner = page.getByTestId('loading');
 	}
 
 	/**
@@ -111,24 +107,10 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Get the document title text
-	 */
-	async getDocumentTitle(): Promise<string> {
-		return (await this.documentTitle.textContent()) || '';
-	}
-
-	/**
 	 * Get the document content text
 	 */
 	async getDocumentContent(): Promise<string> {
 		return (await this.documentContent.textContent()) || '';
-	}
-
-	/**
-	 * Get list of document tags
-	 */
-	async getDocumentTags(): Promise<string[]> {
-		return await this.documentTags.allTextContents();
 	}
 
 	/**
@@ -217,20 +199,6 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Copy code block content
-	 */
-	async copyCodeBlock(index: number = 0) {
-		const copyButton = this.copyButtons.nth(index);
-		await copyButton.click();
-
-		// Verify copy feedback (if available)
-		const copyFeedback = this.page.getByTestId('copy-success');
-		if (await copyFeedback.isVisible({ timeout: 1000 })) {
-			await expect(copyFeedback).toBeVisible();
-		}
-	}
-
-	/**
 	 * Verify document metadata is displayed
 	 */
 	async verifyMetadata() {
@@ -277,13 +245,6 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Verify document is loading
-	 */
-	async verifyLoading() {
-		await this.waitForVisible(this.loadingSpinner);
-	}
-
-	/**
 	 * Count number of headings in content
 	 */
 	async getHeadingCount(): Promise<number> {
@@ -295,13 +256,6 @@ export class DocumentViewPage extends BasePage {
 	 */
 	async getLinkCount(): Promise<number> {
 		return await this.links.count();
-	}
-
-	/**
-	 * Count number of images in content
-	 */
-	async getImageCount(): Promise<number> {
-		return await this.images.count();
 	}
 
 	/**
@@ -343,32 +297,8 @@ export class DocumentViewPage extends BasePage {
 		return this.verifyDocumentLoaded(expectedTitle);
 	}
 
-	async getPageTitle(): Promise<string> {
-		return this.getDocumentTitle();
-	}
-
-	async getPageContent(): Promise<string> {
-		return this.getDocumentContent();
-	}
-
-	async getPageTags(): Promise<string[]> {
-		return this.getDocumentTags();
-	}
-
 	async editPage() {
 		return this.editDocument();
-	}
-
-	async deletePage() {
-		return this.deleteDocument();
-	}
-
-	async movePage() {
-		return this.moveDocument();
-	}
-
-	async verifyPageNotFound() {
-		return this.verifyDocumentNotFound();
 	}
 
 	async verifyPageUrl(expectedPath: string) {
@@ -417,21 +347,6 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Copy share link to clipboard
-	 */
-	async copyShareLink(): Promise<void> {
-		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
-		const copyButton = modal
-			.getByRole('button')
-			.filter({ has: this.page.locator('svg') })
-			.nth(0);
-		await copyButton.click();
-
-		// Wait for success message
-		await expect(modal.getByText(/copied to clipboard/i)).toBeVisible();
-	}
-
-	/**
 	 * Revoke a share link
 	 */
 	async revokeShareLink(shareIndex = 0): Promise<void> {
@@ -472,14 +387,5 @@ export class DocumentViewPage extends BasePage {
 	// Legacy property aliases
 	get pageTitle() {
 		return this.documentTitle;
-	}
-	get pageContent() {
-		return this.documentContent;
-	}
-	get pageTags() {
-		return this.documentTags;
-	}
-	get pageMetadata() {
-		return this.documentMetadata;
 	}
 }

@@ -20,6 +20,7 @@
 	import DiffViewer from './DiffViewer.svelte';
 	import type { DocumentVersion, DiffResult } from '$lib/api/types';
 	import { apiClient } from '$lib/api/client';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	interface Props {
 		open: boolean;
@@ -92,7 +93,7 @@
 			showDiff = true;
 		} catch (error) {
 			console.error('Failed to compare versions:', error);
-			diffError = error instanceof Error ? error.message : 'Failed to compare versions';
+			diffError = getErrorMessage(error, 'Failed to compare versions');
 		} finally {
 			isLoadingDiff = false;
 		}

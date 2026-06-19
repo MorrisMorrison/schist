@@ -28,12 +28,13 @@ concurrency:
 jobs:
   build:
     name: Build All
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    timeout-minutes: 20
     env:
       PUBLIC_API_URL: http://localhost:8080/api
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       # Set up Go for backend
       - name: Set up Go
@@ -46,7 +47,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22.12.0'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
       
@@ -57,11 +58,12 @@ jobs:
 
   docker-build:
     name: Docker Build
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    timeout-minutes: 20
     needs: build
     
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Build Docker image
         run: docker build -t "schist-test:${GITHUB_RUN_ID}" .

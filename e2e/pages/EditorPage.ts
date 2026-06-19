@@ -8,13 +8,6 @@ export class EditorPage extends BasePage {
 	readonly deleteButton: Locator;
 	readonly confirmDeleteButton: Locator;
 
-	readonly editorToolbar: Locator;
-	readonly previewToggle: Locator;
-	readonly previewPane: Locator;
-	readonly imageUploadButton: Locator;
-	readonly fileUploadInput: Locator;
-
-	readonly errorMessage: Locator;
 	readonly documentTitle: Locator;
 
 	constructor(page: Page) {
@@ -27,13 +20,6 @@ export class EditorPage extends BasePage {
 		this.deleteButton = page.getByTestId('delete-document-button');
 		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
 
-		this.editorToolbar = page.getByTestId('editor-toolbar');
-		this.previewToggle = page.getByTestId('preview-toggle-button');
-		this.previewPane = page.getByTestId('preview-pane');
-		this.imageUploadButton = page.getByTestId('image-upload-button');
-		this.fileUploadInput = page.locator('input[type="file"]');
-
-		this.errorMessage = page.locator('.bg-red-muted, [data-testid="error-message"]');
 		this.documentTitle = page.locator('h1').first();
 	}
 
@@ -66,13 +52,6 @@ export class EditorPage extends BasePage {
 	async setContent(content: string) {
 		await this.clearContent();
 		await this.typeContent(content);
-	}
-
-	async addHashtags(tags: string[]) {
-		if (tags.length > 0) {
-			const hashtags = tags.map((tag) => `#${tag}`).join(' ');
-			await this.appendContent(`\n\n${hashtags}`);
-		}
 	}
 
 	async save() {
@@ -115,33 +94,6 @@ export class EditorPage extends BasePage {
 		await this.page.keyboard.press('Delete');
 	}
 
-	async togglePreview() {
-		if (await this.previewToggle.isVisible()) {
-			await this.previewToggle.click();
-		}
-	}
-
-	async uploadImage(filePath: string) {
-		const fileChooserPromise = this.page.waitForEvent('filechooser');
-
-		if (await this.imageUploadButton.isVisible()) {
-			await this.imageUploadButton.click();
-		} else {
-			await this.fileUploadInput.setInputFiles(filePath);
-			return;
-		}
-
-		const fileChooser = await fileChooserPromise;
-		await fileChooser.setFiles(filePath);
-
-		await this.page.waitForLoadState('networkidle');
-	}
-
-	async saveWithKeyboard() {
-		await this.page.keyboard.press('Control+s');
-		await this.page.waitForLoadState('networkidle');
-	}
-
 	async waitForAutoSave(timeoutMs: number = 15000) {
 		try {
 			await this.page.getByTestId('unsaved-indicator').waitFor({
@@ -178,40 +130,6 @@ export class EditorPage extends BasePage {
 
 	async getContent(): Promise<string> {
 		return (await this.contentEditor.textContent()) || '';
-	}
-
-	async hasUnsavedChanges(): Promise<boolean> {
-		return await this.elementExists('[data-testid="unsaved-changes"]');
-	}
-
-	async verifyError(expectedError: string) {
-		await this.waitForVisible(this.errorMessage);
-		await expect(this.errorMessage).toContainText(expectedError);
-	}
-
-	async makeBold() {
-		await this.contentEditor.selectText();
-		await this.page.keyboard.press('Control+b');
-	}
-
-	async insertHeading(level: number, text: string) {
-		const headingMarkdown = '#'.repeat(level) + ' ' + text;
-		await this.typeContent(headingMarkdown);
-	}
-
-	async insertLink(linkText: string, url: string) {
-		const linkMarkdown = `[${linkText}](${url})`;
-		await this.typeContent(linkMarkdown);
-	}
-
-	async getCurrentPath(): Promise<string> {
-		const pathElement = this.page.locator('p:has-text("Editing")').first();
-		if (await pathElement.isVisible()) {
-			const text = (await pathElement.textContent()) || '';
-			const match = text.match(/Editing\s+(.+)/);
-			return match ? match[1] : '';
-		}
-		return '';
 	}
 
 	async fillPageDetails(title: string, content: string, tags: string[] = []) {

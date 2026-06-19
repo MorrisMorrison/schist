@@ -74,6 +74,20 @@ class SchistApiClient {
 		this.authToken = token;
 	}
 
+	// Prefer the in-memory token, but fall back to localStorage so a request that
+	// fires before the auth store has called setAuthToken() (a module-init race)
+	// still carries the Bearer token instead of going out unauthenticated and
+	// triggering a spurious 401 -> global logout -> /login redirect. The key must
+	// match AUTH_STORAGE_KEY in stores/auth.svelte.ts.
+	private getAuthToken(): string | null {
+		if (this.authToken) return this.authToken;
+		try {
+			return typeof localStorage !== 'undefined' ? localStorage.getItem('schist_auth_token') : null;
+		} catch {
+			return null;
+		}
+	}
+
 	private determineApiUrl(): string {
 		if (env.PUBLIC_API_URL) {
 			return env.PUBLIC_API_URL;
@@ -92,8 +106,9 @@ class SchistApiClient {
 
 	private authHeaders(): Record<string, string> {
 		const headers: Record<string, string> = {};
-		if (this.authToken) {
-			headers.Authorization = `Bearer ${this.authToken}`;
+		const token = this.getAuthToken();
+		if (token) {
+			headers.Authorization = `Bearer ${token}`;
 		}
 		return headers;
 	}
@@ -140,8 +155,9 @@ class SchistApiClient {
 				Accept: 'application/json'
 			};
 
-			if (this.authToken) {
-				defaultHeaders.Authorization = `Bearer ${this.authToken}`;
+			const token = this.getAuthToken();
+			if (token) {
+				defaultHeaders.Authorization = `Bearer ${token}`;
 			}
 
 			const config: RequestInit = {

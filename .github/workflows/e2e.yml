@@ -21,6 +21,8 @@ on:
       - 'docker-compose.yml'
       - '.github/workflows/e2e.yml'
 
+# Workflow-level: cancel a PR's in-flight run when a newer commit is pushed to
+# the same ref, so the runner isn't wasted building stale commit states.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -28,25 +30,47 @@ concurrency:
 jobs:
   e2e:
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    # Serialize e2e repo-wide: only ONE e2e job runs at a time, regardless of how
+    # many runner instances exist. Each e2e run is a full Docker app stack +
+    # Chromium; the limiting resource is host RAM, not the runner count, and the
+    # DooD host can safely run ~one at a time -- two concurrent runs starve each
+    # other until the app container is OOM-killed (tests then see
+    # ERR_CONNECTION_REFUSED / spurious logouts). This lane is a no-op at 1 runner
+    # and protective at 2+, so it's set-once and needs no change when scaling
+    # runners. Cheap jobs still parallelize across instances; only e2e is
+    # single-laned. cancel-in-progress:false so queued PR runs aren't dropped.
+    concurrency:
+      group: e2e-global-lane
+      cancel-in-progress: false
     timeout-minutes: 10
     # docker-compose.yml's prod `schist` service declares SCHIST_JWT_SECRET as a
     # required variable (${SCHIST_JWT_SECRET:?...}). Compose interpolates every
     # service before applying --profile, so this must be set even though only the
     # e2e profile runs. A throwaway value is fine for tests.
     #
-    # COMPOSE_PROJECT_NAME is run-unique so the two parallel runner replicas get
-    # their own containers + network and don't collide.
+    # COMPOSE_PROJECT_NAME must be unique per run AND per attempt: a rerun keeps
+    # the same run_id, so without run_attempt it reuses the previous attempt's
+    # containers. A cancelled/failed attempt can leave a backend that already has
+    # a registered user, making the rerun see `requires_setup: false` -- which
+    # sends auth.setup down the existing-user path and fails (the virtual
+    # authenticator is fresh and can't reproduce the prior run's passkey). Scoping
+    # by attempt guarantees a clean backend every time.
     env:
       SCHIST_JWT_SECRET: test-jwt-secret-for-e2e-testing-32-bytes-long
-      COMPOSE_PROJECT_NAME: schist-e2e-${{ github.run_id }}
+      COMPOSE_PROJECT_NAME: schist-e2e-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Start E2E service
         run: |
           set -euo pipefail
-          docker compose --profile e2e up -d --build
+          # Defensive: drop any leftovers from a previous attempt with this
+          # project name (e.g. a cancelled run whose cleanup step didn't finish),
+          # then build fresh so the backend starts with an empty datastore
+          # (requires_setup: true) and auth.setup runs the first-time passkey flow.
+          docker compose --profile e2e down -v --remove-orphans 2>/dev/null || true
+          docker compose --profile e2e up -d --build --force-recreate
 
           echo "Waiting for service to become healthy..."
           timeout 120 bash -c '
@@ -73,7 +97,7 @@ jobs:
             -w /e2e \
             -e CI=true \
             -e PLAYWRIGHT_BASE_URL=http://localhost:8080 \
-            mcr.microsoft.com/playwright:v1.55.0-noble \
+            mcr.microsoft.com/playwright:v1.61.0-noble \
             sh -c 'npm ci && npx playwright test')"
           docker cp ./e2e/. "${CID}:/e2e"
           RC=0
@@ -90,7 +114,7 @@ jobs:
 
       - name: Upload Playwright report and traces on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-results
           path: |

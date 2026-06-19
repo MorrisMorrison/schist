@@ -13,6 +13,9 @@
 
 	const { currentDocument, backlinks, outgoingLinks }: Props = $props();
 
+	const validOutgoingLinks = $derived((outgoingLinks || []).filter((l) => l.is_valid));
+	const isEmpty = $derived((backlinks?.length || 0) === 0 && validOutgoingLinks.length === 0);
+
 	let svgElement = $state<SVGSVGElement>();
 	let containerElement = $state<HTMLDivElement>();
 	let width = $state(800);
@@ -218,10 +221,10 @@
 		// Center on current document
 		const currentNode = graphData.nodes.find((n) => n.type === 'current');
 		if (currentNode && currentNode.x && currentNode.y) {
-			const scale = 1;
-			const transform = d3.zoomIdentity
-				.translate(width / 2 - currentNode.x * scale, height / 2 - currentNode.y * scale)
-				.scale(scale);
+			const transform = d3.zoomIdentity.translate(
+				width / 2 - currentNode.x,
+				height / 2 - currentNode.y
+			);
 
 			svg.transition().duration(1000).call(zoom.transform, transform);
 		}
@@ -271,7 +274,7 @@
 	bind:this={containerElement}
 	class="border-border bg-background relative h-full min-h-[400px] w-full overflow-hidden rounded-lg border"
 >
-	{#if (backlinks?.length || 0) === 0 && (outgoingLinks?.filter((l) => l.is_valid) || []).length === 0}
+	{#if isEmpty}
 		<div class="flex h-full min-h-[400px] items-center justify-center">
 			<div class="py-8 text-center">
 				<div class="text-muted-foreground mb-2">
@@ -320,9 +323,7 @@
 					class="h-3 w-3 rounded-full border border-white"
 					style="background-color: #3b82f6;"
 				></div>
-				<span class="text-muted-foreground"
-					>Outgoing Links ({(outgoingLinks?.filter((l) => l.is_valid) || []).length})</span
-				>
+				<span class="text-muted-foreground">Outgoing Links ({validOutgoingLinks.length})</span>
 			</div>
 		</div>
 	{/if}

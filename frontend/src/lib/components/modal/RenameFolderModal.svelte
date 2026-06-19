@@ -9,8 +9,10 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Edit, AlertCircle } from '@lucide/svelte';
+	import { Edit } from '@lucide/svelte';
+	import InlineError from '$lib/components/ui/InlineError.svelte';
 	import type { Folder as FolderType } from '$lib/api/types';
+	import { getErrorMessage } from '$lib/utils/error';
 
 	interface Props {
 		folder?: FolderType;
@@ -68,7 +70,7 @@
 			await folderActions.renameFolder(folder.path, normalizedName);
 			onRenamed();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to rename folder';
+			error = getErrorMessage(err, 'Failed to rename folder');
 		} finally {
 			isLoading = false;
 		}
@@ -111,10 +113,7 @@
 					/>
 
 					{#if error && folderName}
-						<div class="flex items-center gap-2 rounded-md bg-red-50 p-2 text-sm text-red-700">
-							<AlertCircle class="h-4 w-4 flex-shrink-0" />
-							{error}
-						</div>
+						<InlineError message={error} />
 					{/if}
 				</div>
 

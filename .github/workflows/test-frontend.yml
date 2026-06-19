@@ -20,13 +20,18 @@ concurrency:
 jobs:
   frontend-tests:
     name: Frontend Tests
+    # NOT a cheap job: the unit tests run in Vitest browser mode (real headless
+    # Chromium). On a fresh GitHub-hosted runner `playwright install --with-deps`
+    # hangs on apt; the self-hosted box already has the browser + deps. Keep this
+    # on the self-hosted runner alongside e2e.
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22.12.0'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 

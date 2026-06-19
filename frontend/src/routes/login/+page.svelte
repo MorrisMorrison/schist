@@ -14,6 +14,7 @@
 	import { apiClient } from '$lib/api/client';
 	import { authenticateWithPasskey } from '$lib/utils/webauthn';
 	import { authService } from '$lib/auth/auth-service';
+	import { getErrorMessage } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let isLoading = $state(false);
@@ -52,8 +53,7 @@
 			await goto(returnUrl);
 		} catch (err) {
 			console.error('Passkey login failed:', err);
-			error =
-				err instanceof Error ? err.message : 'Passkey authentication failed. Please try again.';
+			error = getErrorMessage(err, 'Passkey authentication failed. Please try again.');
 		} finally {
 			isLoading = false;
 		}

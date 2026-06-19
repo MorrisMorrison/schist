@@ -141,7 +141,7 @@ export class ApiHelper {
 
 	// Documents
 	async createDocument(documentData: TestDocumentData): Promise<ApiResponse> {
-		return this.request('POST', '/documents', {
+		const response = await this.request('POST', '/documents', {
 			metaData: {
 				title: documentData.title,
 				path: documentData.path,
@@ -149,6 +149,33 @@ export class ApiHelper {
 			},
 			content: documentData.content
 		});
+
+		// Wait for read-after-write consistency before returning: the git-backed
+		// store commits the document slightly after the 201, so a test that
+		// navigates immediately can fetch it before it is queryable -- the page
+		// then renders not-found and the load assertion times out (a flaky
+		// `document-title` not-visible failure). Confirm it is retrievable first.
+		if (response.status === 201 && documentData.path) {
+			await this.waitForDocumentReadable(documentData.path);
+		}
+
+		return response;
+	}
+
+	/**
+	 * Poll until a freshly created document is retrievable (GET returns 200),
+	 * so callers can navigate to it without racing the backend's write.
+	 */
+	async waitForDocumentReadable(path: string, timeoutMs: number = 10000): Promise<void> {
+		const start = Date.now();
+		while (Date.now() - start < timeoutMs) {
+			const res = await this.request('GET', `/documents${path}`);
+			if (res.status === 200) {
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 150));
+		}
+		console.warn(`[ApiHelper] Document ${path} not retrievable after ${timeoutMs}ms`);
 	}
 
 	async deleteDocument(path: string): Promise<ApiResponse> {

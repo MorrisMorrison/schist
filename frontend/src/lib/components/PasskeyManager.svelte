@@ -13,7 +13,8 @@
 	import PasskeySetupModal from './modal/PasskeySetupModal.svelte';
 	import InfoBox from '$lib/components/ui/info-box.svelte';
 	import { Shield, Key, Plus, Trash2, Loader2 } from '@lucide/svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import LoadingRow from '$lib/components/LoadingRow.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
 	let showSetupModal = $state(false);
 	let deletingPasskey: string | null = $state(null);
@@ -33,7 +34,7 @@
 		try {
 			await passkeyStore.deletePasskey(passkey.id);
 		} catch {
-			deletingPasskey = null;
+			// error surfaced via passkeyStore.error; deletingPasskey reset in finally
 		} finally {
 			deletingPasskey = null;
 		}
@@ -70,21 +71,18 @@
 			</Alert>
 		{/if}
 		{#if passkeyStore.requiresSetup}
-			<div class="space-y-4 py-8 text-center">
-				<div class="bg-muted mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-					<Shield class="text-muted-foreground h-8 w-8" />
-				</div>
-				<div>
-					<h3 class="text-lg font-medium">Secure Your Secrets</h3>
-					<p class="text-muted-foreground mt-1 text-sm">
-						Create your first passkey to encrypt and protect API tokens and sensitive information.
-					</p>
-				</div>
-				<Button onclick={() => (showSetupModal = true)} class="bg-primary">
-					<Plus class="mr-2 h-4 w-4" />
-					Create Your First Passkey
-				</Button>
-			</div>
+			<EmptyState
+				icon={Shield}
+				title="Secure Your Secrets"
+				description="Create your first passkey to encrypt and protect API tokens and sensitive information."
+			>
+				{#snippet action()}
+					<Button onclick={() => (showSetupModal = true)} class="bg-primary">
+						<Plus class="mr-2 h-4 w-4" />
+						Create Your First Passkey
+					</Button>
+				{/snippet}
+			</EmptyState>
 		{:else if passkeyStore.hasPasskeys}
 			<div class="space-y-3">
 				<div class="flex items-center justify-between">
@@ -96,10 +94,7 @@
 				</div>
 
 				{#if passkeyStore.loading && passkeyStore.passkeys.length === 0}
-					<div class="flex items-center justify-center py-6">
-						<LoadingSpinner size="md" />
-						<span class="text-muted-foreground ml-2 text-sm">Loading passkeys...</span>
-					</div>
+					<LoadingRow text="Loading passkeys..." />
 				{:else}
 					<div class="space-y-2">
 						{#each passkeyStore.passkeys as passkey (passkey.id)}

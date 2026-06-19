@@ -30,6 +30,18 @@ concurrency:
 jobs:
   e2e:
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
+    # Serialize e2e repo-wide: only ONE e2e job runs at a time, regardless of how
+    # many runner instances exist. Each e2e run is a full Docker app stack +
+    # Chromium; the limiting resource is host RAM, not the runner count, and the
+    # DooD host can safely run ~one at a time -- two concurrent runs starve each
+    # other until the app container is OOM-killed (tests then see
+    # ERR_CONNECTION_REFUSED / spurious logouts). This lane is a no-op at 1 runner
+    # and protective at 2+, so it's set-once and needs no change when scaling
+    # runners. Cheap jobs still parallelize across instances; only e2e is
+    # single-laned. cancel-in-progress:false so queued PR runs aren't dropped.
+    concurrency:
+      group: e2e-global-lane
+      cancel-in-progress: false
     timeout-minutes: 10
     # docker-compose.yml's prod `schist` service declares SCHIST_JWT_SECRET as a
     # required variable (${SCHIST_JWT_SECRET:?...}). Compose interpolates every

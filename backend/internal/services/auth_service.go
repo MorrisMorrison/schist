@@ -1,8 +1,11 @@
 package services
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/config"
@@ -10,9 +13,26 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// authTicketTTL is how long a single-use passkey-login ticket remains valid
+// after a verified WebAuthn assertion before it must be exchanged for a JWT.
+const authTicketTTL = 60 * time.Second
+
+// authTicket is a short-lived, single-use proof that a WebAuthn assertion was
+// verified for a given credential. It is exchanged for a JWT via
+// LoginWithPasskeyTicket. It deliberately decouples the (public) credential ID
+// from token issuance: a JWT is only ever minted after IssueAuthTicket has been
+// called from the verified finish-authentication path.
+type authTicket struct {
+	credentialID string
+	expiresAt    time.Time
+}
+
 type AuthService struct {
 	config      *config.Config
 	userService *UserService
+
+	ticketMu sync.Mutex
+	tickets  map[string]authTicket
 }
 
 // User is the response DTO for an authenticated user. It deliberately omits
@@ -51,12 +71,66 @@ func NewAuthService(config *config.Config, userService *UserService) *AuthServic
 	return &AuthService{
 		config:      config,
 		userService: userService,
+		tickets:     make(map[string]authTicket),
 	}
 }
 
-func (s *AuthService) LoginWithPasskey(credentialId string) (*LoginResponse, error) {
-	// Find user by credential ID
-	user, err := s.userService.GetUserByCredentialID(credentialId)
+// IssueAuthTicket mints a short-lived, single-use ticket bound to a credential
+// ID that has just passed a verified WebAuthn assertion. The ticket is the only
+// accepted proof for LoginWithPasskeyTicket. It MUST only be called from the
+// finish-authentication path after the assertion has been validated.
+func (s *AuthService) IssueAuthTicket(credentialId string) (string, error) {
+	// Ensure the credential actually maps to a user before issuing a ticket.
+	if _, err := s.userService.GetUserByCredentialID(credentialId); err != nil {
+		return "", ErrInvalidCredentials
+	}
+
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("failed to generate auth ticket: %w", err)
+	}
+	ticket := base64.RawURLEncoding.EncodeToString(buf)
+
+	s.ticketMu.Lock()
+	s.pruneTicketsLocked()
+	s.tickets[ticket] = authTicket{
+		credentialID: credentialId,
+		expiresAt:    time.Now().Add(authTicketTTL),
+	}
+	s.ticketMu.Unlock()
+
+	return ticket, nil
+}
+
+// pruneTicketsLocked removes expired tickets. Caller must hold ticketMu.
+func (s *AuthService) pruneTicketsLocked() {
+	now := time.Now()
+	for k, v := range s.tickets {
+		if now.After(v.expiresAt) {
+			delete(s.tickets, k)
+		}
+	}
+}
+
+// LoginWithPasskeyTicket exchanges a single-use auth ticket (produced by
+// IssueAuthTicket after a verified assertion) for a JWT. A bare credential ID
+// is never accepted as proof of authentication.
+func (s *AuthService) LoginWithPasskeyTicket(ticket string) (*LoginResponse, error) {
+	s.ticketMu.Lock()
+	s.pruneTicketsLocked()
+	entry, ok := s.tickets[ticket]
+	if ok {
+		// Single-use: consume immediately regardless of outcome.
+		delete(s.tickets, ticket)
+	}
+	s.ticketMu.Unlock()
+
+	if !ok || time.Now().After(entry.expiresAt) {
+		return nil, ErrInvalidCredentials
+	}
+
+	// Find user by the verified credential ID.
+	user, err := s.userService.GetUserByCredentialID(entry.credentialID)
 	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
@@ -87,7 +161,11 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(s.config.JWTSecret), nil
-	})
+	},
+		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithIssuer("schist"),
+		jwt.WithExpirationRequired(),
+	)
 
 	if err != nil {
 		return "", ErrInvalidToken

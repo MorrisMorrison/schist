@@ -429,6 +429,13 @@ export interface WebAuthnFinishAuthenticationRequest {
 export interface WebAuthnFinishAuthenticationResponse {
 	credentialId: string;
 	message: string;
+	// Short-lived (60s), single-use ticket proving a verified WebAuthn
+	// assertion. Exchanged for a JWT at POST /auth/login/passkey.
+	authTicket: string;
+}
+
+export interface PasskeyLoginRequest {
+	authTicket: string;
 }
 
 // WebAuthn credential types from @simplewebauthn/types

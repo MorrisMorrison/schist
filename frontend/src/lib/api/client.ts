@@ -36,6 +36,7 @@ import type {
 	ShareListResponse,
 	PasskeyStatus,
 	PasskeyUnlockRequest,
+	PasskeyLoginRequest,
 	PasskeyListResponse,
 	WebAuthnBeginRegistrationRequest,
 	WebAuthnBeginRegistrationResponse,
@@ -304,10 +305,10 @@ class SchistApiClient {
 		return config;
 	}
 
-	async loginWithPasskey(credentialId: string): Promise<LoginResponse> {
+	async loginWithPasskey(authTicket: string): Promise<LoginResponse> {
 		const response = await this.request<LoginResponse>('/auth/login/passkey', {
 			method: 'POST',
-			body: JSON.stringify({ credentialId })
+			body: JSON.stringify({ authTicket } satisfies PasskeyLoginRequest)
 		});
 
 		this.setAuthToken(response.token);

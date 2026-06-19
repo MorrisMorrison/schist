@@ -5,7 +5,7 @@ import {
 	WebAuthnError,
 	isWebAuthnSupported
 } from '$lib/utils/webauthn';
-import { getErrorMessage } from '$lib/utils/error';
+import { runAsync } from './resource.svelte';
 
 export interface PasskeyInfo {
 	id: string;
@@ -38,40 +38,29 @@ const passkeyState: PasskeyStoreState = $state<PasskeyStoreState>(defaultPasskey
 function createPasskeyStore() {
 	return {
 		async loadStatus(force = false): Promise<PasskeyStatus> {
-			passkeyState.loading = true;
-			passkeyState.error = null;
-
-			try {
-				const status = await apiClient.getPasskeyStatus(force);
-
-				passkeyState.status = status;
-				passkeyState.loading = false;
-				return status;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to load passkey status');
-				passkeyState.error = errorMsg;
-				passkeyState.loading = false;
-				throw error;
-			}
+			return runAsync(
+				passkeyState,
+				async () => {
+					const status = await apiClient.getPasskeyStatus(force);
+					passkeyState.status = status;
+					return status;
+				},
+				'Failed to load passkey status'
+			);
 		},
 
 		async loadPasskeys(force = false): Promise<PasskeyInfo[]> {
-			passkeyState.loading = true;
-			passkeyState.error = null;
+			return runAsync(
+				passkeyState,
+				async () => {
+					const response = await apiClient.listPasskeys(force);
+					const passkeys = response.passkeys;
 
-			try {
-				const response = await apiClient.listPasskeys(force);
-				const passkeys = response.passkeys;
-
-				passkeyState.passkeys = passkeys;
-				passkeyState.loading = false;
-				return passkeys;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to load passkeys');
-				passkeyState.error = errorMsg;
-				passkeyState.loading = false;
-				throw error;
-			}
+					passkeyState.passkeys = passkeys;
+					return passkeys;
+				},
+				'Failed to load passkeys'
+			);
 		},
 
 		async createPasskey(name: string): Promise<string> {
@@ -124,22 +113,16 @@ function createPasskeyStore() {
 		},
 
 		async deletePasskey(credentialId: string): Promise<void> {
-			passkeyState.loading = true;
-			passkeyState.error = null;
+			await runAsync(
+				passkeyState,
+				async () => {
+					await apiClient.deletePasskey(credentialId);
 
-			try {
-				await apiClient.deletePasskey(credentialId);
-
-				await this.loadPasskeys();
-				await this.loadStatus();
-
-				passkeyState.loading = false;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to delete passkey');
-				passkeyState.error = errorMsg;
-				passkeyState.loading = false;
-				throw error;
-			}
+					await this.loadPasskeys();
+					await this.loadStatus();
+				},
+				'Failed to delete passkey'
+			);
 		},
 
 		async authenticateWithPasskey(): Promise<string> {
@@ -192,26 +175,6 @@ function createPasskeyStore() {
 			}
 		},
 
-		// Legacy method: Unlock secrets with a specific credential ID (for backwards compatibility)
-		async unlockWithPasskey(credentialId: string): Promise<void> {
-			passkeyState.loading = true;
-			passkeyState.error = null;
-
-			try {
-				await apiClient.unlockWithPasskey({ credentialId });
-
-				// Update status to reflect unlocked state
-				await this.loadStatus();
-
-				passkeyState.loading = false;
-			} catch (error) {
-				const errorMsg = getErrorMessage(error, 'Failed to unlock with passkey');
-				passkeyState.error = errorMsg;
-				passkeyState.loading = false;
-				throw error;
-			}
-		},
-
 		// Clear error state
 		clearError() {
 			passkeyState.error = null;
@@ -252,8 +215,3 @@ export const passkeyStore = {
 	// Action methods
 	...createPasskeyStore()
 };
-
-// Derived exports for convenience
-export const isUnlocked = () => passkeyStore.isUnlocked;
-export const hasPasskeys = () => passkeyStore.hasPasskeys;
-export const requiresSetup = () => passkeyStore.requiresSetup;

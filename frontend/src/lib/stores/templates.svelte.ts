@@ -48,14 +48,6 @@ function createTemplatesStore() {
 
 		clearTemplates(): void {
 			Object.assign(templatesState, defaultTemplatesState);
-		},
-
-		getTemplateById(id: string): Template | null {
-			return templatesState.templates.find((t) => t.id === id) || null;
-		},
-
-		getTemplatesByCategory(category: string): Template[] {
-			return templatesState.templates.filter((t) => t.category === category);
 		}
 	};
 }

@@ -63,7 +63,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<Dialog {open} onOpenChange={onClose}>
+<Dialog {open} onOpenChange={(o) => !o && onClose()}>
 	<DialogContent
 		class="!fixed !inset-0 !m-0 flex !h-screen !max-h-screen !w-screen !max-w-screen !translate-x-0 !translate-y-0 items-center justify-center overflow-hidden border-0 bg-black/95 p-0"
 		showCloseButton={false}

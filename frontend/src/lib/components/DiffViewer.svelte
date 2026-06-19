@@ -61,7 +61,6 @@
 			case 'modification':
 				return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30';
 			case 'context':
-				return 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
 			default:
 				return 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800';
 		}
@@ -155,14 +154,9 @@
 					{#if 'count' in item}
 						<!-- Separator for collapsed context lines -->
 						<div class="border-border bg-muted border-y px-4 py-2 text-center">
-							<button
-								class="text-muted-foreground hover:text-foreground text-sm transition-colors"
-								onclick={() => {
-									// Could implement expanding context lines here
-								}}
-							>
+							<span class="text-muted-foreground text-sm">
 								⋯ {item.count} unchanged lines ⋯
-							</button>
+							</span>
 						</div>
 					{:else}
 						<!-- Regular diff line -->

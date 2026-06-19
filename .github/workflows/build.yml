@@ -28,7 +28,7 @@ concurrency:
 jobs:
   build:
     name: Build All
-    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # self-hosted VPS (e2e is the GitHub-hosted job)
     timeout-minutes: 20
     env:
       PUBLIC_API_URL: http://localhost:8080/api
@@ -58,7 +58,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    runs-on: ubuntu-latest   # cheap job → GitHub-hosted (self-hosted runner is reserved for e2e)
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # self-hosted VPS (e2e is the GitHub-hosted job)
     timeout-minutes: 20
     needs: build
     

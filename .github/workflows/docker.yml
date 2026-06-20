@@ -35,8 +35,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: registry.mormor.cloud   # self-hosted Zot (WG-only; reachable from the self-hosted runner)
+  IMAGE_NAME: schist
 
 jobs:
   docker:
@@ -90,8 +90,8 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Tag and push the tested image
         if: github.event_name != 'pull_request'

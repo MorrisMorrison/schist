@@ -1,6 +1,7 @@
 package errors
 
 import (
+	stderrors "errors"
 	"fmt"
 	"net/http"
 )
@@ -180,13 +181,14 @@ func NewInvalidStateError(message string) *APIError {
 }
 
 func WrapError(err error) *APIError {
-	if apiErr, ok := err.(*APIError); ok {
+	var apiErr *APIError
+	if stderrors.As(err, &apiErr) {
 		return apiErr
 	}
 	return NewInternalError("Internal server error").WithCause(err)
 }
 
 func IsAPIError(err error) bool {
-	_, ok := err.(*APIError)
-	return ok
+	var apiErr *APIError
+	return stderrors.As(err, &apiErr)
 }

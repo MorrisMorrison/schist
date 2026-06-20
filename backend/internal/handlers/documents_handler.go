@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -15,7 +14,7 @@ import (
 func (h *APIHandler) listDocuments(c *gin.Context) {
 	documents, err := h.DocumentService.ListDocuments()
 	if err != nil {
-		HandleError(c, errors.NewDatabaseError("list documents", err))
+		HandleError(c, err)
 		return
 	}
 
@@ -34,11 +33,7 @@ func (h *APIHandler) createDocument(c *gin.Context) {
 
 	err := h.DocumentService.CreateDocument(document)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
-			HandleError(c, errors.NewAlreadyExistsError("document", document.MetaData.Path))
-		} else {
-			HandleError(c, errors.NewDatabaseError("create document", err))
-		}
+		HandleError(c, err)
 		return
 	}
 
@@ -62,11 +57,7 @@ func (h *APIHandler) getDocumentByPath(c *gin.Context) {
 
 	document, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no such file or directory") {
-			HandleError(c, errors.NewNotFoundError("document", path))
-		} else {
-			HandleError(c, errors.NewDatabaseError("get document", err))
-		}
+		HandleError(c, err)
 		return
 	}
 
@@ -83,11 +74,7 @@ func (h *APIHandler) checkDocumentExists(c *gin.Context) {
 
 	_, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no such file or directory") {
-			HandleError(c, errors.NewNotFoundError("document", path))
-		} else {
-			HandleError(c, errors.NewDatabaseError("get document", err))
-		}
+		HandleError(c, err)
 		return
 	}
 
@@ -122,12 +109,12 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	updatedDocument.MetaData.Updated = time.Now()
 
 	if err := h.DocumentService.MoveDocument(path, updatedDocument.MetaData.Path); err != nil {
-		HandleError(c, errors.NewOperationFailedError("move document", err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
 	if err := h.DocumentService.UpdateDocumentWithSaveType(updatedDocument, saveType); err != nil {
-		HandleError(c, errors.NewDatabaseError("update document", err))
+		HandleError(c, err)
 		return
 	}
 
@@ -148,11 +135,7 @@ func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
 
 	if strings.HasPrefix(path, "/trash") {
 		if err := h.DocumentService.DeleteDocument(path); err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				HandleError(c, errors.NewNotFoundError("document", path))
-			} else {
-				HandleError(c, errors.NewDatabaseError("delete document", err))
-			}
+			HandleError(c, err)
 			return
 		}
 
@@ -167,9 +150,7 @@ func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
 	trashPath := "/trash/" + pathWithoutLeadingSlash
 	err := h.DocumentService.MoveDocument(path, trashPath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		HandleError(c, err)
 		return
 	}
 
@@ -186,22 +167,16 @@ func (h *APIHandler) moveDocument(c *gin.Context) {
 	}
 
 	var req MoveRequest
-	err := c.BindJSON(&req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+		HandleError(c, apiErr)
 		return
 	}
 
 	req.OldPath = utils.EnsureLeadingSlash(req.OldPath)
 	req.NewPath = utils.EnsureLeadingSlash(req.NewPath)
 
-	err = h.DocumentService.MoveDocument(req.OldPath, req.NewPath)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	if err := h.DocumentService.MoveDocument(req.OldPath, req.NewPath); err != nil {
+		HandleError(c, err)
 		return
 	}
 

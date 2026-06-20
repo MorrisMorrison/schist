@@ -26,7 +26,10 @@ type Services struct {
 }
 
 func NewServices() (*Services, error) {
-	appConfig := config.Load()
+	appConfig, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
 	dataDir := appConfig.DataDir
 
 	settings, err := config.LoadSettings(dataDir)

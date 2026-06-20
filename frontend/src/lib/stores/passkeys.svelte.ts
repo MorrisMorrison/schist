@@ -137,7 +137,7 @@ function createPasskeyStore() {
 			passkeyState.error = null;
 
 			try {
-				const credentialId = await webAuthnAuthenticate();
+				const { credentialId } = await webAuthnAuthenticate();
 
 				await apiClient.unlockWithPasskey({ credentialId });
 

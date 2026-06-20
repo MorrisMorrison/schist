@@ -43,11 +43,13 @@
 		error = '';
 
 		try {
-			// Authenticate with passkey
-			const credentialId = await authenticateWithPasskey();
+			// Authenticate with passkey -- the verified assertion yields a
+			// short-lived, single-use auth ticket.
+			const { authTicket } = await authenticateWithPasskey();
 
-			// Login with the credential ID
-			await authService.loginWithPasskey(credentialId);
+			// Exchange the ticket for a session (the bare credential ID is no
+			// longer accepted by the login endpoint).
+			await authService.loginWithPasskey(authTicket);
 
 			// Navigate to return URL
 			await goto(returnUrl);

@@ -417,7 +417,10 @@ func (h *APIHandler) createFirstUser(c *gin.Context) {
 
 	err := h.AuthService.CreateFirstUser(req.Username, req.CredentialID)
 	if err != nil {
-		HandleError(c, errors.NewConflictError("Failed to create first user: "+err.Error()).WithCause(err))
+		// The service returns a typed error (409 if users already exist, 500 on
+		// a storage failure). Pass it through rather than collapsing every cause
+		// into a single status code.
+		HandleError(c, err)
 		return
 	}
 
@@ -444,7 +447,8 @@ func (h *APIHandler) generateInviteToken(c *gin.Context) {
 
 	token, err := h.AuthService.GenerateInviteToken(username)
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Failed to generate invite token: "+err.Error()).WithCause(err))
+		// Typed storage/internal error from the service.
+		HandleError(c, err)
 		return
 	}
 
@@ -476,7 +480,9 @@ func (h *APIHandler) createUserFromInvite(c *gin.Context) {
 
 	err := h.AuthService.CreateUserFromInvite(req.Token, req.Username, req.CredentialID)
 	if err != nil {
-		HandleError(c, errors.NewValidationError("Failed to create user from invite: "+err.Error()).WithCause(err))
+		// The service returns a typed error (400 for an invalid/expired invite
+		// token, 409 if the user already exists, 500 on a storage failure).
+		HandleError(c, err)
 		return
 	}
 
@@ -518,7 +524,9 @@ func (h *APIHandler) createUser(c *gin.Context) {
 
 	err := h.Services.UserService.CreateUser(req.Username, req.IsAdmin, req.CredentialID)
 	if err != nil {
-		HandleError(c, errors.NewConflictError(err.Error()).WithCause(err))
+		// The service returns a typed error (409 if the user already exists, 500
+		// on a storage failure).
+		HandleError(c, err)
 		return
 	}
 
@@ -532,7 +540,9 @@ func (h *APIHandler) listUsers(c *gin.Context) {
 	// Authorization is enforced by middleware.RequireAdmin on this route group.
 	users, err := h.Services.UserService.ListUsers()
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		// Typed storage error from the service; HandleError emits a generic 500
+		// and logs the cause rather than leaking it.
+		HandleError(c, err)
 		return
 	}
 
@@ -551,7 +561,10 @@ func (h *APIHandler) deleteUser(c *gin.Context) {
 
 	err := h.Services.UserService.DeleteUser(username)
 	if err != nil {
-		HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
+		// The service returns a typed not-found (404) for a missing user, or a
+		// storage error (500). Pass it through so a storage failure is not
+		// mislabelled as 404.
+		HandleError(c, err)
 		return
 	}
 

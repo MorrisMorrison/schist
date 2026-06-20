@@ -181,7 +181,9 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
 func (s *AuthService) GetUser(username string) (*User, error) {
 	user, err := s.userService.GetUserByUsername(username)
 	if err != nil {
-		return nil, errors.New("user not found")
+		// Propagate the typed not-found error from the user service rather than
+		// masking it with an untyped error.
+		return nil, err
 	}
 
 	dto := newUserDTO(user)

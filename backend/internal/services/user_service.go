@@ -4,12 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 )
 
@@ -39,12 +39,12 @@ func (us *UserService) loadUsers() (*models.UserStorage, error) {
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read users file: %w", err)
+		return nil, errors.NewFileSystemError("read users file", err)
 	}
 
 	var storage models.UserStorage
 	if err := json.Unmarshal(data, &storage); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal users data: %w", err)
+		return nil, errors.NewInternalError("failed to unmarshal users data").WithCause(err)
 	}
 
 	return &storage, nil
@@ -56,12 +56,12 @@ func (us *UserService) saveUsers(storage *models.UserStorage) error {
 
 	// Ensure data directory exists
 	if err := os.MkdirAll(us.dataDir, 0755); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
+		return errors.NewFileSystemError("create data directory", err)
 	}
 
 	data, err := json.MarshalIndent(storage, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal users data: %w", err)
+		return errors.NewInternalError("failed to marshal users data").WithCause(err)
 	}
 
 	// Write to a temp file in the same directory, then rename over the target.
@@ -69,25 +69,25 @@ func (us *UserService) saveUsers(storage *models.UserStorage) error {
 	// leave a partially-written users file behind.
 	tmp, err := os.CreateTemp(us.dataDir, ".users-*.json.tmp")
 	if err != nil {
-		return fmt.Errorf("failed to create temp users file: %w", err)
+		return errors.NewFileSystemError("create temp users file", err)
 	}
 	tmpName := tmp.Name()
 	defer os.Remove(tmpName) // no-op if the rename succeeded
 
 	if _, err := tmp.Write(data); err != nil {
 		tmp.Close()
-		return fmt.Errorf("failed to write users file: %w", err)
+		return errors.NewFileSystemError("write users file", err)
 	}
 	if err := tmp.Chmod(0600); err != nil {
 		tmp.Close()
-		return fmt.Errorf("failed to set users file permissions: %w", err)
+		return errors.NewFileSystemError("set users file permissions", err)
 	}
 	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("failed to close temp users file: %w", err)
+		return errors.NewFileSystemError("close temp users file", err)
 	}
 
 	if err := os.Rename(tmpName, filePath); err != nil {
-		return fmt.Errorf("failed to write users file: %w", err)
+		return errors.NewFileSystemError("write users file", err)
 	}
 
 	return nil
@@ -117,7 +117,7 @@ func (us *UserService) CreateFirstUser(username, credentialId string) error {
 
 	// Check if users already exist
 	if len(storage.Users) > 0 {
-		return fmt.Errorf("users already exist, cannot create first user")
+		return errors.NewConflictError("users already exist, cannot create first user")
 	}
 
 	user := models.User{
@@ -150,7 +150,11 @@ func (us *UserService) GetUserByCredentialID(credentialId string) (*models.User,
 		}
 	}
 
-	return nil, fmt.Errorf("user not found for credential ID")
+	// This lookup is on the login path. Typed as Unauthorized so it can never
+	// surface as a 404 that would confirm whether a credential is registered;
+	// callers (AuthService) additionally collapse it into a generic
+	// "authentication failed" 401.
+	return nil, errors.NewUnauthorizedError("user not found for credential ID")
 }
 
 // GetUserByUsername finds a user by their username
@@ -169,7 +173,7 @@ func (us *UserService) GetUserByUsername(username string) (*models.User, error) 
 		}
 	}
 
-	return nil, fmt.Errorf("user not found")
+	return nil, errors.NewNotFoundError("user", username)
 }
 
 // UpdateLastLogin updates the user's last login time
@@ -189,7 +193,7 @@ func (us *UserService) UpdateLastLogin(username string) error {
 		}
 	}
 
-	return fmt.Errorf("user not found")
+	return errors.NewNotFoundError("user", username)
 }
 
 // AddPasskeyToUser adds a new passkey credential to an existing user
@@ -209,7 +213,7 @@ func (us *UserService) AddPasskeyToUser(username, credentialId string) error {
 		}
 	}
 
-	return fmt.Errorf("user not found")
+	return errors.NewNotFoundError("user", username)
 }
 
 // CreateUser creates a new user (admin only)
@@ -225,7 +229,7 @@ func (us *UserService) CreateUser(username string, isAdmin bool, credentialId st
 	// Check if user already exists
 	for _, user := range storage.Users {
 		if user.Username == username {
-			return fmt.Errorf("user already exists")
+			return errors.NewAlreadyExistsError("user", username)
 		}
 	}
 
@@ -258,7 +262,7 @@ func (us *UserService) DeleteUser(username string) error {
 		}
 	}
 
-	return fmt.Errorf("user not found")
+	return errors.NewNotFoundError("user", username)
 }
 
 func (us *UserService) ListUsers() ([]models.User, error) {
@@ -282,7 +286,7 @@ type Invite struct {
 func (us *UserService) GenerateInviteToken(createdBy string) (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
-		return "", fmt.Errorf("failed to generate invite token: %w", err)
+		return "", errors.NewInternalError("failed to generate invite token").WithCause(err)
 	}
 
 	token := hex.EncodeToString(bytes)
@@ -315,12 +319,12 @@ func (us *UserService) ValidateInviteToken(token string) (*Invite, error) {
 func (us *UserService) validateInviteToken(token string) (*Invite, error) {
 	invite, err := us.loadInvite(token)
 	if err != nil {
-		return nil, fmt.Errorf("invalid invite token")
+		return nil, errors.NewValidationError("invalid invite token")
 	}
 
 	if time.Now().After(invite.ExpiresAt) {
 		_ = us.deleteInvite(token)
-		return nil, fmt.Errorf("invite token expired")
+		return nil, errors.NewValidationError("invite token expired")
 	}
 
 	return invite, nil
@@ -346,16 +350,19 @@ func (us *UserService) getInvitesDir() string {
 func (us *UserService) saveInvite(invite Invite) error {
 	invitesDir := us.getInvitesDir()
 	if err := os.MkdirAll(invitesDir, 0755); err != nil {
-		return fmt.Errorf("failed to create invites directory: %w", err)
+		return errors.NewFileSystemError("create invites directory", err)
 	}
 
 	filePath := filepath.Join(invitesDir, invite.Token+".json")
 	data, err := json.MarshalIndent(invite, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal invite: %w", err)
+		return errors.NewInternalError("failed to marshal invite").WithCause(err)
 	}
 
-	return os.WriteFile(filePath, data, 0600)
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
+		return errors.NewFileSystemError("write invite file", err)
+	}
+	return nil
 }
 
 func (us *UserService) loadInvite(token string) (*Invite, error) {

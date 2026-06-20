@@ -34,7 +34,7 @@ export class EditorPage extends BasePage {
 	}
 
 	async verifyLoaded() {
-		await this.waitForVisible(this.contentEditor);
+		await this.waitForContentReady(this.contentEditor);
 		await this.waitForVisible(this.saveButton);
 	}
 

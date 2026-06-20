@@ -147,6 +147,10 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 		document.MetaData.Path = "/" + document.MetaData.Slug
 	}
 
+	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
+		return fmt.Errorf("invalid path: %w", err)
+	}
+
 	now := time.Now()
 	document.MetaData.Created = now
 	document.MetaData.Updated = now
@@ -155,12 +159,14 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 		return err
 	}
 
-	d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Create document: %s", document.MetaData.Path))
-
-	return nil
+	return d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Create document: %s", document.MetaData.Path))
 }
 
 func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, saveType string) error {
+	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
+		return fmt.Errorf("invalid path: %w", err)
+	}
+
 	document.MetaData.Updated = time.Now()
 
 	if err := d.saveDocument(document); err != nil {
@@ -169,23 +175,25 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 
 	// Only commit to git for manual saves, skip auto-saves to prevent version pollution
 	if saveType == "manual" {
-		d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Update document: %s", document.MetaData.Path))
+		return d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Update document: %s", document.MetaData.Path))
 	}
 
 	return nil
 }
 
 func (d *DocumentService) DeleteDocument(path string) error {
+	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
+	if err := utils.ValidatePath(documentPath); err != nil {
+		return fmt.Errorf("invalid path: %w", err)
+	}
+
 	filePath := d.buildFilePathFromPath(path)
 
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to delete document file: %w", err)
 	}
 
-	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
-	d.commitDocumentChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
-
-	return nil
+	return d.commitDocumentChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
 }
 
 func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
@@ -321,9 +329,7 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 		return fmt.Errorf("could not remove old file: %w", err)
 	}
 
-	d.commitDocumentChange(normalizedNewPath, fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath))
-
-	return nil
+	return d.commitDocumentChange(normalizedNewPath, fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath))
 }
 
 func (d *DocumentService) GetFolder(path string) (*models.Folder, error) {

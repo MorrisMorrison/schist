@@ -448,14 +448,11 @@ func TestAssetService_FileExtensionValidation(t *testing.T) {
 
 	assetService := services.NewAssetService(testDir)
 
-	allowedExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
+	allowedExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
 	for _, ext := range allowedExtensions {
 		t.Run("allows "+ext+" extension", func(t *testing.T) {
 			filename := "test" + ext
-			contentType := "image/png" // Simplified for test
-			if ext == ".svg" {
-				contentType = "image/svg+xml"
-			}
+			contentType := "image/png" // Simplified for test; testImageData is a real PNG
 
 			fileHeader, err := createMultipartFile(filename, testImageData, contentType)
 			require.NoError(t, err)
@@ -467,6 +464,19 @@ func TestAssetService_FileExtensionValidation(t *testing.T) {
 			assert.True(t, strings.HasSuffix(asset.Name, ext))
 		})
 	}
+
+	// SVG is intentionally rejected: it is script-capable and can carry
+	// embedded JavaScript, leading to stored XSS when the asset is served.
+	t.Run("rejects .svg extension", func(t *testing.T) {
+		fileHeader, err := createMultipartFile("test.svg", []byte(`<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>`), "image/svg+xml")
+		require.NoError(t, err)
+
+		asset, err := assetService.UploadImage(fileHeader)
+
+		assert.Error(t, err)
+		assert.Nil(t, asset)
+		assert.Contains(t, err.Error(), "unsupported file extension")
+	})
 
 	forbiddenExtensions := []string{".txt", ".pdf", ".doc", ".exe", ".zip"}
 	for _, ext := range forbiddenExtensions {
@@ -483,4 +493,60 @@ func TestAssetService_FileExtensionValidation(t *testing.T) {
 			assert.Contains(t, err.Error(), "unsupported file extension")
 		})
 	}
+}
+
+// TestAssetService_ContentSniffing verifies that uploads are validated against
+// the actual file bytes, not just the attacker-controlled extension and
+// Content-Type header.
+func TestAssetService_ContentSniffing(t *testing.T) {
+	testDir, cleanup := setupTestDir(t)
+	defer cleanup()
+
+	assetService := services.NewAssetService(testDir)
+
+	t.Run("rejects non-image bytes disguised as PNG", func(t *testing.T) {
+		// Plausible-looking extension and header, but the bytes are plain text /
+		// HTML rather than a real raster image.
+		payload := []byte("<html><body><script>alert('xss')</script></body></html>")
+
+		fileHeader, err := createMultipartFile("evil.png", payload, "image/png")
+		require.NoError(t, err)
+
+		asset, err := assetService.UploadImage(fileHeader)
+
+		assert.Error(t, err)
+		assert.Nil(t, asset)
+		assert.Contains(t, err.Error(), "not a supported image type")
+	})
+
+	t.Run("accepts genuine PNG and writes full content", func(t *testing.T) {
+		fileHeader, err := createMultipartFile("real.png", testImageData, "image/png")
+		require.NoError(t, err)
+
+		asset, err := assetService.UploadImage(fileHeader)
+		require.NoError(t, err)
+		require.NotNil(t, asset)
+
+		// The sniffed header bytes must be stitched back in: the file on disk
+		// must contain the complete original payload, not a truncated copy.
+		assert.Equal(t, int64(len(testImageData)), asset.Size)
+		onDisk, err := os.ReadFile(filepath.Join(testDir, "assets", "images", asset.Name))
+		require.NoError(t, err)
+		assert.Equal(t, testImageData, onDisk)
+	})
+
+	t.Run("accepts genuine GIF", func(t *testing.T) {
+		// GIF89a header + minimal trailer.
+		gifData := append([]byte("GIF89a"), 0x00, 0x00, 0x00, 0x00, 0x3B)
+
+		fileHeader, err := createMultipartFile("anim.gif", gifData, "image/gif")
+		require.NoError(t, err)
+
+		asset, err := assetService.UploadImage(fileHeader)
+		require.NoError(t, err)
+		require.NotNil(t, asset)
+		onDisk, err := os.ReadFile(filepath.Join(testDir, "assets", "images", asset.Name))
+		require.NoError(t, err)
+		assert.Equal(t, gifData, onDisk)
+	})
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/models"
@@ -14,6 +15,7 @@ import (
 
 type UserService struct {
 	dataDir string
+	mu      sync.Mutex
 }
 
 func NewUserService(dataDir string) *UserService {
@@ -27,7 +29,7 @@ func (us *UserService) getUsersFilePath() string {
 	return filepath.Join(us.dataDir, "users.json")
 }
 
-// loadUsers loads all users from the JSON file
+// loadUsers loads all users from the JSON file. Callers must hold us.mu.
 func (us *UserService) loadUsers() (*models.UserStorage, error) {
 	filePath := us.getUsersFilePath()
 
@@ -48,7 +50,7 @@ func (us *UserService) loadUsers() (*models.UserStorage, error) {
 	return &storage, nil
 }
 
-// saveUsers saves all users to the JSON file
+// saveUsers saves all users to the JSON file atomically. Callers must hold us.mu.
 func (us *UserService) saveUsers(storage *models.UserStorage) error {
 	filePath := us.getUsersFilePath()
 
@@ -62,7 +64,29 @@ func (us *UserService) saveUsers(storage *models.UserStorage) error {
 		return fmt.Errorf("failed to marshal users data: %w", err)
 	}
 
-	if err := os.WriteFile(filePath, data, 0600); err != nil {
+	// Write to a temp file in the same directory, then rename over the target.
+	// Rename is atomic on the same filesystem, so a crash mid-write can never
+	// leave a partially-written users file behind.
+	tmp, err := os.CreateTemp(us.dataDir, ".users-*.json.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp users file: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName) // no-op if the rename succeeded
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to write users file: %w", err)
+	}
+	if err := tmp.Chmod(0600); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to set users file permissions: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("failed to close temp users file: %w", err)
+	}
+
+	if err := os.Rename(tmpName, filePath); err != nil {
 		return fmt.Errorf("failed to write users file: %w", err)
 	}
 
@@ -71,6 +95,9 @@ func (us *UserService) saveUsers(storage *models.UserStorage) error {
 
 // IsFirstSetup checks if this is the first time the system is being set up
 func (us *UserService) IsFirstSetup() (bool, error) {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return false, err
@@ -80,6 +107,9 @@ func (us *UserService) IsFirstSetup() (bool, error) {
 
 // CreateFirstUser creates the first admin user during setup
 func (us *UserService) CreateFirstUser(username, credentialId string) error {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return err
@@ -104,6 +134,9 @@ func (us *UserService) CreateFirstUser(username, credentialId string) error {
 
 // GetUserByCredentialID finds a user by their passkey credential ID
 func (us *UserService) GetUserByCredentialID(credentialId string) (*models.User, error) {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return nil, err
@@ -122,6 +155,9 @@ func (us *UserService) GetUserByCredentialID(credentialId string) (*models.User,
 
 // GetUserByUsername finds a user by their username
 func (us *UserService) GetUserByUsername(username string) (*models.User, error) {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return nil, err
@@ -138,6 +174,9 @@ func (us *UserService) GetUserByUsername(username string) (*models.User, error) 
 
 // UpdateLastLogin updates the user's last login time
 func (us *UserService) UpdateLastLogin(username string) error {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return err
@@ -155,6 +194,9 @@ func (us *UserService) UpdateLastLogin(username string) error {
 
 // AddPasskeyToUser adds a new passkey credential to an existing user
 func (us *UserService) AddPasskeyToUser(username, credentialId string) error {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return err
@@ -172,6 +214,9 @@ func (us *UserService) AddPasskeyToUser(username, credentialId string) error {
 
 // CreateUser creates a new user (admin only)
 func (us *UserService) CreateUser(username string, isAdmin bool, credentialId string) error {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return err
@@ -198,6 +243,9 @@ func (us *UserService) CreateUser(username string, isAdmin bool, credentialId st
 
 // DeleteUser removes a user (admin only)
 func (us *UserService) DeleteUser(username string) error {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return err
@@ -214,6 +262,9 @@ func (us *UserService) DeleteUser(username string) error {
 }
 
 func (us *UserService) ListUsers() ([]models.User, error) {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	storage, err := us.loadUsers()
 	if err != nil {
 		return nil, err
@@ -242,6 +293,9 @@ func (us *UserService) GenerateInviteToken(createdBy string) (string, error) {
 		CreatedAt: time.Now(),
 	}
 
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
 	if err := us.saveInvite(invite); err != nil {
 		return "", err
 	}
@@ -250,6 +304,15 @@ func (us *UserService) GenerateInviteToken(createdBy string) (string, error) {
 }
 
 func (us *UserService) ValidateInviteToken(token string) (*Invite, error) {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
+	return us.validateInviteToken(token)
+}
+
+// validateInviteToken loads and validates an invite, deleting it if expired.
+// Callers must hold us.mu.
+func (us *UserService) validateInviteToken(token string) (*Invite, error) {
 	invite, err := us.loadInvite(token)
 	if err != nil {
 		return nil, fmt.Errorf("invalid invite token")
@@ -264,8 +327,12 @@ func (us *UserService) ValidateInviteToken(token string) (*Invite, error) {
 }
 
 func (us *UserService) ConsumeInviteToken(token string) error {
-	_, err := us.ValidateInviteToken(token)
-	if err != nil {
+	us.mu.Lock()
+	defer us.mu.Unlock()
+
+	// Validate and delete under the same lock so a token can never be
+	// consumed twice by concurrent requests.
+	if _, err := us.validateInviteToken(token); err != nil {
 		return err
 	}
 
@@ -306,7 +373,7 @@ func (us *UserService) loadInvite(token string) (*Invite, error) {
 	return &invite, nil
 }
 
-// deleteInvite removes an invite file
+// deleteInvite removes an invite file. Callers must hold us.mu.
 func (us *UserService) deleteInvite(token string) error {
 	filePath := filepath.Join(us.getInvitesDir(), token+".json")
 	return os.Remove(filePath)

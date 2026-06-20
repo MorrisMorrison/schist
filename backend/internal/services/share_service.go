@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/config"
@@ -26,6 +27,7 @@ type ShareService struct {
 	config          *config.Config
 	documentService *DocumentService
 	shareFilePath   string
+	mu              sync.Mutex
 }
 
 func NewShareService(config *config.Config, documentService *DocumentService) *ShareService {
@@ -86,6 +88,9 @@ func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays in
 		CreatedBy:    createdBy,
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if err := s.saveShare(shareToken); err != nil {
 		return nil, fmt.Errorf("failed to save share: %w", err)
 	}
@@ -94,7 +99,9 @@ func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays in
 }
 
 func (s *ShareService) GetSharedDocument(token string) (*models.Document, error) {
+	s.mu.Lock()
 	shares, err := s.loadShares()
+	s.mu.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load shares: %w", err)
 	}
@@ -126,7 +133,9 @@ func (s *ShareService) GetSharedDocument(token string) (*models.Document, error)
 }
 
 func (s *ShareService) ListShares(createdBy string) ([]ShareToken, error) {
+	s.mu.Lock()
 	shares, err := s.loadShares()
+	s.mu.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load shares: %w", err)
 	}
@@ -144,6 +153,9 @@ func (s *ShareService) ListShares(createdBy string) ([]ShareToken, error) {
 }
 
 func (s *ShareService) RevokeShare(shareID, createdBy string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	shares, err := s.loadShares()
 	if err != nil {
 		return fmt.Errorf("failed to load shares: %w", err)
@@ -169,6 +181,9 @@ func (s *ShareService) RevokeShare(shareID, createdBy string) error {
 }
 
 func (s *ShareService) CleanupExpiredShares() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	shares, err := s.loadShares()
 	if err != nil {
 		return fmt.Errorf("failed to load shares: %w", err)
@@ -186,6 +201,7 @@ func (s *ShareService) CleanupExpiredShares() error {
 	return s.saveShares(validShares)
 }
 
+// saveShare appends a share and persists the file. Callers must hold s.mu.
 func (s *ShareService) saveShare(shareToken *ShareToken) error {
 	shares, err := s.loadShares()
 	if err != nil {
@@ -196,6 +212,7 @@ func (s *ShareService) saveShare(shareToken *ShareToken) error {
 	return s.saveShares(shares)
 }
 
+// loadShares reads the shares file. Callers must hold s.mu.
 func (s *ShareService) loadShares() ([]ShareToken, error) {
 	// Ensure directory exists
 	if err := os.MkdirAll(filepath.Dir(s.shareFilePath), 0755); err != nil {
@@ -224,13 +241,37 @@ func (s *ShareService) loadShares() ([]ShareToken, error) {
 	return shares, nil
 }
 
+// saveShares writes the shares file atomically. Callers must hold s.mu.
 func (s *ShareService) saveShares(shares []ShareToken) error {
 	data, err := json.MarshalIndent(shares, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal shares: %w", err)
 	}
 
-	if err := os.WriteFile(s.shareFilePath, data, 0644); err != nil {
+	// Write to a temp file in the same directory, then rename over the target.
+	// Rename is atomic on the same filesystem, so a crash mid-write can never
+	// leave a partially-written shares file behind.
+	dir := filepath.Dir(s.shareFilePath)
+	tmp, err := os.CreateTemp(dir, ".shares-*.json.tmp")
+	if err != nil {
+		return fmt.Errorf("failed to create temp shares file: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName) // no-op if the rename succeeded
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to write shares file: %w", err)
+	}
+	if err := tmp.Chmod(0644); err != nil {
+		tmp.Close()
+		return fmt.Errorf("failed to set shares file permissions: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("failed to close temp shares file: %w", err)
+	}
+
+	if err := os.Rename(tmpName, s.shareFilePath); err != nil {
 		return fmt.Errorf("failed to write shares file: %w", err)
 	}
 

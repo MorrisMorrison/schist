@@ -156,8 +156,12 @@ func TestLoadConfig(t *testing.T) {
 				os.Setenv("SCHIST_JWT_SECRET", tt.envSecret)
 			}
 
-			config := Load()
+			config, err := Load()
 
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
 			if config == nil {
 				t.Error("Expected non-nil config")
 				return

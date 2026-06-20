@@ -55,9 +55,20 @@ type Config struct {
 	SecurityHeaders SecurityHeadersConfig
 }
 
-func Load() *Config {
+func Load() (*Config, error) {
 	environment := getEnv("ENV", "development")
-	jwtSecret := loadJWTSecret(environment)
+
+	jwtResult, err := validateAndLoadJWTSecret(environment)
+	if err != nil {
+		return nil, fmt.Errorf("JWT secret configuration error: %w", err)
+	}
+	if jwtResult.Warning != "" {
+		log.Printf("WARN: %s", jwtResult.Warning)
+	}
+	if jwtResult.Generated {
+		log.Printf("Generated JWT secret for this run")
+	}
+	jwtSecret := jwtResult.Secret
 
 	return &Config{
 		Port:         getEnv("SCHIST_PORT", "8080"),
@@ -79,7 +90,7 @@ func Load() *Config {
 		ShareDefaultExpiryDays: getEnvInt("SCHIST_SHARE_DEFAULT_EXPIRY_DAYS", 7),
 
 		SecurityHeaders: loadSecurityHeadersConfig(),
-	}
+	}, nil
 }
 
 func loadSecurityHeadersConfig() SecurityHeadersConfig {
@@ -109,14 +120,6 @@ func loadSecurityHeadersConfig() SecurityHeadersConfig {
 		CSPFrameSrc:   getEnv("SCHIST_CSP_FRAME_SRC", "'none'"),
 		CSPFormAction: getEnv("SCHIST_CSP_FORM_ACTION", "'self'"),
 	}
-}
-
-func loadJWTSecret(environment string) string {
-	result, err := validateAndLoadJWTSecret(environment)
-	if err != nil {
-		log.Fatalf("JWT secret configuration error: %v", err)
-	}
-	return result.Secret
 }
 
 type JWTSecretResult struct {

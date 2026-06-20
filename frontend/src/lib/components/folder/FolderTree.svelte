@@ -190,9 +190,9 @@
 			tagFilters.length === 0 ||
 			Boolean(
 				document.metaData.tags &&
-					tagFilters.every((requiredTag) =>
-						document.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
-					)
+				tagFilters.every((requiredTag) =>
+					document.metaData.tags!.some((pageTag) => pageTag.toLowerCase().startsWith(requiredTag))
+				)
 			);
 
 		return textMatch && tagMatch;

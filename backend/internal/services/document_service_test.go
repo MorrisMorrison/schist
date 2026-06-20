@@ -565,7 +565,7 @@ func TestDocumentService_RenameFolder(t *testing.T) {
 	t.Run("fails to rename non-existent folder", func(t *testing.T) {
 		err := documentService.RenameFolder("/non-existent", "new-name")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "folder does not exist")
+		assert.Contains(t, err.Error(), "folder not found")
 	})
 
 	t.Run("fails to rename root folder", func(t *testing.T) {
@@ -610,7 +610,7 @@ func TestDocumentService_RenameFolder(t *testing.T) {
 	t.Run("fails with invalid old path", func(t *testing.T) {
 		err := documentService.RenameFolder("", "new-name")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid folder path")
+		assert.Contains(t, err.Error(), "Invalid path")
 	})
 
 	t.Run("updates page timestamps on rename", func(t *testing.T) {
@@ -787,7 +787,7 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 
 		err := documentService.MoveFolder("/non-existent", "/target/folder")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "folder does not exist")
+		assert.Contains(t, err.Error(), "folder not found")
 	})
 
 	t.Run("fails to move to existing destination", func(t *testing.T) {
@@ -804,7 +804,7 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 
 		err = documentService.MoveFolder("/source", "/target/source")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "destination folder already exists")
+		assert.Contains(t, err.Error(), "folder already exists")
 	})
 
 	t.Run("fails to move root folder", func(t *testing.T) {
@@ -983,7 +983,7 @@ func TestDocumentService_GetFolder(t *testing.T) {
 	t.Run("fails for non-existent folder", func(t *testing.T) {
 		_, err := documentService.GetFolder("/non-existent")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "folder does not exist")
+		assert.Contains(t, err.Error(), "folder not found")
 	})
 }
 

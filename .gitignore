@@ -45,7 +45,6 @@ e2e/test-results
 e2e/screenshots
 e2e/node_modules
 backend/cmd/schist/schist
-backend/cmd/generate-hash/generate-hash
 project/
 test-token
 docs/features

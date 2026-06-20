@@ -19,7 +19,7 @@ func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 
 	versions, err := h.DocumentService.GetDocumentVersions(path)
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 
 	document, err := h.DocumentService.GetDocumentAtVersion(path, commitHash)
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 
 	diff, err := h.DocumentService.CompareDocumentVersions(path, hash1, hash2)
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
 
 	err := h.DocumentService.RestoreDocumentToVersion(path, commitHash)
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 

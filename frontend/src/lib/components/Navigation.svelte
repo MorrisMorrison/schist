@@ -3,7 +3,6 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 	import { BurgerIcon } from './ui/burger-icon';
 	import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
-	import { onMount } from 'svelte';
 	import { Settings, Search, LogOut, User, Lock, Unlock } from '@lucide/svelte';
 	import { authStore } from '$lib/stores/auth.svelte';
 	import { authService } from '$lib/auth/auth-service';
@@ -15,8 +14,6 @@
 
 	let isMenuOpen = $state(false);
 	let isUnlocking = $state(false);
-
-	const showSidebarToggle = true;
 
 	function toggleMenu() {
 		isMenuOpen = !isMenuOpen;
@@ -64,14 +61,7 @@
 		}
 	});
 
-	// Load secrets status on component mount if user is authenticated
-	onMount(() => {
-		if (authStore.user) {
-			secretStore.loadStatus();
-		}
-	});
-
-	// Also load secrets status when auth state changes
+	// Load secrets status on mount and whenever the auth state changes
 	$effect(() => {
 		if (authStore.user) {
 			secretStore.loadStatus();
@@ -91,8 +81,7 @@
 		</div>
 
 		<div
-			class="mx-auto ml-6 max-w-none px-4 transition-colors duration-300 ease-in-out sm:px-6 lg:px-8"
-			class:pl-16={showSidebarToggle}
+			class="mx-auto ml-6 max-w-none px-4 pl-16 transition-colors duration-300 ease-in-out sm:px-6 lg:px-8"
 			class:md:ml-[280px]={isSidebarOpen}
 		>
 			<div class="flex h-16 justify-between">
@@ -184,7 +173,7 @@
 					<!-- 4. Settings Button -->
 					<a
 						href="/settings"
-						class="border-secondary bg-primary text-primary hover:bg-gray-hover text-sm' cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+						class="border-secondary bg-primary text-primary hover:bg-gray-hover cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 						title="Settings"
 					>
 						<Settings class="h-4 w-4" />

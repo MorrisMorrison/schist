@@ -76,12 +76,17 @@ func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentV
 		return nil, fmt.Errorf("failed to get document versions: %w", err)
 	}
 
-	// gitService returns an empty slice (no error) when the document has no
-	// tracked history or does not exist. For the API that is a 404, not an empty
-	// 200, so the caller can tell "no such versioned document" from "exists with
-	// zero versions" (which cannot happen for a committed document).
+	// gitService returns an empty slice when the document has no tracked history.
+	// That is ambiguous: the document may genuinely not exist (-> 404), or it may
+	// exist with no versions yet (a fresh document, or one saved while the git
+	// commit failed -- see ErrCommitFailed). Only the missing-document case is a
+	// 404; an existing document with no versions is a valid empty list (200), so
+	// the version panel can show a "no versions yet" state.
 	if len(versions) == 0 {
-		return nil, errors.NewNotFoundError("version", documentPath)
+		if _, err := d.GetDocumentByPath(documentPath); err != nil {
+			return nil, err // typed NotFound("document", ...) when the document is absent
+		}
+		return []*DocumentVersion{}, nil
 	}
 
 	return versions, nil

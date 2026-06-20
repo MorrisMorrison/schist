@@ -26,7 +26,11 @@ type GitHubSettings struct {
 	Branch     string                 `json:"branch"`
 	AutoSync   bool                   `json:"auto_sync"`
 	SyncOnSave bool                   `json:"sync_on_save"`
-	LastSync   time.Time              `json:"last_sync,omitempty"`
+	// ForcePush opts in to force-pushing to the remote branch. It is false by
+	// default, keeping the safe fast-forward-only push behavior. Only enable it
+	// when you knowingly accept that remote history may be overwritten.
+	ForcePush bool      `json:"force_push"`
+	LastSync  time.Time `json:"last_sync,omitempty"`
 }
 
 type UISettings struct {

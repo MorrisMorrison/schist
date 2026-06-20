@@ -699,19 +699,22 @@ func (gs *GitHubService) pushToGitHub() error {
 	refSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", currentBranch, githubSettings.Branch)
 	log.Printf("[GitHubService] Using refspec: %s", refSpec)
 
-	// Force-push is intentionally disabled: an unconditional force with a wildcard
-	// refspec after staging everything (AddGlob ".") can silently overwrite commits
-	// on the remote branch. We push fast-forward only. If the remote has diverged,
-	// go-git returns a non-fast-forward error and we surface it instead of clobbering.
-	// Re-enabling force should be gated behind an explicit, persisted opt-in setting
-	// (default off) — see the PR description for the recommended follow-up.
+	// Force-push is opt-in and off by default. The safe default is a fast-forward
+	// only push: an unconditional force with a wildcard refspec after staging
+	// everything (AddGlob ".") can silently overwrite commits on the remote branch.
+	// When ForcePush is disabled and the remote has diverged, go-git returns a
+	// non-fast-forward error and we surface it instead of clobbering. A user who
+	// knowingly wants force-push can enable the persisted ForcePush setting.
+	if githubSettings.ForcePush {
+		log.Printf("[GitHubService] ForcePush enabled: pushing with force (may overwrite remote history)")
+	}
 	pushOptions := &git.PushOptions{
 		RemoteName: "origin",
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(refSpec),
 		},
 		Auth:  auth,
-		Force: false,
+		Force: githubSettings.ForcePush,
 	}
 
 	pushCtx, pushCancel := gs.requestContext()

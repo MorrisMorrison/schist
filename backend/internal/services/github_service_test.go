@@ -210,3 +210,28 @@ func TestGitHubService_ShouldSyncOnSave(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, service.ShouldSyncOnSave())
 }
+
+// TestGitHubSettings_ForcePush_RoundTrip verifies the opt-in ForcePush setting
+// defaults to false (safe FF-only) and persists through save + reload.
+func TestGitHubSettings_ForcePush_RoundTrip(t *testing.T) {
+	testDir, settings, cleanup := setupGitHubTestDir(t)
+	defer cleanup()
+
+	// Default (zero value) is false: safe fast-forward-only push.
+	assert.False(t, settings.GetGitHubSettings().ForcePush)
+
+	githubSettings := &config.GitHubSettings{
+		Enabled:    true,
+		Owner:      "testowner",
+		Repository: "testrepo",
+		Branch:     "main",
+		ForcePush:  true,
+	}
+	err := settings.UpdateGitHubSettings(testDir, githubSettings)
+	require.NoError(t, err)
+
+	// Reload from disk to confirm the field round-trips through JSON.
+	reloaded, err := config.LoadSettings(testDir)
+	require.NoError(t, err)
+	assert.True(t, reloaded.GetGitHubSettings().ForcePush)
+}

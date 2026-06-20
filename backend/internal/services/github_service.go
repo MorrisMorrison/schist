@@ -19,6 +19,10 @@ import (
 
 const (
 	DefaultGitHubBranch = "main"
+
+	// githubRequestTimeout bounds each individual GitHub API / network call so a
+	// hung endpoint cannot block a request (or a status poll) indefinitely.
+	githubRequestTimeout = 30 * time.Second
 )
 
 type GitHubService struct {
@@ -144,6 +148,23 @@ func (gs *GitHubService) initializeClient() error {
 	return nil
 }
 
+// ensureClient lazily initializes the shared client if it has not been created
+// yet. It is the single guard used by every caller that needs gs.client, so the
+// "client == nil → initializeClient()" pattern lives in exactly one place.
+func (gs *GitHubService) ensureClient() error {
+	if gs.client != nil {
+		return nil
+	}
+	return gs.initializeClient()
+}
+
+// requestContext returns a per-call context with a bounded timeout plus its
+// cancel func, so every network call is protected even though gs.ctx itself has
+// no deadline. Callers must defer cancel().
+func (gs *GitHubService) requestContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(gs.ctx, githubRequestTimeout)
+}
+
 func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoInfo, error) {
 	if req.Token == "" {
 		return nil, fmt.Errorf("github token is required")
@@ -159,7 +180,9 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 
 	tempClient := newGitHubClient(gs.ctx, req.Token)
 
-	repo, _, err := tempClient.Repositories.Get(gs.ctx, req.Owner, req.Repo)
+	getCtx, getCancel := gs.requestContext()
+	repo, _, err := tempClient.Repositories.Get(getCtx, req.Owner, req.Repo)
+	getCancel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to access repository %s/%s: %w", req.Owner, req.Repo, err)
 	}
@@ -172,7 +195,9 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		}
 	}
 
-	_, _, err = tempClient.Repositories.GetBranch(gs.ctx, req.Owner, req.Repo, branch, 1)
+	branchCtx, branchCancel := gs.requestContext()
+	_, _, err = tempClient.Repositories.GetBranch(branchCtx, req.Owner, req.Repo, branch, 1)
+	branchCancel()
 	if err != nil {
 		return nil, fmt.Errorf("branch %s not found in repository %s/%s: %w", branch, req.Owner, req.Repo, err)
 	}
@@ -210,10 +235,10 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 	repoInfo := &GitHubRepoInfo{
 		Owner:    req.Owner,
 		Name:     req.Repo,
-		FullName: *repo.FullName,
-		Private:  *repo.Private,
-		HTMLURL:  *repo.HTMLURL,
-		CloneURL: *repo.CloneURL,
+		FullName: repo.GetFullName(),
+		Private:  repo.GetPrivate(),
+		HTMLURL:  repo.GetHTMLURL(),
+		CloneURL: repo.GetCloneURL(),
 	}
 
 	if repo.Description != nil {
@@ -254,7 +279,7 @@ func (gs *GitHubService) GetGitHubConnectionStatus() (*GitHubConnectionStatus, e
 
 	// Try to initialize client (requires secret unlock)
 	if gs.client == nil && gs.hasToken() {
-		if err := gs.initializeClient(); err != nil {
+		if err := gs.ensureClient(); err != nil {
 			return status, fmt.Errorf("failed to initialize GitHub client: %w", err)
 		}
 	}
@@ -266,7 +291,9 @@ func (gs *GitHubService) GetGitHubConnectionStatus() (*GitHubConnectionStatus, e
 	// Test connection to repository
 	githubSettings := gs.settings.GetGitHubSettings()
 	if githubSettings.Owner != "" && githubSettings.Repository != "" {
-		_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
+		ctx, cancel := gs.requestContext()
+		_, _, err := gs.client.Repositories.Get(ctx, githubSettings.Owner, githubSettings.Repository)
+		cancel()
 		status.Connected = err == nil
 
 		if err != nil {
@@ -306,8 +333,10 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 
 	if req.Branch != nil && *req.Branch != "" {
 		if gs.client != nil {
+			ctx, cancel := gs.requestContext()
 			_, _, err := gs.client.Repositories.GetBranch(
-				gs.ctx, githubSettings.Owner, githubSettings.Repository, *req.Branch, 1)
+				ctx, githubSettings.Owner, githubSettings.Repository, *req.Branch, 1)
+			cancel()
 			if err != nil {
 				return fmt.Errorf("branch %s not found in repository: %w", *req.Branch, err)
 			}
@@ -330,7 +359,7 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 
 	if gs.client == nil {
 		log.Printf("[GitHubService] GitHub client not initialized, attempting to initialize...")
-		if err := gs.initializeClient(); err != nil {
+		if err := gs.ensureClient(); err != nil {
 			log.Printf("[GitHubService] ERROR: Failed to initialize GitHub client: %v", err)
 			return nil, fmt.Errorf("failed to initialize github client: %w", err)
 		}
@@ -359,7 +388,9 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 	}
 
 	log.Printf("[GitHubService] Verifying GitHub repository access...")
-	_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
+	verifyCtx, verifyCancel := gs.requestContext()
+	_, _, err := gs.client.Repositories.Get(verifyCtx, githubSettings.Owner, githubSettings.Repository)
+	verifyCancel()
 	if err != nil {
 		log.Printf("[GitHubService] ERROR: Failed to access GitHub repository %s/%s: %v",
 			githubSettings.Owner, githubSettings.Repository, err)
@@ -426,20 +457,22 @@ func (gs *GitHubService) ValidateAccess() error {
 		return fmt.Errorf("github integration is not enabled")
 	}
 
-	if gs.client == nil {
-		if err := gs.initializeClient(); err != nil {
-			return fmt.Errorf("failed to initialize github client: %w", err)
-		}
+	if err := gs.ensureClient(); err != nil {
+		return fmt.Errorf("failed to initialize github client: %w", err)
 	}
 
-	_, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
+	getCtx, getCancel := gs.requestContext()
+	_, _, err := gs.client.Repositories.Get(getCtx, githubSettings.Owner, githubSettings.Repository)
+	getCancel()
 	if err != nil {
 		return fmt.Errorf("failed to access repository %s/%s: %w", githubSettings.Owner, githubSettings.Repository, err)
 	}
 
+	branchCtx, branchCancel := gs.requestContext()
 	_, _, err = gs.client.Repositories.GetBranch(
-		gs.ctx, githubSettings.Owner, githubSettings.Repository, githubSettings.Branch, 1,
+		branchCtx, githubSettings.Owner, githubSettings.Repository, githubSettings.Branch, 1,
 	)
+	branchCancel()
 	if err != nil {
 		return fmt.Errorf("failed to access branch %s: %w", githubSettings.Branch, err)
 	}
@@ -464,7 +497,9 @@ func (gs *GitHubService) TestConnection(token, owner, repo, branch string) error
 
 	tempClient := newGitHubClient(gs.ctx, token)
 
-	repoInfo, _, err := tempClient.Repositories.Get(gs.ctx, owner, repo)
+	getCtx, getCancel := gs.requestContext()
+	repoInfo, _, err := tempClient.Repositories.Get(getCtx, owner, repo)
+	getCancel()
 	if err != nil {
 		return fmt.Errorf("failed to access repository %s/%s: %w", owner, repo, err)
 	}
@@ -473,7 +508,9 @@ func (gs *GitHubService) TestConnection(token, owner, repo, branch string) error
 		branch = *repoInfo.DefaultBranch
 	}
 
-	_, _, err = tempClient.Repositories.GetBranch(gs.ctx, owner, repo, branch, 1)
+	branchCtx, branchCancel := gs.requestContext()
+	_, _, err = tempClient.Repositories.GetBranch(branchCtx, owner, repo, branch, 1)
+	branchCancel()
 	if err != nil {
 		return fmt.Errorf("failed to access branch %s: %w", branch, err)
 	}
@@ -488,13 +525,13 @@ func (gs *GitHubService) GetRepositoryInfo() (*GitHubRepoInfo, error) {
 		return nil, fmt.Errorf("github integration is not enabled")
 	}
 
-	if gs.client == nil {
-		if err := gs.initializeClient(); err != nil {
-			return nil, fmt.Errorf("failed to initialize github client: %w", err)
-		}
+	if err := gs.ensureClient(); err != nil {
+		return nil, fmt.Errorf("failed to initialize github client: %w", err)
 	}
 
-	repo, _, err := gs.client.Repositories.Get(gs.ctx, githubSettings.Owner, githubSettings.Repository)
+	ctx, cancel := gs.requestContext()
+	repo, _, err := gs.client.Repositories.Get(ctx, githubSettings.Owner, githubSettings.Repository)
+	cancel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get repository info: %w", err)
 	}
@@ -502,10 +539,10 @@ func (gs *GitHubService) GetRepositoryInfo() (*GitHubRepoInfo, error) {
 	repoInfo := &GitHubRepoInfo{
 		Owner:    githubSettings.Owner,
 		Name:     githubSettings.Repository,
-		FullName: *repo.FullName,
-		Private:  *repo.Private,
-		HTMLURL:  *repo.HTMLURL,
-		CloneURL: *repo.CloneURL,
+		FullName: repo.GetFullName(),
+		Private:  repo.GetPrivate(),
+		HTMLURL:  repo.GetHTMLURL(),
+		CloneURL: repo.GetCloneURL(),
 	}
 
 	if repo.Description != nil {
@@ -662,16 +699,24 @@ func (gs *GitHubService) pushToGitHub() error {
 	refSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", currentBranch, githubSettings.Branch)
 	log.Printf("[GitHubService] Using refspec: %s", refSpec)
 
+	// Force-push is intentionally disabled: an unconditional force with a wildcard
+	// refspec after staging everything (AddGlob ".") can silently overwrite commits
+	// on the remote branch. We push fast-forward only. If the remote has diverged,
+	// go-git returns a non-fast-forward error and we surface it instead of clobbering.
+	// Re-enabling force should be gated behind an explicit, persisted opt-in setting
+	// (default off) — see the PR description for the recommended follow-up.
 	pushOptions := &git.PushOptions{
 		RemoteName: "origin",
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(refSpec),
 		},
 		Auth:  auth,
-		Force: true,
+		Force: false,
 	}
 
-	err = gs.gitService.repository.Push(pushOptions)
+	pushCtx, pushCancel := gs.requestContext()
+	defer pushCancel()
+	err = gs.gitService.repository.PushContext(pushCtx, pushOptions)
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
 			log.Printf("[GitHubService] Repository is already up to date")

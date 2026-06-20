@@ -42,6 +42,11 @@ services:
       - SCHIST_JWT_SECRET=${SCHIST_JWT_SECRET:-test-jwt-secret-for-e2e-testing-32-bytes-long}
       - SCHIST_FRONTEND_URL=http://localhost:8080
       - ENV=production
+      # Rate limiting is now secure-by-default ON (SCHIST_RATE_LIMIT_ENABLED).
+      # The e2e fixtures seed test data with rapid API bursts, which trips the
+      # limiter (429s) and fails the infra/lifecycle tests. Disable it for the
+      # test harness only -- prod keeps the secure default.
+      - SCHIST_RATE_LIMIT_ENABLED=false
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/health"]
       interval: 5s

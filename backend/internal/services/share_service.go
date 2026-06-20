@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 )
 
@@ -40,10 +41,17 @@ func NewShareService(config *config.Config, documentService *DocumentService) *S
 }
 
 func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays int) (*ShareToken, error) {
-	// Verify document exists
+	// Verify document exists. GetDocumentByPath already returns typed API
+	// errors (NotFound for a missing doc, InvalidPath for a bad path); propagate
+	// those as-is so they map to the right status. This also avoids the
+	// doubled-prefix bug where wrapping produced "document not found: document
+	// not found". Any other failure is a genuine internal error.
 	_, err := s.documentService.GetDocumentByPath(documentPath)
 	if err != nil {
-		return nil, fmt.Errorf("document not found: %w", err)
+		if errors.IsAPIError(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to verify document: %w", err)
 	}
 
 	// Generate secure token
@@ -115,18 +123,23 @@ func (s *ShareService) GetSharedDocument(token string) (*models.Document, error)
 	}
 
 	if shareToken == nil {
-		return nil, fmt.Errorf("share not found")
+		return nil, errors.NewNotFoundError("share", token)
 	}
 
-	// Check if token is expired
+	// Treat an expired share as not-found so we don't reveal that the token
+	// ever existed.
 	if time.Now().After(shareToken.ExpiresAt) {
-		return nil, fmt.Errorf("share has expired")
+		return nil, errors.NewNotFoundError("share", token)
 	}
 
-	// Get the document
+	// Get the document. GetDocumentByPath returns typed API errors; propagate
+	// those as-is, otherwise surface a genuine internal failure.
 	document, err := s.documentService.GetDocumentByPath(shareToken.DocumentPath)
 	if err != nil {
-		return nil, fmt.Errorf("shared document not found: %w", err)
+		if errors.IsAPIError(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to load shared document: %w", err)
 	}
 
 	return document, nil
@@ -174,7 +187,9 @@ func (s *ShareService) RevokeShare(shareID, createdBy string) error {
 	}
 
 	if !found {
-		return fmt.Errorf("share not found or not owned by user")
+		// Return NotFound (not Forbidden) so we don't leak whether the share
+		// exists but is owned by someone else.
+		return errors.NewNotFoundError("share", shareID)
 	}
 
 	return s.saveShares(updatedShares)

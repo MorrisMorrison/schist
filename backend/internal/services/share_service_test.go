@@ -238,7 +238,7 @@ func TestShareService_RevokeShare(t *testing.T) {
 	t.Run("fails to revoke non-existent share", func(t *testing.T) {
 		err := shareService.RevokeShare("non-existent-id", "admin")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "share not found or not owned by user")
+		assert.Contains(t, err.Error(), "share not found")
 	})
 
 	t.Run("fails to revoke share owned by different user", func(t *testing.T) {
@@ -249,7 +249,7 @@ func TestShareService_RevokeShare(t *testing.T) {
 		// Try to revoke as different user
 		err = shareService.RevokeShare(newShare.ID, "other-user")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "share not found or not owned by user")
+		assert.Contains(t, err.Error(), "share not found")
 
 		// Verify share still exists
 		_, err = shareService.GetSharedDocument(newShare.Token)

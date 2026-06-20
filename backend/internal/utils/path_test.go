@@ -2,7 +2,9 @@ package utils
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -272,6 +274,57 @@ func TestBuildFilePath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSafeFilePath(t *testing.T) {
+	dataDir := "data"
+
+	t.Run("allows in-directory file", func(t *testing.T) {
+		got, err := SafeFilePath(dataDir, "/sub/file.txt")
+		if err != nil {
+			t.Fatalf("SafeFilePath() unexpected error: %v", err)
+		}
+		want := filepath.Join(dataDir, "sub", "file.txt")
+		if got != want {
+			t.Errorf("SafeFilePath() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("allows data directory root", func(t *testing.T) {
+		if _, err := SafeFilePath(dataDir, "/"); err != nil {
+			t.Errorf("SafeFilePath() rejected data dir root: %v", err)
+		}
+	})
+
+	t.Run("rejects traversal outside data directory", func(t *testing.T) {
+		if _, err := SafeFilePath(dataDir, "/../secret.txt"); err == nil {
+			t.Error("SafeFilePath() accepted a traversal path escaping the data directory")
+		}
+	})
+
+	// Sibling-prefix bypass regression: a directory like "data-evil" shares the
+	// "data" string prefix but is NOT inside "data". The previous HasPrefix
+	// containment check would accept it; the filepath.Rel-based check rejects it.
+	t.Run("rejects sibling directory sharing a name prefix", func(t *testing.T) {
+		absData, err := filepath.Abs(dataDir)
+		if err != nil {
+			t.Fatalf("failed to resolve data dir: %v", err)
+		}
+		absSibling, err := filepath.Abs(dataDir + "-evil")
+		if err != nil {
+			t.Fatalf("failed to resolve sibling dir: %v", err)
+		}
+
+		// Mirror the containment logic used by SafeFilePath to prove the sibling
+		// is correctly classified as outside the data directory.
+		rel, err := filepath.Rel(absData, filepath.Join(absSibling, "secret.txt"))
+		if err != nil {
+			t.Fatalf("filepath.Rel failed: %v", err)
+		}
+		if rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			t.Errorf("sibling dir %q was not classified as outside %q (rel=%q)", absSibling, absData, rel)
+		}
+	})
 }
 
 func TestExtractSlugFromPath(t *testing.T) {

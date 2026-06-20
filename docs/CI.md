@@ -7,12 +7,12 @@ doc covers how they run, how to switch runners, and how minute usage is kept dow
 
 | Workflow | File | Triggers (paths) | Purpose |
 |----------|------|------------------|---------|
-| Build | `build.yml` | backend, frontend, Dockerfile, docker-compose, Makefile | `make build` + a Docker image build/health-check |
+| Build | `build.yml` | backend, frontend, Dockerfile, docker-compose, Makefile | `make build` (Go + frontend compile) |
 | Backend Tests | `test-backend.yml` | `backend/**` | `go test ./...` |
 | Frontend Tests | `test-frontend.yml` | `frontend/**` | Vitest unit tests, lint, `svelte-check` |
 | E2E Tests | `e2e.yml` | backend, frontend, `e2e/**`, Dockerfile, docker-compose | Playwright suite against the Dockerised app |
 | Secret Scan | `secret-scan.yml` | all changes | gitleaks (via `make secret-scan`) |
-| Build and Push Docker Image | `docker-publish.yml` | push to `main` touching backend/frontend/Docker | Publishes `ghcr.io/<repo>:latest` (VPS auto-pulls) |
+| Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose | Build + smoke-test the image; on push to `main`, publish that tested image to `ghcr.io/<repo>:latest` (VPS auto-pulls) |
 
 All jobs run on `${{ vars.RUNS_ON || 'ubuntu-latest' }}` (see below).
 
@@ -42,7 +42,7 @@ GitHub-hosted (public repos get unlimited free Actions minutes).
 Add the runner under Settings → Actions → Runners → "New self-hosted runner".
 The host must have, for all jobs to pass:
 
-- **Docker** (daemon running) — used by the e2e, build, and docker-publish jobs
+- **Docker** (daemon running) — used by the e2e, build, and docker jobs
 - **Node.js 22** and **npm**
 - **Go 1.23**
 - **make**, `curl`, `openssl`, `git`
@@ -58,8 +58,8 @@ allowance. Three mechanisms keep usage down:
    run, and merging several PRs to `main` in quick succession cancels the
    superseded runs so only the latest commit builds.
 2. **Path filters** — backend-only changes don't run frontend tests (and vice
-   versa); docs-only changes don't trigger build/test/e2e; `docker-publish` only
-   rebuilds the image when image inputs change.
+   versa); docs-only changes don't trigger build/test/e2e; the `docker` workflow
+   only rebuilds the image when image inputs change.
 3. **Gated heavy jobs** — the expensive e2e and Docker jobs are scoped to the
    paths that actually affect them.
 

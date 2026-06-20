@@ -1,8 +1,10 @@
 # Schist 🪨
 
 [![Build](https://github.com/MorrisMorrison/schist/actions/workflows/build.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/build.yml)
+[![Backend Tests](https://github.com/MorrisMorrison/schist/actions/workflows/test-backend.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/test-backend.yml)
+[![Frontend Tests](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml)
 [![E2E Tests](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml)
-[![Test](https://github.com/MorrisMorrison/schist/actions/workflows/test.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/test.yml)
+[![Docker](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml)
 
 Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like functionality to the web browser. Schist focuses on simplicity, speed, and ease of use while maintaining the power of interconnected knowledge management.
 

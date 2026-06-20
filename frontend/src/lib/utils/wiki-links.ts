@@ -4,31 +4,12 @@ import { EditorState, StateField, StateEffect } from '@codemirror/state';
 import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { apiClient } from '$lib/api/client';
 import { goto } from '$app/navigation';
 import { generateSlug } from '$lib/utils/path';
-import type { Document } from '$lib/api/types';
-
-let documentsCache: Document[] = [];
-let cacheTime = 0;
-const CACHE_DURATION = 60000;
+import { getCachedDocuments } from '$lib/utils/markdown-cache';
 
 const existsCache = new Map<string, { exists: boolean; time: number }>();
 const EXISTS_CACHE_DURATION = 30000;
-
-async function getDocuments(): Promise<Document[]> {
-	const now = Date.now();
-	if (now - cacheTime > CACHE_DURATION || documentsCache.length === 0) {
-		try {
-			documentsCache = await apiClient.getDocuments();
-			cacheTime = now;
-		} catch (error) {
-			console.warn('Failed to fetch documents for wiki links:', error);
-			return [];
-		}
-	}
-	return documentsCache;
-}
 
 async function documentExists(documentName: string): Promise<boolean> {
 	const now = Date.now();
@@ -40,7 +21,7 @@ async function documentExists(documentName: string): Promise<boolean> {
 	}
 
 	try {
-		const documents = await getDocuments();
+		const documents = await getCachedDocuments();
 		const exists = documents.some(
 			(document) => document.metaData?.title?.toLowerCase() === cacheKey
 		);
@@ -55,7 +36,7 @@ async function documentExists(documentName: string): Promise<boolean> {
 }
 
 async function resolveDocumentPath(documentName: string): Promise<string> {
-	const documents = await getDocuments();
+	const documents = await getCachedDocuments();
 	const matchingDocument = documents.find(
 		(document) => document.metaData?.title?.toLowerCase() === documentName.toLowerCase()
 	);

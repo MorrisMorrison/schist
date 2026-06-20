@@ -1,46 +1,8 @@
 import { autocompletion } from '@codemirror/autocomplete';
 import type { CompletionResult, CompletionContext } from '@codemirror/autocomplete';
 
-import { apiClient } from '$lib/api/client';
-import type { TagInfo, Document } from '$lib/api/types';
+import { getCachedDocuments, getCachedTags } from '$lib/utils/markdown-cache';
 import { HASHTAG_PARTIAL_REGEX } from './hashtag-constants';
-
-let documentsCache: Document[] = [];
-let documentsCacheTime = 0;
-
-let tagsCache: TagInfo[] = [];
-let tagsCacheTime = 0;
-
-const CACHE_DURATION = 60000;
-
-async function getDocuments(): Promise<Document[]> {
-	const now = Date.now();
-	if (now - documentsCacheTime > CACHE_DURATION || documentsCache.length === 0) {
-		try {
-			documentsCache = await apiClient.getDocuments();
-			documentsCacheTime = now;
-		} catch (error) {
-			console.warn('Failed to fetch documents for wiki-link autocomplete:', error);
-			return [];
-		}
-	}
-	return documentsCache;
-}
-
-async function getTags(): Promise<TagInfo[]> {
-	const now = Date.now();
-	if (now - tagsCacheTime > CACHE_DURATION || tagsCache.length === 0) {
-		try {
-			const response = await apiClient.getAllTags();
-			tagsCache = response.tags;
-			tagsCacheTime = now;
-		} catch (error) {
-			console.warn('Failed to fetch tags for hashtag autocomplete:', error);
-			return [];
-		}
-	}
-	return tagsCache;
-}
 
 async function wikiLinkCompletion(context: CompletionContext): Promise<CompletionResult | null> {
 	const line = context.state.doc.lineAt(context.pos);
@@ -68,7 +30,7 @@ async function wikiLinkCompletion(context: CompletionContext): Promise<Completio
 	const to = lineStart + cursorInLine;
 
 	try {
-		const documents = await getDocuments();
+		const documents = await getCachedDocuments();
 		const filteredDocuments = documents.filter((doc) =>
 			doc.metaData?.title?.toLowerCase().includes(searchQuery.toLowerCase())
 		);
@@ -111,7 +73,7 @@ async function hashtagCompletion(context: CompletionContext): Promise<Completion
 	const to = context.pos;
 
 	try {
-		const tags = await getTags();
+		const tags = await getCachedTags();
 		const filteredTags = tags.filter((tag) =>
 			tag.name.toLowerCase().includes(searchQuery.toLowerCase())
 		);

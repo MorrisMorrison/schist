@@ -4,28 +4,8 @@ import { EditorState, StateField, StateEffect } from '@codemirror/state';
 import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { apiClient } from '$lib/api/client';
-import type { TagInfo } from '$lib/api/types';
+import { getCachedTags } from '$lib/utils/markdown-cache';
 import { HASHTAG_REGEX } from './hashtag-constants';
-
-let tagsCache: TagInfo[] = [];
-let cacheTime = 0;
-const CACHE_DURATION = 60000;
-
-async function getTags(): Promise<TagInfo[]> {
-	const now = Date.now();
-	if (now - cacheTime > CACHE_DURATION || tagsCache.length === 0) {
-		try {
-			const response = await apiClient.getAllTags();
-			tagsCache = response.tags;
-			cacheTime = now;
-		} catch (error) {
-			console.warn('Failed to fetch tags for hashtag autocomplete:', error);
-			return [];
-		}
-	}
-	return tagsCache;
-}
 
 const updateHashtagsEffect = StateEffect.define<DecorationSet>();
 const hashtagsField = StateField.define<DecorationSet>({
@@ -47,7 +27,7 @@ const hashtagsField = StateField.define<DecorationSet>({
 async function findHashtags(state: EditorState): Promise<Range<Decoration>[]> {
 	const decorations: Range<Decoration>[] = [];
 	const text = state.doc.toString();
-	const existingTags = await getTags();
+	const existingTags = await getCachedTags();
 	const existingTagNames = new Set(existingTags.map((tag) => tag.name.toLowerCase()));
 
 	let match;

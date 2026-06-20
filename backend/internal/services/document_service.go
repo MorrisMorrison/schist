@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/serializer"
 	"github.com/MorrisMorrison/schist/internal/utils"
@@ -148,7 +149,7 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 	}
 
 	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return fmt.Errorf("invalid path: %w", err)
+		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
 	}
 
 	now := time.Now()
@@ -164,7 +165,7 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 
 func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, saveType string) error {
 	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return fmt.Errorf("invalid path: %w", err)
+		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
 	}
 
 	document.MetaData.Updated = time.Now()
@@ -184,12 +185,15 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 func (d *DocumentService) DeleteDocument(path string) error {
 	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
 	if err := utils.ValidatePath(documentPath); err != nil {
-		return fmt.Errorf("invalid path: %w", err)
+		return errors.NewInvalidPathError(documentPath).WithCause(err)
 	}
 
 	filePath := d.buildFilePathFromPath(path)
 
 	if err := os.Remove(filePath); err != nil {
+		if os.IsNotExist(err) {
+			return errors.NewNotFoundError("document", documentPath)
+		}
 		return fmt.Errorf("failed to delete document file: %w", err)
 	}
 
@@ -278,13 +282,16 @@ func (d *DocumentService) saveDocument(document *models.Document) error {
 
 func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, error) {
 	if err := utils.ValidatePath(path); err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, errors.NewInvalidPathError(path).WithCause(err)
 	}
 
 	filePath := d.buildFilePathFromPath(path)
 
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, errors.NewNotFoundError("document", path)
+		}
 		return nil, fmt.Errorf("could not read document at path %s: %w", path, err)
 	}
 
@@ -298,10 +305,10 @@ func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, erro
 
 func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 	if err := utils.ValidatePath(oldPath); err != nil {
-		return fmt.Errorf("invalid old path: %w", err)
+		return errors.NewInvalidPathError(oldPath).WithCause(err)
 	}
 	if err := utils.ValidatePath(newPath); err != nil {
-		return fmt.Errorf("invalid new path: %w", err)
+		return errors.NewInvalidPathError(newPath).WithCause(err)
 	}
 
 	normalizedOldPath := utils.NormalizePath(oldPath)
@@ -313,6 +320,12 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 
 	document, err := d.GetDocumentByPath(oldPath)
 	if err != nil {
+		// GetDocumentByPath returns a typed NotFound for a missing source doc
+		// (identifier already == oldPath); propagate it as-is. Any other failure
+		// is a genuine internal error.
+		if errors.IsAPIError(err) {
+			return err
+		}
 		return fmt.Errorf("could not read document from old path: %w", err)
 	}
 

@@ -9,6 +9,8 @@
 					'bg-primary/90 text-primary-foreground shadow-sm hover:bg-primary/80 focus-visible:ring-primary/20 transition-colors',
 				destructive:
 					'bg-destructive text-white shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/20 transition-colors',
+				warning:
+					'bg-amber-500 text-white shadow-sm hover:bg-amber-600 focus-visible:ring-amber-500/20 dark:focus-visible:ring-amber-500/40 transition-colors',
 				outline:
 					'text-black dark:text-white border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors',
 				secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors',

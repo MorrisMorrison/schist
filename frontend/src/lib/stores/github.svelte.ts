@@ -1,5 +1,6 @@
 import { apiClient } from '../api/client';
 import { getErrorMessage } from '$lib/utils/error';
+import { runAsync } from '$lib/stores/resource.svelte';
 import type {
 	GitHubSettings,
 	GitHubConnectionStatus,
@@ -82,77 +83,61 @@ export const githubStore = {
 
 export const githubActions = {
 	async loadGitHubSettings(force = false) {
-		githubState.loading = true;
-		githubState.error = null;
-
-		try {
-			const settings = await apiClient.getGitHubSettings(force);
-			githubState.settings = settings;
-			githubState.loading = false;
-			return settings;
-		} catch (error) {
-			githubState.loading = false;
-			githubState.error = getErrorMessage(error, 'Failed to load GitHub settings');
-			throw error;
-		}
+		return runAsync(
+			githubState,
+			async () => {
+				const settings = await apiClient.getGitHubSettings(force);
+				githubState.settings = settings;
+				return settings;
+			},
+			'Failed to load GitHub settings'
+		);
 	},
 
 	async loadConnectionStatus(force = false) {
-		githubState.loading = true;
-		githubState.error = null;
-
-		try {
-			const connectionStatus = await apiClient.getGitHubConnectionStatus(force);
-			githubState.connectionStatus = connectionStatus;
-			githubState.loading = false;
-			return connectionStatus;
-		} catch (error) {
-			githubState.loading = false;
-			githubState.error = getErrorMessage(error, 'Failed to load GitHub connection status');
-			throw error;
-		}
+		return runAsync(
+			githubState,
+			async () => {
+				const connectionStatus = await apiClient.getGitHubConnectionStatus(force);
+				githubState.connectionStatus = connectionStatus;
+				return connectionStatus;
+			},
+			'Failed to load GitHub connection status'
+		);
 	},
 
 	async setupGitHub(setupRequest: GitHubSetupRequest) {
-		githubState.loading = true;
-		githubState.error = null;
+		return runAsync(
+			githubState,
+			async () => {
+				const setupResult = await apiClient.setupGitHub(setupRequest);
 
-		try {
-			const setupResult = await apiClient.setupGitHub(setupRequest);
+				const settings = setupResult.settings || (await apiClient.getGitHubSettings(true));
+				const connectionStatus =
+					setupResult.connection || (await apiClient.getGitHubConnectionStatus(true));
 
-			const settings = setupResult.settings || (await apiClient.getGitHubSettings(true));
-			const connectionStatus =
-				setupResult.connection || (await apiClient.getGitHubConnectionStatus(true));
+				githubState.settings = settings;
+				githubState.connectionStatus = connectionStatus;
 
-			githubState.settings = settings;
-			githubState.connectionStatus = connectionStatus;
-			githubState.loading = false;
-
-			return setupResult;
-		} catch (error) {
-			githubState.loading = false;
-			githubState.error = getErrorMessage(error, 'Failed to setup GitHub integration');
-			throw error;
-		}
+				return setupResult;
+			},
+			'Failed to setup GitHub integration'
+		);
 	},
 
 	async updateSettings(settingsUpdate: GitHubConfigRequest) {
-		githubState.loading = true;
-		githubState.error = null;
-
-		try {
-			await apiClient.updateGitHubSettings(settingsUpdate);
-			const settings = await apiClient.getGitHubSettings(true);
-			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
-			githubState.settings = settings;
-			githubState.connectionStatus = connectionStatus;
-			githubState.loading = false;
-			return { settings, connectionStatus };
-		} catch (error) {
-			githubState.loading = false;
-			githubState.error = getErrorMessage(error, 'Failed to update GitHub settings');
-			throw error;
-		}
+		return runAsync(
+			githubState,
+			async () => {
+				await apiClient.updateGitHubSettings(settingsUpdate);
+				const settings = await apiClient.getGitHubSettings(true);
+				const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
+				githubState.settings = settings;
+				githubState.connectionStatus = connectionStatus;
+				return { settings, connectionStatus };
+			},
+			'Failed to update GitHub settings'
+		);
 	},
 
 	async testConnection(token: string, owner: string, repository: string) {
@@ -223,22 +208,18 @@ export const githubActions = {
 	},
 
 	async disconnect() {
-		githubState.loading = true;
-		githubState.error = null;
-
-		try {
-			const result = await apiClient.disconnectGitHub();
-			githubState.settings = result.settings;
-			githubState.connectionStatus = result.connection;
-			githubState.loading = false;
-			githubState.connectionTest = null;
-			githubState.lastSyncResult = null;
-			return result;
-		} catch (error) {
-			githubState.loading = false;
-			githubState.error = getErrorMessage(error, 'Failed to disconnect from GitHub');
-			throw error;
-		}
+		return runAsync(
+			githubState,
+			async () => {
+				const result = await apiClient.disconnectGitHub();
+				githubState.settings = result.settings;
+				githubState.connectionStatus = result.connection;
+				githubState.connectionTest = null;
+				githubState.lastSyncResult = null;
+				return result;
+			},
+			'Failed to disconnect from GitHub'
+		);
 	},
 
 	async refresh() {

@@ -9,6 +9,7 @@ import type {
 } from '../api/types';
 import { getParentPath } from '../utils/path';
 import { getErrorMessage } from '$lib/utils/error';
+import { runAsync } from '$lib/stores/resource.svelte';
 
 interface DocumentsState {
 	documents: Document[];
@@ -143,88 +144,73 @@ function createDocumentActions() {
 		},
 
 		async createDocument(documentData: CreateDocumentRequest) {
-			updateDocumentsState({ loading: true, error: null });
+			return runAsync(
+				documentsState,
+				async () => {
+					const response = await apiClient.createDocument(documentData);
+					const newDocument = await apiClient.getDocumentByPath(response.path);
 
-			try {
-				const response = await apiClient.createDocument(documentData);
-				const newDocument = await apiClient.getDocumentByPath(response.path);
+					updateDocumentsState({
+						documents: [...documentsState.documents, newDocument],
+						currentDocument: newDocument
+					});
 
-				updateDocumentsState({
-					documents: [...documentsState.documents, newDocument],
-					currentDocument: newDocument,
-					loading: false
-				});
+					if (newDocument.metaData?.path) {
+						const parentPath = getParentPath(newDocument.metaData.path);
+						setCurrentFolder(parentPath);
+					}
 
-				if (newDocument.metaData?.path) {
-					const parentPath = getParentPath(newDocument.metaData.path);
-					setCurrentFolder(parentPath);
-				}
+					if (documentData.metaData.path) {
+						folderActions.loadFolderTree(true).catch(console.error);
+					}
 
-				if (documentData.metaData.path) {
-					folderActions.loadFolderTree(true).catch(console.error);
-				}
-
-				return newDocument;
-			} catch (error) {
-				updateDocumentsState({
-					loading: false,
-					error: getErrorMessage(error, 'Failed to create document')
-				});
-				throw error;
-			}
+					return newDocument;
+				},
+				'Failed to create document'
+			);
 		},
 
 		async updateDocument(slug: string, documentData: UpdateDocumentRequest) {
-			updateDocumentsState({ loading: true, error: null });
+			return runAsync(
+				documentsState,
+				async () => {
+					const updatedDocument = await apiClient.updateDocument(slug, documentData);
+					updateDocumentsState({
+						documents: documentsState.documents.map((d) =>
+							d.metaData.slug === slug ? updatedDocument : d
+						),
+						currentDocument:
+							documentsState.currentDocument?.metaData.slug === slug
+								? updatedDocument
+								: documentsState.currentDocument
+					});
 
-			try {
-				const updatedDocument = await apiClient.updateDocument(slug, documentData);
-				updateDocumentsState({
-					documents: documentsState.documents.map((d) =>
-						d.metaData.slug === slug ? updatedDocument : d
-					),
-					currentDocument:
-						documentsState.currentDocument?.metaData.slug === slug
-							? updatedDocument
-							: documentsState.currentDocument,
-					loading: false
-				});
-
-				// Force folder tree refresh to update document counts and metadata
-				folderActions.loadFolderTree(true).catch(console.error);
-				return updatedDocument;
-			} catch (error) {
-				updateDocumentsState({
-					loading: false,
-					error: getErrorMessage(error, 'Failed to update document')
-				});
-				throw error;
-			}
+					// Force folder tree refresh to update document counts and metadata
+					folderActions.loadFolderTree(true).catch(console.error);
+					return updatedDocument;
+				},
+				'Failed to update document'
+			);
 		},
 
 		async deleteDocument(path: string) {
-			updateDocumentsState({ loading: true, error: null });
+			return runAsync(
+				documentsState,
+				async () => {
+					await apiClient.deleteDocumentByPath(path);
+					updateDocumentsState({
+						documents: documentsState.documents.filter((d) => d.metaData.path !== path),
+						currentDocument:
+							documentsState.currentDocument?.metaData.path === path
+								? null
+								: documentsState.currentDocument
+					});
 
-			try {
-				await apiClient.deleteDocumentByPath(path);
-				updateDocumentsState({
-					documents: documentsState.documents.filter((d) => d.metaData.path !== path),
-					currentDocument:
-						documentsState.currentDocument?.metaData.path === path
-							? null
-							: documentsState.currentDocument,
-					loading: false
-				});
-
-				folderActions.loadFolderTree(true).catch(console.error);
-				documentActions.loadDocuments(true).catch(console.error);
-			} catch (error) {
-				updateDocumentsState({
-					loading: false,
-					error: getErrorMessage(error, 'Failed to delete document')
-				});
-				throw error;
-			}
+					folderActions.loadFolderTree(true).catch(console.error);
+					documentActions.loadDocuments(true).catch(console.error);
+				},
+				'Failed to delete document'
+			);
 		},
 
 		async loadDocumentByPath(path: string) {
@@ -288,48 +274,42 @@ function createDocumentActions() {
 		},
 
 		async deleteDocumentByPath(path: string) {
-			documentsState.loading = true;
-			documentsState.error = null;
+			return runAsync(
+				documentsState,
+				async () => {
+					await apiClient.deleteDocumentByPath(path);
+					documentsState.documents = documentsState.documents.filter(
+						(d) => d.metaData.path !== path
+					);
+					documentsState.currentDocument =
+						documentsState.currentDocument?.metaData.path === path
+							? null
+							: documentsState.currentDocument;
 
-			try {
-				await apiClient.deleteDocumentByPath(path);
-				documentsState.documents = documentsState.documents.filter((d) => d.metaData.path !== path);
-				documentsState.currentDocument =
-					documentsState.currentDocument?.metaData.path === path
-						? null
-						: documentsState.currentDocument;
-				documentsState.loading = false;
-
-				folderActions.loadFolderTree(true).catch(console.error);
-			} catch (error) {
-				documentsState.loading = false;
-				documentsState.error = getErrorMessage(error, 'Failed to delete document');
-				throw error;
-			}
+					folderActions.loadFolderTree(true).catch(console.error);
+				},
+				'Failed to delete document'
+			);
 		},
 
 		async moveDocumentPath(oldPath: string, newPath: string) {
-			documentsState.loading = true;
-			documentsState.error = null;
+			return runAsync(
+				documentsState,
+				async () => {
+					const moveRequest: MoveDocumentRequest = { oldPath, newPath };
+					const result = await apiClient.moveDocument(moveRequest);
 
-			try {
-				const moveRequest: MoveDocumentRequest = { oldPath, newPath };
-				const result = await apiClient.moveDocument(moveRequest);
+					await Promise.all([
+						documentActions.loadDocuments(true),
+						folderActions.loadFolderTree(true)
+					]);
 
-				await Promise.all([
-					documentActions.loadDocuments(true),
-					folderActions.loadFolderTree(true)
-				]);
+					setCurrentFolder(getParentPath(newPath));
 
-				setCurrentFolder(getParentPath(newPath));
-
-				documentsState.loading = false;
-				return result;
-			} catch (error) {
-				documentsState.loading = false;
-				documentsState.error = getErrorMessage(error, 'Failed to move document');
-				throw error;
-			}
+					return result;
+				},
+				'Failed to move document'
+			);
 		},
 
 		clearCurrentDocument() {
@@ -483,98 +463,79 @@ function createSearchActions() {
 function createFolderActions() {
 	return {
 		async loadFolderTree(force = false) {
-			foldersState.loading = true;
-			foldersState.error = null;
-
-			try {
-				const folders = await apiClient.getFolderTree(force);
-				foldersState.folders = folders;
-				foldersState.loading = false;
-				return folders;
-			} catch (error) {
-				foldersState.loading = false;
-				foldersState.error = getErrorMessage(error, 'Failed to load folder tree');
-				throw error;
-			}
+			return runAsync(
+				foldersState,
+				async () => {
+					const folders = await apiClient.getFolderTree(force);
+					foldersState.folders = folders;
+					return folders;
+				},
+				'Failed to load folder tree'
+			);
 		},
 
 		async createFolder(path: string) {
-			foldersState.loading = true;
-			foldersState.error = null;
+			return runAsync(
+				foldersState,
+				async () => {
+					const result = await apiClient.createFolder(path);
 
-			try {
-				const result = await apiClient.createFolder(path);
+					await folderActions.loadFolderTree(true);
 
-				await folderActions.loadFolderTree(true);
-
-				foldersState.loading = false;
-				return result;
-			} catch (error) {
-				foldersState.loading = false;
-				foldersState.error = getErrorMessage(error, 'Failed to create folder');
-				throw error;
-			}
+					return result;
+				},
+				'Failed to create folder'
+			);
 		},
 
 		async renameFolder(path: string, newName: string) {
-			foldersState.loading = true;
-			foldersState.error = null;
-			try {
-				const result = await apiClient.renameFolder(path, newName);
-				await Promise.all([
-					folderActions.loadFolderTree(true),
-					documentActions.loadDocuments(true)
-				]);
-				foldersState.loading = false;
-				return result;
-			} catch (error) {
-				foldersState.loading = false;
-				foldersState.error = getErrorMessage(error, 'Failed to rename folder');
-				throw error;
-			}
+			return runAsync(
+				foldersState,
+				async () => {
+					const result = await apiClient.renameFolder(path, newName);
+					await Promise.all([
+						folderActions.loadFolderTree(true),
+						documentActions.loadDocuments(true)
+					]);
+					return result;
+				},
+				'Failed to rename folder'
+			);
 		},
 
 		async deleteFolder(path: string) {
-			foldersState.loading = true;
-			foldersState.error = null;
+			return runAsync(
+				foldersState,
+				async () => {
+					const result = await apiClient.deleteFolder(path);
 
-			try {
-				const result = await apiClient.deleteFolder(path);
+					await Promise.all([
+						folderActions.loadFolderTree(true),
+						documentActions.loadDocuments(true)
+					]);
 
-				await Promise.all([
-					folderActions.loadFolderTree(true),
-					documentActions.loadDocuments(true)
-				]);
-
-				foldersState.loading = false;
-				return result;
-			} catch (error) {
-				foldersState.loading = false;
-				foldersState.error = getErrorMessage(error, 'Failed to delete folder');
-				throw error;
-			}
+					return result;
+				},
+				'Failed to delete folder'
+			);
 		},
 
 		async moveFolder(oldPath: string, newPath: string) {
-			foldersState.loading = true;
-			foldersState.error = null;
+			return runAsync(
+				foldersState,
+				async () => {
+					const moveRequest: MoveDocumentRequest = { oldPath, newPath };
+					const result = await apiClient.moveFolder(moveRequest);
 
-			try {
-				const moveRequest: MoveDocumentRequest = { oldPath, newPath };
-				const result = await apiClient.moveFolder(moveRequest);
+					await Promise.all([
+						folderActions.loadFolderTree(true),
+						documentActions.loadDocuments(true)
+					]);
 
-				await Promise.all([
-					folderActions.loadFolderTree(true),
-					documentActions.loadDocuments(true)
-				]);
-
-				foldersState.loading = false;
-				return result;
-			} catch (error) {
-				foldersState.loading = false;
-				foldersState.error = getErrorMessage(error, 'Failed to move folder');
-				throw error;
-			}
+					return result;
+				},
+				'Failed to move folder'
+			);
 		},
 
 		clearError() {

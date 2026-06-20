@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	stderrors "errors"
 	"log"
 	"net/http"
 
@@ -21,9 +22,7 @@ func HandleError(c *gin.Context, err error) {
 	}
 
 	var apiErr *errors.APIError
-	if errors.IsAPIError(err) {
-		apiErr = err.(*errors.APIError)
-	} else {
+	if !stderrors.As(err, &apiErr) {
 		// Wrap unknown errors as internal errors
 		apiErr = errors.WrapError(err)
 	}

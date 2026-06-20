@@ -1,0 +1,119 @@
+# Build the Docker image, smoke-test it, and -- only on a push to main -- publish
+# the *tested* image to ghcr. The image is built ONCE: the exact image that
+# passed the health check is the one that gets pushed, so a broken image can
+# never reach :latest (which Komodo auto-pulls). PRs run build + test as a gate
+# without publishing.
+name: Docker
+
+on:
+  push:
+    branches: [ main ]   # publish :latest on every main commit (Komodo auto-pulls)
+    paths:               # ...but only when something in the image actually changed
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    branches: [ main ]   # build + smoke-test only (no publish) as a merge gate
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker.yml'
+  workflow_dispatch:  # plus manual triggering with an optional explicit tag
+    inputs:
+      tag:
+        description: 'Docker image tag (optional, defaults to latest)'
+        required: false
+        default: 'latest'
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: registry.mormor.cloud   # self-hosted Zot (WG-only; reachable from the self-hosted runner)
+  IMAGE_NAME: schist
+
+jobs:
+  docker:
+    name: Docker Build & Publish
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # self-hosted VPS (e2e is the GitHub-hosted job)
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build Docker image
+        run: docker build -t "schist-test:${GITHUB_RUN_ID}" .
+
+      - name: Test Docker image
+        run: |
+          set -euo pipefail
+          NET="ci-${GITHUB_RUN_ID}"
+          APP="app-${GITHUB_RUN_ID}"
+          JWT_SECRET="$(openssl rand -base64 64)"
+
+          # Runner is Docker-out-of-Docker: published ports land on the host netns,
+          # not this job's, so localhost:<hostport> is unreachable. Talk to the app
+          # over a shared, run-unique network instead. Run-unique names also keep
+          # the two parallel runner replicas from colliding.
+          docker network create "$NET"
+          docker run -d --name "$APP" --network "$NET" \
+            -e ENV=production \
+            -e SCHIST_DATA_DIR=/app/data \
+            -e SCHIST_PORT=8080 \
+            -e SCHIST_JWT_SECRET="$JWT_SECRET" \
+            "schist-test:${GITHUB_RUN_ID}"
+
+          echo "Waiting for container to become healthy..."
+          if docker run --rm --network "$NET" curlimages/curl:latest \
+            sh -c 'for i in $(seq 1 30); do curl -fsS http://'"$APP"':8080/api/health && exit 0; sleep 2; done; exit 1'; then
+            echo "Health check passed"
+          else
+            echo "Health check failed"
+            docker logs "$APP" || true
+            exit 1
+          fi
+
+      # Everything below publishes, so it runs only when this is NOT a pull request
+      # (i.e. a push to main or a manual dispatch) -- and only because the steps
+      # above succeeded, so :latest is always an image that passed the smoke test.
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ci
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Tag and push the tested image
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          # ghcr requires a lowercase image path.
+          IMAGE="$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')"
+          PRIMARY="${{ github.event.inputs.tag || 'latest' }}"
+          SHA_TAG="main-${GITHUB_SHA::7}"
+
+          # Push the exact image that was just smoke-tested -- no rebuild.
+          docker tag "schist-test:${GITHUB_RUN_ID}" "${IMAGE}:${PRIMARY}"
+          docker tag "schist-test:${GITHUB_RUN_ID}" "${IMAGE}:${SHA_TAG}"
+          docker push "${IMAGE}:${PRIMARY}"
+          docker push "${IMAGE}:${SHA_TAG}"
+          echo "Pushed ${IMAGE}:${PRIMARY} and ${IMAGE}:${SHA_TAG}"
+
+      - name: Cleanup Docker resources
+        if: always()
+        run: |
+          # Only remove this job's resources -- never `docker system prune`, which
+          # would wipe the other parallel replica's containers and build cache.
+          docker rm -f "app-${GITHUB_RUN_ID}" || true
+          docker network rm "ci-${GITHUB_RUN_ID}" || true
+          docker rmi "schist-test:${GITHUB_RUN_ID}" || true

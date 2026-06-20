@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/serializer"
 	"github.com/MorrisMorrison/schist/internal/utils"
@@ -148,7 +149,7 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 	}
 
 	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return fmt.Errorf("invalid path: %w", err)
+		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
 	}
 
 	now := time.Now()
@@ -164,7 +165,7 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 
 func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, saveType string) error {
 	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return fmt.Errorf("invalid path: %w", err)
+		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
 	}
 
 	document.MetaData.Updated = time.Now()
@@ -184,12 +185,15 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 func (d *DocumentService) DeleteDocument(path string) error {
 	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
 	if err := utils.ValidatePath(documentPath); err != nil {
-		return fmt.Errorf("invalid path: %w", err)
+		return errors.NewInvalidPathError(documentPath).WithCause(err)
 	}
 
 	filePath := d.buildFilePathFromPath(path)
 
 	if err := os.Remove(filePath); err != nil {
+		if os.IsNotExist(err) {
+			return errors.NewNotFoundError("document", documentPath)
+		}
 		return fmt.Errorf("failed to delete document file: %w", err)
 	}
 
@@ -278,13 +282,16 @@ func (d *DocumentService) saveDocument(document *models.Document) error {
 
 func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, error) {
 	if err := utils.ValidatePath(path); err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, errors.NewInvalidPathError(path).WithCause(err)
 	}
 
 	filePath := d.buildFilePathFromPath(path)
 
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, errors.NewNotFoundError("document", path)
+		}
 		return nil, fmt.Errorf("could not read document at path %s: %w", path, err)
 	}
 
@@ -298,10 +305,10 @@ func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, erro
 
 func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 	if err := utils.ValidatePath(oldPath); err != nil {
-		return fmt.Errorf("invalid old path: %w", err)
+		return errors.NewInvalidPathError(oldPath).WithCause(err)
 	}
 	if err := utils.ValidatePath(newPath); err != nil {
-		return fmt.Errorf("invalid new path: %w", err)
+		return errors.NewInvalidPathError(newPath).WithCause(err)
 	}
 
 	normalizedOldPath := utils.NormalizePath(oldPath)
@@ -313,6 +320,12 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 
 	document, err := d.GetDocumentByPath(oldPath)
 	if err != nil {
+		// GetDocumentByPath returns a typed NotFound for a missing source doc
+		// (identifier already == oldPath); propagate it as-is. Any other failure
+		// is a genuine internal error.
+		if errors.IsAPIError(err) {
+			return err
+		}
 		return fmt.Errorf("could not read document from old path: %w", err)
 	}
 
@@ -334,7 +347,7 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 
 func (d *DocumentService) GetFolder(path string) (*models.Folder, error) {
 	if err := utils.ValidatePath(path); err != nil {
-		return nil, fmt.Errorf("invalid folder path: %w", err)
+		return nil, errors.NewInvalidPathError(path).WithCause(err)
 	}
 
 	if path == "/" {
@@ -359,13 +372,13 @@ func (d *DocumentService) validateFolderPath(folderPath, path string) (os.FileIn
 	info, err := os.Stat(folderPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("folder does not exist at path %s", path)
+			return nil, errors.NewNotFoundError("folder", path)
 		}
 		return nil, fmt.Errorf("failed to access folder at path %s: %w", path, err)
 	}
 
 	if !info.IsDir() {
-		return nil, fmt.Errorf("path %s is not a directory", path)
+		return nil, errors.NewValidationError(fmt.Sprintf("path %s is not a directory", path))
 	}
 
 	return info, nil
@@ -579,7 +592,7 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 
 func (d *DocumentService) CreateFolder(path string) error {
 	if err := utils.ValidatePath(path); err != nil {
-		return fmt.Errorf("invalid folder path: %w", err)
+		return errors.NewInvalidPathError(path).WithCause(err)
 	}
 
 	folderPath := utils.BuildFilePath(d.dataDir, path)
@@ -594,17 +607,17 @@ func (d *DocumentService) CreateFolder(path string) error {
 
 func (d *DocumentService) RenameFolder(oldPath, newName string) error {
 	if err := utils.ValidatePath(oldPath); err != nil {
-		return fmt.Errorf("invalid folder path: %w", err)
+		return errors.NewInvalidPathError(oldPath).WithCause(err)
 	}
 	if oldPath == "/" {
-		return fmt.Errorf("cannot rename root folder")
+		return errors.NewValidationError("cannot rename root folder")
 	}
 
 	if newName == "" {
-		return fmt.Errorf("new folder name cannot be empty")
+		return errors.NewValidationError("new folder name cannot be empty")
 	}
 	if strings.Contains(newName, "/") {
-		return fmt.Errorf("folder name cannot contain '/' character")
+		return errors.NewValidationError("folder name cannot contain '/' character")
 	}
 
 	parentPath := filepath.Dir(oldPath)
@@ -612,12 +625,12 @@ func (d *DocumentService) RenameFolder(oldPath, newName string) error {
 
 	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
 	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
-		return fmt.Errorf("folder does not exist at path %s", oldPath)
+		return errors.NewNotFoundError("folder", oldPath)
 	}
 
 	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
 	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
-		return fmt.Errorf("folder already exists at path %s", newPath)
+		return errors.NewAlreadyExistsError("folder", newPath)
 	}
 
 	if err := os.Rename(oldFolderPath, newFolderPath); err != nil {
@@ -690,32 +703,32 @@ func (d *DocumentService) updateDocumentPath(
 
 func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 	if err := utils.ValidatePath(oldPath); err != nil {
-		return fmt.Errorf("invalid old folder path: %w", err)
+		return errors.NewInvalidPathError(oldPath).WithCause(err)
 	}
 	if err := utils.ValidatePath(newPath); err != nil {
-		return fmt.Errorf("invalid new folder path: %w", err)
+		return errors.NewInvalidPathError(newPath).WithCause(err)
 	}
 
 	if oldPath == "/" {
-		return fmt.Errorf("cannot move root folder")
+		return errors.NewValidationError("cannot move root folder")
 	}
 
 	if strings.Count(newPath, "/") < 2 {
-		return fmt.Errorf("cannot move folder to root level - use rename instead")
+		return errors.NewValidationError("cannot move folder to root level - use rename instead")
 	}
 
 	if strings.HasPrefix(newPath, oldPath+"/") {
-		return fmt.Errorf("cannot move folder into itself or its subdirectory")
+		return errors.NewValidationError("cannot move folder into itself or its subdirectory")
 	}
 
 	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
 	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
-		return fmt.Errorf("folder does not exist at path %s", oldPath)
+		return errors.NewNotFoundError("folder", oldPath)
 	}
 
 	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
 	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
-		return fmt.Errorf("destination folder already exists at path %s", newPath)
+		return errors.NewAlreadyExistsError("folder", newPath)
 	}
 
 	parentPath := filepath.Dir(newFolderPath)
@@ -761,17 +774,17 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 
 func (d *DocumentService) DeleteFolder(path string) error {
 	if err := utils.ValidatePath(path); err != nil {
-		return fmt.Errorf("invalid folder path: %w", err)
+		return errors.NewInvalidPathError(path).WithCause(err)
 	}
 
 	if path == "/" {
-		return fmt.Errorf("cannot delete root folder")
+		return errors.NewValidationError("cannot delete root folder")
 	}
 
 	folderPath := utils.BuildFilePath(d.dataDir, path)
 
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
-		return fmt.Errorf("folder does not exist at path %s", path)
+		return errors.NewNotFoundError("folder", path)
 	}
 
 	if err := os.RemoveAll(folderPath); err != nil {

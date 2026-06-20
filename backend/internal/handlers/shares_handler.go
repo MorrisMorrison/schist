@@ -50,11 +50,7 @@ func (h *APIHandler) createShare(c *gin.Context) {
 	// Use requested expiry days (ShareService will apply defaults and limits)
 	share, err := h.ShareService.CreateShare(req.DocumentPath, username, req.ExpiryDays)
 	if err != nil {
-		if err.Error() == "document not found: document not found" {
-			HandleError(c, errors.NewNotFoundError("document", req.DocumentPath).WithCause(err))
-			return
-		}
-		HandleError(c, errors.NewInternalError("Failed to create share: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -70,11 +66,7 @@ func (h *APIHandler) getSharedDocument(c *gin.Context) {
 
 	document, err := h.ShareService.GetSharedDocument(token)
 	if err != nil {
-		if err.Error() == "share not found" || err.Error() == "share has expired" {
-			HandleError(c, errors.NewNotFoundError("share", token).WithCause(err))
-			return
-		}
-		HandleError(c, errors.NewInternalError("Failed to get shared document: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -94,7 +86,7 @@ func (h *APIHandler) listShares(c *gin.Context) {
 
 	shares, err := h.ShareService.ListShares(username)
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Failed to list shares: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -128,11 +120,7 @@ func (h *APIHandler) revokeShare(c *gin.Context) {
 
 	err := h.ShareService.RevokeShare(shareID, username)
 	if err != nil {
-		if err.Error() == "share not found or not owned by user" {
-			HandleError(c, errors.NewNotFoundError("share", shareID).WithCause(err))
-			return
-		}
-		HandleError(c, errors.NewInternalError("Failed to revoke share: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -144,7 +132,7 @@ func (h *APIHandler) revokeShare(c *gin.Context) {
 func (h *APIHandler) cleanupExpiredShares(c *gin.Context) {
 	err := h.ShareService.CleanupExpiredShares()
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Failed to cleanup expired shares: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 

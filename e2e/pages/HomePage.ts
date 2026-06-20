@@ -1,4 +1,4 @@
-import { type Page, type Locator, expect } from '@playwright/test';
+import { type Page, type Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class HomePage extends BasePage {
@@ -34,8 +34,7 @@ export class HomePage extends BasePage {
 	}
 
 	async verifyLoaded() {
-		await this.waitForVisible(this.pageTitle);
-		await expect(this.pageTitle).toBeVisible();
+		await this.waitForContentReady(this.pageTitle);
 	}
 
 	async createNewPage() {

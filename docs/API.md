@@ -14,18 +14,17 @@ Authentication is **optional** and can be enabled via environment variables.
 ### No Authentication (Default)
 By default, all endpoints are publicly accessible without authentication.
 
-### Basic Authentication (Optional)
-When enabled (`SCHIST_AUTH_ENABLED=true`), all endpoints except `/api/health` require HTTP Basic Authentication.
+### JWT Authentication (Optional)
+When enabled (`SCHIST_AUTH_ENABLED=true`), all endpoints except `/api/health` require authentication via a JWT bearer token.
 
 **Configuration:**
 ```bash
 SCHIST_AUTH_ENABLED=true
-SCHIST_AUTH_USERS="admin:$2a$10$hash,editor:$2a$10$hash2"
 ```
 
 **Request Headers:**
 ```http
-Authorization: Basic YWRtaW46cGFzc3dvcmQ=
+Authorization: Bearer <jwt-token>
 ```
 
 **Unauthorized Response (401):**

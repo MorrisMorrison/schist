@@ -124,11 +124,7 @@ PUBLIC_API_URL=http://localhost:8081/api make run-frontend
 
 # Enable security features (production use)
 SCHIST_RATE_LIMIT_ENABLED=true SCHIST_RATE_LIMIT_RPM=60 make run-backend
-SCHIST_AUTH_ENABLED=true SCHIST_AUTH_USERS="admin:hash" make run-backend
-
-# Generate password hash for authentication
-cd backend && go build -o generate-hash ./cmd/generate-hash
-./generate-hash mypassword  # Outputs bcrypt hash for SCHIST_AUTH_USERS
+SCHIST_AUTH_ENABLED=true make run-backend
 ```
 
 ### Data Storage

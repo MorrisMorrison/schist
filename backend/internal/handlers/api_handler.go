@@ -6,6 +6,7 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/errors"
+	"github.com/MorrisMorrison/schist/internal/middleware"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
@@ -51,10 +52,18 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		auth.POST("/login/passkey", h.loginWithPasskey)
 		auth.POST("/logout", h.logout)
 		auth.GET("/me", h.getCurrentUser)
-		auth.POST("/invite", h.generateInviteToken)
-		auth.POST("/users", h.createUser)
-		auth.GET("/users", h.listUsers)
-		auth.DELETE("/users/:username", h.deleteUser)
+
+		// Administrative endpoints: require an authenticated admin user.
+		// Previously these enforced no authorization at all (privilege
+		// escalation / unauthenticated user management).
+		admin := auth.Group("")
+		admin.Use(middleware.RequireAdmin(h.Services.UserService))
+		{
+			admin.POST("/invite", h.generateInviteToken)
+			admin.POST("/users", h.createUser)
+			admin.GET("/users", h.listUsers)
+			admin.DELETE("/users/:username", h.deleteUser)
+		}
 	}
 	documents := routerGroup.Group("/documents")
 	{
@@ -321,7 +330,9 @@ func (h *APIHandler) importDocuments(c *gin.Context) {
 }
 
 type PasskeyLoginRequest struct {
-	CredentialID string `json:"credentialId"`
+	// AuthTicket is the single-use proof returned by
+	// /api/passkeys/authenticate/finish after a verified WebAuthn assertion.
+	AuthTicket string `json:"authTicket"`
 }
 
 func (h *APIHandler) loginWithPasskey(c *gin.Context) {
@@ -331,9 +342,16 @@ func (h *APIHandler) loginWithPasskey(c *gin.Context) {
 		return
 	}
 
-	response, err := h.AuthService.LoginWithPasskey(req.CredentialID)
+	if req.AuthTicket == "" {
+		HandleError(c, errors.NewUnauthorizedError("Authentication failed"))
+		return
+	}
+
+	// Only a ticket bound to a verified assertion is accepted -- never a bare
+	// credential ID.
+	response, err := h.AuthService.LoginWithPasskeyTicket(req.AuthTicket)
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Authentication failed").WithCause(err))
+		HandleError(c, errors.NewUnauthorizedError("Authentication failed").WithCause(err))
 		return
 	}
 
@@ -475,11 +493,27 @@ type CreateUserRequest struct {
 }
 
 func (h *APIHandler) createUser(c *gin.Context) {
-	// TODO: Add admin authentication middleware
+	// Authorization is enforced by middleware.RequireAdmin on this route group.
 	var req CreateUserRequest
 	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
 		HandleError(c, apiErr)
 		return
+	}
+
+	// Defense in depth: only an admin caller may create another admin. The
+	// route is already admin-gated, but verify explicitly so the client-settable
+	// is_admin flag can never escalate privileges if the gate is ever relaxed.
+	if req.IsAdmin {
+		username, ok := currentUser(c)
+		if !ok {
+			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
+			return
+		}
+		caller, err := h.Services.UserService.GetUserByUsername(username)
+		if err != nil || !caller.IsAdmin {
+			HandleError(c, errors.NewForbiddenError("Only an administrator may create an admin user"))
+			return
+		}
 	}
 
 	err := h.Services.UserService.CreateUser(req.Username, req.IsAdmin, req.CredentialID)
@@ -495,7 +529,7 @@ func (h *APIHandler) createUser(c *gin.Context) {
 }
 
 func (h *APIHandler) listUsers(c *gin.Context) {
-	// TODO: Add admin authentication middleware
+	// Authorization is enforced by middleware.RequireAdmin on this route group.
 	users, err := h.Services.UserService.ListUsers()
 	if err != nil {
 		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
@@ -508,7 +542,7 @@ func (h *APIHandler) listUsers(c *gin.Context) {
 }
 
 func (h *APIHandler) deleteUser(c *gin.Context) {
-	// TODO: Add admin authentication middleware
+	// Authorization is enforced by middleware.RequireAdmin on this route group.
 	username := c.Param("username")
 	if username == "" {
 		HandleError(c, errors.NewMissingRequiredFieldError("username"))

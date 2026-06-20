@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"slices"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-webauthn/webauthn/protocol"
@@ -51,6 +53,10 @@ type FinishAuthenticationRequest struct {
 type FinishAuthenticationResponse struct {
 	CredentialID string `json:"credentialId"`
 	Message      string `json:"message"`
+	// AuthTicket is a short-lived, single-use proof of the verified assertion.
+	// It is exchanged for a JWT at POST /api/auth/login/passkey. A bare
+	// credential ID is never accepted as proof of authentication.
+	AuthTicket string `json:"authTicket"`
 }
 
 // Types for remaining passkey handlers
@@ -74,15 +80,77 @@ type PasskeyStatusResponse struct {
 	RequiresPassword bool `json:"requiresPassword"`
 }
 
-// Session storage for WebAuthn sessions
-// TODO: In production, use Redis or proper session store
-var sessionStore = make(map[string]*webauthn.SessionData)
+// webauthnSessionTTL bounds how long a pending WebAuthn registration or
+// authentication session lives before it is evicted.
+const webauthnSessionTTL = 5 * time.Minute
+
+// webauthnSessionEntry is a stored session plus the time it was created, used
+// for TTL eviction.
+type webauthnSessionEntry struct {
+	data      *webauthn.SessionData
+	createdAt time.Time
+}
+
+// sessionStoreT is a concurrency-safe, TTL-bounded store for pending WebAuthn
+// sessions. It replaces the previous bare map, which was read/written from
+// concurrent handlers without synchronization (concurrent-map panic -> DoS) and
+// never expired (memory leak).
+//
+// TODO: In production, use Redis or a proper shared session store.
+type sessionStoreT struct {
+	mu       sync.Mutex
+	sessions map[string]webauthnSessionEntry
+}
+
+var sessionStore = &sessionStoreT{
+	sessions: make(map[string]webauthnSessionEntry),
+}
+
+// pruneLocked removes expired sessions. Caller must hold mu.
+func (s *sessionStoreT) pruneLocked() {
+	now := time.Now()
+	for id, entry := range s.sessions {
+		if now.Sub(entry.createdAt) > webauthnSessionTTL {
+			delete(s.sessions, id)
+		}
+	}
+}
+
+// Put stores a session under the given id.
+func (s *sessionStoreT) Put(id string, data *webauthn.SessionData) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.pruneLocked()
+	s.sessions[id] = webauthnSessionEntry{data: data, createdAt: time.Now()}
+}
+
+// Take retrieves and removes a session, returning false if it is missing or
+// expired. Sessions are single-use.
+func (s *sessionStoreT) Take(id string) (*webauthn.SessionData, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.pruneLocked()
+	entry, ok := s.sessions[id]
+	if !ok {
+		return nil, false
+	}
+	delete(s.sessions, id)
+	if time.Since(entry.createdAt) > webauthnSessionTTL {
+		return nil, false
+	}
+	return entry.data, true
+}
 
 // WebAuthn handlers
 func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req BeginRegistrationRequest
 		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
+			HandleError(c, apiErr)
+			return
+		}
+
+		if apiErr := authorizePasskeyRegistration(c, services); apiErr != nil {
 			HandleError(c, apiErr)
 			return
 		}
@@ -95,7 +163,7 @@ func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFun
 
 		// Generate a session ID and store the session
 		sessionID := generateSessionID()
-		sessionStore[sessionID] = session
+		sessionStore.Put(sessionID, session)
 
 		response := BeginRegistrationResponse{
 			Options:   options,
@@ -114,15 +182,17 @@ func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFu
 			return
 		}
 
-		// Retrieve the session
-		session, exists := sessionStore[req.SessionID]
+		if apiErr := authorizePasskeyRegistration(c, services); apiErr != nil {
+			HandleError(c, apiErr)
+			return
+		}
+
+		// Retrieve the session (single-use, TTL-bounded)
+		session, exists := sessionStore.Take(req.SessionID)
 		if !exists {
 			HandleError(c, errors.NewValidationError("invalid or expired session"))
 			return
 		}
-
-		// Clean up the session
-		delete(sessionStore, req.SessionID)
 
 		// Parse the WebAuthn response
 		parsedResponse, err := protocol.ParseCredentialCreationResponseBody(bytes.NewReader(req.Response))
@@ -156,7 +226,7 @@ func BeginPasskeyAuthenticationHandler(services *services.Services) gin.HandlerF
 
 		// Generate a session ID and store the session
 		sessionID := generateSessionID()
-		sessionStore[sessionID] = session
+		sessionStore.Put(sessionID, session)
 
 		response := BeginAuthenticationResponse{
 			Options:   options,
@@ -175,15 +245,12 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 			return
 		}
 
-		// Retrieve the session
-		session, exists := sessionStore[req.SessionID]
+		// Retrieve the session (single-use, TTL-bounded)
+		session, exists := sessionStore.Take(req.SessionID)
 		if !exists {
 			HandleError(c, errors.NewValidationError("invalid or expired session"))
 			return
 		}
-
-		// Clean up the session
-		delete(sessionStore, req.SessionID)
 
 		// Parse the WebAuthn response
 		parsedResponse, err := protocol.ParseCredentialRequestResponseBody(bytes.NewReader(req.Response))
@@ -198,9 +265,19 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 			return
 		}
 
+		// Only now -- after a verified WebAuthn assertion -- mint a single-use
+		// ticket that can be exchanged for a JWT. The bare credential ID is
+		// never sufficient on its own.
+		ticket, err := services.AuthService.IssueAuthTicket(credentialID)
+		if err != nil {
+			HandleError(c, errors.NewUnauthorizedError("Authentication failed").WithCause(err))
+			return
+		}
+
 		response := FinishAuthenticationResponse{
 			CredentialID: credentialID,
 			Message:      "Authentication successful",
+			AuthTicket:   ticket,
 		}
 
 		c.JSON(http.StatusOK, response)
@@ -315,6 +392,30 @@ func PasskeyStatusHandler(services *services.Services) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, status)
 	}
+}
+
+// authorizePasskeyRegistration gates passkey registration. In this single-user
+// model, an unauthenticated visitor may only register a credential during
+// first-time setup (when no users exist yet). Once a user exists, registration
+// requires an authenticated session -- otherwise any visitor could enroll a
+// credential on the existing account (account takeover).
+func authorizePasskeyRegistration(c *gin.Context, services *services.Services) *errors.APIError {
+	// An authenticated request is always allowed (e.g. adding another passkey
+	// to your own account). The auth middleware sets authenticated_user.
+	if _, ok := currentUser(c); ok {
+		return nil
+	}
+
+	// Otherwise, only permit registration during first-time setup.
+	isFirstSetup, err := services.AuthService.IsFirstSetup()
+	if err != nil {
+		return errors.NewInternalError("Failed to check setup status").WithCause(err)
+	}
+	if isFirstSetup {
+		return nil
+	}
+
+	return errors.NewUnauthorizedError("Passkey registration requires authentication")
 }
 
 // generateSessionID generates a cryptographically secure session ID

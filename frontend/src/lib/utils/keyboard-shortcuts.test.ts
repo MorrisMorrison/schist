@@ -26,33 +26,37 @@ import { themeActions } from '$lib/stores/theme.svelte';
 import { sidebarActions } from '$lib/stores/sidebar.svelte';
 
 // Mock page object matching SvelteKit's Page interface
-const createMockPage = (pathname: string = '/'): Page<Record<string, string>, string | null> => ({
-	url: {
-		href: `http://localhost:5173${pathname}`,
-		origin: 'http://localhost:5173',
-		protocol: 'http:',
-		username: '',
-		password: '',
-		host: 'localhost:5173',
-		hostname: 'localhost',
-		port: '5173',
-		pathname,
-		search: '',
-		searchParams: new URLSearchParams(),
-		hash: '',
-		toString: () => `http://localhost:5173${pathname}`,
-		toJSON: () => `http://localhost:5173${pathname}`
-	},
-	params: {},
-	route: {
-		id: pathname
-	},
-	status: 200,
-	error: null,
-	data: {},
-	form: undefined,
-	state: {}
-});
+// Bare `Page` (matching the consumer's signature) defaults to the app's typed
+// routes. The mock can't satisfy that strict route union, so cast it -- standard
+// for a test fixture that only needs a handful of fields populated.
+const createMockPage = (pathname: string = '/'): Page =>
+	({
+		url: {
+			href: `http://localhost:5173${pathname}`,
+			origin: 'http://localhost:5173',
+			protocol: 'http:',
+			username: '',
+			password: '',
+			host: 'localhost:5173',
+			hostname: 'localhost',
+			port: '5173',
+			pathname,
+			search: '',
+			searchParams: new URLSearchParams(),
+			hash: '',
+			toString: () => `http://localhost:5173${pathname}`,
+			toJSON: () => `http://localhost:5173${pathname}`
+		},
+		params: {},
+		route: {
+			id: pathname
+		},
+		status: 200,
+		error: null,
+		data: {},
+		form: undefined,
+		state: {}
+	}) as unknown as Page;
 
 // Mock document and window
 const createMockDocument = () => {

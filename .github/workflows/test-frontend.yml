@@ -20,44 +20,36 @@ concurrency:
 jobs:
   frontend-tests:
     name: Frontend Tests
-    # The unit tests run in Vitest browser mode (real headless Chromium), so the
-    # browser binary must exist on the runner. We install only the binary (see the
-    # install step) -- the system libs are provisioned once on the self-hosted host.
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
-    # Without the apt pass the whole job is a few minutes; cap it low so a stuck
-    # step fails fast instead of burning the runner for 20 min.
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      # Unit tests run in Vitest browser mode (provider: playwright, chromium),
-      # so the browser binary must be present on the runner.
+      # Vitest browser mode (provider: playwright, chromium) needs a real headless
+      # Chromium plus its system libraries. Rather than install them on the runner
+      # -- the `playwright install --with-deps` apt pass hung the VPS 18+ min --
+      # run the checks inside the official Playwright image, which has the browsers
+      # AND deps baked in. So there's no install step at all, and no host coupling:
+      # this behaves identically on the self-hosted VPS and on a GitHub-hosted runner.
       #
-      # Install ONLY the browser binary -- not --with-deps. That flag shells out
-      # to apt-get, which stalls indefinitely on the self-hosted VPS (no
-      # interactive sudo, and dpkg-lock contention when both runner instances hit
-      # it at once) -- a job was observed hung 18+ min on exactly this step. The
-      # chromium system libraries are provisioned once on the VPS host, so the
-      # apt pass is pure liability here. (If RUNS_ON is ever pointed back at a
-      # GitHub-hosted runner, re-add --with-deps or run these in the prebaked
-      # Playwright container the way e2e does.)
-      - name: Install Playwright browser
-        run: cd frontend && npx playwright install chromium
-
-      - name: Run frontend unit tests
-        run: cd frontend && npm run test:unit
-
-      - name: Run linting
-        run: cd frontend && npm run lint
-
-      - name: Run type checking
-        run: cd frontend && npm run check
+      # We deliberately do NOT use a `container:` job here. The self-hosted runner
+      # is Docker-out-of-Docker, so its node externals don't mount into a job
+      # container and checkout dies on `/__e/node24/bin/node: no such file`. Instead
+      # we drive the image manually with docker create + cp + start, exactly like the
+      # e2e job. Code is `docker cp`-ed in (not bind-mounted) because under DooD a
+      # `-v` source resolves on the host, not in this job.
+      #
+      # The image tag's Playwright version MUST match frontend's `playwright` dep
+      # (1.61), or playwright-core looks for a browser revision that isn't baked in
+      # and tries to re-download. Bump both together.
+      - name: Run frontend checks in the Playwright image
+        run: |
+          set -uo pipefail
+          CID="$(docker create -w /frontend -e CI=true \
+            mcr.microsoft.com/playwright:v1.61.0-noble \
+            sh -c 'npm ci && npm run test:unit && npm run lint && npm run check')"
+          docker cp ./frontend/. "${CID}:/frontend"
+          RC=0
+          docker start -a "${CID}" || RC=$?
+          docker rm -f "${CID}" >/dev/null 2>&1 || true
+          exit $RC

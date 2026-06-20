@@ -20,12 +20,20 @@ concurrency:
 jobs:
   frontend-tests:
     name: Frontend Tests
-    # The unit tests run in Vitest browser mode (real headless Chromium), so the
-    # browser binary must exist on the runner. We install only the binary (see the
-    # install step) -- the system libs are provisioned once on the self-hosted host.
     runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}
-    # Without the apt pass the whole job is a few minutes; cap it low so a stuck
-    # step fails fast instead of burning the runner for 20 min.
+    # The unit tests run in Vitest browser mode (provider: playwright, chromium),
+    # so a real headless Chromium plus its system libraries must be present. Run
+    # the whole job inside the official Playwright image -- browsers AND deps are
+    # baked in -- so there's no `playwright install` step at all (the --with-deps
+    # apt pass used to hang the VPS runner 18+ min). This is the same image e2e
+    # runs in, and it removes the host coupling: the job works identically on the
+    # self-hosted VPS and on a GitHub-hosted runner.
+    #
+    # The image tag's Playwright version MUST match frontend's `playwright` dep
+    # (currently 1.61), otherwise playwright-core looks for a browser revision
+    # that isn't baked in and tries to re-download. Bump both together.
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.0-noble
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
@@ -38,20 +46,6 @@ jobs:
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci
-
-      # Unit tests run in Vitest browser mode (provider: playwright, chromium),
-      # so the browser binary must be present on the runner.
-      #
-      # Install ONLY the browser binary -- not --with-deps. That flag shells out
-      # to apt-get, which stalls indefinitely on the self-hosted VPS (no
-      # interactive sudo, and dpkg-lock contention when both runner instances hit
-      # it at once) -- a job was observed hung 18+ min on exactly this step. The
-      # chromium system libraries are provisioned once on the VPS host, so the
-      # apt pass is pure liability here. (If RUNS_ON is ever pointed back at a
-      # GitHub-hosted runner, re-add --with-deps or run these in the prebaked
-      # Playwright container the way e2e does.)
-      - name: Install Playwright browser
-        run: cd frontend && npx playwright install chromium
 
       - name: Run frontend unit tests
         run: cd frontend && npm run test:unit

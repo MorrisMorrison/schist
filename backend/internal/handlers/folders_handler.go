@@ -13,7 +13,7 @@ func (h *APIHandler) getFolder(c *gin.Context) {
 
 	folder, err := h.DocumentService.GetFolder(path)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 
 	err := h.DocumentService.CreateFolder(path)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *APIHandler) renameFolder(c *gin.Context) {
 
 	err := h.DocumentService.RenameFolder(path, req.NewName)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (h *APIHandler) deleteFolder(c *gin.Context) {
 
 	err := h.DocumentService.DeleteFolder(path)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func (h *APIHandler) moveFolder(c *gin.Context) {
 
 	err := h.DocumentService.MoveFolder(req.OldPath, req.NewPath)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 

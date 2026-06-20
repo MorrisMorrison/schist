@@ -37,7 +37,13 @@ export default ts.config(
 			// goto()/pushState()/replaceState() path wrapped in resolve() for typed
 			// routing. Adopting that is a deliberate refactor across ~40 call sites, so
 			// it shouldn't be forced by a dependency bump -- defer it to its own PR.
-			'svelte/no-navigation-without-resolve': 'off'
+			'svelte/no-navigation-without-resolve': 'off',
+			// Also newly enabled in the recommended set: it wants SvelteSet/SvelteMap
+			// instead of a plain Set/Map. Our reactive collections use the valid
+			// "reassign a new Set" pattern (selectedDocuments/expandedFolders are
+			// $state, so reassignment triggers reactivity) -- not a bug. Switching to
+			// SvelteSet is a deliberate refactor, so defer it to its own PR too.
+			'svelte/prefer-svelte-reactivity': 'off'
 		}
 	},
 	{

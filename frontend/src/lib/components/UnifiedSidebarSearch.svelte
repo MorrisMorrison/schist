@@ -43,7 +43,7 @@
 			class="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform"
 		/>
 		<input
-			data-testid={dataTestId}
+			data-testid="${dataTestId}"
 			bind:value={currentQuery}
 			type="text"
 			{placeholder}

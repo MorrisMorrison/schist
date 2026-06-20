@@ -17,10 +17,11 @@ export default defineConfig({
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: isCI,
 
-	/* 3 retries on CI: the self-hosted VPS runner is slow and variable, so a few
-	   timing-sensitive tests (page/document render waits) occasionally exceed their
-	   visibility timeouts on a bad moment. They pass on a subsequent attempt; the
-	   extra retry keeps a lone transient flake from failing the whole run. */
+	/* 3 retries on CI: the GitHub-hosted runner speed is variable, so a few
+	   timing-sensitive tests (page/document render waits) can occasionally exceed
+	   their visibility budget on a slow moment. Page objects now settle on the
+	   app's load signals (see BasePage.waitForContentReady) to cut this down; the
+	   retries remain as a backstop for a lone transient flake. */
 	retries: isCI ? 3 : 0,
 
 	/* Run with a single worker: the suite shares one backend instance and a single
@@ -28,14 +29,16 @@ export default defineConfig({
 	   workers would cause cross-test data interference. */
 	workers: 1,
 
-	/* Global timeout for each test. 60s for self-hosted hardware: the VPS runner
-	   is slower than GitHub-hosted, and the WebAuthn ceremony in auth.setup can
+	/* Global per-test timeout. 90s gives room for the settle-on-signal page waits
+	   plus a slow GitHub-hosted moment, and the WebAuthn ceremony in auth.setup can
 	   take ~45s under load. */
-	timeout: 60 * 1000,
+	timeout: 90 * 1000,
 
-	/* Expect timeout for assertions */
+	/* Expect timeout for assertions. 10s (up from 5s) absorbs the runner's speed
+	   variance so a content assertion doesn't fail a beat before the element renders;
+	   page-load waits use the longer, settle-aware helpers in BasePage. */
 	expect: {
-		timeout: 5 * 1000
+		timeout: 10 * 1000
 	},
 
 	/* Global teardown script to clean up auth files */

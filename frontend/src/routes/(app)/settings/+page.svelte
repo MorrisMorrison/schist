@@ -12,6 +12,14 @@
 	import SecretManager from '$lib/components/SecretManager.svelte';
 	import PasskeyManager from '$lib/components/PasskeyManager.svelte';
 	import UserManagement from '$lib/components/UserManagement.svelte';
+	import { authService } from '$lib/auth/auth-service';
+
+	// Passkeys, secrets and user management are only meaningful when authentication is
+	// enabled (no auth => no user, no passkeys). Hide these sections otherwise so a no-auth
+	// instance doesn't surface "Authentication required" errors from user-scoped endpoints.
+	// Fail-safe: isAuthEnabled() returns true when config couldn't be loaded, so we never
+	// wrongly hide them in a normal auth-enabled instance.
+	const authEnabled = authService.isAuthEnabled();
 </script>
 
 <svelte:head>
@@ -41,14 +49,16 @@
 		</CardContent>
 	</Card>
 
-	<!-- User Management Section -->
-	<UserManagement />
+	{#if authEnabled}
+		<!-- User Management Section -->
+		<UserManagement />
 
-	<!-- Passkey Security Section -->
-	<PasskeyManager />
+		<!-- Passkey Security Section -->
+		<PasskeyManager />
 
-	<!-- Secret Management Section -->
-	<SecretManager />
+		<!-- Secret Management Section -->
+		<SecretManager />
+	{/if}
 
 	<!-- GitHub Integration Section -->
 	<Card>

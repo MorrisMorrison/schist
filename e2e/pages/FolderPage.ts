@@ -71,7 +71,7 @@ export class FolderPage extends BasePage {
 	}
 
 	async verifyFolderLoaded(expectedFolderName?: string) {
-		await this.waitForVisible(this.folderTitle);
+		await this.waitForContentReady(this.folderTitle);
 
 		if (expectedFolderName) {
 			const displayName =

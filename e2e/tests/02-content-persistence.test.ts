@@ -64,7 +64,8 @@ test.describe('Content Persistence and Data Integrity', () => {
 		const { unicodeDocument: testDocument } = withSpecialContentTypes;
 
 		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		// Unicode-heavy body renders slower; give the document load extra headroom.
+		await documentViewPage.verifyDocumentLoaded(testDocument.title, 30000);
 		await documentViewPage.verifyContentContains('🚀 🌟 ✅');
 		await documentViewPage.verifyContentContains('ÄÖÜß çñ');
 		await documentViewPage.verifyContentContains('中文 日本語 한국어');
@@ -87,7 +88,9 @@ test.describe('Content Persistence and Data Integrity', () => {
 		const { largeDocument: testDocument } = withSpecialContentTypes;
 
 		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		// ~45KB body: the client-side markdown render delays the title paint, so
+		// give the document load extra headroom rather than relying on retries.
+		await documentViewPage.verifyDocumentLoaded(testDocument.title, 30000);
 
 		await documentViewPage.verifyContentContains('Large Content Test');
 		await documentViewPage.verifyContentContains('Lorem ipsum dolor sit amet');

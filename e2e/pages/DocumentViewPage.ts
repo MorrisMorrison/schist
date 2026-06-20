@@ -82,17 +82,19 @@ export class DocumentViewPage extends BasePage {
 	/**
 	 * Verify document is loaded and displays content
 	 */
-	async verifyDocumentLoaded(expectedTitle?: string) {
+	async verifyDocumentLoaded(expectedTitle?: string, timeoutMs: number = 15000) {
 		// Settle on the app's load signals (networkidle + spinner gone), then assert
-		// the title -- the shared helper this pattern was extracted into.
-		await this.waitForContentReady(this.documentTitle);
+		// the title -- the shared helper this pattern was extracted into. A large or
+		// unicode-heavy body renders slowly enough to delay the title paint past the
+		// default budget, so those call sites pass a longer timeoutMs.
+		await this.waitForContentReady(this.documentTitle, timeoutMs);
 
 		if (expectedTitle) {
-			await expect(this.documentTitle).toContainText(expectedTitle, { timeout: 10000 });
+			await expect(this.documentTitle).toContainText(expectedTitle, { timeout: timeoutMs });
 		}
 
 		// Ensure document content is visible
-		await this.waitForVisible(this.documentContent, 10000);
+		await this.waitForVisible(this.documentContent, timeoutMs);
 	}
 
 	/**

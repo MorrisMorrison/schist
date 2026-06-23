@@ -12,7 +12,7 @@ require (
 	github.com/google/go-github/v57 v57.0.0
 	github.com/sergi/go-diff v1.4.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/crypto v0.52.0
+	golang.org/x/crypto v0.53.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -69,9 +69,9 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

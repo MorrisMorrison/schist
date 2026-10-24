@@ -37,6 +37,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o schist ./cmd/schi
 # Stage 3: Production image
 FROM alpine:latest
 
+# Links the published ghcr.io package to this repository.
+LABEL org.opencontainers.image.source="https://github.com/MorrisMorrison/schist"
+LABEL org.opencontainers.image.description="Schist: a lightweight, self-hosted markdown wiki"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Install ca-certificates for HTTPS and curl for health checks
 RUN apk --no-cache add ca-certificates curl
 

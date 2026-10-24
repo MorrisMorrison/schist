@@ -28,7 +28,7 @@ concurrency:
 jobs:
   build:
     name: Build All
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # self-hosted VPS (e2e is the GitHub-hosted job)
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # repo variable, see docs/CI.md
     timeout-minutes: 20
     env:
       PUBLIC_API_URL: http://localhost:8080/api

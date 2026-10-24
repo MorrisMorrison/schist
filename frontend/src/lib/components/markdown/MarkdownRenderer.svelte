@@ -28,19 +28,27 @@
 
 		loading = true;
 		error = null;
+		// Parsing is async (wiki links are resolved over the API); ignore the
+		// result if newer content arrived meanwhile so it cannot overwrite it.
+		let stale = false;
 
 		parseMarkdownToBlocks(content)
 			.then((parsedBlocks) => {
-				blocks = parsedBlocks;
+				if (!stale) blocks = parsedBlocks;
 			})
 			.catch((err) => {
+				if (stale) return;
 				console.error('Error parsing markdown:', err);
 				error = 'Failed to parse markdown content';
 				blocks = [];
 			})
 			.finally(() => {
-				loading = false;
+				if (!stale) loading = false;
 			});
+
+		return () => {
+			stale = true;
+		};
 	});
 
 	// Wiki links can appear in any block (tables, headings, lists, ...), but

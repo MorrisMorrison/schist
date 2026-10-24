@@ -5,6 +5,7 @@
 [![Frontend Tests](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml)
 [![E2E Tests](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml)
 [![Docker](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml)
+[![codecov](https://codecov.io/gh/MorrisMorrison/schist/graph/badge.svg)](https://codecov.io/gh/MorrisMorrison/schist)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A lightweight, self-hosted markdown wiki with Obsidian-style features in the browser. Your notes stay plain markdown files on disk, versioned with git. There's no database.

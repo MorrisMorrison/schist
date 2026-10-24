@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
+import { playwright } from '@vitest/browser-playwright';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
@@ -14,8 +15,8 @@ export default defineConfig({
 		fileParallelism: false,
 		browser: {
 			enabled: true,
-			name: 'chromium',
-			provider: 'playwright',
+			provider: playwright(),
+			instances: [{ browser: 'chromium' }],
 			headless: true
 		},
 		globals: true,

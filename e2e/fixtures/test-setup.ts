@@ -27,6 +27,7 @@ export const test = base.extend<{
 	apiHelper: ApiHelper;
 	testId: string;
 	_autoCleanup: void;
+	_browserDiagnostics: void;
 }>({
 	homePage: async ({ page }, use) => {
 		page.setDefaultNavigationTimeout(DEFAULT_NAVIGATION_TIMEOUT_MILLIS);
@@ -99,6 +100,45 @@ export const test = base.extend<{
 			// Depending on apiHelper is what schedules its cleanup teardown.
 			void apiHelper;
 			await use();
+		},
+		{ auto: true }
+	],
+
+	// On failure, attach the browser's console errors, uncaught page errors and
+	// failed API responses. The chronic flakes are "the route never rendered"
+	// (element(s) not found for the whole page), which a screenshot alone cannot
+	// explain.
+	_browserDiagnostics: [
+		async ({ page }, use, testInfo) => {
+			const lines: string[] = [];
+			const stamp = () => new Date().toISOString();
+			page.on('console', (message) => {
+				if (message.type() === 'error' || message.type() === 'warning') {
+					lines.push(`${stamp()} console.${message.type()}: ${message.text()}`);
+				}
+			});
+			page.on('pageerror', (error) => lines.push(`${stamp()} pageerror: ${error.message}`));
+			page.on('requestfailed', (request) => {
+				lines.push(
+					`${stamp()} requestfailed: ${request.method()} ${request.url()} (${request.failure()?.errorText})`
+				);
+			});
+			page.on('response', (response) => {
+				if (response.status() >= 400 && response.url().includes('/api/')) {
+					lines.push(
+						`${stamp()} response ${response.status()}: ${response.request().method()} ${response.url()}`
+					);
+				}
+			});
+
+			await use();
+
+			if (testInfo.status !== testInfo.expectedStatus && lines.length > 0) {
+				await testInfo.attach('browser-diagnostics', {
+					body: lines.join('\n'),
+					contentType: 'text/plain'
+				});
+			}
 		},
 		{ auto: true }
 	],

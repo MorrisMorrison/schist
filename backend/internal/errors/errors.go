@@ -192,3 +192,9 @@ func IsAPIError(err error) bool {
 	var apiErr *APIError
 	return stderrors.As(err, &apiErr)
 }
+
+// HasCode reports whether err is (or wraps) an APIError with the given code.
+func HasCode(err error, code ErrorCode) bool {
+	var apiErr *APIError
+	return stderrors.As(err, &apiErr) && apiErr.Code == code
+}

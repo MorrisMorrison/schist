@@ -97,6 +97,7 @@ func TestDocumentService_CreateDocument(t *testing.T) {
 	t.Run("sets timestamps", func(t *testing.T) {
 		before := time.Now()
 		page := createTestPage()
+		page.MetaData.Title = "Timestamp Page" // "Test Page" already exists; create refuses to overwrite
 
 		err := documentService.CreateDocument(page)
 		after := time.Now()
@@ -134,7 +135,7 @@ func TestDocumentService_UpdateDocument(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "Updated Title", updatedPage.MetaData.Title)
-		assert.Equal(t, "\n# Updated Title\n\nUpdated content.", updatedPage.Content)
+		assert.Equal(t, "# Updated Title\n\nUpdated content.", updatedPage.Content)
 		assert.Equal(t, originalCreated.Unix(), updatedPage.MetaData.Created.Unix())
 		assert.True(t, updatedPage.MetaData.Updated.After(originalCreated) || updatedPage.MetaData.Updated.Equal(originalCreated))
 	})
@@ -261,7 +262,9 @@ func TestDocumentService_ListDocuments(t *testing.T) {
 		err := os.MkdirAll(subDir, 0755)
 		require.NoError(t, err)
 
-		// Create a page
+		// Create a page (replacing the one left by the previous subtest, since
+		// CreateDocument refuses to overwrite)
+		_ = os.Remove(filepath.Join(testDir, "test-page.md"))
 		page := createTestPage()
 		err = documentService.CreateDocument(page)
 		require.NoError(t, err)
@@ -370,7 +373,7 @@ func TestDocumentService_Integration(t *testing.T) {
 		updatedPage, err := documentService.GetDocumentByPath("/" + slug)
 		assert.NoError(t, err)
 		assert.Equal(t, "Updated Title", updatedPage.MetaData.Title)
-		assert.Equal(t, "\nUpdated content", updatedPage.Content)
+		assert.Equal(t, "Updated content", updatedPage.Content)
 
 		// Delete
 		err = documentService.DeleteDocument(slug)

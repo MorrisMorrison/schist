@@ -1,17 +1,14 @@
 package utils
 
-import (
-	"regexp"
-	"strings"
-)
+import "strings"
 
 func GenerateSlug(title string) string {
 	slug := strings.ToLower(title)
 	slug = strings.ReplaceAll(slug, " ", "-")
 
 	// remove common special characters
-	slug = regexp.MustCompile(`[^\w\-]`).ReplaceAllString(slug, "")
-	slug = regexp.MustCompile(`-+`).ReplaceAllString(slug, "-")
+	slug = invalidSlugCharsRegex.ReplaceAllString(slug, "")
+	slug = repeatedHyphensRegex.ReplaceAllString(slug, "-")
 
 	slug = strings.Trim(slug, "-")
 

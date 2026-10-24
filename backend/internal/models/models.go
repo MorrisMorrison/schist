@@ -1,10 +1,6 @@
 package models
 
-import (
-	"path/filepath"
-	"strings"
-	"time"
-)
+import "time"
 
 type Document struct {
 	MetaData *DocumentMetaData `json:"metaData"`
@@ -20,28 +16,12 @@ type DocumentMetaData struct {
 	Tags    []string  `yaml:"tags,omitempty" json:"tags,omitempty"`
 }
 
-func (d *DocumentMetaData) ParentPath() string {
-	return filepath.Dir(d.Path)
-}
-
-func (d *DocumentMetaData) Depth() int {
-	return strings.Count(d.Path, "/")
-}
-
 type Folder struct {
 	Name          string    `json:"name"`
 	Path          string    `json:"path"`
 	Created       time.Time `json:"created"`
 	DocumentCount int       `json:"document_count"`
 	SubFolders    []*Folder `json:"sub_folders"`
-}
-
-func (f *Folder) ParentPath() string {
-	return filepath.Dir(f.Path)
-}
-
-func (f *Folder) Depth() int {
-	return strings.Count(f.Path, "/")
 }
 
 type Asset struct {

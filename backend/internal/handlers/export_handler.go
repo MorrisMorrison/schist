@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,7 +12,7 @@ func (h *APIHandler) exportDocument(c *gin.Context) {
 
 	content, filename, err := h.DocumentService.ExportDocument(path)
 	if err != nil {
-		HandleError(c, errors.NewNotFoundError("document", path).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -29,7 +28,7 @@ func (h *APIHandler) exportFolder(c *gin.Context) {
 
 	content, filename, err := h.DocumentService.ExportFolder(path)
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Export failed: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -43,7 +42,7 @@ func (h *APIHandler) exportFolder(c *gin.Context) {
 func (h *APIHandler) exportAll(c *gin.Context) {
 	content, filename, err := h.DocumentService.ExportAll()
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Export failed: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 

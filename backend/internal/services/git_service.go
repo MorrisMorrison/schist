@@ -1,6 +1,7 @@
 package services
 
 import (
+	stderrors "errors"
 	"fmt"
 	"log"
 	"os"
@@ -15,9 +16,30 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/serializer"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 const maxRepairAttempts = 3
+
+// VersionNotFoundError reports that a requested version does not exist: either
+// the commit is unknown or the document is absent from that commit's tree.
+// Callers classify it with errors.As instead of matching error text.
+type VersionNotFoundError struct {
+	Hash string
+}
+
+func (e *VersionNotFoundError) Error() string {
+	return fmt.Sprintf("version not found: %s", e.Hash)
+}
+
+// classifyVersionLookupError turns go-git's "object/file not found" errors into
+// a *VersionNotFoundError and wraps anything else with context.
+func classifyVersionLookupError(hash, what string, err error) error {
+	if stderrors.Is(err, plumbing.ErrObjectNotFound) || stderrors.Is(err, object.ErrFileNotFound) {
+		return fmt.Errorf("%s: %w", what, &VersionNotFoundError{Hash: hash})
+	}
+	return fmt.Errorf("%s: %w", what, err)
+}
 
 type GitService struct {
 	dataDir    string
@@ -248,10 +270,6 @@ func (gs *GitService) healthCheckWithRepairAttempts(autoRepair bool, repairAttem
 	return nil
 }
 
-func (gs *GitService) IsRepositoryInitialized() bool {
-	return gs.repository != nil && gs.HealthCheck() == nil
-}
-
 func (gs *GitService) RepairRepository() error {
 	log.Printf("[GitService] Starting repository repair process...")
 
@@ -317,8 +335,19 @@ func (gs *GitService) RepairRepository() error {
 }
 
 func (gs *GitService) CommitDocument(documentPath string, message string) error {
+	return gs.CommitDocuments(message, documentPath)
+}
+
+// CommitDocuments stages the given documents (including their removal, if the
+// file no longer exists on disk) and records them in a single commit. A move
+// passes both the old and the new path so the old file's deletion is not left
+// unstaged.
+func (gs *GitService) CommitDocuments(message string, documentPaths ...string) error {
 	if gs.repository == nil {
 		return fmt.Errorf("git repository not initialized")
+	}
+	if len(documentPaths) == 0 {
+		return fmt.Errorf("no documents to commit")
 	}
 
 	worktree, err := gs.repository.Worktree()
@@ -326,10 +355,11 @@ func (gs *GitService) CommitDocument(documentPath string, message string) error 
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	filePath := gs.getRelativeFilePath(documentPath)
-
-	if _, err := worktree.Add(filePath); err != nil {
-		return fmt.Errorf("failed to add file to staging: %w", err)
+	for _, documentPath := range documentPaths {
+		filePath := gs.getRelativeFilePath(documentPath)
+		if _, err := worktree.Add(filePath); err != nil {
+			return fmt.Errorf("failed to add file to staging (%s): %w", filePath, err)
+		}
 	}
 
 	signature := &object.Signature{
@@ -339,7 +369,7 @@ func (gs *GitService) CommitDocument(documentPath string, message string) error 
 	}
 
 	if message == "" {
-		message = fmt.Sprintf("Update document: %s", documentPath)
+		message = fmt.Sprintf("Update document: %s", documentPaths[0])
 	}
 
 	_, err = worktree.Commit(message, &git.CommitOptions{
@@ -413,27 +443,9 @@ func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash strin
 		return nil, fmt.Errorf("git repository not initialized")
 	}
 
-	hash := plumbing.NewHash(commitHash)
-	commit, err := gs.repository.CommitObject(hash)
+	content, err := gs.getDocumentContent(documentPath, commitHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get commit object: %w", err)
-	}
-
-	tree, err := commit.Tree()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit tree: %w", err)
-	}
-
-	filePath := gs.getRelativeFilePath(documentPath)
-
-	file, err := tree.File(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get file from tree: %w", err)
-	}
-
-	content, err := file.Contents()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file content: %w", err)
+		return nil, err
 	}
 
 	document, err := serializer.DeserializeDocument([]byte(content))
@@ -459,11 +471,11 @@ func (gs *GitService) CompareVersions(documentPath, hash1, hash2 string) (*DiffR
 	}
 
 	// Validate that both commit hashes exist before attempting comparison
-	if err := gs.validateCommitHashEsists(hash1); err != nil {
-		return nil, fmt.Errorf("invalid hash1 %s: %w", hash1, err)
+	if err := gs.validateCommitHashExists(hash1); err != nil {
+		return nil, err
 	}
-	if err := gs.validateCommitHashEsists(hash2); err != nil {
-		return nil, fmt.Errorf("invalid hash2 %s: %w", hash2, err)
+	if err := gs.validateCommitHashExists(hash2); err != nil {
+		return nil, err
 	}
 
 	content1, err := gs.getDocumentContent(documentPath, hash1)
@@ -484,7 +496,7 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	hash := plumbing.NewHash(commitHash)
 	commit, err := gs.repository.CommitObject(hash)
 	if err != nil {
-		return "", fmt.Errorf("failed to get commit object: %w", err)
+		return "", classifyVersionLookupError(commitHash, "failed to get commit object", err)
 	}
 
 	tree, err := commit.Tree()
@@ -495,7 +507,7 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	filePath := gs.getRelativeFilePath(documentPath)
 	file, err := tree.File(filePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to get file from tree: %w", err)
+		return "", classifyVersionLookupError(commitHash, "failed to get file from tree", err)
 	}
 
 	content, err := file.Contents()
@@ -506,11 +518,10 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	return content, nil
 }
 
-func (gs *GitService) validateCommitHashEsists(commitHash string) error {
+func (gs *GitService) validateCommitHashExists(commitHash string) error {
 	hash := plumbing.NewHash(commitHash)
-	_, err := gs.repository.CommitObject(hash)
-	if err != nil {
-		return fmt.Errorf("commit does not exist in repository")
+	if _, err := gs.repository.CommitObject(hash); err != nil {
+		return classifyVersionLookupError(commitHash, "failed to get commit object", err)
 	}
 	return nil
 }
@@ -616,7 +627,7 @@ func (gs *GitService) RestoreDocument(documentPath, commitHash string) error {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+	if err := utils.WriteFileAtomic(fullPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write restored content: %w", err)
 	}
 

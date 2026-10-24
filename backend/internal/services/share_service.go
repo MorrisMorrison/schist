@@ -13,6 +13,7 @@ import (
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 type ShareToken struct {
@@ -41,6 +42,10 @@ func NewShareService(config *config.Config, documentService *DocumentService) *S
 }
 
 func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays int) (*ShareToken, error) {
+	if !s.config.SharingEnabled {
+		return nil, errors.NewForbiddenError("Document sharing is disabled")
+	}
+
 	// Verify document exists. GetDocumentByPath already returns typed API
 	// errors (NotFound for a missing doc, InvalidPath for a bad path); propagate
 	// those as-is so they map to the right status. This also avoids the
@@ -107,6 +112,12 @@ func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays in
 }
 
 func (s *ShareService) GetSharedDocument(token string) (*models.Document, error) {
+	// With sharing disabled every token is treated as unknown, so the public
+	// endpoint reveals nothing about previously created shares.
+	if !s.config.SharingEnabled {
+		return nil, errors.NewNotFoundError("share", token)
+	}
+
 	s.mu.Lock()
 	shares, err := s.loadShares()
 	s.mu.Unlock()
@@ -263,30 +274,9 @@ func (s *ShareService) saveShares(shares []ShareToken) error {
 		return fmt.Errorf("failed to marshal shares: %w", err)
 	}
 
-	// Write to a temp file in the same directory, then rename over the target.
-	// Rename is atomic on the same filesystem, so a crash mid-write can never
-	// leave a partially-written shares file behind.
-	dir := filepath.Dir(s.shareFilePath)
-	tmp, err := os.CreateTemp(dir, ".shares-*.json.tmp")
-	if err != nil {
-		return fmt.Errorf("failed to create temp shares file: %w", err)
-	}
-	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // no-op if the rename succeeded
-
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return fmt.Errorf("failed to write shares file: %w", err)
-	}
-	if err := tmp.Chmod(0644); err != nil {
-		tmp.Close()
-		return fmt.Errorf("failed to set shares file permissions: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("failed to close temp shares file: %w", err)
-	}
-
-	if err := os.Rename(tmpName, s.shareFilePath); err != nil {
+	// Atomic temp-file + rename, so a crash mid-write can never leave a
+	// partially-written shares file behind.
+	if err := utils.WriteFileAtomic(s.shareFilePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write shares file: %w", err)
 	}
 

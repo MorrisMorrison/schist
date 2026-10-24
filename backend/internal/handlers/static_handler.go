@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -25,9 +26,7 @@ func (h *StaticHandler) ServeStatic() gin.HandlerFunc {
 			return
 		}
 
-		filePath := filepath.Join(h.staticDir, c.Request.URL.Path)
-
-		if _, err := http.Dir(h.staticDir).Open(c.Request.URL.Path); err == nil {
+		if filePath, ok := h.staticFile(c.Request.URL.Path); ok {
 			c.File(filePath)
 			return
 		}
@@ -35,6 +34,25 @@ func (h *StaticHandler) ServeStatic() gin.HandlerFunc {
 		indexPath := filepath.Join(h.staticDir, "index.html")
 		c.File(indexPath)
 	})
+}
+
+// staticFile resolves a request path to a regular file inside staticDir. The
+// path is cleaned and rooted first, so it can never point outside staticDir;
+// directories are not served (no listings), the SPA index is used instead.
+func (h *StaticHandler) staticFile(requestPath string) (string, bool) {
+	cleaned := path.Clean("/" + requestPath)
+
+	f, err := http.Dir(h.staticDir).Open(cleaned)
+	if err != nil {
+		return "", false
+	}
+	info, err := f.Stat()
+	f.Close() // the probe handle was previously leaked on every request
+	if err != nil || info.IsDir() {
+		return "", false
+	}
+
+	return filepath.Join(h.staticDir, filepath.FromSlash(cleaned)), true
 }
 
 func (h *StaticHandler) SetupStaticRoutes(router *gin.Engine) {

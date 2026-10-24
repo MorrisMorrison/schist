@@ -19,6 +19,7 @@ func setupShareServiceTest(t *testing.T) (string, *services.ShareService, *servi
 	// Setup config
 	cfg := &config.Config{
 		DataDir:                testDir,
+		SharingEnabled:         true,
 		ShareDefaultExpiryDays: 7,
 		ShareMaxExpiryDays:     30,
 	}

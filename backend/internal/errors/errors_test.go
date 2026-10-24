@@ -278,3 +278,25 @@ func TestIsAPIError(t *testing.T) {
 		})
 	}
 }
+
+func TestHasCode(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		code ErrorCode
+		want bool
+	}{
+		{name: "nil error", err: nil, code: ErrCodeNotFound, want: false},
+		{name: "plain error", err: fmt.Errorf("boom"), code: ErrCodeNotFound, want: false},
+		{name: "matching code", err: NewNotFoundError("document", "/a"), code: ErrCodeNotFound, want: true},
+		{name: "other code", err: NewValidationError("bad"), code: ErrCodeNotFound, want: false},
+		{name: "wrapped match", err: fmt.Errorf("ctx: %w", NewNotFoundError("document", "/a")), code: ErrCodeNotFound, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := HasCode(tt.err, tt.code); got != tt.want {
+				t.Errorf("HasCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

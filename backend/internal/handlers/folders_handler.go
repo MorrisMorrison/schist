@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +22,7 @@ func (h *APIHandler) getFolder(c *gin.Context) {
 func (h *APIHandler) getFolderTree(c *gin.Context) {
 	folders, err := h.DocumentService.GetFolderTree()
 	if err != nil {
-		HandleError(c, errors.NewDatabaseError("get folder tree", err))
+		HandleError(c, err)
 		return
 	}
 

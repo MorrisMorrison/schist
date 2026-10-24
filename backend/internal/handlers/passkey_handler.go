@@ -157,7 +157,7 @@ func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFun
 
 		options, session, err := services.PasskeyService.BeginRegistration(req.Name)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -203,7 +203,7 @@ func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFu
 
 		credentialID, err := services.PasskeyService.FinishRegistration(req.Name, session, parsedResponse)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -220,7 +220,7 @@ func BeginPasskeyAuthenticationHandler(services *services.Services) gin.HandlerF
 	return func(c *gin.Context) {
 		options, session, err := services.PasskeyService.BeginAuthentication()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -261,7 +261,7 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 
 		credentialID, err := services.PasskeyService.FinishAuthentication(session, parsedResponse)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -300,7 +300,7 @@ func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 
 		credentials, err := services.PasskeyService.ListCredentials()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -333,7 +333,11 @@ func UnlockWithPasskeyHandler(services *services.Services) gin.HandlerFunc {
 
 		err := services.SecretManager.UnlockWithPasskey(req.CredentialID)
 		if err != nil {
-			HandleError(c, errors.NewUnauthorizedError("Failed to unlock with passkey: "+err.Error()).WithCause(err))
+			if errors.IsAPIError(err) {
+				HandleError(c, err)
+			} else {
+				HandleError(c, errors.NewUnauthorizedError("Failed to unlock with passkey").WithCause(err))
+			}
 			return
 		}
 
@@ -368,7 +372,7 @@ func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 
 		err = services.PasskeyService.DeleteCredential(credentialID)
 		if err != nil {
-			HandleError(c, errors.NewNotFoundError("passkey", credentialID).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -380,7 +384,7 @@ func PasskeyStatusHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hasPasskeys, err := services.PasskeyService.HasCredentials()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 

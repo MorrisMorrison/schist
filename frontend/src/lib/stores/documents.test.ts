@@ -12,12 +12,12 @@ import {
 	setSearchState,
 	setCurrentFolderState
 } from './documents.svelte';
-import { apiClient } from '../api/client';
+import { apiClient } from '$lib/api/client';
 import type { CreateDocumentRequest, UpdateDocumentRequest } from '../api/types';
 import { testData } from '../test/utils';
 
 // Mock the API client
-vi.mock('../api/client', () => ({
+vi.mock('$lib/api/client', () => ({
 	apiClient: {
 		getDocuments: vi.fn(),
 		getDocument: vi.fn(),

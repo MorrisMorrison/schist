@@ -45,6 +45,17 @@
 
 	let contentContainer = $state<HTMLDivElement>();
 
+	// A document can link to the same page several times; list each target once
+	// (the list below is keyed by path, and duplicate keys throw).
+	const validOutgoingLinks = $derived.by(() => {
+		const seen = new Set<string>();
+		return (linksStore.outgoingLinks ?? []).filter((link) => {
+			if (!link.is_valid || seen.has(link.path)) return false;
+			seen.add(link.path);
+			return true;
+		});
+	});
+
 	function formatDate(dateString?: string): string {
 		if (!dateString) return '';
 		const date = new Date(dateString);
@@ -71,30 +82,39 @@
 	}
 
 	$effect(() => {
-		async function processContent() {
-			const content = document.content;
+		const content = document.content;
+		const unlocked = secretStore.secretsUnlocked;
+		// Secret lookup is async: drop the result if the document or lock state
+		// changed meanwhile, so an older document never overwrites a newer one.
+		let stale = false;
 
+		async function processContent() {
 			if (!content) {
 				processedContent = '';
 				return;
 			}
 
+			let result: string;
 			try {
-				if (secretStore.secretsUnlocked) {
-					let processedText = await replaceSecretPlaceholders(content, async (key: string) => {
-						return await secretStore.getSecret(key);
-					});
-					processedContent = processHashtags(processedText);
+				if (unlocked) {
+					const processedText = await replaceSecretPlaceholders(content, (key: string) =>
+						secretStore.getSecret(key)
+					);
+					result = processHashtags(processedText);
 				} else {
-					processedContent = addSecretPlaceholderIndicators(content);
+					result = addSecretPlaceholderIndicators(content);
 				}
 			} catch (error) {
 				console.error('Failed to process document content:', error);
-				processedContent = content;
+				result = content;
 			}
+			if (!stale) processedContent = result;
 		}
 
 		processContent();
+		return () => {
+			stale = true;
+		};
 	});
 
 	$effect(() => {
@@ -171,14 +191,15 @@
 
 		showVersionHistory = true;
 
-		if (versions.length === 0) {
-			try {
-				const versionsResponse = await apiClient.getDocumentVersions(documentPath);
-				versions = versionsResponse.versions || [];
-			} catch (error) {
-				console.error('Failed to load versions:', error);
-				versions = [];
-			}
+		// Always reload: the component is reused across documents and saves, so a
+		// cached list could belong to another document or be out of date.
+		const path = documentPath;
+		try {
+			const versionsResponse = await apiClient.getDocumentVersions(path);
+			if (path === documentPath) versions = versionsResponse.versions || [];
+		} catch (error) {
+			console.error('Failed to load versions:', error);
+			if (path === documentPath) versions = [];
 		}
 	}
 
@@ -315,7 +336,7 @@
 		{/if}
 	</main>
 
-	{#if (linksStore.backlinks?.length || 0) > 0 || linksStore.outgoingLinks?.some((l) => l.is_valid) || false}
+	{#if (linksStore.backlinks?.length || 0) > 0 || validOutgoingLinks.length > 0}
 		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">
@@ -324,8 +345,7 @@
 					<Badge variant="secondary" class="text-xs">
 						{linksStore.backlinksLoading || linksStore.outgoingLinksLoading
 							? '...'
-							: (linksStore.backlinks?.length || 0) +
-								(linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0)}
+							: (linksStore.backlinks?.length || 0) + validOutgoingLinks.length}
 					</Badge>
 				</div>
 				<DocumentGraphToggle
@@ -387,13 +407,13 @@
 						</div>
 					{/if}
 
-					{#if (linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0) > 0}
+					{#if validOutgoingLinks.length > 0}
 						<div>
 							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
-								Outgoing Links ({linksStore.outgoingLinks.filter((l) => l.is_valid).length})
+								Outgoing Links ({validOutgoingLinks.length})
 							</h3>
 							<div class="space-y-3">
-								{#each linksStore.outgoingLinks.filter((l) => l.is_valid) as outgoingLink (outgoingLink.path)}
+								{#each validOutgoingLinks as outgoingLink (outgoingLink.path)}
 									<button
 										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
 										onclick={() => goto(`/documents${outgoingLink.path}`)}
@@ -415,7 +435,7 @@
 						</div>
 					{/if}
 
-					{#if (linksStore.backlinks?.length || 0) === 0 && (linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0) === 0}
+					{#if (linksStore.backlinks?.length || 0) === 0 && validOutgoingLinks.length === 0}
 						<div class="flex flex-col items-center justify-center py-8 text-center">
 							<p class="text-muted-foreground text-sm">No links found.</p>
 							<p class="text-muted-foreground mt-1 text-xs">

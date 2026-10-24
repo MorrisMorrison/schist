@@ -9,15 +9,19 @@ Schist is designed with minimal configuration using environment variables and se
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SCHIST_PORT` | `8080` | Server port number |
-| `SCHIST_DATA_DIR` | `../../data` | Directory for storing wiki documents and assets |
+| `SCHIST_DATA_DIR` | `data` | Directory for storing wiki documents and assets |
 | `SCHIST_STATIC_DIR` | `./web` | Directory for serving static frontend files (production) |
 | `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Frontend URL for CORS configuration (development) |
 | `ENV` | `development` | Environment mode (development/production) |
-| `SCHIST_RATE_LIMIT_ENABLED` | `false` | Enable/disable rate limiting |
+| `SCHIST_RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
 | `SCHIST_RATE_LIMIT_RPM` | `100` | Rate limit: requests per minute per IP |
-| `SCHIST_AUTH_ENABLED` | `false` | Enable/disable JWT authentication |
+| `SCHIST_AUTH_ENABLED` | `true` | Enable/disable JWT authentication |
 | `SCHIST_JWT_SECRET` | `""` | JWT signing secret (required when auth is enabled) |
 | `SCHIST_JWT_EXPIRY_HOURS` | `24` | JWT token expiry time in hours |
+| `SCHIST_TEMPLATES_DIR` | `../../../templates` | Directory with document templates |
+| `SCHIST_SHARING_ENABLED` | `true` | Enable/disable public share links. When `false`, new shares are refused (403) and existing share links stop resolving (404); owners can still list and revoke them |
+| `SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` | `7` | Expiry used when a share is created without `expiry_days` (or with `0`) |
+| `SCHIST_SHARE_MAX_EXPIRY_DAYS` | `90` | Upper bound for a share's `expiry_days` |
 
 ### Frontend Configuration
 

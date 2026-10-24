@@ -42,6 +42,10 @@ func NewShareService(config *config.Config, documentService *DocumentService) *S
 }
 
 func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays int) (*ShareToken, error) {
+	if !s.config.SharingEnabled {
+		return nil, errors.NewForbiddenError("Document sharing is disabled")
+	}
+
 	// Verify document exists. GetDocumentByPath already returns typed API
 	// errors (NotFound for a missing doc, InvalidPath for a bad path); propagate
 	// those as-is so they map to the right status. This also avoids the
@@ -108,6 +112,12 @@ func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays in
 }
 
 func (s *ShareService) GetSharedDocument(token string) (*models.Document, error) {
+	// With sharing disabled every token is treated as unknown, so the public
+	// endpoint reveals nothing about previously created shares.
+	if !s.config.SharingEnabled {
+		return nil, errors.NewNotFoundError("share", token)
+	}
+
 	s.mu.Lock()
 	shares, err := s.loadShares()
 	s.mu.Unlock()

@@ -29,12 +29,9 @@ concurrency:
 
 jobs:
   e2e:
-    # Runs on GitHub-hosted runners: each run gets its own isolated VM, so two
-    # e2e runs can't starve each other's RAM the way they do on the shared
-    # self-hosted host. That removes the need for the repo-wide serialization
-    # lane -- e2e can run in parallel here. The self-hosted (VPS) variant is kept
-    # alongside as e2e-selfhosted.yml.disabled; to switch back, swap the two
-    # files' .yml/.disabled extensions.
+    # Always GitHub-hosted: each run gets its own isolated VM, so two e2e runs
+    # (a full Docker app stack + Chromium each) can't starve each other's RAM
+    # the way they would on a shared self-hosted host.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # docker-compose.yml's prod `schist` service declares SCHIST_JWT_SECRET as a

@@ -27,13 +27,13 @@ jobs:
 
       # Vitest browser mode (provider: playwright, chromium) needs a real headless
       # Chromium plus its system libraries. Rather than install them on the runner
-      # -- the `playwright install --with-deps` apt pass hung the VPS 18+ min --
-      # run the checks inside the official Playwright image, which has the browsers
-      # AND deps baked in. So there's no install step at all, and no host coupling:
-      # this behaves identically on the self-hosted VPS and on a GitHub-hosted runner.
+      # (a `playwright install --with-deps` apt pass can hang for many minutes on a
+      # shared runner), run the checks inside the official Playwright image, which
+      # has the browsers AND deps baked in. So there's no install step at all, and
+      # no host coupling: this behaves the same on self-hosted and GitHub-hosted runners.
       #
-      # We deliberately do NOT use a `container:` job here. The self-hosted runner
-      # is Docker-out-of-Docker, so its node externals don't mount into a job
+      # We deliberately do NOT use a `container:` job here. On a Docker-out-of-Docker
+      # self-hosted runner the node externals don't mount into a job
       # container and checkout dies on `/__e/node24/bin/node: no such file`. Instead
       # we drive the image manually with docker create + cp + start, exactly like the
       # e2e job. Code is `docker cp`-ed in (not bind-mounted) because under DooD a

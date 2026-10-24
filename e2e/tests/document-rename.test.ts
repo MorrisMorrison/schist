@@ -1,4 +1,25 @@
 import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
+
+/**
+ * Open the rename modal for a document through its folder-tree context menu.
+ * The document must already be in the tree (it is created by a fixture), so
+ * its presence is a precondition rather than an optional path.
+ */
+async function openRenameModal(page: Page, documentTitle: string) {
+	const documentTreeItem = page.getByTestId('folder-tree').getByText(documentTitle);
+	await expect(documentTreeItem).toBeVisible();
+	await documentTreeItem.click({ button: 'right' });
+
+	// The document context menu has role="menu" but, unlike the folder menu, no test id.
+	const contextMenu = page.getByRole('menu');
+	await expect(contextMenu).toBeVisible();
+	await contextMenu.getByText(/rename/i).click();
+
+	const renameInput = page.getByTestId('document-name');
+	await expect(renameInput).toBeVisible();
+	return { documentTreeItem, renameInput, submitButton: page.getByTestId('rename-document-btn') };
+}
 
 test.describe.serial('Document Rename', () => {
 	test('should rename document via context menu', async ({
@@ -10,45 +31,17 @@ test.describe.serial('Document Rename', () => {
 		// Navigate to root to see document in folder tree
 		await documentViewPage.navigateToDocument('/');
 
-		// Find document in sidebar tree. The document was created via the fixture
-		// and must appear in the tree for the context-menu rename flow to be
-		// testable, so its presence is a precondition rather than an optional path.
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
-		const documentTreeItem = folderTree.getByText(testDocument.title);
-		await expect(documentTreeItem).toBeVisible();
-
-		// Right-click on document in tree to open context menu
-		await documentTreeItem.click({ button: 'right' });
-
-		// Look for rename option in context menu
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
-		await expect(contextMenu).toBeVisible({ timeout: 2000 });
-
-		const renameOption = contextMenu.getByText(/rename/i);
-		await expect(renameOption).toBeVisible();
-		await renameOption.click();
-
-		// Should open rename modal or inline editor
-		const renameInput = page.getByTestId('document-name');
-		await expect(renameInput).toBeVisible();
+		const { renameInput, submitButton } = await openRenameModal(page, testDocument.title);
 
 		// Enter new name
 		const newTitle = `Renamed Test Document ${testId}`;
 		await renameInput.fill(newTitle);
 
-		// Confirm rename. A dedicated confirm button is the primary affordance, but
-		// some builds confirm on Enter, so the keyboard fallback stays conditional.
-		const confirmButton = page.getByTestId('rename-document-btn');
-		if (await confirmButton.isVisible()) {
-			await confirmButton.click();
-		} else {
-			await renameInput.press('Enter');
-		}
-
-		await page.waitForLoadState('networkidle');
+		await submitButton.click();
+		await expect(renameInput).toBeHidden();
 
 		// Verify document was renamed - the new title appears in the tree
-		const renamedDocumentItem = folderTree.getByText(newTitle);
+		const renamedDocumentItem = page.getByTestId('folder-tree').getByText(newTitle);
 		await expect(renamedDocumentItem).toBeVisible();
 
 		// Navigate to the document and verify title changed
@@ -66,23 +59,11 @@ test.describe.serial('Document Rename', () => {
 		// test: the document's folder-tree context menu.
 		await documentViewPage.navigateToDocument('/');
 
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
-		const documentTreeItem = folderTree.getByText(testDocument.title);
-		await expect(documentTreeItem).toBeVisible();
-
-		await documentTreeItem.click({ button: 'right' });
-
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
-		await expect(contextMenu).toBeVisible({ timeout: 2000 });
-
-		const renameOption = contextMenu.getByText(/rename/i);
-		await expect(renameOption).toBeVisible();
-		await renameOption.click();
-
-		const renameInput = page.getByTestId('document-name');
-		await expect(renameInput).toBeVisible();
-
-		const saveButton = page.getByTestId('rename-document-btn');
+		const {
+			documentTreeItem,
+			renameInput,
+			submitButton: saveButton
+		} = await openRenameModal(page, testDocument.title);
 		await expect(saveButton).toBeVisible();
 
 		// An empty title is invalid: the submit button must be disabled so the
@@ -123,29 +104,13 @@ test.describe.serial('Document Rename', () => {
 
 		// Rename the document via its folder-tree context menu (the proven entry
 		// point exercised by the happy-path test above).
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
-		const documentTreeItem = folderTree.getByText(testDocument.title);
-		await expect(documentTreeItem).toBeVisible();
-
-		await documentTreeItem.click({ button: 'right' });
-
-		const contextMenu = page.locator('[role="menu"], [data-testid="context-menu"]');
-		await expect(contextMenu).toBeVisible({ timeout: 2000 });
-
-		const renameOption = contextMenu.getByText(/rename/i);
-		await expect(renameOption).toBeVisible();
-		await renameOption.click();
-
-		const renameInput = page.getByTestId('document-name');
-		await expect(renameInput).toBeVisible();
+		const { renameInput, submitButton } = await openRenameModal(page, testDocument.title);
 
 		const newTitle = `Renamed Metadata Test ${testId}`;
 		await renameInput.fill(newTitle);
 
-		const confirmButton = page.getByTestId('rename-document-btn');
-		await expect(confirmButton).toBeVisible();
-		await confirmButton.click();
-		await page.waitForLoadState('networkidle');
+		await submitButton.click();
+		await expect(renameInput).toBeHidden();
 
 		// Verify document renamed successfully
 		await documentViewPage.verifyDocumentLoaded();

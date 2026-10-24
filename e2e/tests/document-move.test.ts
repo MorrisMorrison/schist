@@ -9,8 +9,7 @@ test.describe.serial('Document Move', () => {
 		documentViewPage,
 		folderPage,
 		apiHelper,
-		testId,
-		page
+		testId
 	}) => {
 		// Create target folder
 		await folderPage.navigateToRoot();
@@ -24,12 +23,12 @@ test.describe.serial('Document Move', () => {
 			path: testDocumentPath
 		});
 
-		await apiHelper.createDocument(testDocument);
+		expect((await apiHelper.createDocument(testDocument)).status).toBe(201);
 
 		// Navigate to root to see both folder and document
 		await folderPage.navigateToRoot();
 
-		const folderTree = page.getByTestId('folder-tree');
+		const folderTree = folderPage.folderTree;
 
 		// Both the source document and the target folder are created in setup, so
 		// both tree items are preconditions for the drag-and-drop move flow.
@@ -49,9 +48,7 @@ test.describe.serial('Document Move', () => {
 		await folderPage.verifyContainsDocument(testDocument.title);
 
 		// Click on the moved document to navigate to it
-		const documentLink = folderPage.documents.getByText(testDocument.title);
-		await documentLink.waitFor({ state: 'visible' });
-		await documentLink.click();
+		await folderPage.documents.getByText(testDocument.title).click();
 
 		// Verify we navigated to the document view
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
@@ -62,8 +59,7 @@ test.describe.serial('Document Move', () => {
 		documentViewPage,
 		folderPage,
 		apiHelper,
-		testId,
-		page
+		testId
 	}) => {
 		// Create test document
 		const testDocument = createTestDocument({
@@ -72,28 +68,21 @@ test.describe.serial('Document Move', () => {
 			path: testDocumentPath
 		});
 
-		await apiHelper.createDocument(testDocument);
+		expect((await apiHelper.createDocument(testDocument)).status).toBe(201);
 
 		// Try to drag document to itself or invalid target
 		await folderPage.navigateToRoot();
 
-		// Wait for folder tree to be fully loaded
-		await page.waitForLoadState('networkidle');
-
-		const folderTree = page.getByTestId('folder-tree');
-		const documentTreeItem = folderTree.getByText(testDocument.title);
-
-		// Wait for document to appear in tree with timeout
-		await expect(documentTreeItem).toBeVisible({ timeout: 10000 });
+		const documentTreeItem = folderPage.folderTree.getByText(testDocument.title);
+		await expect(documentTreeItem).toBeVisible();
 
 		// Try to drag to itself (should not work)
 		await documentTreeItem.dragTo(documentTreeItem);
 
-		// Wait for any potential page changes to settle
-		await page.waitForTimeout(1000);
-		await page.waitForLoadState('networkidle');
-
-		// Verify document is still in original location
+		// Verify document is still in original location: still in the tree, still
+		// served at its path by the backend, and still viewable there.
+		await expect(documentTreeItem).toBeVisible();
+		expect((await apiHelper.request('GET', `/documents${testDocumentPath}`)).status).toBe(200);
 		await documentViewPage.navigateToDocument(testDocumentPath);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 		await documentViewPage.expectUrl(`/documents${testDocumentPath}`);

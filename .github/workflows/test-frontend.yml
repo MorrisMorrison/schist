@@ -47,9 +47,20 @@ jobs:
           set -uo pipefail
           CID="$(docker create -w /frontend -e CI=true \
             mcr.microsoft.com/playwright:v1.61.0-noble \
-            sh -c 'npm ci && npm run test:unit && npm run lint && npm run check')"
+            sh -c 'npm ci && npm run test:unit -- --coverage --coverage.reporter=lcov --coverage.reporter=text-summary && npm run lint && npm run check')"
           docker cp ./frontend/. "${CID}:/frontend"
           RC=0
           docker start -a "${CID}" || RC=$?
+          # Copy the lcov report out before removing the container (Codecov uploads it below).
+          docker cp "${CID}:/frontend/coverage" ./frontend/ 2>/dev/null || true
           docker rm -f "${CID}" >/dev/null 2>&1 || true
           exit $RC
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: frontend/coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: false

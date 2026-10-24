@@ -14,6 +14,20 @@ doc covers what runs, where the image is published, and how to use your own runn
 | Secret Scan | `secret-scan.yml` | all changes | gitleaks over the full history (via `make secret-scan`) |
 | Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose | Build + smoke-test the image on PRs; on push to `main`, publish the tested image |
 
+## Coverage (Codecov)
+
+Backend Tests and Frontend Tests upload coverage to [Codecov](https://about.codecov.io/)
+with the flags `backend` (`go test -coverprofile`) and `frontend` (Vitest v8 coverage
+as lcov, copied out of the Playwright container). `codecov.yml` keeps the status
+checks **informational**, so coverage never blocks a merge, and uses carryforward
+because each side only runs when its own paths change.
+
+Uploads from `main` and same-repo branches use the `CODECOV_TOKEN` repository
+secret; fork PRs upload tokenless. A failed upload never fails the job.
+
+Locally: `cd backend && go test -cover ./...`, or
+`cd frontend && npm run test:unit -- --coverage` (report in `frontend/coverage/`).
+
 ## Published image
 
 On every push to `main` that changes the image, `docker.yml` pushes the exact

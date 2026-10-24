@@ -37,6 +37,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 | Everything before a PR | `make verify` then `make test` |
 | Run locally | `ENV=development make run-backend` (:8080) + `make run-frontend` (:5173) |
 | e2e | `docker compose --profile e2e up -d --build`, then `make e2e`, `make e2e-test TEST=<file>` or `make e2e-grep GREP="<title>"` |
+| Coverage | `cd backend && go test -cover ./...`; `cd frontend && npm run test:unit -- --coverage`. CI uploads both to Codecov (informational only, see `docs/CI.md`) |
 | Secret scan | `make secret-scan` (gitleaks) |
 | Clean artifacts | `make cleanup` (scoped `git clean` of build/test output only) |
 

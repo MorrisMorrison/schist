@@ -31,4 +31,16 @@ jobs:
           cache-dependency-path: backend/go.sum
 
       - name: Run backend tests
-        run: make run-backend-test
+        working-directory: backend
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      # Fork PRs have no secrets; Codecov accepts tokenless uploads from forks of
+      # public repos. An upload problem never fails the job.
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/coverage.out
+          flags: backend
+          fail_ci_if_error: false

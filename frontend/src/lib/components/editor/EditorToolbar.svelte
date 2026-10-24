@@ -96,7 +96,7 @@
 		}
 	];
 
-	const buttonGroups = $derived(() => {
+	const buttonGroups = $derived.by(() => {
 		const groups: Record<string, typeof toolbarButtons> = {};
 		toolbarButtons.forEach((button) => {
 			if (!groups[button.group]) {
@@ -107,10 +107,10 @@
 		return groups;
 	});
 
-	const textButtons = $derived(buttonGroups().text || []);
-	const headingButtons = $derived(buttonGroups().headings || []);
-	const listButtons = $derived(buttonGroups().lists || []);
-	const insertButtons = $derived(buttonGroups().insert || []);
+	const textButtons = $derived(buttonGroups.text || []);
+	const headingButtons = $derived(buttonGroups.headings || []);
+	const listButtons = $derived(buttonGroups.lists || []);
+	const insertButtons = $derived(buttonGroups.insert || []);
 
 	const themeClasses = 'bg-card border-border text-foreground';
 

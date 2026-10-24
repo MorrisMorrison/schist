@@ -35,7 +35,7 @@
 	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name');
 	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc');
 
-	const currentFolderDocuments = $derived(() => {
+	const currentFolderDocuments = $derived.by(() => {
 		let filteredDocuments;
 
 		if (mode === 'recent') {
@@ -138,19 +138,19 @@
 			<div class="text-secondary flex items-center gap-2 text-sm">
 				{#if mode === 'recent'}
 					<span class="font-medium">
-						{currentFolderDocuments().length > 0
-							? `Showing ${currentFolderDocuments().length} of ${documentsStore.documents.length} documents, sorted by most recent activity`
+						{currentFolderDocuments.length > 0
+							? `Showing ${currentFolderDocuments.length} of ${documentsStore.documents.length} documents, sorted by most recent activity`
 							: 'No documents found'}
 					</span>
 				{:else if mode === 'all'}
 					<span class="font-medium">
-						{currentFolderDocuments().length}
-						{currentFolderDocuments().length === 1 ? 'document' : 'documents'} total
+						{currentFolderDocuments.length}
+						{currentFolderDocuments.length === 1 ? 'document' : 'documents'} total
 					</span>
 				{:else}
 					<span class="font-medium">
-						{currentFolderDocuments().length}
-						{currentFolderDocuments().length === 1 ? 'document' : 'documents'}
+						{currentFolderDocuments.length}
+						{currentFolderDocuments.length === 1 ? 'document' : 'documents'}
 					</span>
 				{/if}
 			</div>
@@ -214,7 +214,7 @@
 
 	<Card class="border-border bg-card shadow-sm">
 		<CardContent class="pt-4 pr-8 pb-6 pl-8">
-			{#if currentFolderDocuments().length > 0}
+			{#if currentFolderDocuments.length > 0}
 				<section class="space-y-6" data-testid="documents-section">
 					<div class="flex items-center justify-between">
 						<h2 class="text-foreground text-xl font-semibold">Documents</h2>
@@ -228,7 +228,7 @@
 						</div>
 					</div>
 					<DocumentGrid
-						documents={currentFolderDocuments()}
+						documents={currentFolderDocuments}
 						showPath={mode !== 'folder'}
 						{multiSelectMode}
 						onMultiSelectModeChange={(enabled: boolean) => (multiSelectMode = enabled)}
@@ -241,7 +241,7 @@
 				</section>
 			{/if}
 
-			{#if currentFolderDocuments().length === 0}
+			{#if currentFolderDocuments.length === 0}
 				<div
 					class="flex flex-col items-center justify-center py-12 text-center"
 					data-testid="empty-folder-message"

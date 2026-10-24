@@ -6,6 +6,7 @@
 	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
 	import { apiClient } from '$lib/api/client';
 	import type { ShareToken } from '$lib/api/types';
+	import { isUnauthorizedError } from '$lib/utils/error';
 
 	interface Props {
 		open: boolean;
@@ -38,7 +39,7 @@
 			shares = (response.shares || []).filter((share) => share.document_path === documentPath);
 		} catch (err) {
 			// Don't show error for auth failures - just show empty shares list
-			if (err instanceof Error && err.message.includes('401')) {
+			if (isUnauthorizedError(err)) {
 				shares = [];
 			} else {
 				error = 'Failed to load shares';

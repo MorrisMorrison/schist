@@ -7,7 +7,7 @@
 	let { path = '', currentDocumentTitle = '' }: { path?: string; currentDocumentTitle?: string } =
 		$props();
 
-	const segments = $derived(() => {
+	const segments = $derived.by(() => {
 		let rawSegments = path.split('/').filter((segment) => segment !== '');
 		const isDocumentPath = page.url.pathname.includes('documents');
 		if (isDocumentPath && rawSegments.length > 0) {
@@ -49,7 +49,7 @@
 		</li>
 
 		<!-- Path segments -->
-		{#each segments() as segment (segment.path)}
+		{#each segments as segment (segment.path)}
 			<li class="flex items-center gap-1">
 				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
 				<Button
@@ -65,7 +65,7 @@
 		{/each}
 
 		<!-- Current page title if different from path -->
-		{#if currentDocumentTitle && currentDocumentTitle !== segments()[segments().length - 1]?.name}
+		{#if currentDocumentTitle && currentDocumentTitle !== segments[segments.length - 1]?.name}
 			<li class="flex items-center gap-1">
 				<ChevronRight class="text-muted h-4 w-4 flex-shrink-0" />
 				<span class="text-primary px-2 py-1 text-sm font-medium" aria-current="page">

@@ -26,7 +26,7 @@
 		info: Info
 	};
 
-	const IconComponent = icons[variant];
+	const IconComponent = $derived(icons[variant]);
 </script>
 
 <Alert class="{variantClasses[variant]} {className}">

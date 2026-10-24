@@ -7,17 +7,9 @@ import {
 } from '$lib/utils/webauthn';
 import { runAsync } from './resource.svelte';
 
-export interface PasskeyInfo {
-	id: string;
-	name: string;
-	createdAt: string;
-}
+import type { PasskeyInfo, PasskeyStatus } from '$lib/api/types';
 
-export interface PasskeyStatus {
-	hasPasskeys: boolean;
-	isUnlocked: boolean;
-	requiresPassword: boolean;
-}
+export type { PasskeyInfo, PasskeyStatus };
 
 interface PasskeyStoreState {
 	passkeys: PasskeyInfo[];

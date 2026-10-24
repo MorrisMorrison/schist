@@ -1,4 +1,4 @@
-import { apiClient } from '../api/client';
+import { apiClient } from '$lib/api/client';
 import type {
 	Document,
 	CreateDocumentRequest,
@@ -6,22 +6,14 @@ import type {
 	Folder,
 	MoveDocumentRequest,
 	WikiLink
-} from '../api/types';
-import { getParentPath } from '../utils/path';
+} from '$lib/api/types';
+import { getParentPath } from '$lib/utils/path';
 import { getErrorMessage } from '$lib/utils/error';
 import { runAsync } from '$lib/stores/resource.svelte';
 
 interface DocumentsState {
 	documents: Document[];
 	currentDocument: Document | null;
-	loading: boolean;
-	error: string | null;
-}
-
-interface SearchState {
-	query: string;
-	selectedTags: string[];
-	results: Document[];
 	loading: boolean;
 	error: string | null;
 }
@@ -47,14 +39,6 @@ const defaultDocumentsState: DocumentsState = {
 	error: null
 };
 
-const defaultSearchState: SearchState = {
-	query: '',
-	selectedTags: [],
-	results: [],
-	loading: false,
-	error: null
-};
-
 const defaultFoldersState: FoldersState = {
 	folders: [],
 	loading: false,
@@ -70,7 +54,6 @@ const defaultLinksState: LinksState = {
 };
 
 const documentsState: DocumentsState = $state<DocumentsState>(defaultDocumentsState);
-const searchState: SearchState = $state<SearchState>(defaultSearchState);
 const foldersState: FoldersState = $state<FoldersState>(defaultFoldersState);
 const linksState: LinksState = $state<LinksState>(defaultLinksState);
 let currentFolderState: string = $state<string>('/');
@@ -78,10 +61,6 @@ let currentFolderState: string = $state<string>('/');
 // Helper functions for state updates
 function updateDocumentsState(updates: Partial<DocumentsState>) {
 	Object.assign(documentsState, updates);
-}
-
-function updateSearchState(updates: Partial<SearchState>) {
-	Object.assign(searchState, updates);
 }
 
 function updateFoldersState(updates: Partial<FoldersState>) {
@@ -358,108 +337,6 @@ function createDocumentActions() {
 	};
 }
 
-function buildSearchQuery(textQuery: string, tags: string[]): string {
-	const parts: string[] = [];
-
-	if (textQuery.trim()) {
-		parts.push(textQuery.trim());
-	}
-
-	for (const tag of tags) {
-		parts.push(`tag:${tag}`);
-	}
-
-	return parts.join(' ');
-}
-
-function createSearchActions() {
-	return {
-		async search(query?: string, tags?: string[]) {
-			const finalQuery = query ?? searchState.query;
-			const finalTags = tags ?? searchState.selectedTags;
-
-			updateSearchState({
-				query: finalQuery,
-				selectedTags: finalTags,
-				loading: true,
-				error: null
-			});
-
-			try {
-				const combinedQuery = buildSearchQuery(finalQuery, finalTags);
-				const results = await apiClient.searchDocuments(combinedQuery);
-
-				updateSearchState({ results: results.documents, loading: false });
-				return results;
-			} catch (error) {
-				updateSearchState({
-					loading: false,
-					error: getErrorMessage(error, 'Search failed'),
-					results: []
-				});
-				throw error;
-			}
-		},
-
-		clearSearch() {
-			updateSearchState({
-				query: '',
-				selectedTags: [],
-				results: [],
-				error: null
-			});
-		},
-
-		setQuery(query: string) {
-			updateSearchState({ query });
-		},
-
-		setSelectedTags(tags: string[]) {
-			updateSearchState({ selectedTags: tags });
-		},
-
-		addTag(tag: string) {
-			if (!searchState.selectedTags.includes(tag)) {
-				updateSearchState({ selectedTags: [...searchState.selectedTags, tag] });
-			}
-		},
-
-		removeTag(tag: string) {
-			updateSearchState({ selectedTags: searchState.selectedTags.filter((t) => t !== tag) });
-		},
-
-		clearTags() {
-			updateSearchState({ selectedTags: [] });
-		},
-
-		async performSearch() {
-			return this.search(searchState.query, searchState.selectedTags);
-		},
-
-		async searchInFolder(query: string, folderPath: string) {
-			searchState.query = query;
-			searchState.loading = true;
-			searchState.error = null;
-
-			try {
-				const allResults = await apiClient.searchDocuments(query);
-				const results = allResults.documents.filter(
-					(document) => document.metaData.path && document.metaData.path.startsWith(folderPath)
-				);
-
-				searchState.results = results;
-				searchState.loading = false;
-				return results;
-			} catch (error) {
-				searchState.loading = false;
-				searchState.error = getErrorMessage(error, 'Search failed');
-				searchState.results = [];
-				throw error;
-			}
-		}
-	};
-}
-
 function createFolderActions() {
 	return {
 		async loadFolderTree(force = false) {
@@ -559,24 +436,6 @@ export const documentsStore = {
 	}
 };
 
-export const searchStore = {
-	get query() {
-		return searchState.query;
-	},
-	get selectedTags() {
-		return searchState.selectedTags;
-	},
-	get results() {
-		return searchState.results;
-	},
-	get loading() {
-		return searchState.loading;
-	},
-	get error() {
-		return searchState.error;
-	}
-};
-
 export const foldersStore = {
 	get folders() {
 		return foldersState.folders;
@@ -616,27 +475,8 @@ export const currentFolder = {
 	}
 };
 
-export const currentFolderDocuments = () => {
-	if (!currentFolderState || currentFolderState === '/') {
-		return documentsState.documents.filter(
-			(document) =>
-				!document.metaData.path ||
-				document.metaData.path === '/' ||
-				!document.metaData.path.includes('/', 1)
-		);
-	}
-
-	return documentsState.documents.filter(
-		(document) =>
-			document.metaData.path &&
-			document.metaData.path.startsWith(currentFolderState) &&
-			document.metaData.path !== currentFolderState
-	);
-};
-
 // Action exports
 export const documentActions = createDocumentActions();
-export const searchActions = createSearchActions();
 export const folderActions = createFolderActions();
 
 // Helper functions for tests
@@ -645,15 +485,6 @@ export function resetAllState() {
 	updateDocumentsState({
 		documents: [],
 		currentDocument: null,
-		loading: false,
-		error: null
-	});
-
-	// Reset search state
-	updateSearchState({
-		query: '',
-		selectedTags: [],
-		results: [],
 		loading: false,
 		error: null
 	});
@@ -679,10 +510,6 @@ export function resetAllState() {
 
 export function setDocumentsState(state: Partial<DocumentsState>) {
 	Object.assign(documentsState, state);
-}
-
-export function setSearchState(state: Partial<SearchState>) {
-	Object.assign(searchState, state);
 }
 
 export function setFoldersState(state: Partial<FoldersState>) {

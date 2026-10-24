@@ -19,12 +19,8 @@
 		onContentChange,
 		onSave,
 		readonly = false,
-		fullscreen = false,
-		...rest
+		fullscreen = false
 	}: Omit<EditorProps, 'theme'> & { fullscreen?: boolean } = $props();
-
-	// Explicitly mark as used to avoid linting errors
-	void rest;
 
 	let editorContentRef: EditorContent;
 	let currentContent = $state(initialContent);

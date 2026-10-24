@@ -59,7 +59,7 @@
 		}
 	}
 
-	const ariaLabel = $derived(() => {
+	const ariaLabel = $derived.by(() => {
 		switch (copyState) {
 			case 'copying':
 				return 'Copying to clipboard';
@@ -81,7 +81,7 @@
 		onkeydown={handleKeydown}
 		disabled={copyState === 'copying'}
 		title="Copy"
-		aria-label={ariaLabel()}
+		aria-label={ariaLabel}
 		class={`transition-colors duration-200 ${className}`}
 	>
 		{#if copyState === 'copying'}

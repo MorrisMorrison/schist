@@ -139,10 +139,11 @@ class SchistApiClient {
 		const { authActions } = await import('$lib/stores/auth.svelte');
 		authActions.clearAuth();
 
-		// Use centralized auth service for redirect logic (includes public route check)
+		// The session is confirmed dead: redirect (skipped on public routes)
+		// without re-checking it, see AuthService.handleSessionExpired.
 		const { authService } = await import('$lib/auth/auth-service');
 		const returnUrl = window.location.pathname + window.location.search;
-		await authService.requireAuth(returnUrl);
+		await authService.handleSessionExpired(returnUrl);
 	}
 
 	private revalidating: Promise<boolean> | null = null;
@@ -364,36 +365,33 @@ class SchistApiClient {
 	async checkDocumentExists(path: string): Promise<boolean> {
 		const url = `${this.baseUrl}${buildApiEndpoint('/documents', path)}`;
 
+		let response: Response;
 		try {
-			const response = await fetch(url, {
+			response = await fetch(url, {
 				method: 'HEAD',
 				headers: this.authHeaders()
 			});
-
-			if (response.status === 200) {
-				return true;
-			} else if (response.status === 404) {
-				return false;
-			} else if (response.status === 401) {
-				await this.handleAuthenticationError();
-				throw new Error('Authentication required');
-			} else {
-				throw new Error(
-					`Failed to check document existence: ${response.status} ${response.statusText}`
-				);
-			}
 		} catch (error) {
-			if (error instanceof Error && error.message === 'Authentication required') {
-				throw error;
-			}
-			if (error instanceof TypeError) {
-				// TypeError is thrown by fetch for network errors
-				throw new Error(`Network error while checking document existence: ${error.message}`);
-			}
+			// fetch only rejects on network failure
 			throw new Error(
-				`Unexpected error while checking document existence: ${error instanceof Error ? error.message : 'Unknown error'}`
+				JSON.stringify({
+					error: `Network error while checking document existence: ${error instanceof Error ? error.message : 'Unknown error'}`,
+					code: 'NETWORK_ERROR'
+				})
 			);
 		}
+
+		if (response.status === 200) return true;
+		if (response.status === 404) return false;
+		if (response.status === 401) {
+			await this.handleAuthenticationError();
+		}
+		throw new Error(
+			JSON.stringify({
+				error: `Failed to check document existence: ${response.status} ${response.statusText}`,
+				code: getErrorCodeFromStatus(response.status)
+			})
+		);
 	}
 
 	async updateDocumentByPath(
@@ -544,17 +542,33 @@ class SchistApiClient {
 						reject(new Error('Failed to parse response'));
 					}
 				} else {
+					// Reject with the same serialised {error, code} envelope as
+					// request() so callers can branch on the code.
+					let envelope: { error: string; code?: string };
 					try {
-						const errorResponse = JSON.parse(xhr.responseText);
-						reject(new Error(errorResponse.error || 'Upload failed'));
+						const parsed = JSON.parse(xhr.responseText);
+						envelope = {
+							...parsed,
+							error: parsed.error || 'Upload failed',
+							code: parsed.code ?? getErrorCodeFromStatus(xhr.status)
+						};
 					} catch {
-						reject(new Error(`Upload failed with status ${xhr.status}`));
+						envelope = {
+							error: `Upload failed with status ${xhr.status}`,
+							code: getErrorCodeFromStatus(xhr.status)
+						};
 					}
+					if (xhr.status === 401) {
+						this.handleAuthenticationError().catch(console.error);
+					}
+					reject(new Error(JSON.stringify(envelope)));
 				}
 			});
 
 			xhr.addEventListener('error', () => {
-				reject(new Error('Network error during upload'));
+				reject(
+					new Error(JSON.stringify({ error: 'Network error during upload', code: 'NETWORK_ERROR' }))
+				);
 			});
 
 			xhr.open('POST', url);
@@ -711,7 +725,7 @@ class SchistApiClient {
 	}
 
 	async getSharedDocument(token: string): Promise<Document> {
-		return this.request<Document>(`/shares/${token}`, {
+		return this.request<Document>(`/shares/${encodeURIComponent(token)}`, {
 			method: 'GET'
 		});
 	}
@@ -723,7 +737,7 @@ class SchistApiClient {
 	}
 
 	async revokeShare(shareId: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/shares/${shareId}`, {
+		return this.request<{ message: string }>(`/shares/${encodeURIComponent(shareId)}`, {
 			method: 'DELETE'
 		});
 	}
@@ -738,7 +752,7 @@ class SchistApiClient {
 	}
 
 	async deletePasskey(credentialId: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/passkeys/${credentialId}`, {
+		return this.request<{ message: string }>(`/passkeys/${encodeURIComponent(credentialId)}`, {
 			method: 'DELETE'
 		});
 	}

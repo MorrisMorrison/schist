@@ -1,23 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
 	documentsStore,
-	searchStore,
 	foldersStore,
 	documentActions,
-	searchActions,
-	currentFolderDocuments,
 	currentFolder,
 	resetAllState,
-	setDocumentsState,
-	setSearchState,
-	setCurrentFolderState
+	setDocumentsState
 } from './documents.svelte';
-import { apiClient } from '../api/client';
+import { apiClient } from '$lib/api/client';
 import type { CreateDocumentRequest, UpdateDocumentRequest } from '../api/types';
 import { testData } from '../test/utils';
 
 // Mock the API client
-vi.mock('../api/client', () => ({
+vi.mock('$lib/api/client', () => ({
 	apiClient: {
 		getDocuments: vi.fn(),
 		getDocument: vi.fn(),
@@ -27,7 +22,6 @@ vi.mock('../api/client', () => ({
 		updateDocumentByPath: vi.fn(),
 		deleteDocumentByPath: vi.fn(),
 		moveDocument: vi.fn(),
-		searchDocuments: vi.fn(),
 		getFolderTree: vi.fn(),
 		createFolder: vi.fn(),
 		renameFolder: vi.fn(),
@@ -54,14 +48,6 @@ describe('Documents Store', () => {
 			expect(documentsStore.currentDocument).toEqual(null);
 			expect(documentsStore.loading).toEqual(false);
 			expect(documentsStore.error).toEqual(null);
-		});
-
-		it('should have correct initial state for search store', () => {
-			expect(searchStore.query).toEqual('');
-			expect(searchStore.selectedTags).toEqual([]);
-			expect(searchStore.results).toEqual([]);
-			expect(searchStore.loading).toEqual(false);
-			expect(searchStore.error).toEqual(null);
 		});
 
 		it('should have correct initial state for folders store', () => {
@@ -277,156 +263,6 @@ describe('Documents Store', () => {
 				await new Promise((resolve) => setTimeout(resolve, 0));
 				expect(documentsStore.loading).toBe(false);
 			});
-		});
-	});
-
-	describe('Search Actions', () => {
-		describe('search', () => {
-			it('should perform search successfully', async () => {
-				const mockResults = [testData.document];
-				vi.mocked(apiClient.searchDocuments).mockResolvedValue({
-					documents: mockResults,
-					query: 'test query tag:tag1',
-					total: mockResults.length
-				});
-
-				const result = await searchActions.search('test query', ['tag1']);
-
-				expect(apiClient.searchDocuments).toHaveBeenCalledWith('test query tag:tag1');
-				expect(result.documents).toEqual(mockResults);
-
-				expect(searchStore.query).toBe('test query');
-				expect(searchStore.selectedTags).toEqual(['tag1']);
-				expect(searchStore.results).toEqual(mockResults);
-				expect(searchStore.loading).toBe(false);
-			});
-
-			it('should handle search error', async () => {
-				const errorMessage = 'Search failed';
-				vi.mocked(apiClient.searchDocuments).mockRejectedValue(new Error(errorMessage));
-
-				await expect(searchActions.search('query')).rejects.toThrow(errorMessage);
-
-				expect(searchStore.loading).toBe(false);
-				expect(searchStore.error).toBe(errorMessage);
-				expect(searchStore.results).toEqual([]);
-			});
-		});
-
-		describe('clearSearch', () => {
-			it('should clear search state', () => {
-				setSearchState({
-					query: 'test',
-					selectedTags: ['tag1'],
-					results: [testData.document],
-					loading: false,
-					error: 'error'
-				});
-
-				searchActions.clearSearch();
-
-				expect(searchStore.query).toEqual('');
-				expect(searchStore.selectedTags).toEqual([]);
-				expect(searchStore.results).toEqual([]);
-				expect(searchStore.loading).toEqual(false);
-				expect(searchStore.error).toEqual(null);
-			});
-		});
-
-		describe('tag management', () => {
-			it('should add tag', () => {
-				searchActions.addTag('newtag');
-
-				expect(searchStore.selectedTags).toContain('newtag');
-			});
-
-			it('should not add duplicate tag', () => {
-				setSearchState({
-					query: '',
-					selectedTags: ['existing'],
-					results: [],
-					loading: false,
-					error: null
-				});
-
-				searchActions.addTag('existing');
-
-				expect(searchStore.selectedTags).toEqual(['existing']);
-			});
-
-			it('should remove tag', () => {
-				setSearchState({
-					query: '',
-					selectedTags: ['tag1', 'tag2'],
-					results: [],
-					loading: false,
-					error: null
-				});
-
-				searchActions.removeTag('tag1');
-
-				expect(searchStore.selectedTags).toEqual(['tag2']);
-			});
-
-			it('should clear all tags', () => {
-				setSearchState({
-					query: '',
-					selectedTags: ['tag1', 'tag2'],
-					results: [],
-					loading: false,
-					error: null
-				});
-
-				searchActions.clearTags();
-
-				expect(searchStore.selectedTags).toEqual([]);
-			});
-		});
-	});
-
-	describe('Current Folder Documents', () => {
-		it('should filter documents for root folder', () => {
-			const docs = [
-				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/doc1' } },
-				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/folder/doc2' } },
-				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/' } }
-			];
-
-			setDocumentsState({
-				documents: docs,
-				currentDocument: null,
-				loading: false,
-				error: null
-			});
-
-			setCurrentFolderState('/');
-
-			const folderDocs = currentFolderDocuments();
-			expect(folderDocs).toHaveLength(2); // Should include /doc1 and / but not /folder/doc2
-		});
-
-		it('should filter documents for specific folder', () => {
-			const docs = [
-				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/folder/doc1' } },
-				{
-					...testData.document,
-					metaData: { ...testData.document.metaData, path: '/folder/subfolder/doc2' }
-				},
-				{ ...testData.document, metaData: { ...testData.document.metaData, path: '/other/doc3' } }
-			];
-
-			setDocumentsState({
-				documents: docs,
-				currentDocument: null,
-				loading: false,
-				error: null
-			});
-
-			setCurrentFolderState('/folder');
-
-			const folderDocs = currentFolderDocuments();
-			expect(folderDocs).toHaveLength(2); // Should include docs in /folder and subfolders
-			expect(folderDocs.every((doc) => doc.metaData.path?.startsWith('/folder'))).toBe(true);
 		});
 	});
 

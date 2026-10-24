@@ -9,6 +9,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	slashpath "path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -197,12 +198,12 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {
 	document, err := d.GetDocumentByPath(path)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get document: %w", err)
+		return nil, "", err
 	}
 
 	content := fmt.Sprintf("# %s\n\n%s", document.MetaData.Title, document.Content)
 
-	filename := filepath.Base(path)
+	filename := slashpath.Base(path)
 	if !strings.HasSuffix(filename, ".md") {
 		filename += ".md"
 	}
@@ -211,9 +212,9 @@ func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {
 }
 
 func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error) {
-	normalizedPath := folderPath
-	if !strings.HasPrefix(normalizedPath, "/") {
-		normalizedPath = "/" + normalizedPath
+	normalizedPath := utils.NormalizePath(folderPath)
+	if err := utils.ValidatePath(normalizedPath); err != nil {
+		return nil, "", errors.NewInvalidPathError(folderPath).WithCause(err)
 	}
 
 	buf := new(bytes.Buffer)
@@ -230,7 +231,7 @@ func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error
 		return nil, "", fmt.Errorf("failed to close zip: %w", err)
 	}
 
-	folderName := filepath.Base(folderPath)
+	folderName := slashpath.Base(normalizedPath)
 	if folderName == "/" || folderName == "." {
 		folderName = "documents"
 	}
@@ -258,6 +259,17 @@ func (d *DocumentService) ExportAll() ([]byte, string, error) {
 	return buf.Bytes(), filename, nil
 }
 
+// zipSafeName turns a document title into a single, non-traversing zip entry
+// name component.
+func zipSafeName(title string) string {
+	name := strings.NewReplacer("/", "-", "\\", "-").Replace(title)
+	name = strings.Trim(strings.ReplaceAll(name, "..", ""), " .-")
+	if name == "" {
+		return "untitled"
+	}
+	return name
+}
+
 func (d *DocumentService) addFolderToZip(
 	zipWriter *zip.Writer,
 	folderPath string,
@@ -269,9 +281,11 @@ func (d *DocumentService) addFolderToZip(
 	}
 
 	for _, doc := range allDocuments {
-		docFolder := filepath.Dir(doc.MetaData.Path)
+		docFolder := slashpath.Dir(doc.MetaData.Path)
 		if docFolder == folderPath {
-			zipPath := filepath.Join(zipPrefix, doc.MetaData.Title+".md")
+			// Zip entry names always use forward slashes, and the title is
+			// user-controlled, so it must not introduce path segments.
+			zipPath := slashpath.Join(zipPrefix, zipSafeName(doc.MetaData.Title)+".md")
 
 			fileWriter, err := zipWriter.Create(zipPath)
 			if err != nil {
@@ -292,7 +306,7 @@ func (d *DocumentService) addFolderToZip(
 	}
 
 	for _, subfolder := range folder.SubFolders {
-		subZipPrefix := filepath.Join(zipPrefix, subfolder.Name)
+		subZipPrefix := slashpath.Join(zipPrefix, subfolder.Name)
 		err := d.addFolderToZip(zipWriter, subfolder.Path, subZipPrefix)
 		if err != nil {
 			return err

@@ -17,7 +17,7 @@
 	import {
 		secretStore,
 		replaceSecretPlaceholders,
-		parseSecretPlaceholders
+		markLockedSecretPlaceholders
 	} from '$lib/stores/secrets.svelte';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
@@ -67,16 +67,7 @@
 	let versions = $state<DocumentVersion[]>([]);
 
 	function addSecretPlaceholderIndicators(text: string): string {
-		const placeholders = parseSecretPlaceholders(text);
-
-		let processedText = text;
-		for (const { placeholder, key } of placeholders) {
-			const indicator = `<span class="secret-placeholder bg-muted text-muted-foreground px-2 py-1 rounded-md font-mono text-sm border border-border" title="Secret '${key}' is locked. Unlock secrets to view the value.">${placeholder} 🔒</span>`;
-			processedText = processedText.replace(placeholder, indicator);
-		}
-
-		processedText = processHashtags(processedText);
-		return processedText;
+		return processHashtags(markLockedSecretPlaceholders(text));
 	}
 
 	$effect(() => {

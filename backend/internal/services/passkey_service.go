@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -18,6 +19,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 // PasskeyCredential represents a stored passkey credential
@@ -81,6 +83,11 @@ func (u PasskeyUser) WebAuthnIcon() string {
 type PasskeyService struct {
 	dataDir  string
 	webauthn *webauthn.WebAuthn
+
+	// mu serializes read-modify-write cycles on passkeys.json so concurrent
+	// registrations, sign-count updates and deletes cannot drop each other's
+	// changes (losing a just-registered passkey locks the user out).
+	mu sync.Mutex
 }
 
 // NewPasskeyService creates a new passkey service with proper WebAuthn configuration
@@ -186,7 +193,7 @@ func (ps *PasskeyService) saveCredentials(storage *PasskeyStorage) error {
 		return fmt.Errorf("failed to marshal passkey storage: %w", err)
 	}
 
-	if err := os.WriteFile(storagePath, data, 0600); err != nil {
+	if err := utils.WriteFileAtomic(storagePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write passkey storage: %w", err)
 	}
 
@@ -305,6 +312,9 @@ func (ps *PasskeyService) FinishRegistration(
 	}
 
 	// Save to storage
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
 	storage, err := ps.loadCredentials()
 	if err != nil {
 		return "", err
@@ -353,6 +363,9 @@ func (ps *PasskeyService) FinishAuthentication(
 	}
 
 	// Update the credential's sign count
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
 	storage, err := ps.loadCredentials()
 	if err != nil {
 		return "", err
@@ -433,6 +446,9 @@ type PasskeyCredentialInfo struct {
 
 // DeleteCredential removes a passkey credential
 func (ps *PasskeyService) DeleteCredential(credentialID string) error {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
 	storage, err := ps.loadCredentials()
 	if err != nil {
 		return err

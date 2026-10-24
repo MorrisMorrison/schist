@@ -139,10 +139,11 @@ class SchistApiClient {
 		const { authActions } = await import('$lib/stores/auth.svelte');
 		authActions.clearAuth();
 
-		// Use centralized auth service for redirect logic (includes public route check)
+		// The session is confirmed dead: redirect (skipped on public routes)
+		// without re-checking it, see AuthService.handleSessionExpired.
 		const { authService } = await import('$lib/auth/auth-service');
 		const returnUrl = window.location.pathname + window.location.search;
-		await authService.requireAuth(returnUrl);
+		await authService.handleSessionExpired(returnUrl);
 	}
 
 	private revalidating: Promise<boolean> | null = null;

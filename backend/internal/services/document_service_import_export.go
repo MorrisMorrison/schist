@@ -137,10 +137,13 @@ func (d *DocumentService) importSingleFile(
 	return nil
 }
 
+// importFrontMatterRegex matches a leading YAML front matter block (Obsidian
+// and other tools). (?s) lets the lazy body span lines; without it only a
+// single-line front matter block was ever stripped.
+var importFrontMatterRegex = regexp.MustCompile(`(?s)^---\s*\n.*?\n---\s*\n`)
+
 func (d *DocumentService) processImportedMarkdown(content string) string {
-	// Remove YAML frontmatter (Obsidian and other systems)
-	frontmatterRegex := regexp.MustCompile(`^---\s*\n.*?\n---\s*\n`)
-	content = frontmatterRegex.ReplaceAllString(content, "")
+	content = importFrontMatterRegex.ReplaceAllString(content, "")
 
 	return strings.TrimSpace(content)
 }

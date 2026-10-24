@@ -294,3 +294,42 @@ func TestDocumentService_ImportFailureMessagesDoNotLeakInternals(t *testing.T) {
 	assert.Equal(t, "only markdown files (.md) are supported", result.Failed[0].Error)
 	assert.NotContains(t, result.Failed[0].Error, dir)
 }
+
+func TestDocumentService_ImportStripsFrontMatter(t *testing.T) {
+	tests := []struct {
+		name        string
+		file        string
+		wantContent string
+	}{
+		{
+			name:        "multi-line front matter (Obsidian)",
+			file:        "---\ntitle: Imported\ntags:\n  - a\n---\n# Imported\n\nbody",
+			wantContent: "# Imported\n\nbody",
+		},
+		{
+			name:        "single-line front matter",
+			file:        "---\ntitle: Imported\n---\n# Imported\n\nbody",
+			wantContent: "# Imported\n\nbody",
+		},
+		{
+			name:        "no front matter",
+			file:        "# Imported\n\nbody\n---\nafter rule",
+			wantContent: "# Imported\n\nbody\n---\nafter rule",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ds, _ := newSafetyDocumentService(t)
+			result, err := ds.ImportDocuments(
+				multipartFiles(t, map[string]string{"imported.md": tt.file}),
+				&models.ImportOptions{TargetPath: "/"},
+			)
+			require.NoError(t, err)
+			require.Len(t, result.Success, 1, "%+v", result.Failed)
+
+			got, err := ds.GetDocumentByPath(result.Success[0].FinalPath)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantContent, got.Content)
+		})
+	}
+}

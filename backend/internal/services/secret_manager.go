@@ -214,19 +214,6 @@ func (sm *SecretManager) UnlockWithPasskey(credentialID string) error {
 	return nil
 }
 
-func (sm *SecretManager) CreatePasskey(name string) (string, error) {
-	// Note: This is now handled through WebAuthn flow, not directly
-	return "", fmt.Errorf("passkey creation now handled through WebAuthn registration flow")
-}
-
-func (sm *SecretManager) ListPasskeys() ([]PasskeyCredentialInfo, error) {
-	return sm.passkeyService.ListCredentials()
-}
-
-func (sm *SecretManager) DeletePasskey(credentialID string) error {
-	return sm.passkeyService.DeleteCredential(credentialID)
-}
-
 func (sm *SecretManager) HasPasskeys() (bool, error) {
 	return sm.passkeyService.HasCredentials()
 }

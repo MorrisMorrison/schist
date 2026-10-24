@@ -212,25 +212,6 @@ func TestSecretManager_PasskeyOperations(t *testing.T) {
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
-	t.Run("CreatePasskey returns error", func(t *testing.T) {
-		_, err := sm.CreatePasskey("test-passkey")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "passkey creation now handled through WebAuthn registration flow")
-	})
-
-	t.Run("ListPasskeys calls passkey service", func(t *testing.T) {
-		// This will return empty or error depending on passkey service implementation
-		_, err := sm.ListPasskeys()
-		// Should not panic and should return some result
-		assert.IsType(t, err, err) // Just verify it returns some error type (nil or actual error)
-	})
-
-	t.Run("DeletePasskey calls passkey service", func(t *testing.T) {
-		err := sm.DeletePasskey("test-id")
-		// Should not panic and should return some result
-		assert.IsType(t, err, err) // Just verify it returns some error type (nil or actual error)
-	})
-
 	t.Run("HasPasskeys calls passkey service", func(t *testing.T) {
 		_, err := sm.HasPasskeys()
 		// Should not panic and should return some result

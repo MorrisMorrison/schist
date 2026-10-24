@@ -450,36 +450,6 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 	return result, nil
 }
 
-func (gs *GitHubService) ValidateAccess() error {
-	githubSettings := gs.settings.GetGitHubSettings()
-
-	if !githubSettings.Enabled {
-		return fmt.Errorf("github integration is not enabled")
-	}
-
-	if err := gs.ensureClient(); err != nil {
-		return fmt.Errorf("failed to initialize github client: %w", err)
-	}
-
-	getCtx, getCancel := gs.requestContext()
-	_, _, err := gs.client.Repositories.Get(getCtx, githubSettings.Owner, githubSettings.Repository)
-	getCancel()
-	if err != nil {
-		return fmt.Errorf("failed to access repository %s/%s: %w", githubSettings.Owner, githubSettings.Repository, err)
-	}
-
-	branchCtx, branchCancel := gs.requestContext()
-	_, _, err = gs.client.Repositories.GetBranch(
-		branchCtx, githubSettings.Owner, githubSettings.Repository, githubSettings.Branch, 1,
-	)
-	branchCancel()
-	if err != nil {
-		return fmt.Errorf("failed to access branch %s: %w", githubSettings.Branch, err)
-	}
-
-	return nil
-}
-
 func (gs *GitHubService) TestConnection(token, owner, repo, branch string) error {
 	if token == "" {
 		return fmt.Errorf("github token is required")
@@ -516,40 +486,6 @@ func (gs *GitHubService) TestConnection(token, owner, repo, branch string) error
 	}
 
 	return nil
-}
-
-func (gs *GitHubService) GetRepositoryInfo() (*GitHubRepoInfo, error) {
-	githubSettings := gs.settings.GetGitHubSettings()
-
-	if !githubSettings.Enabled {
-		return nil, fmt.Errorf("github integration is not enabled")
-	}
-
-	if err := gs.ensureClient(); err != nil {
-		return nil, fmt.Errorf("failed to initialize github client: %w", err)
-	}
-
-	ctx, cancel := gs.requestContext()
-	repo, _, err := gs.client.Repositories.Get(ctx, githubSettings.Owner, githubSettings.Repository)
-	cancel()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get repository info: %w", err)
-	}
-
-	repoInfo := &GitHubRepoInfo{
-		Owner:    githubSettings.Owner,
-		Name:     githubSettings.Repository,
-		FullName: repo.GetFullName(),
-		Private:  repo.GetPrivate(),
-		HTMLURL:  repo.GetHTMLURL(),
-		CloneURL: repo.GetCloneURL(),
-	}
-
-	if repo.Description != nil {
-		repoInfo.Description = *repo.Description
-	}
-
-	return repoInfo, nil
 }
 
 func (gs *GitHubService) IsEnabled() bool {

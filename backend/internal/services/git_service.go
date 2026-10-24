@@ -270,10 +270,6 @@ func (gs *GitService) healthCheckWithRepairAttempts(autoRepair bool, repairAttem
 	return nil
 }
 
-func (gs *GitService) IsRepositoryInitialized() bool {
-	return gs.repository != nil && gs.HealthCheck() == nil
-}
-
 func (gs *GitService) RepairRepository() error {
 	log.Printf("[GitService] Starting repository repair process...")
 

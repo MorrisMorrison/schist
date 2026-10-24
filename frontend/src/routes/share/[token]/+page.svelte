@@ -10,7 +10,7 @@
 	import { onMount } from 'svelte';
 
 	const { data }: { data: PageData } = $props();
-	const { document } = data;
+	const document = $derived(data.document);
 
 	const documentTitle = $derived(document.metaData?.title || 'Untitled');
 	const documentCreated = $derived(document.metaData?.created);

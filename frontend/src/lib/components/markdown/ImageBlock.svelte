@@ -11,19 +11,17 @@
 	}
 
 	// Use the size parsed from markdown-blocks.ts
-	const cleanTitle = block.title;
-	const size = block.size;
+	const cleanTitle = $derived(block.title);
+	const size = $derived(block.size);
 
 	// Transform asset URLs
-	const imageSrc = $derived(() => {
+	const transformedSrc = $derived.by(() => {
 		const pathWithoutQuery = block.href.split('?')[0];
 		if (pathWithoutQuery.startsWith('/assets/')) {
 			return apiClient.getAssetUrl(block.href);
 		}
 		return block.href;
 	});
-
-	const transformedSrc = $derived(imageSrc());
 
 	// Determine size classes
 	const getSizeClasses = (size?: string): string => {

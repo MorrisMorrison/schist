@@ -5,8 +5,6 @@ export class EditorPage extends BasePage {
 	readonly contentEditor: Locator;
 	readonly saveButton: Locator;
 	readonly cancelButton: Locator;
-	readonly deleteButton: Locator;
-	readonly confirmDeleteButton: Locator;
 
 	readonly documentTitle: Locator;
 
@@ -17,8 +15,6 @@ export class EditorPage extends BasePage {
 
 		this.saveButton = page.getByTestId('save-document-button');
 		this.cancelButton = page.getByTestId('cancel-button');
-		this.deleteButton = page.getByTestId('delete-document-button');
-		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
 
 		this.documentTitle = page.locator('h1').first();
 	}
@@ -60,21 +56,16 @@ export class EditorPage extends BasePage {
 	}
 
 	async saveAndExpectNavigation() {
+		// 15s like the other page-load waits: a 5s budget was tight for large
+		// documents on a slow runner.
 		await Promise.all([
-			this.page.waitForURL(/\/documents\//, { timeout: 5000 }),
+			this.page.waitForURL(/\/documents\//, { timeout: 15000 }),
 			this.saveButton.click()
 		]);
 	}
 
 	async cancel() {
 		await this.cancelButton.click();
-	}
-
-	async deleteDocument() {
-		await this.deleteButton.click();
-		await this.waitForVisible(this.confirmDeleteButton);
-		await this.confirmDeleteButton.click();
-		await this.page.waitForLoadState('networkidle');
 	}
 
 	async typeContent(content: string) {
@@ -120,20 +111,6 @@ export class EditorPage extends BasePage {
 
 	async verifyTitle(expectedTitle: string) {
 		await expect(this.documentTitle).toContainText(expectedTitle);
-	}
-
-	async verifyHashtags(expectedTags: string[]) {
-		for (const tag of expectedTags) {
-			await expect(this.contentEditor).toContainText(`#${tag}`);
-		}
-	}
-
-	async getContent(): Promise<string> {
-		return (await this.contentEditor.textContent()) || '';
-	}
-
-	async fillPageDetails(title: string, content: string, tags: string[] = []) {
-		return this.fillDocumentDetails(title, content, tags);
 	}
 
 	async fillTitle(title: string) {

@@ -1,31 +1,27 @@
-import { type Page, type Locator } from '@playwright/test';
+import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class HomePage extends BasePage {
 	readonly pageTitle: Locator;
-	readonly newPageButton: Locator;
+	readonly newDocumentButton: Locator;
 	readonly quickSwitcherButton: Locator;
+	readonly quickSwitcher: Locator;
 	readonly quickSwitcherInput: Locator;
 	readonly quickSwitcherResults: Locator;
-	readonly sidebar: Locator;
 
 	constructor(page: Page) {
 		super(page);
 
-		this.pageTitle = page.getByTestId('page-title').or(page.locator('h1').first());
-		this.newPageButton = page
-			.getByTestId('new-page-button')
-			.or(page.getByRole('link', { name: /Create.*First.*Page|Create.*Page/i }).first());
+		this.pageTitle = page.locator('h1').first();
+		// The root folder view's "New Document" button
+		this.newDocumentButton = page.getByTestId('create-document');
+		// Desktop and mobile navs each render their own button; only one is visible.
 		this.quickSwitcherButton = page
 			.getByTestId('quick-switcher-button')
 			.or(page.getByTestId('quick-switcher-button-mobile'));
-		this.quickSwitcherInput = page
-			.getByTestId('quick-switcher-input')
-			.or(page.getByPlaceholder('Search documents...'));
-		this.quickSwitcherResults = page
-			.getByTestId('quick-switcher-results')
-			.or(page.locator('[role="dialog"] button'));
-		this.sidebar = page.getByTestId('sidebar');
+		this.quickSwitcher = page.getByTestId('quick-switcher');
+		this.quickSwitcherInput = page.getByTestId('quick-switcher-input');
+		this.quickSwitcherResults = page.getByTestId('quick-switcher-result');
 	}
 
 	async navigate() {
@@ -37,31 +33,27 @@ export class HomePage extends BasePage {
 		await this.waitForContentReady(this.pageTitle);
 	}
 
-	async createNewPage() {
-		await this.newPageButton.click();
-		await this.page.waitForURL('/new');
+	async createNewDocument() {
+		await this.newDocumentButton.click();
+		await this.page.waitForURL(/\/new/);
+	}
+
+	/** Open the quick switcher with its nav button and wait for the focused input. */
+	async openQuickSwitcher() {
+		await this.page.getByTestId('quick-switcher-button').click();
+		await expect(this.quickSwitcher).toBeVisible();
+		await expect(this.quickSwitcherInput).toBeFocused();
 	}
 
 	async search(query: string) {
+		// The shortcut handler accepts Ctrl or Cmd, so Control+k works everywhere.
 		await this.page.keyboard.press('Control+k');
-
-		if (!(await this.quickSwitcherInput.isVisible())) {
-			await this.page.keyboard.press('Meta+k');
-		}
-
-		await this.quickSwitcherInput.waitFor({ state: 'visible' });
+		await expect(this.quickSwitcherInput).toBeVisible();
 		await this.quickSwitcherInput.fill(query);
-
-		await this.quickSwitcherResults
-			.first()
-			.waitFor({ state: 'visible', timeout: 3000 })
-			.catch(() => {
-				// Search may not have results, which is fine
-			});
 	}
 
 	async clickSearchResult(resultText: string) {
-		const result = this.quickSwitcherResults.getByText(resultText);
-		await result.click();
+		const result = this.quickSwitcherResults.filter({ hasText: resultText });
+		await result.first().click();
 	}
 }

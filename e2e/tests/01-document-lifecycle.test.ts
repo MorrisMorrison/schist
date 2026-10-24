@@ -78,8 +78,8 @@ test.describe.serial('Document Lifecycle', () => {
 		// Delete the document
 		await documentViewPage.deleteDocument();
 
-		// Verify redirect and document no longer exists
-		await documentViewPage.expectUrl('/');
+		// Verify redirect home (origin root) and document no longer exists
+		await documentViewPage.expectUrl(/\/\/[^/]+\/?$/);
 
 		// Try to navigate to deleted document - should show 404
 		await documentViewPage.navigateToDocument(documentToDelete.path!);

@@ -26,13 +26,13 @@ test.describe('Navigation and Routing', () => {
 			path: `/parent-${testId}/child-${testId}/grandchild-${testId}`
 		});
 
-		await apiHelper.createDocument(parentDocument);
-		await apiHelper.createDocument(childDocument);
-		await apiHelper.createDocument(grandchildDocument);
+		for (const document of [parentDocument, childDocument, grandchildDocument]) {
+			expect((await apiHelper.createDocument(document)).status).toBe(201);
+		}
 
-		await documentViewPage.navigateToPage(grandchildDocument.path!);
-		await documentViewPage.verifyPageLoaded(grandchildDocument.title);
-		await documentViewPage.verifyPageUrl(grandchildDocument.path!);
+		await documentViewPage.navigateToDocument(grandchildDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(grandchildDocument.title);
+		await documentViewPage.verifyDocumentUrl(grandchildDocument.path!);
 
 		const breadcrumbs = await documentViewPage.getBreadcrumbPath();
 		expect(breadcrumbs.length).toBeGreaterThan(0);
@@ -43,16 +43,9 @@ test.describe('Navigation and Routing', () => {
 
 		await documentViewPage.expectUrl(`/folders/parent-${testId}`);
 
-		const emptyMessage = documentViewPage.page.locator('[data-testid="empty-folder-message"]');
-		const documentsSection = documentViewPage.page.locator('[data-testid="documents-section"]');
-
-		if (await emptyMessage.isVisible()) {
-			console.log('Folder appears empty - no child documents found');
-			return;
-		}
-
-		const childText = `Child ${testId}`;
-		await documentsSection.getByText(childText, { exact: false }).waitFor();
+		// The parent folder lists the child document
+		const documentsSection = documentViewPage.page.getByTestId('documents-section');
+		await expect(documentsSection.getByText(childDocument.title)).toBeVisible();
 	});
 
 	test('should handle URL changes correctly', async ({
@@ -62,16 +55,16 @@ test.describe('Navigation and Routing', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToPage(testDocument.path!);
-		await documentViewPage.verifyPageLoaded(testDocument.title);
-		await documentViewPage.verifyPageUrl(testDocument.path!);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.verifyDocumentUrl(testDocument.path!);
 
 		await editorPage.navigateToEdit(testDocument.path!);
 		await editorPage.verifyLoaded();
 		await editorPage.expectUrl(`/edit${testDocument.path!}`);
 
 		await editorPage.cancel();
-		await documentViewPage.verifyPageLoaded(testDocument.title);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 	});
 
 	test('should handle browser back/forward navigation', async ({
@@ -86,10 +79,10 @@ test.describe('Navigation and Routing', () => {
 		await homePage.navigate();
 		await homePage.verifyLoaded();
 
-		await documentViewPage.navigateToPage(testDocument.path!);
-		await documentViewPage.verifyPageLoaded(testDocument.title);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
-		await documentViewPage.editPage();
+		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();
 
 		// edit -> document view. Wait for the URL to settle after each history
@@ -97,8 +90,8 @@ test.describe('Navigation and Routing', () => {
 		// 'load' event, but SPA history navigation is client-side (popstate) and
 		// may not fire one, so the assertion can otherwise race the re-render.
 		await page.goBack();
-		await documentViewPage.verifyPageUrl(testDocument.path!);
-		await documentViewPage.verifyPageLoaded(testDocument.title);
+		await documentViewPage.verifyDocumentUrl(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		// document view -> edit
 		await page.goForward();
@@ -110,7 +103,7 @@ test.describe('Navigation and Routing', () => {
 		// popstate is processed), which intermittently lands somewhere other than
 		// home on a slow runner.
 		await page.goBack();
-		await documentViewPage.verifyPageUrl(testDocument.path!);
+		await documentViewPage.verifyDocumentUrl(testDocument.path!);
 
 		// document view -> home (origin root, nothing after the host)
 		await page.goBack();
@@ -125,13 +118,13 @@ test.describe('Navigation and Routing', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToPage(testDocument.path!);
-		await documentViewPage.verifyPageLoaded(testDocument.title);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
 		await page.reload();
 
-		await documentViewPage.verifyPageLoaded(testDocument.title);
-		await documentViewPage.verifyPageUrl(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.verifyDocumentUrl(testDocument.path!);
 	});
 
 	test('should handle navigation from search results', async ({
@@ -157,8 +150,8 @@ test.describe('Navigation and Routing', () => {
 
 		await homePage.clickSearchResult(searchableDocument.title);
 
-		await documentViewPage.verifyPageLoaded(searchableDocument.title);
-		await documentViewPage.verifyPageUrl(searchableDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(searchableDocument.title);
+		await documentViewPage.verifyDocumentUrl(searchableDocument.path!);
 	});
 
 	test('should handle concurrent navigation requests', async ({
@@ -182,16 +175,18 @@ test.describe('Navigation and Routing', () => {
 		await apiHelper.createDocument(document1);
 		await apiHelper.createDocument(document2);
 
-		await documentViewPage.navigateToPage(document1.path!);
-		await documentViewPage.verifyPageLoaded(document1.title);
+		await documentViewPage.navigateToDocument(document1.path!);
+		await documentViewPage.verifyDocumentLoaded(document1.title);
 
-		await documentViewPage.navigateToPage(document2.path!);
-		await documentViewPage.verifyPageLoaded(document2.title);
+		await documentViewPage.navigateToDocument(document2.path!);
+		await documentViewPage.verifyDocumentLoaded(document2.title);
 
-		await documentViewPage.verifyPageUrl(document2.path!);
+		await documentViewPage.verifyDocumentUrl(document2.path!);
 	});
 
-	test('should preserve scroll position on navigation', async ({
+	// Scroll position is not asserted: a full navigation away and back does not
+	// restore it. This covers reloading a long document after leaving it.
+	test('should reload a long document after navigating away', async ({
 		documentViewPage,
 		apiHelper,
 		testId
@@ -210,13 +205,11 @@ test.describe('Navigation and Routing', () => {
 
 		await apiHelper.createDocument(longDocument);
 
-		await documentViewPage.navigateToPage(longDocument.path!);
-		await documentViewPage.verifyPageLoaded(longDocument.title);
-
-		await documentViewPage.page.evaluate(() => window.scrollTo(0, 1000));
+		await documentViewPage.navigateToDocument(longDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(longDocument.title);
 
 		await documentViewPage.goto('/');
-		await documentViewPage.navigateToPage(longDocument.path!);
-		await documentViewPage.verifyPageLoaded(longDocument.title);
+		await documentViewPage.navigateToDocument(longDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(longDocument.title);
 	});
 });

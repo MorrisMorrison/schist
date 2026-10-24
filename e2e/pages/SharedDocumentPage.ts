@@ -14,20 +14,10 @@ export class SharedDocumentPage extends BasePage {
 	// Document content
 	readonly documentTitle: Locator;
 	readonly documentContent: Locator;
-	readonly documentTags: Locator;
-	readonly documentMetadata: Locator;
-	readonly createdDate: Locator;
-	readonly updatedDate: Locator;
 
 	// Footer elements
 	readonly footer: Locator;
 	readonly documentPathDisplay: Locator;
-
-	// Content elements
-	readonly headings: Locator;
-	readonly links: Locator;
-	readonly images: Locator;
-	readonly codeBlocks: Locator;
 
 	// Error states
 	readonly notFoundMessage: Locator;
@@ -41,25 +31,13 @@ export class SharedDocumentPage extends BasePage {
 		this.brandingText = page.getByText('Shared Document (Read-only)');
 		this.poweredByText = page.getByText('Powered by Schist');
 
-		// Document content
+		// Document content. The share page's title <h1> has no test id yet.
 		this.documentTitle = page.locator('h1').first();
-		this.documentContent = page.locator('article.prose, .prose').first();
-		this.documentTags = page
-			.locator('[data-testid="document-tag"], .badge')
-			.filter({ hasText: /.+/ });
-		this.documentMetadata = page.locator('.text-muted-foreground').first();
-		this.createdDate = page.getByText(/Created/);
-		this.updatedDate = page.getByText(/Updated/);
+		this.documentContent = page.getByTestId('shared-document-content');
 
 		// Footer elements
 		this.footer = page.locator('footer');
 		this.documentPathDisplay = page.locator('code');
-
-		// Content elements
-		this.headings = this.documentContent.locator('h1, h2, h3, h4, h5, h6');
-		this.links = this.documentContent.locator('a');
-		this.images = this.documentContent.locator('img');
-		this.codeBlocks = this.documentContent.locator('pre, code');
 
 		// Error states
 		this.notFoundMessage = page.getByText(/page not found/i);
@@ -78,16 +56,8 @@ export class SharedDocumentPage extends BasePage {
 	 * Verify the shared document is loaded and displays content
 	 */
 	async verifySharedDocumentLoaded(expectedTitle?: string) {
-		// Wait for loading to complete
-		await this.page.waitForLoadState('networkidle');
-
-		// Wait for loading messages to disappear
-		if (await this.loadingMessage.isVisible()) {
-			await this.loadingMessage.waitFor({ state: 'hidden', timeout: 10000 });
-		}
-
-		// Verify title is visible
-		await expect(this.documentTitle).toBeVisible();
+		await this.waitForContentReady(this.documentTitle);
+		await expect(this.loadingMessage).toBeHidden();
 
 		if (expectedTitle) {
 			await expect(this.documentTitle).toHaveText(expectedTitle);
@@ -102,47 +72,11 @@ export class SharedDocumentPage extends BasePage {
 	}
 
 	/**
-	 * Verify content contains specific text
-	 */
-	async verifyContentContains(text: string) {
-		await expect(this.documentContent).toContainText(text);
-	}
-
-	/**
-	 * Verify content contains specific heading
-	 */
-	async verifyHeading(headingText: string, level?: number) {
-		if (level) {
-			const heading = this.documentContent.locator(`h${level}`).getByText(headingText);
-			await expect(heading).toBeVisible();
-		} else {
-			const heading = this.headings.getByText(headingText);
-			await expect(heading).toBeVisible();
-		}
-	}
-
-	/**
-	 * Verify document has specific tags
-	 */
-	async verifyTags(expectedTags: string[]) {
-		for (const tag of expectedTags) {
-			await expect(this.documentTags.filter({ hasText: tag })).toBeVisible();
-		}
-	}
-
-	/**
-	 * Verify document metadata is displayed
+	 * Verify the header shows the document's creation date. ("Updated" is only
+	 * shown once it differs from "Created", so it is not asserted.)
 	 */
 	async verifyMetadata() {
-		// Check if created date is shown
-		if (await this.createdDate.isVisible()) {
-			await expect(this.createdDate).toBeVisible();
-		}
-
-		// Check if updated date is shown
-		if (await this.updatedDate.isVisible()) {
-			await expect(this.updatedDate).toBeVisible();
-		}
+		await expect(this.header.getByText(/^Created /)).toBeVisible();
 	}
 
 	/**
@@ -150,23 +84,6 @@ export class SharedDocumentPage extends BasePage {
 	 */
 	async verifyDocumentPath(expectedPath: string) {
 		await expect(this.documentPathDisplay).toContainText(expectedPath);
-	}
-
-	/**
-	 * Click on a link within the document content
-	 */
-	async clickContentLink(linkText: string) {
-		const link = this.links.getByText(linkText);
-		await link.click();
-		await this.waitForLoad();
-	}
-
-	/**
-	 * Verify image is displayed
-	 */
-	async verifyImageDisplayed(imageSrc: string) {
-		const image = this.images.filter({ has: this.page.locator(`[src*="${imageSrc}"]`) });
-		await expect(image).toBeVisible();
 	}
 
 	/**
@@ -195,11 +112,10 @@ export class SharedDocumentPage extends BasePage {
 	 * Verify the page title includes "Shared Document"
 	 */
 	async verifyPageTitle(expectedDocumentTitle?: string) {
-		const title = await this.page.title();
-		expect(title).toContain('Shared Document');
+		await expect(this.page).toHaveTitle(/Shared Document/);
 
 		if (expectedDocumentTitle) {
-			expect(title).toContain(expectedDocumentTitle);
+			expect(await this.page.title()).toContain(expectedDocumentTitle);
 		}
 	}
 
@@ -215,13 +131,6 @@ export class SharedDocumentPage extends BasePage {
 		await expect(editButton).not.toBeVisible();
 		await expect(shareButton).not.toBeVisible();
 		await expect(deleteButton).not.toBeVisible();
-	}
-
-	/**
-	 * Get the document content text
-	 */
-	async getDocumentContent(): Promise<string> {
-		return (await this.documentContent.textContent()) || '';
 	}
 
 	/**

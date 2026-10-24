@@ -5,34 +5,24 @@ test.describe('Quick Switcher', () => {
 		// Set viewport to desktop size to ensure QuickSwitcher button is visible
 		await page.setViewportSize({ width: 1280, height: 720 });
 		await page.goto('/');
-		await page.waitForLoadState('networkidle');
 	});
 
-	test('should open quick switcher with button click', async ({ page }) => {
-		// Wait for the quick switcher button to be visible
-		await expect(page.locator('[data-testid="quick-switcher-button"]')).toBeVisible();
-
-		// Click the search button
-		await page.click('[data-testid="quick-switcher-button"]');
-
-		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
-		await expect(page.locator('[data-testid="quick-switcher-input"]')).toBeFocused();
+	test('should open quick switcher with button click', async ({ homePage }) => {
+		await homePage.openQuickSwitcher();
 	});
 
-	test('should close quick switcher when clicking outside or escape', async ({ page }) => {
-		// Wait for the quick switcher button to be visible
-		await expect(page.locator('[data-testid="quick-switcher-button"]')).toBeVisible();
-
-		// Open the quick switcher with button click
-		await page.click('[data-testid="quick-switcher-button"]');
-		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
+	test('should close quick switcher when clicking outside or escape', async ({
+		homePage,
+		page
+	}) => {
+		await homePage.openQuickSwitcher();
 
 		// Close with Escape key
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-testid="quick-switcher"]')).not.toBeVisible();
+		await expect(homePage.quickSwitcher).not.toBeVisible();
 	});
 
-	test('should handle API errors gracefully', async ({ page }) => {
+	test('should handle API errors gracefully', async ({ homePage, page }) => {
 		let apiCallAttempted = false;
 
 		// Intercept any API call to documents endpoint
@@ -47,81 +37,43 @@ test.describe('Quick Switcher', () => {
 
 		// Navigate again to ensure the route is active
 		await page.goto('/');
-		await page.waitForLoadState('networkidle');
 
-		// Wait for the quick switcher button to be visible
-		await expect(page.locator('[data-testid="quick-switcher-button"]')).toBeVisible();
+		await homePage.openQuickSwitcher();
+		await homePage.quickSwitcherInput.fill('test');
 
-		// Open quick switcher with button click
-		await page.click('[data-testid="quick-switcher-button"]');
-		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
-
-		await page.fill('[data-testid="quick-switcher-input"]', 'test');
-
-		// Wait a bit for the API call to be made
-		await page.waitForTimeout(500);
-
-		await expect(page.locator('text=No documents found')).toBeVisible();
+		await expect(homePage.quickSwitcher.getByText('No documents found')).toBeVisible();
 
 		expect(apiCallAttempted).toBe(true);
 	});
 });
 
 test.describe('Quick Switcher with Data', () => {
-	test('should search documents successfully', async ({ page, withTestDocument }) => {
-		// Navigate to home page and ensure proper loading
+	test.beforeEach(async ({ page }) => {
 		await page.goto('/');
-		await page.waitForLoadState('networkidle');
-
-		// Wait for the quick switcher button to be visible
-		await expect(page.locator('[data-testid="quick-switcher-button"]')).toBeVisible();
-
-		// Open quick switcher with button click
-		await page.click('[data-testid="quick-switcher-button"]');
-		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
-
-		await page.fill('[data-testid="quick-switcher-input"]', withTestDocument.title.split(' ')[0]);
-
-		await expect(
-			page.locator('[data-testid="quick-switcher"]').locator(`text=${withTestDocument.title}`)
-		).toBeVisible();
 	});
 
-	test('should handle no search results gracefully', async ({ page }) => {
-		// Navigate to home page and ensure proper loading
-		await page.goto('/');
-		await page.waitForLoadState('networkidle');
+	test('should search documents successfully', async ({ homePage, withTestDocument }) => {
+		await homePage.openQuickSwitcher();
+		await homePage.quickSwitcherInput.fill(withTestDocument.title.split(' ')[0]);
 
-		// Wait for the quick switcher button to be visible
-		await expect(page.locator('[data-testid="quick-switcher-button"]')).toBeVisible();
-
-		// Open quick switcher with button click
-		await page.click('[data-testid="quick-switcher-button"]');
-		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
-		await page.fill('[data-testid="quick-switcher-input"]', 'nonexistent');
-
-		await expect(page.locator('text=No documents found')).toBeVisible();
+		await expect(homePage.quickSwitcher.getByText(withTestDocument.title)).toBeVisible();
 	});
 
-	test('should navigate to selected document', async ({ page, withTestDocument }) => {
-		// Navigate to home page and ensure proper loading
-		await page.goto('/');
-		await page.waitForLoadState('networkidle');
+	test('should handle no search results gracefully', async ({ homePage }) => {
+		await homePage.openQuickSwitcher();
+		await homePage.quickSwitcherInput.fill('nonexistent');
 
-		// Wait for the quick switcher button to be visible
-		await expect(page.locator('[data-testid="quick-switcher-button"]')).toBeVisible();
+		await expect(homePage.quickSwitcher.getByText('No documents found')).toBeVisible();
+	});
 
-		// Open quick switcher with button click
-		await page.click('[data-testid="quick-switcher-button"]');
-		await expect(page.locator('[data-testid="quick-switcher"]')).toBeVisible();
-		await page.fill('[data-testid="quick-switcher-input"]', withTestDocument.title.split(' ')[0]);
+	test('should navigate to selected document', async ({ homePage, page, withTestDocument }) => {
+		await homePage.openQuickSwitcher();
+		await homePage.quickSwitcherInput.fill(withTestDocument.title.split(' ')[0]);
 
-		await expect(
-			page.locator('[data-testid="quick-switcher"]').locator(`text=${withTestDocument.title}`)
-		).toBeVisible();
+		await expect(homePage.quickSwitcher.getByText(withTestDocument.title)).toBeVisible();
 
 		await page.keyboard.press('Enter');
 
-		await expect(page).toHaveURL(`/documents/${withTestDocument.slug || withTestDocument.title}`);
+		await expect(page).toHaveURL(`/documents${withTestDocument.path}`);
 	});
 });

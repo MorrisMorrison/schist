@@ -14,7 +14,7 @@ test.describe.serial('Share Functionality', () => {
 		await documentViewPage.openShareModal();
 
 		// Verify modal content
-		const modal = documentViewPage.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
+		const modal = documentViewPage.shareModal;
 		await expect(modal.getByText(`Share "${testDocument.title}"`)).toBeVisible();
 		await expect(modal.getByText('Create New Share Link')).toBeVisible();
 		await expect(modal.getByText('Active Share Links')).toBeVisible();
@@ -92,7 +92,7 @@ test.describe.serial('Share Functionality', () => {
 
 		await documentViewPage.revokeShareLink(0);
 
-		const modal = documentViewPage.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
+		const modal = documentViewPage.shareModal;
 		await expect(modal.getByText(/revoked successfully/i)).toBeVisible();
 
 		activeLinks = await documentViewPage.getActiveShareLinks();

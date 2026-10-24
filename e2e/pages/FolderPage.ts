@@ -83,11 +83,16 @@ export class FolderPage extends BasePage {
 		return this.folderTree.getByRole('button', { name: `Open folder ${folderName}`, exact: true });
 	}
 
-	/** The sidebar tree row for an exact folder name. */
+	/**
+	 * The sidebar tree row for an exact folder name: the closest row around its
+	 * button. Rows nest, and a `has:` filter is resolved inside each row, so
+	 * filtering rows by the tree-rooted button never matched (and would also
+	 * match every ancestor row).
+	 */
 	treeItem(folderName: string): Locator {
-		return this.folderTree
-			.getByTestId('folder-tree-item')
-			.filter({ has: this.folderButton(folderName) });
+		return this.folderButton(folderName).locator(
+			'xpath=ancestor::*[@data-testid="folder-tree-item"][1]'
+		);
 	}
 
 	async openSubFolder(folderName: string) {
@@ -103,11 +108,14 @@ export class FolderPage extends BasePage {
 		await expect(this.folderButton(folderName)).toHaveCount(0);
 	}
 
-	/** Right-click a folder's tree row and wait for its context menu. */
+	/**
+	 * Right-click a folder in the tree and wait for its context menu. Clicks the
+	 * folder's own name button (the row handles the event), so the click can't
+	 * land on an expanded child row.
+	 */
 	async openContextMenu(folderName: string) {
-		const item = this.treeItem(folderName);
-		await expect(item).toBeVisible();
-		await item.click({ button: 'right' });
+		await expect(this.treeItem(folderName)).toBeVisible();
+		await this.folderButton(folderName).click({ button: 'right' });
 		await expect(this.contextMenu).toBeVisible();
 		return this.contextMenu;
 	}

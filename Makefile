@@ -1,4 +1,4 @@
-.PHONY: all install install-e2e build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend fmt-e2e lint lint-frontend lint-backend lint-e2e e2e e2e-ui e2e-test e2e-grep check verify secret-scan cleanup cleanup-dry-run cleanup-e2e
+.PHONY: all install install-e2e build build-frontend build-backend test test-backend test-frontend run run-backend run-frontend run-docker run-backend-test fmt fmt-backend fmt-frontend fmt-e2e lint lint-frontend lint-backend lint-e2e e2e e2e-ui e2e-test e2e-grep check verify secret-scan cleanup cleanup-dry-run cleanup-e2e screenshots
 
 all: build
 
@@ -100,6 +100,12 @@ ifndef GREP
 	@exit 1
 endif
 	cd e2e && npx playwright test --grep "$(GREP)"
+
+# README screenshots: runs the backend (go run) against a throwaway demo wiki and
+# writes docs/screenshots/*.png. CI publishes them to the `screenshots` branch.
+screenshots: install-e2e
+	cd frontend && npm ci && npm run build
+	cd e2e && npx playwright install chromium && npm run screenshots
 
 check:
 	cd frontend && npm run check

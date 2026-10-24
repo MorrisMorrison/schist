@@ -39,6 +39,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 | e2e | `docker compose --profile e2e up -d --build`, then `make e2e`, `make e2e-test TEST=<file>` or `make e2e-grep GREP="<title>"` |
 | Coverage | `cd backend && go test -cover ./...`; `cd frontend && npm run test:unit -- --coverage`. CI uploads both to Codecov (informational only, see `docs/CI.md`) |
 | Secret scan | `make secret-scan` (gitleaks) |
+| README screenshots | `make screenshots` (builds the frontend, runs the backend against a demo wiki, writes `docs/screenshots/`; capture in `e2e/readme-screenshots/`) |
 | Clean artifacts | `make cleanup` (scoped `git clean` of build/test output only) |
 
 ## Tests and how they isolate things
@@ -60,7 +61,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 ## Workflow
 - Branch off `main`, open a PR (template in `.github/pull_request_template.md`), squash-merge after review.
 - Conventional-commit titles with a scope: `feat(frontend): …`, `fix(services): …`, `refactor(errors): …`, `test(e2e): …`, `ci: …`, `chore(deps): …`.
-- CI (`docs/CI.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs, publish on `main`). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
+- CI (`docs/CI.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs, publish on `main`). README Screenshots (on frontend changes; on `main` it force-pushes the PNGs to the `screenshots` branch the README links to, so keep that branch unprotected). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
 - Dependabot opens grouped weekly PRs per ecosystem; held-back majors are listed in `.github/dependabot.yml`.
 
 ## Project skills

@@ -10,6 +10,7 @@
 		"test:debug": "npx playwright test --debug",
 		"test:headed": "npx playwright test --headed",
 		"cleanup": "git -C .. clean -fdx -- e2e/test-results e2e/playwright-report e2e/screenshots e2e/playwright",
+		"screenshots": "playwright test --config=playwright.screenshots.config.ts",
 		"install-browsers": "npx playwright install --with-deps chromium",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",

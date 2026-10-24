@@ -11,7 +11,7 @@ Schist is designed with minimal configuration using environment variables and se
 | `SCHIST_PORT` | `8080` | Server port number |
 | `SCHIST_DATA_DIR` | `data` | Directory for storing wiki documents and assets |
 | `SCHIST_STATIC_DIR` | `./web` | Directory for serving static frontend files (production) |
-| `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Frontend URL for CORS configuration (development) |
+| `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Public URL of the app. Used for CORS in development, the passkey (WebAuthn) origin, and share and invite links. Must match the URL users open |
 | `ENV` | `development` | Environment mode (development/production) |
 | `SCHIST_RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
 | `SCHIST_RATE_LIMIT_RPM` | `100` | Rate limit: requests per minute per IP |

@@ -15,6 +15,7 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/serializer"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 const maxRepairAttempts = 3
@@ -616,7 +617,7 @@ func (gs *GitService) RestoreDocument(documentPath, commitHash string) error {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+	if err := utils.WriteFileAtomic(fullPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write restored content: %w", err)
 	}
 

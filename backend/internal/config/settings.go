@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/crypto"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 // Settings handles JSON-based configuration stored in data/.schist/config.json
@@ -110,7 +111,9 @@ func (s *Settings) Save(dataDir string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, data, 0600); err != nil {
+	// Atomic write: config.json holds the secret-store salt and encrypted
+	// secrets, so a torn write would make every stored secret unrecoverable.
+	if err := utils.WriteFileAtomic(configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

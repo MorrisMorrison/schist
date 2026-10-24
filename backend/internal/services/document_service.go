@@ -272,9 +272,9 @@ func (d *DocumentService) saveDocument(document *models.Document) error {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
-	// 0644 = -rw-r--r-- = read/write permission for owner, read for others
-	fileMode = os.FileMode(0644)
-	if err := os.WriteFile(fileName, content, fileMode); err != nil {
+	// Write atomically so a crash or full disk mid-save can never leave a
+	// truncated note behind. 0644 = owner read/write, others read.
+	if err := utils.WriteFileAtomic(fileName, content, 0644); err != nil {
 		return fmt.Errorf("failed to write document file: %w", err)
 	}
 	return nil
@@ -695,7 +695,7 @@ func (d *DocumentService) updateDocumentPath(
 		return true, fmt.Errorf("failed to serialize document: %w", err)
 	}
 
-	if err := os.WriteFile(newFileInNewFolder, content, 0644); err != nil {
+	if err := utils.WriteFileAtomic(newFileInNewFolder, content, 0644); err != nil {
 		return true, fmt.Errorf("failed to write updated document file: %w", err)
 	}
 	return false, nil

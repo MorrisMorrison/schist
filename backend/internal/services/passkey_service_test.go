@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,4 +93,36 @@ func TestPasskeyService_DeleteCredential(t *testing.T) {
 			assert.Len(t, creds, tt.remaining)
 		})
 	}
+}
+
+func TestSecretManager_TypedErrors(t *testing.T) {
+	ps, dataDir := newTestPasskeyService(t, "cred-1")
+	sm := services.NewSecretManager(&config.Settings{}, dataDir, ps)
+
+	// Locked store -> 401 for every operation.
+	_, err := sm.GetSecret("k")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeUnauthorized), "%v", err)
+	assert.True(t, apierrors.HasCode(sm.SetSecret("k", "v"), apierrors.ErrCodeUnauthorized))
+	_, err = sm.ListSecrets()
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeUnauthorized))
+
+	// Unknown passkey -> 401, not a 500 with internal text.
+	err = sm.UnlockWithPasskey("no-such-credential")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeUnauthorized), "%v", err)
+	assert.False(t, sm.IsUnlocked())
+
+	require.NoError(t, sm.UnlockWithPasskey("cred-1"))
+	require.True(t, sm.IsUnlocked())
+
+	_, err = sm.GetSecret("missing")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeNotFound), "%v", err)
+	assert.True(t, apierrors.HasCode(sm.DeleteSecret("missing"), apierrors.ErrCodeNotFound))
+	assert.True(t, apierrors.HasCode(sm.SetSecret("", "v"), apierrors.ErrCodeMissingRequired))
+
+	require.NoError(t, sm.SetSecret("k", "v"))
+	got, err := sm.GetSecret("k")
+	require.NoError(t, err)
+	assert.Equal(t, "v", got)
+
+	assert.True(t, apierrors.HasCode(ps.DeleteCredential("missing"), apierrors.ErrCodeNotFound))
 }

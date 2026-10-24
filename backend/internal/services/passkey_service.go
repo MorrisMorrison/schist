@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
@@ -270,7 +271,7 @@ func (ps *PasskeyService) FinishRegistration(
 
 	credential, err := ps.webauthn.CreateCredential(user, *session, response)
 	if err != nil {
-		return "", fmt.Errorf("failed to create credential: %w", err)
+		return "", errors.NewValidationError("Passkey registration could not be verified").WithCause(err)
 	}
 
 	// Generate a key seed for this passkey (for encryption key derivation)
@@ -336,7 +337,7 @@ func (ps *PasskeyService) BeginAuthentication() (*protocol.CredentialAssertion, 
 	}
 
 	if len(user.credentials) == 0 {
-		return nil, nil, fmt.Errorf("no passkeys registered")
+		return nil, nil, errors.NewInvalidStateError("No passkeys registered")
 	}
 
 	options, session, err := ps.webauthn.BeginLogin(user)
@@ -359,7 +360,7 @@ func (ps *PasskeyService) FinishAuthentication(
 
 	credential, err := ps.webauthn.ValidateLogin(user, *session, response)
 	if err != nil {
-		return "", fmt.Errorf("failed to validate login: %w", err)
+		return "", errors.NewUnauthorizedError("Authentication failed").WithCause(err)
 	}
 
 	// Update the credential's sign count
@@ -381,7 +382,7 @@ func (ps *PasskeyService) FinishAuthentication(
 	}
 
 	if credentialID == "" {
-		return "", fmt.Errorf("credential not found in storage")
+		return "", errors.NewUnauthorizedError("Authentication failed")
 	}
 
 	if err := ps.saveCredentials(storage); err != nil {
@@ -404,7 +405,7 @@ func (ps *PasskeyService) GetEncryptionKey(credentialID string) ([]byte, error) 
 		}
 	}
 
-	return nil, fmt.Errorf("credential not found")
+	return nil, errors.NewNotFoundError("passkey", credentialID)
 }
 
 func (ps *PasskeyService) deriveKeyFromSeed(keySeed []byte) ([]byte, error) {
@@ -461,7 +462,7 @@ func (ps *PasskeyService) DeleteCredential(credentialID string) error {
 		}
 	}
 
-	return fmt.Errorf("credential not found")
+	return errors.NewNotFoundError("passkey", credentialID)
 }
 
 // HasCredentials returns whether any passkey credentials are registered

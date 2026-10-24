@@ -6,7 +6,15 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/crypto"
+	"github.com/MorrisMorrison/schist/internal/errors"
 )
+
+// errSecretStoreLocked is returned by every secret operation while the store
+// is locked (401, same as the RequireUnlockedSecrets middleware). A fresh
+// value each time, since APIError's With* helpers mutate the receiver.
+func errSecretStoreLocked() error {
+	return errors.NewUnauthorizedError("secret store is locked")
+}
 
 type SecretManager struct {
 	store          *crypto.SecureStore
@@ -42,11 +50,11 @@ func (sm *SecretManager) IsUnlocked() bool {
 
 func (sm *SecretManager) SetSecret(key, value string) error {
 	if !sm.IsUnlocked() {
-		return fmt.Errorf("secret store is locked")
+		return errSecretStoreLocked()
 	}
 
 	if key == "" {
-		return fmt.Errorf("secret key cannot be empty")
+		return errors.NewMissingRequiredFieldError("key")
 	}
 
 	encrypted, err := sm.store.Encrypt(value)
@@ -56,7 +64,7 @@ func (sm *SecretManager) SetSecret(key, value string) error {
 
 	secretsConfig := sm.settings.GetSecretsConfig()
 	if secretsConfig == nil {
-		return fmt.Errorf("secrets config not initialized")
+		return errors.NewInvalidStateError("Secret store is not set up")
 	}
 
 	if secretsConfig.Store == nil {
@@ -70,17 +78,17 @@ func (sm *SecretManager) SetSecret(key, value string) error {
 
 func (sm *SecretManager) GetSecret(key string) (string, error) {
 	if !sm.IsUnlocked() {
-		return "", fmt.Errorf("secret store is locked")
+		return "", errSecretStoreLocked()
 	}
 
 	secretsConfig := sm.settings.GetSecretsConfig()
 	if secretsConfig == nil || secretsConfig.Store == nil {
-		return "", fmt.Errorf("secret not found: %s", key)
+		return "", errors.NewNotFoundError("secret", key)
 	}
 
 	encrypted, exists := secretsConfig.Store[key]
 	if !exists {
-		return "", fmt.Errorf("secret not found: %s", key)
+		return "", errors.NewNotFoundError("secret", key)
 	}
 
 	return sm.store.Decrypt(encrypted)
@@ -88,7 +96,7 @@ func (sm *SecretManager) GetSecret(key string) (string, error) {
 
 func (sm *SecretManager) ListSecrets() ([]string, error) {
 	if !sm.IsUnlocked() {
-		return nil, fmt.Errorf("secret store is locked")
+		return nil, errSecretStoreLocked()
 	}
 
 	secretsConfig := sm.settings.GetSecretsConfig()
@@ -106,16 +114,16 @@ func (sm *SecretManager) ListSecrets() ([]string, error) {
 
 func (sm *SecretManager) DeleteSecret(key string) error {
 	if !sm.IsUnlocked() {
-		return fmt.Errorf("secret store is locked")
+		return errSecretStoreLocked()
 	}
 
 	secretsConfig := sm.settings.GetSecretsConfig()
 	if secretsConfig == nil || secretsConfig.Store == nil {
-		return fmt.Errorf("secret not found: %s", key)
+		return errors.NewNotFoundError("secret", key)
 	}
 
 	if _, exists := secretsConfig.Store[key]; !exists {
-		return fmt.Errorf("secret not found: %s", key)
+		return errors.NewNotFoundError("secret", key)
 	}
 
 	delete(secretsConfig.Store, key)
@@ -125,7 +133,7 @@ func (sm *SecretManager) DeleteSecret(key string) error {
 
 func (sm *SecretManager) GetGitHubToken() (string, error) {
 	if !sm.IsUnlocked() {
-		return "", fmt.Errorf("secret store is locked")
+		return "", errSecretStoreLocked()
 	}
 
 	if sm.settings.GitHub.Token == nil {
@@ -137,7 +145,7 @@ func (sm *SecretManager) GetGitHubToken() (string, error) {
 
 func (sm *SecretManager) SetGitHubToken(token string) error {
 	if !sm.IsUnlocked() {
-		return fmt.Errorf("secret store is locked")
+		return errSecretStoreLocked()
 	}
 
 	encrypted, err := sm.store.Encrypt(token)
@@ -181,6 +189,9 @@ func (sm *SecretManager) UnlockWithPasskey(credentialID string) error {
 
 	encryptionKey, err := sm.passkeyService.GetEncryptionKey(credentialID)
 	if err != nil {
+		if errors.HasCode(err, errors.ErrCodeNotFound) {
+			return errors.NewUnauthorizedError("Unknown passkey").WithCause(err)
+		}
 		return fmt.Errorf("failed to get encryption key from passkey: %w", err)
 	}
 

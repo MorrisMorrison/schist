@@ -68,7 +68,7 @@ func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		secrets, err := services.SecretManager.ListSecrets()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -95,7 +95,7 @@ func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 		err := services.SecretManager.SetSecret(req.Key, req.Value)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -119,7 +119,7 @@ func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 		err := services.SecretManager.SetSecret(key, req.Value)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -137,7 +137,7 @@ func DeleteSecretHandler(services *services.Services) gin.HandlerFunc {
 
 		err := services.SecretManager.DeleteSecret(key)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -162,7 +162,7 @@ func GetSecretHandler(services *services.Services) gin.HandlerFunc {
 
 		value, err := services.SecretManager.GetSecret(key)
 		if err != nil {
-			HandleError(c, errors.NewNotFoundError("secret", key).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 

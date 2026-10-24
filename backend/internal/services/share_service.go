@@ -13,6 +13,7 @@ import (
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 type ShareToken struct {
@@ -263,30 +264,9 @@ func (s *ShareService) saveShares(shares []ShareToken) error {
 		return fmt.Errorf("failed to marshal shares: %w", err)
 	}
 
-	// Write to a temp file in the same directory, then rename over the target.
-	// Rename is atomic on the same filesystem, so a crash mid-write can never
-	// leave a partially-written shares file behind.
-	dir := filepath.Dir(s.shareFilePath)
-	tmp, err := os.CreateTemp(dir, ".shares-*.json.tmp")
-	if err != nil {
-		return fmt.Errorf("failed to create temp shares file: %w", err)
-	}
-	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // no-op if the rename succeeded
-
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return fmt.Errorf("failed to write shares file: %w", err)
-	}
-	if err := tmp.Chmod(0644); err != nil {
-		tmp.Close()
-		return fmt.Errorf("failed to set shares file permissions: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("failed to close temp shares file: %w", err)
-	}
-
-	if err := os.Rename(tmpName, s.shareFilePath); err != nil {
+	// Atomic temp-file + rename, so a crash mid-write can never leave a
+	// partially-written shares file behind.
+	if err := utils.WriteFileAtomic(s.shareFilePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write shares file: %w", err)
 	}
 

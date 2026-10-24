@@ -3,14 +3,18 @@ package services
 import (
 	"archive/zip"
 	"bytes"
+	stderrors "errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
+	"net/http"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
@@ -38,7 +42,7 @@ func (d *DocumentService) ImportDocuments(
 		if err != nil {
 			result.Failed = append(result.Failed, models.ImportError{
 				OriginalName: fileHeader.Filename,
-				Error:        err.Error(),
+				Error:        importErrorMessage(fileHeader.Filename, err),
 			})
 			result.FailedCount++
 		}
@@ -50,13 +54,28 @@ func (d *DocumentService) ImportDocuments(
 	return result, nil
 }
 
+// errUnsupportedImportType is a client-facing import failure reason.
+var errUnsupportedImportType = errors.NewValidationError("only markdown files (.md) are supported")
+
+// importErrorMessage returns the per-file failure reason sent to the client.
+// Typed API errors carry a client-safe message; anything else is an internal
+// failure whose detail (file system paths etc.) is logged, never returned.
+func importErrorMessage(filename string, err error) string {
+	var apiErr *errors.APIError
+	if stderrors.As(err, &apiErr) && apiErr.HTTPStatus < http.StatusInternalServerError {
+		return apiErr.Message
+	}
+	log.Printf("ERROR: import of %q failed: %v", filename, err)
+	return "failed to import file"
+}
+
 func (d *DocumentService) importSingleFile(
 	fileHeader *multipart.FileHeader,
 	options *models.ImportOptions,
 	result *models.ImportResult,
 ) error {
 	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".md") {
-		return fmt.Errorf("only markdown files (.md) are supported")
+		return errUnsupportedImportType
 	}
 
 	file, err := fileHeader.Open()
@@ -75,7 +94,10 @@ func (d *DocumentService) importSingleFile(
 	title := d.extractTitleFromContent(processedContent, fileHeader.Filename)
 	slug := utils.GenerateSlug(title)
 
-	pathResult := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
+	pathResult, err := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
+	if err != nil {
+		return err
+	}
 
 	// Check if file should be skipped
 	if pathResult.shouldSkip {
@@ -101,9 +123,8 @@ func (d *DocumentService) importSingleFile(
 		MetaData: metadata,
 		Content:  processedContent,
 	}
-	err = d.CreateDocument(document)
-	if err != nil {
-		return fmt.Errorf("failed to create document: %w", err)
+	if err := d.createDocument(document, pathResult.overwrite); err != nil {
+		return err
 	}
 
 	result.Success = append(result.Success, models.ImportedDocument{
@@ -139,50 +160,37 @@ func (d *DocumentService) extractTitleFromContent(content, filename string) stri
 	return strings.TrimSuffix(filename, filepath.Ext(filename))
 }
 
-func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) pathResult {
-	if targetPath == "" || targetPath == "/" {
-		targetPath = ""
-	} else {
-		targetPath = strings.Trim(targetPath, "/")
-		if targetPath != "" {
-			targetPath = "/" + targetPath
-		}
+func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) (pathResult, error) {
+	targetPath = strings.Trim(targetPath, "/")
+	if targetPath != "" {
+		targetPath = "/" + targetPath
 	}
 
 	basePath := targetPath + "/" + slug
-	finalPath := basePath
-
-	counter := 1
-	for {
-		_, err := d.GetDocumentByPath(finalPath)
-		if err != nil {
-			// Document doesn't exist, we can use this path
-			break
-		}
-
-		// Document exists at this path
-		switch overwriteMode {
-		case "overwrite":
-			// Use the path as-is, will overwrite existing document
-			break
-		case "skip":
-			// Document exists and should be skipped
-			return pathResult{
-				finalPath:  finalPath,
-				shouldSkip: true,
-			}
-		default: // "rename" or empty
-			// Generate new path with counter
-			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
-			counter++
-			continue
-		}
-		break
+	if err := utils.ValidatePath(basePath); err != nil {
+		return pathResult{}, errors.NewInvalidPathError(basePath).WithCause(err)
 	}
 
-	return pathResult{
-		finalPath:  finalPath,
-		shouldSkip: false,
+	finalPath := basePath
+	for counter := 1; ; counter++ {
+		// Check the file itself rather than whether it parses: an existing note
+		// with broken front matter must never be treated as a free slot.
+		exists, err := d.documentFileExists(finalPath)
+		if err != nil {
+			return pathResult{}, err
+		}
+		if !exists {
+			return pathResult{finalPath: finalPath}, nil
+		}
+
+		switch overwriteMode {
+		case "overwrite":
+			return pathResult{finalPath: finalPath, overwrite: true}, nil
+		case "skip":
+			return pathResult{finalPath: finalPath, shouldSkip: true}, nil
+		default: // "rename" or empty
+			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
+		}
 	}
 }
 

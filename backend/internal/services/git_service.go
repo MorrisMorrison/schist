@@ -318,8 +318,19 @@ func (gs *GitService) RepairRepository() error {
 }
 
 func (gs *GitService) CommitDocument(documentPath string, message string) error {
+	return gs.CommitDocuments(message, documentPath)
+}
+
+// CommitDocuments stages the given documents (including their removal, if the
+// file no longer exists on disk) and records them in a single commit. A move
+// passes both the old and the new path so the old file's deletion is not left
+// unstaged.
+func (gs *GitService) CommitDocuments(message string, documentPaths ...string) error {
 	if gs.repository == nil {
 		return fmt.Errorf("git repository not initialized")
+	}
+	if len(documentPaths) == 0 {
+		return fmt.Errorf("no documents to commit")
 	}
 
 	worktree, err := gs.repository.Worktree()
@@ -327,10 +338,11 @@ func (gs *GitService) CommitDocument(documentPath string, message string) error 
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	filePath := gs.getRelativeFilePath(documentPath)
-
-	if _, err := worktree.Add(filePath); err != nil {
-		return fmt.Errorf("failed to add file to staging: %w", err)
+	for _, documentPath := range documentPaths {
+		filePath := gs.getRelativeFilePath(documentPath)
+		if _, err := worktree.Add(filePath); err != nil {
+			return fmt.Errorf("failed to add file to staging (%s): %w", filePath, err)
+		}
 	}
 
 	signature := &object.Signature{
@@ -340,7 +352,7 @@ func (gs *GitService) CommitDocument(documentPath string, message string) error 
 	}
 
 	if message == "" {
-		message = fmt.Sprintf("Update document: %s", documentPath)
+		message = fmt.Sprintf("Update document: %s", documentPaths[0])
 	}
 
 	_, err = worktree.Commit(message, &git.CommitOptions{

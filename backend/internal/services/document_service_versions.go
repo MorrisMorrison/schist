@@ -123,14 +123,14 @@ var ErrCommitFailed = stderrors.New("document saved but version commit failed")
 // can distinguish a successful disk write with lost history from a clean
 // success. When no git service is configured, versioning is disabled and nil is
 // returned.
-func (d *DocumentService) commitDocumentChange(documentPath string, message string) error {
+func (d *DocumentService) commitDocumentChange(message string, documentPaths ...string) error {
 	if d.gitService == nil {
 		return nil
 	}
 
-	if err := d.gitService.CommitDocument(documentPath, message); err != nil {
-		log.Printf("Warning: Failed to commit document change for %s: %v", documentPath, err)
-		return fmt.Errorf("%w for %s: %v", ErrCommitFailed, documentPath, err)
+	if err := d.gitService.CommitDocuments(message, documentPaths...); err != nil {
+		log.Printf("Warning: Failed to commit document change for %v: %v", documentPaths, err)
+		return fmt.Errorf("%w for %v: %v", ErrCommitFailed, documentPaths, err)
 	}
 
 	return nil

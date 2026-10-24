@@ -97,6 +97,7 @@ func TestDocumentService_CreateDocument(t *testing.T) {
 	t.Run("sets timestamps", func(t *testing.T) {
 		before := time.Now()
 		page := createTestPage()
+		page.MetaData.Title = "Timestamp Page" // "Test Page" already exists; create refuses to overwrite
 
 		err := documentService.CreateDocument(page)
 		after := time.Now()
@@ -261,7 +262,9 @@ func TestDocumentService_ListDocuments(t *testing.T) {
 		err := os.MkdirAll(subDir, 0755)
 		require.NoError(t, err)
 
-		// Create a page
+		// Create a page (replacing the one left by the previous subtest, since
+		// CreateDocument refuses to overwrite)
+		_ = os.Remove(filepath.Join(testDir, "test-page.md"))
 		page := createTestPage()
 		err = documentService.CreateDocument(page)
 		require.NoError(t, err)

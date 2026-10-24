@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { MarkdownBlock } from '$lib/utils/markdown-blocks';
 	import { parseMarkdownToBlocks } from '$lib/utils/markdown-blocks';
+	import { goto } from '$app/navigation';
 
 	import HeadingBlock from './HeadingBlock.svelte';
 	import ParagraphBlock from './ParagraphBlock.svelte';
@@ -41,6 +42,23 @@
 				loading = false;
 			});
 	});
+
+	// Wiki links can appear in any block (tables, headings, lists, ...), but
+	// only ParagraphBlock wires up its own click handler. Handle the rest by
+	// delegation; a handler closer to the link that already acted calls
+	// preventDefault, so skip those to avoid navigating twice. Broken links are
+	// a no-op, matching ParagraphBlock.
+	function handleWikiLinkClick(event: MouseEvent) {
+		if (event.defaultPrevented) return;
+		const link = (event.target as HTMLElement | null)?.closest<HTMLElement>('.wiki-link');
+		if (!link) return;
+
+		event.preventDefault();
+		const target = link.getAttribute('data-wiki-target');
+		if (target && !link.classList.contains('broken-link')) {
+			goto(`/documents${target}`);
+		}
+	}
 </script>
 
 {#if loading}
@@ -54,7 +72,8 @@
 {:else if blocks.length === 0}
 	<div class="text-muted-foreground p-4">No content to display</div>
 {:else}
-	<div class="max-w-none">
+	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (delegated handler for wiki links rendered inside the blocks) -->
+	<div class="max-w-none" onclick={handleWikiLinkClick}>
 		{#each blocks as block (block.id)}
 			{#if block.type === 'heading'}
 				<HeadingBlock {block} />

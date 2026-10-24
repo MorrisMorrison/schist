@@ -5,76 +5,80 @@
 [![Frontend Tests](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml)
 [![E2E Tests](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml)
 [![Docker](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Schist is a lightweight, self-hosted markdown wiki that brings Obsidian-like functionality to the web browser. Schist focuses on simplicity, speed, and ease of use while maintaining the power of interconnected knowledge management.
+A lightweight, self-hosted markdown wiki with Obsidian-style features in the browser. Your notes stay plain markdown files on disk, versioned with git. There's no database.
 
-<img width="1916" height="909" alt="image" src="https://github.com/user-attachments/assets/0685e9df-483f-4c98-928a-e8d8c5f441d0" />
+<!-- Screenshots are generated from a demo wiki by the "README Screenshots" workflow
+     (e2e/readme-screenshots/) on every frontend change to main and published to the
+     `screenshots` branch. Regenerate them locally with `make screenshots`. -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/document-dark.png">
+    <img width="900" alt="A wiki page with the folder tree on the left and rendered markdown: headings, a table, wiki links and code" src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/document-light.png">
+  </picture>
+</p>
 
-<img width="1913" height="908" alt="image" src="https://github.com/user-attachments/assets/d106f5ed-eb23-4f4e-bc5c-126faba8a074" />
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/editor-dark.png">
+        <img alt="Markdown editor with live preview" src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/editor-light.png">
+      </picture>
+      <br /><sub>Editor with live preview</sub>
+    </td>
+    <td align="center" width="33%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/quick-switcher-dark.png">
+        <img alt="Quick switcher searching pages by title" src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/quick-switcher-light.png">
+      </picture>
+      <br /><sub>Quick switcher (<kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd>)</sub>
+    </td>
+    <td align="center" width="33%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/version-history-dark.png">
+        <img alt="Version history of a page with restore buttons" src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/version-history-light.png">
+      </picture>
+      <br /><sub>Version history and restore</sub>
+    </td>
+  </tr>
+</table>
 
 ## Features
 
-### **Core Wiki Experience**
-- **Markdown-first** - Write in plain markdown with live preview
-- **Wiki linking** - Connect documents with `[[Document Name]]` syntax  
-- **Full-text search** - Find content across all your documents
-- **File-based storage** - No database required, just markdown files
+- **Plain markdown on disk:** one `.md` file per page with YAML front matter, organised in folders. No database: easy to back up, easy to leave.
+- **Linked notes:** `[[wiki links]]` with backlinks, tags, full-text search and a quick switcher.
+- **Editor:** CodeMirror with live preview, a formatting toolbar, image uploads and page templates.
+- **History:** every save is a git commit. Browse a page's versions and restore any of them, with optional backup to a GitHub repository.
+- **Sharing:** public read-only links that expire.
+- **Accounts:** passwordless login with passkeys (WebAuthn), invite links for new users, and an admin role for user management.
+- **Secrets:** reference values like API keys from your pages. They show as locked placeholders until you unlock them with your passkey.
+- **Import and export** of markdown files.
+- **Dark and light themes**, keyboard shortcuts and a mobile layout.
+- **Secure defaults:** authentication, rate limiting and security headers (CSP, HSTS, …) are on unless you turn them off.
 
-### **Authentication & Security**
-- **Passkey authentication** - Modern passwordless login using WebAuthn
-- **JWT-based security** - Secure token-based authentication
-- **Secret storage** - Optional encrypted personal secrets protected by passkeys
-
-### **Simple User Management**
-- **Shared workspace** - All authenticated users have admin access
-- **Invite system** - Generate invitation links to onboard new users
-- **No complex permissions** - Simplified collaboration model
-
-### **Public Sharing**
-- **Share documents publicly** - Create public read-only links
-- **Configurable expiry** - Set custom expiration times for shared links
-
-### **Version Control & Backup**
-- **Git integration** - Automatic versioning with Git backend
-- **GitHub backup** - Optional backup to GitHub repositories
-- **Version history** - Track changes over time
-- **Restore capabilities** - Recover previous versions of documents
-
-### **User Experience**
-- **Web-based** - Access your wiki from any browser
-- **Responsive design** - Works on desktop, tablet, and mobile
-- **Dark/light themes** - Automatic or manual theme switching
-- **Keyboard shortcuts** - Navigate efficiently with global hotkeys
-- **Quick switcher** - Instant document search and navigation
-
-### **Deployment & Operations**
-- **Docker ready** - Easy deployment with Docker containers
-- **Self-hosted** - Complete control over your data
-- **Minimal configuration** - Works out of the box
-
-## Installation
-
-### Docker (Recommended)
-
-The easiest way to run Schist is using Docker:
+## Quick start (Docker)
 
 ```bash
-docker pull ghcr.io/morrismorrison/schist:latest
-docker run -d \
-  --name schist \
+docker run -d --name schist \
   -p 8080:8080 \
-  -v $(pwd)/data:/app/data \
+  -v "$(pwd)/data:/app/data" \
   -e ENV=production \
+  -e SCHIST_JWT_SECRET="$(openssl rand -base64 48)" \
+  -e SCHIST_FRONTEND_URL=http://localhost:8080 \
   ghcr.io/morrismorrison/schist:latest
 ```
 
+Open http://localhost:8080. On first start, Schist walks you through creating the admin account and registering a passkey (Face ID, Touch ID, Windows Hello, a security key, …).
+
+> [!IMPORTANT]
+> - **`SCHIST_JWT_SECRET`** is required in production: at least 32 random characters. Keep it stable, or everyone is logged out on every restart.
+> - **`SCHIST_FRONTEND_URL`** must be the exact URL you open Schist at, with scheme, host and port (e.g. `https://wiki.example.com`). Passkeys, share links and invite links are built from it. Passkeys only work on `localhost` or over HTTPS.
+
 ### Docker Compose
 
-For a more permanent setup, create a `docker-compose.yml`:
-
 ```yaml
-version: '3.8'
-
 services:
   schist:
     image: ghcr.io/morrismorrison/schist:latest
@@ -86,98 +90,70 @@ services:
       - ./data:/app/data
     environment:
       - ENV=production
-      - SCHIST_PORT=8080
-      - SCHIST_DATA_DIR=/app/data
-      # Optional: Enable passkey authentication
-      # - SCHIST_AUTH_ENABLED=true
-      # - SCHIST_JWT_SECRET=your-secret-key-minimum-32-characters
-      # - SCHIST_JWT_EXPIRY_HOURS=24
-      # Optional: Enable rate limiting
-      # - SCHIST_RATE_LIMIT_ENABLED=true
-      # - SCHIST_RATE_LIMIT_RPM=100
+      - SCHIST_JWT_SECRET=${SCHIST_JWT_SECRET:?set a random secret of at least 32 characters}
+      - SCHIST_FRONTEND_URL=https://wiki.example.com
 ```
 
-Then run:
+Put the secret in a `.env` file next to `docker-compose.yml` (`SCHIST_JWT_SECRET=...`, generated once with `openssl rand -base64 48`), then:
+
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-Your wiki will be available at http://localhost:8080 (or your server's address)
+If Schist is reachable from outside your machine, put a reverse proxy with TLS (Caddy, Traefik, nginx, …) in front of it.
 
-### Configuration
+## Configuration
 
-Schist works out of the box with minimal configuration. For advanced setup including authentication, rate limiting, and security options, see the [Configuration Guide](docs/CONFIGURATION.md).
+Everything is configured with environment variables. The common ones:
 
-#### Quick Authentication Setup
+| Variable | Default | What it does |
+|---|---|---|
+| `ENV` | `development` | Set it to `production` to serve the web app from the binary and require a real JWT secret |
+| `SCHIST_JWT_SECRET` | – | Token signing secret (required in production, ≥ 32 characters) |
+| `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Public URL of the app (passkeys, share and invite links) |
+| `SCHIST_DATA_DIR` | `data` | Where pages, assets and the git history live (`/app/data` in the image) |
+| `SCHIST_PORT` | `8080` | HTTP port |
+| `SCHIST_AUTH_ENABLED` | `true` | Passkey login. Turn it off only for a single-user wiki that sits behind other authentication |
+| `SCHIST_RATE_LIMIT_ENABLED` / `SCHIST_RATE_LIMIT_RPM` | `true` / `100` | Per-IP rate limit |
+| `SCHIST_SHARING_ENABLED` | `true` | Public share links (`SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` 7, `SCHIST_SHARE_MAX_EXPIRY_DAYS` 90) |
 
-Schist uses modern **passkey authentication** (WebAuthn) for secure, passwordless login:
+GitHub backup is set up in the app under **Settings → GitHub**. [docs/CONFIGURATION.md](docs/CONFIGURATION.md) has the full list, including the security headers and CSP.
 
-1. **Enable authentication:**
-   ```bash
-   export SCHIST_AUTH_ENABLED=true
-   export SCHIST_JWT_SECRET="your-secret-key-minimum-32-characters"
-   ```
+## Your data
 
-2. **Start Schist:**
-   ```bash
-   docker-compose up -d
-   # or
-   make run
-   ```
+`SCHIST_DATA_DIR` is an ordinary folder of markdown files plus a git repository. Back it up like any other folder, open it in another editor, or read its history with `git log`. Deleted pages go to a `trash` folder first.
 
-3. **First-time setup:** 
-   - Navigate to your wiki URL
-   - You'll be guided through creating the first admin user with a passkey
-   - Set up your passkey using your device's built-in authentication (Face ID, Touch ID, Windows Hello, etc.)
+## Keyboard shortcuts
 
+| Shortcut | Action |
+|---|---|
+| <kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd> | Quick switcher |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>H</kbd> | Home |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>,</kbd> | Settings |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>N</kbd> | New page |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd> | New folder |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd> | Edit the current page |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd> | Save (in the editor) |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd> | Delete the current page |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>J</kbd> | Download the current page |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> | Toggle dark/light theme |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>B</kbd> | Toggle the sidebar |
+| <kbd>Esc</kbd> | Close the quick switcher or a dialog |
 
-**Default behavior:** Authentication is **disabled** by default. All users can access the wiki without any login.
+## Development
 
-## Keyboard Shortcuts
+The Go (Gin) backend is in `backend/`, the SvelteKit + Svelte 5 single-page app in `frontend/`, and the Playwright end-to-end tests in `e2e/`.
 
-Schist provides powerful keyboard shortcuts for efficient navigation and document management:
+```bash
+make install                         # frontend deps + Go modules
+ENV=development make run-backend     # API on :8080
+make run-frontend                    # app on :5173
+make test                            # backend + frontend tests
+make screenshots                     # regenerate the README screenshots into docs/screenshots/
+```
 
-### Navigation
-- `Cmd/Ctrl + K` - Open Quick Switcher (search and navigate to documents)
-- `Cmd/Ctrl + H` - Go to Home
-- `Cmd/Ctrl + ,` - Go to Settings
-
-### Document Actions
-- `Cmd/Ctrl + Alt + N` - Create new document
-- `Cmd/Ctrl + Alt + F` - Create new folder
-- `Cmd/Ctrl + E` - Edit current document *(when viewing)*
-- `Cmd/Ctrl + Alt + D` - Delete current document *(when viewing)*
-- `Cmd/Ctrl + J` - Download current document *(when viewing)*
-
-### UI Controls
-- `Cmd/Ctrl + Alt + T` - Toggle dark/light theme
-- `Cmd/Ctrl + B` - Toggle sidebar
-- `Escape` - Close Quick Switcher or modals
-
-**💡 Tip:** Press `Cmd/Ctrl + K` to open the Quick Switcher, then start typing to instantly search and navigate to any document!
-
-## Documentation
-
-- [Quick Start Guide](docs/QUICK_START.md) - Get up and running
-- [API Documentation](docs/API.md) - Complete API reference
-- [Configuration](docs/CONFIGURATION.md) - Environment setup
-- [Development Guide](docs/DEVELOPMENT.md) - Contributing guide
-- [Design Document](docs/DESIGN_DOC.md) - Architecture overview
-
-## Contributing
-
-Contributions are welcome! Please see the [Development Guide](docs/DEVELOPMENT.md) for details on setting up your development environment and contributing guidelines.
+See the [development guide](docs/DEVELOPMENT.md) and [CONTRIBUTING.md](CONTRIBUTING.md). More docs: [quick start](docs/QUICK_START.md) · [API](docs/API.md) · [configuration](docs/CONFIGURATION.md) · [design](docs/DESIGN_DOC.md) · [CI](docs/CI.md). Every API area also has a ready-to-run request file in [`http/`](http/).
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Support
-
-- [Documentation](docs/)
-- [Issues](https://github.com/MorrisMorrison/schist/issues)
-- [Discussions](https://github.com/MorrisMorrison/schist/discussions)
-
----
-
-Built with ❤️ using Go and Svelte
+[MIT](LICENSE)

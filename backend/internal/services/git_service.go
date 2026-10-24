@@ -114,6 +114,9 @@ func (gs *GitService) initializeRepository() error {
 		}
 		gs.repository = repo
 		log.Printf("[GitService] Successfully opened existing repository")
+		if err := gs.untrackAppState(); err != nil {
+			return fmt.Errorf("failed to untrack %s: %w", appStateDir, err)
+		}
 		return nil
 	}
 
@@ -146,6 +149,7 @@ func (gs *GitService) createInitialCommit() error {
 	gitignorePath := filepath.Join(gs.dataDir, ".gitignore")
 	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
 		gitignoreContent := `# Schist auto-generated files
+` + appStateIgnoreRule + `
 *.tmp
 *.bak
 .DS_Store
@@ -174,6 +178,161 @@ Thumbs.db
 	}
 
 	return nil
+}
+
+// appStateDir holds Schist's own state (users, passkeys and their key seeds,
+// share tokens, settings incl. the GitHub token). It lives in the data dir but
+// must never be committed: the repository is pushed to GitHub on sync.
+const appStateDir = ".schist"
+
+const appStateIgnoreRule = appStateDir + "/"
+
+func isAppStatePath(p string) bool {
+	return p == appStateDir || strings.HasPrefix(p, appStateIgnoreRule)
+}
+
+// untrackAppState makes sure an existing repository ignores and no longer
+// tracks the app state directory. Data dirs created before this rule existed
+// may have committed it via GitHub sync. The files stay on disk; only the git
+// index and .gitignore change, in a single commit. A no-op when already clean.
+func (gs *GitService) untrackAppState() error {
+	gitignoreChanged, err := gs.ensureAppStateIgnored()
+	if err != nil {
+		return err
+	}
+	removed, err := gs.removeAppStateFromIndex()
+	if err != nil {
+		return err
+	}
+	if !gitignoreChanged && removed == 0 {
+		return nil
+	}
+
+	worktree, err := gs.repository.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+	if _, err := worktree.Add(".gitignore"); err != nil {
+		return fmt.Errorf("failed to add .gitignore: %w", err)
+	}
+	_, err = worktree.Commit("Stop tracking .schist/ app state", &git.CommitOptions{
+		Author: &object.Signature{Name: "Schist System", Email: "system@schist.local", When: time.Now()},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+	log.Printf("[GitService] Untracked %d %s file(s) and added %s to .gitignore", removed, appStateDir, appStateIgnoreRule)
+	return nil
+}
+
+// ensureAppStateIgnored appends the app state rule to .gitignore (creating
+// the file if needed) and reports whether it changed anything.
+func (gs *GitService) ensureAppStateIgnored() (bool, error) {
+	path := filepath.Join(gs.dataDir, ".gitignore")
+	content, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return false, fmt.Errorf("failed to read .gitignore: %w", err)
+	}
+	for _, line := range strings.Split(string(content), "\n") {
+		switch strings.TrimSpace(line) {
+		case appStateDir, appStateIgnoreRule, "/" + appStateDir, "/" + appStateIgnoreRule:
+			return false, nil
+		}
+	}
+	if len(content) > 0 && !strings.HasSuffix(string(content), "\n") {
+		content = append(content, '\n')
+	}
+	content = append(content, []byte(appStateIgnoreRule+"\n")...)
+	if err := os.WriteFile(path, content, 0644); err != nil {
+		return false, fmt.Errorf("failed to write .gitignore: %w", err)
+	}
+	return true, nil
+}
+
+// removeAppStateFromIndex drops app state entries from the git index only,
+// leaving the files on disk, and returns how many it removed.
+func (gs *GitService) removeAppStateFromIndex() (int, error) {
+	idx, err := gs.repository.Storer.Index()
+	if err != nil {
+		return 0, fmt.Errorf("failed to read git index: %w", err)
+	}
+	kept := idx.Entries[:0]
+	removed := 0
+	for _, e := range idx.Entries {
+		if isAppStatePath(e.Name) {
+			removed++
+			continue
+		}
+		kept = append(kept, e)
+	}
+	if removed == 0 {
+		return 0, nil
+	}
+	idx.Entries = kept
+	if err := gs.repository.Storer.SetIndex(idx); err != nil {
+		return 0, fmt.Errorf("failed to write git index: %w", err)
+	}
+	return removed, nil
+}
+
+// CommitPendingChanges stages every changed, added or deleted file except the
+// app state directory and commits them. Files are staged one by one rather
+// than with AddGlob(".") so app state stays out even if the user's .gitignore
+// loses the rule. It reports whether a commit was made.
+func (gs *GitService) CommitPendingChanges(message string) (bool, error) {
+	if gs.repository == nil {
+		return false, fmt.Errorf("git repository not initialized")
+	}
+	worktree, err := gs.repository.Worktree()
+	if err != nil {
+		return false, fmt.Errorf("failed to get worktree: %w", err)
+	}
+	status, err := worktree.Status()
+	if err != nil {
+		return false, fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	for path, fs := range status {
+		if isAppStatePath(path) || fs.Worktree == git.Unmodified {
+			continue
+		}
+		if fs.Worktree == git.Deleted {
+			if _, err := worktree.Remove(path); err != nil {
+				return false, fmt.Errorf("failed to stage deletion of %s: %w", path, err)
+			}
+			continue
+		}
+		if _, err := worktree.Add(path); err != nil {
+			return false, fmt.Errorf("failed to stage %s: %w", path, err)
+		}
+	}
+	// Belt and braces: never let app state into a commit, whatever was staged.
+	if _, err := gs.removeAppStateFromIndex(); err != nil {
+		return false, err
+	}
+
+	status, err = worktree.Status()
+	if err != nil {
+		return false, fmt.Errorf("failed to get worktree status: %w", err)
+	}
+	staged := false
+	for path, fs := range status {
+		if !isAppStatePath(path) && fs.Staging != git.Unmodified && fs.Staging != git.Untracked {
+			staged = true
+			break
+		}
+	}
+	if !staged {
+		return false, nil
+	}
+
+	_, err = worktree.Commit(message, &git.CommitOptions{
+		Author: &object.Signature{Name: "Schist Sync", Email: "sync@schist.local", When: time.Now()},
+	})
+	if err != nil {
+		return false, fmt.Errorf("failed to commit changes: %w", err)
+	}
+	return true, nil
 }
 
 func (gs *GitService) HealthCheck() error {

@@ -546,39 +546,10 @@ func (gs *GitHubService) commitUncommittedChanges() error {
 		return fmt.Errorf("git service or repository not available")
 	}
 
-	worktree, err := gs.gitService.repository.Worktree()
-	if err != nil {
-		return fmt.Errorf("failed to get worktree: %w", err)
-	}
-
-	status, err := worktree.Status()
-	if err != nil {
-		return fmt.Errorf("failed to get worktree status: %w", err)
-	}
-
-	if status.IsClean() {
-		return nil
-	}
-
-	err = worktree.AddGlob(".")
-	if err != nil {
-		return fmt.Errorf("failed to add files to staging: %w", err)
-	}
-
-	signature := &object.Signature{
-		Name:  "Schist Sync",
-		Email: "sync@schist.local",
-		When:  time.Now(),
-	}
-
-	_, err = worktree.Commit("Sync: commit changes before GitHub sync", &git.CommitOptions{
-		Author: signature,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to commit changes: %w", err)
-	}
-
-	return nil
+	// CommitPendingChanges never stages the .schist/ app state, which holds
+	// users, passkey key seeds, share tokens and the GitHub token itself.
+	_, err := gs.gitService.CommitPendingChanges("Sync: commit changes before GitHub sync")
+	return err
 }
 
 func (gs *GitHubService) countLocalCommits() (int, error) {

@@ -38,6 +38,7 @@ backend/data
 data/
 backend/schist
 .claude/settings.local.json
+.claude/worktrees/
 wiki-data/
 # E2E test artifacts  
 e2e/playwright-report

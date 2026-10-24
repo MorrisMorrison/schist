@@ -61,7 +61,9 @@ type FinishAuthenticationResponse struct {
 
 // Types for remaining passkey handlers
 type UnlockWithPasskeyRequest struct {
-	CredentialID string `json:"credentialId" binding:"required"`
+	// AuthTicket comes from POST /api/passkeys/authenticate/finish, i.e. a
+	// verified WebAuthn assertion. A bare credential ID is not accepted.
+	AuthTicket string `json:"authTicket" binding:"required"`
 }
 
 type PasskeyInfo struct {
@@ -331,7 +333,14 @@ func UnlockWithPasskeyHandler(services *services.Services) gin.HandlerFunc {
 			return
 		}
 
-		err := services.SecretManager.UnlockWithPasskey(req.CredentialID)
+		username, _ := currentUser(c)
+		credentialID, err := services.AuthService.RedeemAuthTicket(req.AuthTicket, username)
+		if err != nil {
+			HandleError(c, err)
+			return
+		}
+
+		err = services.SecretManager.UnlockWithPasskey(credentialID)
 		if err != nil {
 			if errors.IsAPIError(err) {
 				HandleError(c, err)

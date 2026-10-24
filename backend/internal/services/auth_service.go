@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/config"
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -112,20 +113,47 @@ func (s *AuthService) pruneTicketsLocked() {
 	}
 }
 
+// takeTicket consumes a ticket (single-use, whatever the caller does next) and
+// reports whether it existed and had not expired.
+func (s *AuthService) takeTicket(ticket string) (authTicket, bool) {
+	s.ticketMu.Lock()
+	defer s.ticketMu.Unlock()
+	s.pruneTicketsLocked()
+	entry, ok := s.tickets[ticket]
+	if ok {
+		delete(s.tickets, ticket)
+	}
+	if !ok || time.Now().After(entry.expiresAt) {
+		return authTicket{}, false
+	}
+	return entry, true
+}
+
+// RedeemAuthTicket consumes a ticket from a verified WebAuthn assertion and
+// returns its credential ID, for actions that need a fresh passkey check
+// rather than just a session (unlocking the secret store). When username is
+// set (auth enabled), the passkey must belong to that user. A bare credential
+// ID is never accepted: it is not secret.
+func (s *AuthService) RedeemAuthTicket(ticket, username string) (string, error) {
+	entry, ok := s.takeTicket(ticket)
+	if !ok {
+		return "", apierrors.NewUnauthorizedError("Passkey verification failed or expired")
+	}
+	if username != "" {
+		user, err := s.userService.GetUserByCredentialID(entry.credentialID)
+		if err != nil || user.Username != username {
+			return "", apierrors.NewForbiddenError("This passkey belongs to another user")
+		}
+	}
+	return entry.credentialID, nil
+}
+
 // LoginWithPasskeyTicket exchanges a single-use auth ticket (produced by
 // IssueAuthTicket after a verified assertion) for a JWT. A bare credential ID
 // is never accepted as proof of authentication.
 func (s *AuthService) LoginWithPasskeyTicket(ticket string) (*LoginResponse, error) {
-	s.ticketMu.Lock()
-	s.pruneTicketsLocked()
-	entry, ok := s.tickets[ticket]
-	if ok {
-		// Single-use: consume immediately regardless of outcome.
-		delete(s.tickets, ticket)
-	}
-	s.ticketMu.Unlock()
-
-	if !ok || time.Now().After(entry.expiresAt) {
+	entry, ok := s.takeTicket(ticket)
+	if !ok {
 		return nil, ErrInvalidCredentials
 	}
 

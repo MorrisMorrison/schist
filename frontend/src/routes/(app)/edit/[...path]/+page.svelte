@@ -33,7 +33,9 @@
 
 	const documentExistence = useDocumentExistence();
 
-	let originalContent = document.content;
+	// $state so isDirty recomputes when a save marks the content as clean;
+	// otherwise the guard still sees a dirty editor right after saving.
+	let originalContent = $state(document.content);
 
 	const titleFromContent = $derived(extractTitleFromContent(content));
 	const isDirty = $derived(content !== originalContent);
@@ -75,6 +77,11 @@
 		if (!content.trim()) {
 			saveError = 'Content is required';
 			return;
+		}
+
+		if (autoSaveTimer) {
+			clearTimeout(autoSaveTimer);
+			autoSaveTimer = null;
 		}
 
 		isSaving = true;
@@ -227,6 +234,12 @@
 
 	onDestroy(() => {
 		navigationGuard.cleanupBrowserProtection();
+		// A pending auto-save must not fire after leaving the page (e.g. after the
+		// user chose to discard their changes).
+		if (autoSaveTimer) {
+			clearTimeout(autoSaveTimer);
+			autoSaveTimer = null;
+		}
 	});
 </script>
 

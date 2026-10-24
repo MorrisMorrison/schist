@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { Document } from '$lib/api/types';
 import { apiClient } from '$lib';
+import { isNotFoundError } from '$lib/utils/error';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params }) => {
@@ -18,6 +19,10 @@ export const load: PageLoad = async ({ params }) => {
 		// Re-throw SvelteKit errors as-is
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;
+		}
+
+		if (isNotFoundError(err)) {
+			throw error(404, 'Document not found');
 		}
 
 		// Convert other errors to SvelteKit errors

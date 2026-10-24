@@ -47,18 +47,6 @@ updates:
       # Lift once those icons are replaced.
       - dependency-name: "@lucide/svelte"
         update-types: ["version-update:semver-major"]
-      # Hold the frontend toolchain MAJORS: vite 8, @sveltejs/vite-plugin-svelte 7
-      # (needs vite 8) and vitest 4 (vitest, @vitest/browser and
-      # @vitest/coverage-v8 must move together) are one coupled migration that
-      # single-package bumps can't do. Lift once that upgrade has landed.
-      - dependency-name: "vite"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@sveltejs/vite-plugin-svelte"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "vitest"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@vitest/*"
-        update-types: ["version-update:semver-major"]
 
   # E2E (Playwright) npm dependencies
   - package-ecosystem: npm

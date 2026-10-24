@@ -26,6 +26,7 @@ export const test = base.extend<{
 	settingsPage: SettingsPage;
 	apiHelper: ApiHelper;
 	testId: string;
+	_autoCleanup: void;
 }>({
 	homePage: async ({ page }, use) => {
 		page.setDefaultNavigationTimeout(DEFAULT_NAVIGATION_TIMEOUT_MILLIS);
@@ -86,6 +87,21 @@ export const test = base.extend<{
 			console.warn(`[ApiHelper] Cleanup failed for project ${projectName}:`, error);
 		}
 	},
+
+	// Every test gets the backend wiped after it, whether or not it asked for
+	// `apiHelper`. Without this, tests that only drive the UI (e.g. creating a
+	// document through the editor) leaked their data into the shared backend for
+	// later tests -- and into their own retry, where a leftover title trips the
+	// duplicate-name guard. Cleanup deletes *everything*, which is only safe
+	// because the suite runs with workers: 1 (see playwright.config.ts).
+	_autoCleanup: [
+		async ({ apiHelper }, use) => {
+			// Depending on apiHelper is what schedules its cleanup teardown.
+			void apiHelper;
+			await use();
+		},
+		{ auto: true }
+	],
 
 	// eslint-disable-next-line no-empty-pattern
 	testId: async ({}, use) => {

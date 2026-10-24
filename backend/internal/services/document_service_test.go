@@ -134,7 +134,7 @@ func TestDocumentService_UpdateDocument(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "Updated Title", updatedPage.MetaData.Title)
-		assert.Equal(t, "\n# Updated Title\n\nUpdated content.", updatedPage.Content)
+		assert.Equal(t, "# Updated Title\n\nUpdated content.", updatedPage.Content)
 		assert.Equal(t, originalCreated.Unix(), updatedPage.MetaData.Created.Unix())
 		assert.True(t, updatedPage.MetaData.Updated.After(originalCreated) || updatedPage.MetaData.Updated.Equal(originalCreated))
 	})
@@ -370,7 +370,7 @@ func TestDocumentService_Integration(t *testing.T) {
 		updatedPage, err := documentService.GetDocumentByPath("/" + slug)
 		assert.NoError(t, err)
 		assert.Equal(t, "Updated Title", updatedPage.MetaData.Title)
-		assert.Equal(t, "\nUpdated content", updatedPage.Content)
+		assert.Equal(t, "Updated content", updatedPage.Content)
 
 		// Delete
 		err = documentService.DeleteDocument(slug)

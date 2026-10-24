@@ -33,10 +33,32 @@ export interface ParsedError {
 }
 
 /**
- * Returns the message of an Error, or the provided fallback for non-Error values.
+ * Returns a human-readable message for an error, or the fallback for non-Error
+ * values. API client errors carry the serialised `{error, code, details}`
+ * envelope as their message; for those the envelope's `error` text is returned
+ * instead of the raw JSON.
  */
 export function getErrorMessage(error: unknown, fallback: string): string {
-	return error instanceof Error ? error.message : fallback;
+	if (!(error instanceof Error)) return fallback;
+
+	const envelope = parseErrorEnvelope(error.message);
+	if (envelope) return envelope.error || fallback;
+
+	return error.message || fallback;
+}
+
+function parseErrorEnvelope(message: string): APIErrorResponse | null {
+	if (!message.startsWith('{')) return null;
+	try {
+		const parsed: unknown = JSON.parse(message);
+		if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+			const { error } = parsed as { error: unknown };
+			if (typeof error === 'string') return parsed as APIErrorResponse;
+		}
+	} catch {
+		// Not JSON: a plain error message.
+	}
+	return null;
 }
 
 export function parseError(error: unknown): ParsedError {

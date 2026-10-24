@@ -5,11 +5,9 @@
 import { test as base } from './test-setup';
 import {
 	createTestDocument,
-	createTestFolder,
 	createComplexTestDocument,
 	createSimpleTestDocument,
-	TestDocumentData,
-	TestFolderData
+	TestDocumentData
 } from '../utils/test-data';
 import { createTestDocuments } from '../utils/api-helpers';
 
@@ -17,19 +15,14 @@ import { createTestDocuments } from '../utils/api-helpers';
 export const test = base.extend<{
 	// Pre-created test data (not created in backend)
 	testDocument: TestDocumentData;
-	testFolder: TestFolderData;
 
 	// Setup fixtures that create data in the backend
 	withTestDocument: TestDocumentData;
 	withSimpleTestDocument: TestDocumentData;
 	withComplexTestDocument: TestDocumentData;
 	withMultipleDocuments: TestDocumentData[];
-	withSpecialContentTypes: {
-		unicodeDocument: TestDocumentData;
-		largeDocument: TestDocumentData;
-		formattedDocument: TestDocumentData;
-		mixedLineEndingDocument: TestDocumentData;
-	};
+	withUnicodeDocument: TestDocumentData;
+	withLargeDocument: TestDocumentData;
 }>({
 	// Basic test data (not created in backend)
 	testDocument: async ({ testId }, use) => {
@@ -38,14 +31,6 @@ export const test = base.extend<{
 			path: `/test-document-${testId}`
 		});
 		await use(document);
-	},
-
-	testFolder: async ({ testId }, use) => {
-		const folder = createTestFolder({
-			name: `test-folder-${testId}`,
-			path: `/test-folder-${testId}`
-		});
-		await use(folder);
 	},
 
 	// Data fixtures that actually create content in the backend
@@ -116,15 +101,20 @@ export const test = base.extend<{
 		// Cleanup is handled by apiHelper fixture
 	},
 
-	withSpecialContentTypes: async ({ apiHelper, testId }, use) => {
-		// Create documents with special content types for persistence testing
+	// One document per fixture: seeding unrelated documents alongside it (as a
+	// combined fixture used to) only adds backend writes before the test runs.
+	withUnicodeDocument: async ({ apiHelper, testId }, use) => {
 		const unicodeDocument = createTestDocument({
 			title: `Unicode Test ${testId}`,
 			content: `# Unicode Content Test\n\n## Emojis and Symbols\n🚀 🌟 ✅ ❌ 🔥 💡\n\n## Special Characters\nÄÖÜß çñ אב 中文 日本語 한국어\n\n## Math Symbols\n∑ ∂ ∆ π ∞ ≠ ≤ ≥\n\n## Currency\n$ € £ ¥ ₹ ₿`,
 			path: `/unicode-${testId}`,
 			tags: ['unicode', 'special-chars']
 		});
+		await createTestDocuments(apiHelper, [unicodeDocument]);
+		await use(unicodeDocument);
+	},
 
+	withLargeDocument: async ({ apiHelper, testId }, use) => {
 		const largeDocument = createTestDocument({
 			title: `Large Content ${testId}`,
 			content:
@@ -135,59 +125,8 @@ export const test = base.extend<{
 			path: `/large-content-${testId}`,
 			tags: ['large', 'performance']
 		});
-
-		const formattedDocument = createTestDocument({
-			title: `Formatted Content ${testId}`,
-			content: `# Formatted Document Test
-
-## Headers
-### Level 3
-#### Level 4
-
-## Lists
-1. Ordered list item 1
-2. Ordered list item 2
-   - Nested unordered
-   - Another nested item
-
-## Code Blocks
-\`\`\`javascript
-function test() {
-  return "formatted content";
-}
-\`\`\`
-
-## Tables
-| Column 1 | Column 2 | Column 3 |
-|----------|----------|----------|
-| Data 1   | Data 2   | Data 3   |
-
-## Links and Images
-[Link](https://example.com)
-![Alt text](image.png)
-
-**Bold** and *italic* text.`,
-			path: `/formatted-${testId}`,
-			tags: ['formatted', 'markdown']
-		});
-
-		const mixedLineEndingContent = `# Mixed Line Endings${testId}\r\n\r\nThis line uses CRLF\r\n\nThis line uses LF\n\rThis line uses CR\r\n\r\nMixed content should be preserved.`;
-		const mixedLineEndingDocument = createTestDocument({
-			title: `Line Endings ${testId}`,
-			content: mixedLineEndingContent,
-			path: `/line-endings-${testId}`,
-			tags: ['line-endings', 'encoding']
-		});
-
-		const documents = [unicodeDocument, largeDocument, formattedDocument, mixedLineEndingDocument];
-		await createTestDocuments(apiHelper, documents);
-
-		await use({
-			unicodeDocument,
-			largeDocument,
-			formattedDocument,
-			mixedLineEndingDocument
-		});
+		await createTestDocuments(apiHelper, [largeDocument]);
+		await use(largeDocument);
 	}
 });
 

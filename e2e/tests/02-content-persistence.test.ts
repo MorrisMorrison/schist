@@ -59,10 +59,8 @@ test.describe('Content Persistence and Data Integrity', () => {
 	test('should preserve special characters and unicode', async ({
 		editorPage,
 		documentViewPage,
-		withSpecialContentTypes
+		withUnicodeDocument: testDocument
 	}) => {
-		const { unicodeDocument: testDocument } = withSpecialContentTypes;
-
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 		await documentViewPage.verifyContentContains('🚀 🌟 ✅');
@@ -71,6 +69,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await documentViewPage.verifyContentContains('∑ ∂ ∆');
 
 		await documentViewPage.editDocument();
+		await editorPage.verifyLoaded();
 		await editorPage.verifyContent('🚀 🌟 ✅');
 		await editorPage.typeContent('\n\nAdditional unicode: 🔥 ⭐ 💡');
 		await editorPage.saveAndExpectNavigation();
@@ -82,10 +81,8 @@ test.describe('Content Persistence and Data Integrity', () => {
 	test('should handle large content volumes', async ({
 		editorPage,
 		documentViewPage,
-		withSpecialContentTypes
+		withLargeDocument: testDocument
 	}) => {
-		const { largeDocument: testDocument } = withSpecialContentTypes;
-
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
@@ -171,6 +168,7 @@ End of formatting test.`;
 
 		// Edit and verify formatting is preserved in editor
 		await documentViewPage.editDocument();
+		await editorPage.verifyLoaded();
 		await editorPage.verifyContent('**Bold text**');
 		await editorPage.verifyContent('```javascript');
 		await editorPage.verifyContent('1. First item');
@@ -222,6 +220,7 @@ End of formatting test.`;
 
 		// Edit and save to ensure line endings are preserved
 		await documentViewPage.editDocument();
+		await editorPage.verifyLoaded();
 		await editorPage.typeContent('\n\nAdded line with standard ending.');
 		await editorPage.saveAndExpectNavigation();
 
@@ -271,7 +270,9 @@ The links should remain functional after edits.`,
 
 		// Go back and edit the linking document
 		await documentViewPage.navigateToDocument(linkingDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(`Linking Document ${testId}`);
 		await documentViewPage.editDocument();
+		await editorPage.verifyLoaded();
 
 		// Add another internal link
 		await editorPage.typeContent(`\n\n[New link to target](/documents/target-${testId})`);
@@ -313,25 +314,21 @@ The links should remain functional after edits.`,
 		// Type the same title (this should trigger the warning)
 		await editorPage.fillTitle(testDocument.title);
 
-		// Wait for debounced validation and verify warning appears
-		await editorPage.page.waitForTimeout(600); // Wait for 500ms debounce + buffer
-
-		// Look for ErrorAlert with warning variant containing the expected text
+		// The duplicate check is debounced; the web-first assertion waits it out.
 		const warningAlert = editorPage.page
-			.locator('[class*="border-amber"]')
+			.getByRole('alert')
 			.filter({ hasText: 'A document already exists' });
 		await expect(warningAlert).toBeVisible();
 
 		// Verify save button is disabled when duplicate exists
-		const saveButton = editorPage.page.getByTestId('save-document-button');
+		const saveButton = editorPage.saveButton;
 		await expect(saveButton).toBeDisabled();
 
 		// Change title to something unique
 		const uniqueTitle = `${testDocument.title} Unique`;
 		await editorPage.fillTitle(uniqueTitle);
 
-		// Wait for debounced validation and verify warning disappears
-		await editorPage.page.waitForTimeout(600);
+		// Verify warning disappears once the debounced check re-runs
 		await expect(warningAlert).not.toBeVisible();
 
 		// Verify save button is enabled again

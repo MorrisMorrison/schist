@@ -3,38 +3,20 @@ export interface TestDocumentData {
 	content: string;
 	tags?: string[];
 	path?: string;
-	slug?: string;
-}
-
-export interface TestFolderData {
-	name: string;
-	path: string;
-	description?: string;
 }
 
 export function generateTestId(): string {
 	return `test-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
-function generateSlug(title: string): string {
-	return (
-		title
-			.trim()
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-|-$/g, '') || ''
-	);
-}
 export function createTestDocument(overrides: Partial<TestDocumentData> = {}): TestDocumentData {
 	const testId = generateTestId();
 	const title = overrides.title || `Test Document ${testId}`;
-	const slug = generateSlug(title);
 
 	return {
 		title: title,
 		content: `# ${title}\n\nThis is a test document created for e2e testing.\n\n## Features\n\n- **Bold text**\n- *Italic text*\n- \`Inline code\`\n\n### Code Block\n\n\`\`\`javascript\nfunction hello() {\n  console.log('Hello, World!');\n}\n\`\`\`\n\n### Links\n\n[Test Link](https://example.com)\n\n### Image\n\n![Test Image](https://via.placeholder.com/300x200?text=Test+Image)\n\n---\n\nCreated at: ${new Date().toISOString()}`,
 		tags: ['test', 'e2e'],
-		slug: slug,
 		...overrides
 	};
 }
@@ -141,16 +123,6 @@ if __name__ == "__main__":
 Created: ${new Date().toISOString()}
 Test ID: ${testId}`,
 		tags: ['complex', 'markdown', 'test', 'e2e', 'demo'],
-		...overrides
-	};
-}
-
-export function createTestFolder(overrides: Partial<TestFolderData> = {}): TestFolderData {
-	const testId = generateTestId();
-	return {
-		name: `test-folder-${testId}`,
-		path: `/test-folder-${testId}`,
-		description: `Test folder for e2e testing - ${testId}`,
 		...overrides
 	};
 }

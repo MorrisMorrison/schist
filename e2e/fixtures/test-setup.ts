@@ -13,10 +13,10 @@ import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { ApiHelper } from '../utils/api-helpers';
+import { BASE_URL } from '../utils/routes';
 import { generateTestId } from '../utils/test-data';
 
 const DEFAULT_NAVIGATION_TIMEOUT_MILLIS = 10000;
-const SERVICE_URL = process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 export const test = base.extend<{
 	homePage: HomePage;
@@ -29,31 +29,31 @@ export const test = base.extend<{
 }>({
 	homePage: async ({ page }, use) => {
 		page.setDefaultNavigationTimeout(DEFAULT_NAVIGATION_TIMEOUT_MILLIS);
-		await page.goto(SERVICE_URL);
+		await page.goto(BASE_URL);
 		const homePage = new HomePage(page);
 		await use(homePage);
 	},
 
 	editorPage: async ({ page }, use) => {
-		await page.goto(SERVICE_URL);
+		await page.goto(BASE_URL);
 		const editorPage = new EditorPage(page);
 		await use(editorPage);
 	},
 
 	documentViewPage: async ({ page }, use) => {
-		await page.goto(SERVICE_URL);
+		await page.goto(BASE_URL);
 		const documentViewPage = new DocumentViewPage(page);
 		await use(documentViewPage);
 	},
 
 	folderPage: async ({ page }, use) => {
-		await page.goto(SERVICE_URL);
+		await page.goto(BASE_URL);
 		const folderPage = new FolderPage(page);
 		await use(folderPage);
 	},
 
 	settingsPage: async ({ page }, use) => {
-		await page.goto(SERVICE_URL);
+		await page.goto(BASE_URL);
 		const settingsPage = new SettingsPage(page);
 		await use(settingsPage);
 	},
@@ -61,7 +61,7 @@ export const test = base.extend<{
 	apiHelper: async ({ request }, use, testInfo) => {
 		const projectName = testInfo.project.name;
 
-		const apiHelper = new ApiHelper(request, `${SERVICE_URL}/api`);
+		const apiHelper = new ApiHelper(request, `${BASE_URL}/api`);
 
 		// Load auth token for authenticated projects (not setup)
 		if (projectName === 'e2e') {

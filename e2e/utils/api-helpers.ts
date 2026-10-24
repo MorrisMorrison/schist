@@ -1,4 +1,5 @@
 import { APIRequestContext, expect } from '@playwright/test';
+import { BASE_URL } from './routes';
 import { TestDocumentData } from './test-data';
 
 export interface ApiResponse<T = unknown> {
@@ -23,7 +24,7 @@ interface FolderListData {
 	}>;
 }
 
-const DEFAULT_API_URL = `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
+const DEFAULT_API_URL = `${BASE_URL}/api`;
 
 export class ApiHelper {
 	private apiContext: APIRequestContext;

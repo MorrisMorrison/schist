@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	stderrors "errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -717,7 +718,9 @@ func TestGitService_CompareVersions(t *testing.T) {
 
 		_, err := gitService.CompareVersions(docPath, hash1, invalidHash)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "commit does not exist in repository")
+		var notFound *services.VersionNotFoundError
+		require.True(t, stderrors.As(err, &notFound), "want *VersionNotFoundError, got %v", err)
+		assert.Equal(t, invalidHash, notFound.Hash)
 	})
 
 	t.Run("handles non-existent document", func(t *testing.T) {

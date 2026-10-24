@@ -114,11 +114,31 @@ The GitHub Actions workflow:
 
 ## Test Data Management
 
-Tests use ephemeral data that is automatically cleaned up:
+- Seed data through the API fixtures (`withTestDocument`, `withSimpleTestDocument`,
+  `apiHelper.createDocument`, ...) and give every document/folder a unique name
+  (suffix it with the `testId` fixture).
+- After **every** test an auto fixture wipes the backend (all shares, documents
+  and folders), whether or not the test used `apiHelper`. That is only safe
+  because the suite runs with `workers: 1` against one shared backend.
+- CI starts a fresh backend container for each run; `auth.setup.ts` registers
+  the first user with a virtual passkey and saves the shared auth state.
 
-- Global teardown script removes test data
-- Docker containers are recreated for each run
-- No persistent state between test runs
+## Conventions
+
+- Import `test`/`expect` from `../fixtures`, never from `@playwright/test`
+  (that bypasses the page-object fixtures and the cleanup).
+- Wait on what the test needs: web-first assertions (`toBeVisible`,
+  `toHaveText`, `toHaveCount`, ...), `BasePage.waitForContentReady`, or a
+  specific `waitForResponse`/`waitForURL`. No `waitForTimeout` sleeps and no new
+  `networkidle` waits.
+- Never gate assertions on `if (await locator.isVisible())`: if the element is
+  a precondition, assert it. For "is absent" checks use
+  `expect(locator).toBeHidden()` / `toHaveCount(0)`, not an `isVisible()`
+  snapshot.
+- Prefer `getByTestId` for app elements and `getByRole` for semantic ones;
+  avoid Tailwind/utility-class selectors and `.or()` fallback chains.
+- When a test fails, the report carries a `browser-diagnostics` attachment with
+  console errors, page errors and failed API responses.
 
 ## Development
 

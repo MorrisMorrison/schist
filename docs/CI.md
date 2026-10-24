@@ -18,7 +18,7 @@ doc covers what runs, where the image is published, and how to use your own runn
 
 Backend Tests and Frontend Tests upload coverage to [Codecov](https://about.codecov.io/)
 with the flags `backend` (`go test -coverprofile`) and `frontend` (Vitest v8 coverage
-as lcov, copied out of the Playwright container). `codecov.yml` keeps the status
+as lcov (`lcovonly`), copied out of the Playwright container). `codecov.yml` keeps the status
 checks **informational**, so coverage never blocks a merge, and uses carryforward
 because each side only runs when its own paths change.
 

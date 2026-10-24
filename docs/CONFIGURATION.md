@@ -9,14 +9,14 @@ Schist is designed with minimal configuration using environment variables and se
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SCHIST_PORT` | `8080` | Server port number |
-| `SCHIST_DATA_DIR` | `data` | Directory for storing wiki documents and assets |
+| `SCHIST_DATA_DIR` | `../../data` | Directory for storing wiki documents and assets |
 | `SCHIST_STATIC_DIR` | `./web` | Directory for serving static frontend files (production) |
 | `SCHIST_FRONTEND_URL` | `http://localhost:5173` | Public URL of the app. Used for CORS in development, the passkey (WebAuthn) origin, and share and invite links. Must match the URL users open |
 | `ENV` | `development` | Environment mode (development/production) |
-| `SCHIST_RATE_LIMIT_ENABLED` | `true` | Enable/disable rate limiting |
+| `SCHIST_RATE_LIMIT_ENABLED` | `false` | Enable/disable rate limiting |
 | `SCHIST_RATE_LIMIT_RPM` | `100` | Rate limit: requests per minute per IP |
-| `SCHIST_AUTH_ENABLED` | `true` | Enable/disable passkey + JWT authentication |
-| `SCHIST_JWT_SECRET` | `""` | JWT signing secret, at least 32 characters. Required whenever `ENV` is not `development` (generated per run in development) |
+| `SCHIST_AUTH_ENABLED` | `false` | Enable/disable JWT authentication |
+| `SCHIST_JWT_SECRET` | `""` | JWT signing secret (required when auth is enabled) |
 | `SCHIST_JWT_EXPIRY_HOURS` | `24` | JWT token expiry time in hours |
 
 ### Frontend Configuration

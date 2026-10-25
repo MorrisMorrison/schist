@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -165,17 +166,23 @@ func (gs *GitHubService) requestContext() (context.Context, context.CancelFunc) 
 	return context.WithTimeout(gs.ctx, githubRequestTimeout)
 }
 
+// validateRepoFields checks the fields every repository lookup needs.
+func validateRepoFields(token, owner, repo string) error {
+	if token == "" {
+		return fmt.Errorf("github token is required")
+	}
+	if owner == "" {
+		return fmt.Errorf("repository owner is required")
+	}
+	if repo == "" {
+		return fmt.Errorf("repository name is required")
+	}
+	return nil
+}
+
 func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoInfo, error) {
-	if req.Token == "" {
-		return nil, fmt.Errorf("github token is required")
-	}
-
-	if req.Owner == "" {
-		return nil, fmt.Errorf("repository owner is required")
-	}
-
-	if req.Repo == "" {
-		return nil, fmt.Errorf("repository name is required")
+	if err := validateRepoFields(req.Token, req.Owner, req.Repo); err != nil {
+		return nil, err
 	}
 
 	tempClient := newGitHubClient(gs.ctx, req.Token)
@@ -387,53 +394,46 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
+	// fail ends the sync with a failed result (not an error): message, plus
+	// the lower-cased message and the cause as the reported error.
+	fail := func(message string, err error) (*GitHubSyncResult, error) {
+		log.Printf("[GitHubService] ERROR: %s: %v", message, err)
+		result.Message = message
+		result.Errors = []string{fmt.Sprintf("%s: %v", strings.ToLower(message), err)}
+		return result, nil
+	}
+
 	log.Printf("[GitHubService] Verifying GitHub repository access...")
 	verifyCtx, verifyCancel := gs.requestContext()
 	_, _, err := gs.client.Repositories.Get(verifyCtx, githubSettings.Owner, githubSettings.Repository)
 	verifyCancel()
 	if err != nil {
-		log.Printf("[GitHubService] ERROR: Failed to access GitHub repository %s/%s: %v",
-			githubSettings.Owner, githubSettings.Repository, err)
-		result.Message = "Failed to connect to GitHub repository"
-		result.Errors = []string{fmt.Sprintf("failed to connect to github repository: %v", err)}
-		return result, nil
+		return fail("Failed to connect to GitHub repository", err)
 	}
 	log.Printf("[GitHubService] GitHub repository access verified")
 
 	log.Printf("[GitHubService] Setting up Git remote...")
 	if err := gs.setupGitRemote(); err != nil {
-		log.Printf("[GitHubService] ERROR: Failed to setup Git remote: %v", err)
-		result.Message = "Failed to setup Git remote"
-		result.Errors = []string{fmt.Sprintf("failed to setup git remote: %v", err)}
-		return result, nil
+		return fail("Failed to setup Git remote", err)
 	}
 	log.Printf("[GitHubService] Git remote setup completed")
 
 	log.Printf("[GitHubService] Committing uncommitted changes...")
 	if err := gs.commitUncommittedChanges(); err != nil {
-		log.Printf("[GitHubService] ERROR: Failed to commit changes: %v", err)
-		result.Message = "Failed to commit uncommitted changes"
-		result.Errors = []string{fmt.Sprintf("failed to commit uncommitted changes: %v", err)}
-		return result, nil
+		return fail("Failed to commit uncommitted changes", err)
 	}
 	log.Printf("[GitHubService] Uncommitted changes committed")
 
 	log.Printf("[GitHubService] Counting local commits...")
 	commitsBefore, err := gs.countLocalCommits()
 	if err != nil {
-		log.Printf("[GitHubService] ERROR: Failed to count commits: %v", err)
-		result.Message = "Failed to count local commits"
-		result.Errors = []string{fmt.Sprintf("failed to count local commits: %v", err)}
-		return result, nil
+		return fail("Failed to count local commits", err)
 	}
 	log.Printf("[GitHubService] Found %d local commits", commitsBefore)
 
 	log.Printf("[GitHubService] Pushing to GitHub...")
 	if err := gs.pushToGitHub(); err != nil {
-		log.Printf("[GitHubService] ERROR: Failed to push to GitHub: %v", err)
-		result.Message = "Failed to push to GitHub"
-		result.Errors = []string{fmt.Sprintf("failed to push to github: %v", err)}
-		return result, nil
+		return fail("Failed to push to GitHub", err)
 	}
 	log.Printf("[GitHubService] Successfully pushed to GitHub")
 
@@ -451,14 +451,8 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 }
 
 func (gs *GitHubService) TestConnection(token, owner, repo, branch string) error {
-	if token == "" {
-		return fmt.Errorf("github token is required")
-	}
-	if owner == "" {
-		return fmt.Errorf("repository owner is required")
-	}
-	if repo == "" {
-		return fmt.Errorf("repository name is required")
+	if err := validateRepoFields(token, owner, repo); err != nil {
+		return err
 	}
 
 	if branch == "" {
@@ -503,38 +497,48 @@ func (gs *GitHubService) ShouldAutoSync() bool {
 	return githubSettings.Enabled && githubSettings.AutoSync
 }
 
-func (gs *GitHubService) setupGitRemote() error {
+// localRepository returns the local git repository that is synced.
+func (gs *GitHubService) localRepository() (*git.Repository, error) {
 	if gs.gitService == nil || gs.gitService.repository == nil {
-		return fmt.Errorf("git service or repository not available")
+		return nil, fmt.Errorf("git service or repository not available")
+	}
+	return gs.gitService.repository, nil
+}
+
+// remoteURL is the HTTPS clone URL of the configured repository.
+func remoteURL(settings *appconfig.GitHubSettings) string {
+	return fmt.Sprintf("https://github.com/%s/%s.git", settings.Owner, settings.Repository)
+}
+
+func (gs *GitHubService) setupGitRemote() error {
+	repo, err := gs.localRepository()
+	if err != nil {
+		return err
 	}
 
-	githubSettings := gs.settings.GetGitHubSettings()
+	originURL := remoteURL(gs.settings.GetGitHubSettings())
 
-	remoteURL := fmt.Sprintf("https://github.com/%s/%s.git",
-		githubSettings.Owner,
-		githubSettings.Repository)
-
-	cfg, err := gs.gitService.repository.Config()
+	cfg, err := repo.Config()
 	if err != nil {
 		return fmt.Errorf("failed to get repository config: %w", err)
 	}
 
 	cfg.Remotes["origin"] = &config.RemoteConfig{
 		Name: "origin",
-		URLs: []string{remoteURL},
+		URLs: []string{originURL},
 	}
 
-	err = gs.gitService.repository.Storer.SetConfig(cfg)
+	err = repo.Storer.SetConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to persist git config: %w", err)
 	}
 
-	verifyConfig, err := gs.gitService.repository.Config()
+	verifyConfig, err := repo.Config()
 	if err != nil {
 		return fmt.Errorf("failed to verify git config: %w", err)
 	}
 
-	if remote, exists := verifyConfig.Remotes["origin"]; !exists || len(remote.URLs) == 0 || remote.URLs[0] != remoteURL {
+	if remote, exists := verifyConfig.Remotes["origin"]; !exists || len(remote.URLs) == 0 || remote.URLs[0] != originURL {
 		return fmt.Errorf("failed to set git remote - verification failed")
 	}
 
@@ -542,8 +546,8 @@ func (gs *GitHubService) setupGitRemote() error {
 }
 
 func (gs *GitHubService) commitUncommittedChanges() error {
-	if gs.gitService == nil || gs.gitService.repository == nil {
-		return fmt.Errorf("git service or repository not available")
+	if _, err := gs.localRepository(); err != nil {
+		return err
 	}
 
 	// CommitPendingChanges never stages the .schist/ app state, which holds
@@ -553,11 +557,12 @@ func (gs *GitHubService) commitUncommittedChanges() error {
 }
 
 func (gs *GitHubService) countLocalCommits() (int, error) {
-	if gs.gitService == nil || gs.gitService.repository == nil {
-		return 0, fmt.Errorf("git service or repository not available")
+	repo, err := gs.localRepository()
+	if err != nil {
+		return 0, err
 	}
 
-	commitIter, err := gs.gitService.repository.Log(&git.LogOptions{})
+	commitIter, err := repo.Log(&git.LogOptions{})
 	if err != nil {
 		return 0, fmt.Errorf("failed to get commit log: %w", err)
 	}
@@ -576,13 +581,14 @@ func (gs *GitHubService) countLocalCommits() (int, error) {
 }
 
 func (gs *GitHubService) pushToGitHub() error {
-	if gs.gitService == nil || gs.gitService.repository == nil {
-		return fmt.Errorf("git service or repository not available")
+	repo, err := gs.localRepository()
+	if err != nil {
+		return err
 	}
 
 	githubSettings := gs.settings.GetGitHubSettings()
 
-	head, err := gs.gitService.repository.Head()
+	head, err := repo.Head()
 	if err != nil {
 		return fmt.Errorf("failed to get current HEAD: %w", err)
 	}
@@ -600,8 +606,7 @@ func (gs *GitHubService) pushToGitHub() error {
 		Password: token,
 	}
 
-	remoteURL := fmt.Sprintf("https://github.com/%s/%s.git", githubSettings.Owner, githubSettings.Repository)
-	log.Printf("[GitHubService] Pushing to remote: %s", remoteURL)
+	log.Printf("[GitHubService] Pushing to remote: %s", remoteURL(githubSettings))
 
 	refSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", currentBranch, githubSettings.Branch)
 	log.Printf("[GitHubService] Using refspec: %s", refSpec)
@@ -626,7 +631,7 @@ func (gs *GitHubService) pushToGitHub() error {
 
 	pushCtx, pushCancel := gs.requestContext()
 	defer pushCancel()
-	err = gs.gitService.repository.PushContext(pushCtx, pushOptions)
+	err = repo.PushContext(pushCtx, pushOptions)
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
 			log.Printf("[GitHubService] Repository is already up to date")

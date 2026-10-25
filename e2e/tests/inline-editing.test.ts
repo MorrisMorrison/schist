@@ -24,13 +24,13 @@ test.describe('In-place editing', () => {
 		await page.keyboard.press('Control+e');
 		await expect(page).toHaveURL(new RegExp(`/documents${testDocument.path}\\?mode=edit$`));
 		await expect(editorPage.contentEditor).toBeVisible();
-		await expect(page.getByTestId('document-content')).toHaveCount(0);
+		await expect(documentViewPage.documentContent).toHaveCount(0);
 
 		await editorPage.appendContent('\n\nWritten in place.');
-		await expect(page.getByTestId('unsaved-indicator')).toBeVisible();
+		await expect(editorPage.unsavedIndicator).toBeVisible();
 
 		await page.keyboard.press('Control+e');
-		await expect(page.getByTestId('document-view')).toHaveAttribute('data-mode', 'read');
+		await expect(documentViewPage.documentView).toHaveAttribute('data-mode', 'read');
 		await expect(page).toHaveURL(new RegExp(`/documents${testDocument.path}$`));
 		await documentViewPage.verifyContentContains('Written in place.');
 
@@ -55,8 +55,8 @@ test.describe('In-place editing', () => {
 		await page.keyboard.press('ArrowRight');
 
 		await editorPage.readButton.click();
-		await expect(page.getByTestId('document-view')).toHaveAttribute('data-mode', 'read');
-		await page.getByTestId('edit-document-button').click();
+		await expect(documentViewPage.documentView).toHaveAttribute('data-mode', 'read');
+		await documentViewPage.editButton.click();
 		await expect(editorPage.contentEditor).toBeFocused();
 		await page.keyboard.type('Kept ');
 
@@ -65,6 +65,7 @@ test.describe('In-place editing', () => {
 
 	test('the /edit/<path> deep link opens the document in edit mode', async ({
 		page,
+		documentViewPage,
 		editorPage,
 		withSimpleTestDocument: testDocument
 	}) => {
@@ -72,7 +73,7 @@ test.describe('In-place editing', () => {
 
 		await expect(page).toHaveURL(new RegExp(`/documents${testDocument.path}\\?mode=edit$`));
 		await expect(editorPage.documentTitle).toContainText(testDocument.title);
-		await expect(page.getByTestId('edit-document-button')).toHaveAttribute('aria-pressed', 'true');
+		await expect(documentViewPage.editButton).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	test('asks before leaving with unsaved changes; Discard keeps the stored text', async ({

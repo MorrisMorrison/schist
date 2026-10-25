@@ -1,11 +1,15 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { EditorPage } from './EditorPage';
 
 /**
  * Page object for viewing individual documents (/documents/[...path]),
  * including the Share modal opened from the document header.
  */
 export class DocumentViewPage extends BasePage {
+	/** The document page; its `data-mode` is `read` or `edit`. */
+	readonly documentView: Locator;
+
 	// Document content
 	readonly documentTitle: Locator;
 	readonly documentContent: Locator;
@@ -37,12 +41,14 @@ export class DocumentViewPage extends BasePage {
 	constructor(page: Page) {
 		super(page);
 
+		this.documentView = page.getByTestId('document-view');
+
 		// Document content. Test ids only: an `h1` fallback would also match the
 		// "Document Not Found" / "Error" headings and mask a failed load.
 		this.documentTitle = page.getByTestId('document-title');
 		this.documentContent = page.getByTestId('document-content');
 		this.documentTags = page.getByTestId('document-tag');
-		this.documentHeader = page.getByTestId('document-view').locator('header');
+		this.documentHeader = this.documentView.locator('header');
 
 		// Action buttons
 		this.editButton = page.getByTestId('edit-document-button');
@@ -118,7 +124,7 @@ export class DocumentViewPage extends BasePage {
 	async editDocument() {
 		await this.editButton.click();
 		await this.page.waitForURL(/\?mode=edit/);
-		await expect(this.page.locator('.cm-editor .cm-content').first()).toBeVisible();
+		await expect(new EditorPage(this.page).contentEditor).toBeVisible();
 	}
 
 	/**

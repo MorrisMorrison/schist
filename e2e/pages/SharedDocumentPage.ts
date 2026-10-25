@@ -1,5 +1,6 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { DocumentViewPage } from './DocumentViewPage';
 
 /**
  * Page object for viewing shared documents (/share/[token])
@@ -124,13 +125,11 @@ export class SharedDocumentPage extends BasePage {
 	 * (This confirms the document is truly read-only)
 	 */
 	async verifyReadOnlyMode() {
-		const editButton = this.page.getByTestId('edit-document-button');
-		const shareButton = this.page.getByTestId('share-document-button');
-		const deleteButton = this.page.getByTestId('delete-document-button');
+		const documentPage = new DocumentViewPage(this.page);
 
-		await expect(editButton).not.toBeVisible();
-		await expect(shareButton).not.toBeVisible();
-		await expect(deleteButton).not.toBeVisible();
+		await expect(documentPage.editButton).not.toBeVisible();
+		await expect(documentPage.shareButton).not.toBeVisible();
+		await expect(documentPage.deleteButton).not.toBeVisible();
 	}
 
 	/**
@@ -141,7 +140,7 @@ export class SharedDocumentPage extends BasePage {
 		// Check that main app navigation elements are not present
 		const sidebar = this.page.getByTestId('sidebar');
 		const mainNav = this.page.getByTestId('main-navigation');
-		const breadcrumbs = this.page.getByTestId('breadcrumbs');
+		const { breadcrumbs } = new DocumentViewPage(this.page);
 
 		await expect(sidebar).not.toBeVisible();
 		await expect(mainNav).not.toBeVisible();

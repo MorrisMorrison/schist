@@ -1,14 +1,15 @@
 import { test, expect } from '../fixtures';
 
 test.describe('Markdown Features', () => {
-	test('sidebar plus button creates new document', async ({ page }) => {
+	test('sidebar plus menu creates new document', async ({ page }) => {
 		await page.goto('/');
 
-		// Find and click the plus button in the sidebar
-		const plusButton = page.locator('[title="Create new document"]');
+		// The sidebar's "+" opens a menu; "New page" starts a document.
+		const plusButton = page.getByTestId('sidebar-new-menu');
 		await expect(plusButton).toBeVisible();
 
 		await plusButton.click();
+		await page.getByRole('menuitem', { name: 'New page' }).click();
 
 		// Should navigate to /new
 		await expect(page).toHaveURL(/\/new$/);

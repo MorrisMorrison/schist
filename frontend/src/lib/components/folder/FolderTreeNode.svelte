@@ -40,6 +40,8 @@
 		onDocumentSelect?: (event: { document: Document }) => void;
 		onDocumentContextMenu?: (event: MouseEvent | KeyboardEvent, document: Document) => void;
 		getFilteredPagesForFolder: (folderPath: string) => Document[];
+		/** Render only the children, always expanded (used for the sidebar's root). */
+		hideRow?: boolean;
 	}
 
 	let {
@@ -71,7 +73,8 @@
 		onDrop,
 		onDocumentSelect,
 		onDocumentContextMenu,
-		getFilteredPagesForFolder
+		getFilteredPagesForFolder,
+		hideRow = false
 	}: Props = $props();
 
 	const hasSubFolders = $derived(folder.sub_folders && folder.sub_folders.length > 0);
@@ -127,101 +130,105 @@
 </script>
 
 <div class="relative">
-	<div
-		class={cn(
-			'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
-			'hover:bg-accent hover:text-accent-foreground',
-			isSelected && 'bg-accent text-accent-foreground',
-			isCurrent && 'bg-accent font-medium',
-			isBeingDragged && 'opacity-50',
-			isDropTarget && 'bg-primary/10 ring-primary ring-2',
-			isDragOver && 'bg-primary/20'
-		)}
-		draggable="true"
-		ondragstart={(e) => onDragStart(e, 'folder', folder.path, folder)}
-		ondragend={onDragEnd}
-		ondragover={(e) => onDragOver(e, folder.path)}
-		ondragenter={(e) => onDragEnter(e, folder.path)}
-		ondragleave={(e) => onDragLeave(e, folder.path)}
-		ondrop={(e) => onDrop(e, folder.path)}
-		oncontextmenu={(e) => onContextMenu(e, folder)}
-		role="treeitem"
-		aria-expanded={hasExpandableContent ? isExpanded : undefined}
-		aria-selected={isSelected}
-		aria-level={depth + 1}
-		tabindex="-1"
-		data-testid="folder-tree-item"
-	>
+	{#if !hideRow}
 		<div
-			class="flex w-full items-center gap-2 pr-8"
-			style="--indent-level: {indentLevel}; margin-left: calc(var(--indent-level) * 1rem);"
+			class={cn(
+				'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+				'hover:bg-accent hover:text-accent-foreground',
+				isSelected && 'bg-accent text-accent-foreground',
+				isCurrent && 'bg-accent font-medium',
+				isBeingDragged && 'opacity-50',
+				isDropTarget && 'bg-primary/10 ring-primary ring-2',
+				isDragOver && 'bg-primary/20'
+			)}
+			draggable="true"
+			ondragstart={(e) => onDragStart(e, 'folder', folder.path, folder)}
+			ondragend={onDragEnd}
+			ondragover={(e) => onDragOver(e, folder.path)}
+			ondragenter={(e) => onDragEnter(e, folder.path)}
+			ondragleave={(e) => onDragLeave(e, folder.path)}
+			ondrop={(e) => onDrop(e, folder.path)}
+			oncontextmenu={(e) => onContextMenu(e, folder)}
+			role="treeitem"
+			aria-expanded={hasExpandableContent ? isExpanded : undefined}
+			aria-selected={isSelected}
+			aria-level={depth + 1}
+			tabindex="-1"
+			data-testid="folder-tree-item"
 		>
-			<button
-				type="button"
-				class="flex h-4 w-4 flex-shrink-0 cursor-pointer items-center justify-center rounded"
-				onclick={handleChevronClick}
-				tabindex={hasExpandableContent ? 0 : -1}
-				aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
-				disabled={!hasExpandableContent}
-				data-testid="folder-expand-button"
+			<div
+				class="flex w-full items-center gap-2 pr-8"
+				style="--indent-level: {indentLevel}; margin-left: calc(var(--indent-level) * 1rem);"
 			>
-				{#if hasExpandableContent}
-					{#if isExpanded}
-						<ChevronDown class="h-3 w-3" />
-					{:else}
-						<ChevronRight class="h-3 w-3" />
+				<button
+					type="button"
+					class="flex h-4 w-4 flex-shrink-0 cursor-pointer items-center justify-center rounded"
+					onclick={handleChevronClick}
+					tabindex={hasExpandableContent ? 0 : -1}
+					aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
+					disabled={!hasExpandableContent}
+					data-testid="folder-expand-button"
+				>
+					{#if hasExpandableContent}
+						{#if isExpanded}
+							<ChevronDown class="h-3 w-3" />
+						{:else}
+							<ChevronRight class="h-3 w-3" />
+						{/if}
 					{/if}
-				{/if}
-			</button>
+				</button>
 
-			<button
-				type="button"
-				class="focus:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
-				onclick={handleFolderNameClick}
-				onkeydown={handleKeydown}
-				tabindex="0"
-				aria-label={`Open folder ${folder.name}`}
-				data-testid="folder-name-button"
-			>
-				<Folder class="text-blue-primary h-4 w-4 flex-shrink-0" />
+				<button
+					type="button"
+					class="focus:ring-ring flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-left focus:ring-2 focus:ring-offset-1 focus:outline-none"
+					onclick={handleFolderNameClick}
+					onkeydown={handleKeydown}
+					tabindex="0"
+					aria-label={`Open folder ${folder.name}`}
+					data-testid="folder-name-button"
+				>
+					<Folder class="text-muted-foreground h-4 w-4 flex-shrink-0" />
 
-				<span class="truncate font-medium" title={folder.name}>
-					{folder.name}
-				</span>
+					<span class="truncate font-medium" title={folder.name}>
+						{folder.name}
+					</span>
 
-				{#if showPageCounts && folder.document_count > 0}
-					<span class="text-secondary ml-1 text-xs opacity-75">({folder.document_count})</span>
-				{/if}
-			</button>
-		</div>
+					{#if showPageCounts && folder.document_count > 0}
+						<span class="text-muted-foreground ml-auto pl-2 text-xs tabular-nums"
+							>{folder.document_count}</span
+						>
+					{/if}
+				</button>
+			</div>
 
-		<!-- Context Menu Trigger - Positioned absolutely to the right -->
-		{#if enableContextMenu}
-			<span
-				class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
-				onclick={(e) => {
-					e.stopPropagation();
-					onContextMenu(e, folder);
-				}}
-				onkeydown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.preventDefault();
+			<!-- Context Menu Trigger - Positioned absolutely to the right -->
+			{#if enableContextMenu}
+				<span
+					class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
+					onclick={(e) => {
 						e.stopPropagation();
 						onContextMenu(e, folder);
-					}
-				}}
-				role="button"
-				tabindex="0"
-				aria-label="Folder options"
-				data-testid="folder-context-menu-trigger"
-			>
-				<MoreVertical class="h-3 w-3" />
-			</span>
-		{/if}
-	</div>
+					}}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							e.stopPropagation();
+							onContextMenu(e, folder);
+						}
+					}}
+					role="button"
+					tabindex="0"
+					aria-label="Folder options"
+					data-testid="folder-context-menu-trigger"
+				>
+					<MoreVertical class="h-3 w-3" />
+				</span>
+			{/if}
+		</div>
+	{/if}
 
-	{#if isExpanded}
-		<div class="mt-1">
+	{#if isExpanded || hideRow}
+		<div class={hideRow ? 'space-y-0' : 'mt-1'}>
 			<!-- Render subfolders first (consistent with file system conventions) -->
 			{#if hasSubFolders}
 				{#each folder.sub_folders as subFolder (subFolder.path)}

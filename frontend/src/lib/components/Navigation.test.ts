@@ -60,8 +60,8 @@ describe('Navigation', () => {
 		render(Navigation);
 
 		expect(screen.getByAltText('Schist Logo')).toBeInTheDocument();
-		expect(screen.getByTestId('nav-home')).toHaveClass('border-blue-500');
-		expect(screen.getByTestId('nav-recent')).not.toHaveClass('border-blue-500');
+		expect(screen.getByTestId('nav-home')).toHaveClass('border-primary');
+		expect(screen.getByTestId('nav-recent')).not.toHaveClass('border-primary');
 		expect(screen.getByTitle('Settings')).toHaveAttribute('href', '/settings');
 		expect(screen.queryByTestId('user-info')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('quick-unlock-button')).not.toBeInTheDocument();
@@ -72,8 +72,8 @@ describe('Navigation', () => {
 		pageState.url = new URL('http://localhost/recent');
 		render(Navigation);
 
-		expect(screen.getByTestId('nav-recent')).toHaveClass('border-blue-500');
-		expect(screen.getByTestId('nav-home')).not.toHaveClass('border-blue-500');
+		expect(screen.getByTestId('nav-recent')).toHaveClass('border-primary');
+		expect(screen.getByTestId('nav-home')).not.toHaveClass('border-primary');
 	});
 
 	it('opens the quick switcher', async () => {
@@ -87,7 +87,18 @@ describe('Navigation', () => {
 		window.removeEventListener('openQuickSwitcher', listener);
 	});
 
-	it('toggles the sidebar from the burger icon', async () => {
+	it('opens the keyboard shortcuts', async () => {
+		const listener = vi.fn();
+		window.addEventListener('openKeyboardShortcuts', listener);
+		render(Navigation);
+
+		await fireEvent.click(screen.getByTestId('keyboard-shortcuts-button'));
+
+		expect(listener).toHaveBeenCalledTimes(1);
+		window.removeEventListener('openKeyboardShortcuts', listener);
+	});
+
+	it('toggles the sidebar from the panel button', async () => {
 		render(Navigation, { props: { isSidebarOpen: true } });
 		const before = sidebar.isOpen;
 
@@ -194,7 +205,7 @@ describe('Navigation', () => {
 			pageState.url = new URL('http://localhost/recent');
 			render(Navigation);
 			await openMobileMenu();
-			expect(screen.getByTestId('nav-recent-mobile')).toHaveClass('border-blue-500');
+			expect(screen.getByTestId('nav-recent-mobile')).toHaveClass('border-primary');
 			const settings = screen.getByText('Settings').closest('a')!;
 			settings.addEventListener('click', (e) => e.preventDefault());
 

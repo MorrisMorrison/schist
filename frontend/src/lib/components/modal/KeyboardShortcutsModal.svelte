@@ -9,6 +9,14 @@
 
 	let { open, onClose }: Props = $props();
 
+	let dialog = $state<HTMLDivElement>();
+
+	// Take focus on open so Escape (and screen readers) work however the dialog
+	// was opened, including from the "?" shortcut with focus still on the page.
+	$effect(() => {
+		if (open) dialog?.focus();
+	});
+
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			onClose();
@@ -18,7 +26,8 @@
 
 {#if open}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		bind:this={dialog}
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 outline-none"
 		onclick={(e) => {
 			if (e.target === e.currentTarget) onClose();
 		}}

@@ -50,49 +50,27 @@ test.describe.serial('Folder Tree Creation', () => {
 		await expect(contextMenu).not.toBeVisible();
 	});
 
-	test('should show context menu on root folder in tree', async ({ folderPage, page }) => {
+	test('should create a top-level folder from the sidebar + menu', async ({ folderPage, page }) => {
 		await folderPage.navigateToRoot();
 
-		// Look for the root folder node (which should show as "/" when showPages is enabled)
-		const rootFolderTreeItem = folderPage.folderTree
-			.locator('[data-testid="folder-tree-item"]')
-			.filter({ hasText: '/' })
-			.first();
+		// The sidebar has no root row any more; top-level actions live in its "+" menu.
+		await expect(
+			folderPage.folderTree.getByRole('button', { name: 'Open folder /', exact: true })
+		).toHaveCount(0);
 
-		// If root folder item is not visible, we might need to look for it differently
-		// Check if it exists, and if not, just use the first tree item which should be root
-		const rootItemVisible = await rootFolderTreeItem.isVisible().catch(() => false);
-		let rootItem = rootFolderTreeItem;
-		if (!rootItemVisible) {
-			// Fallback to first tree item if specific root item not found
-			rootItem = folderPage.folderTree.locator('[data-testid="folder-tree-item"]').first();
-		}
+		await page.getByTestId('sidebar-new-menu').click();
+		await expect(page.getByRole('menuitem', { name: 'New page' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Import documents' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Export all' })).toBeVisible();
+		await page.getByRole('menuitem', { name: 'New folder' }).click();
 
-		await expect(rootItem).toBeVisible();
+		const folderName = 'top-level-from-menu';
+		await folderPage.waitForVisible(folderPage.createFolderModal);
+		await folderPage.fillInput(folderPage.folderNameInput, folderName);
+		await folderPage.confirmCreateFolder.click();
+		await expect(folderPage.createFolderModal).toBeHidden();
 
-		// Right-click on the root folder item
-		await rootItem.click({ button: 'right' });
-
-		// Verify context menu appears
-		const contextMenu = folderPage.contextMenu;
-		await expect(contextMenu).toBeVisible();
-
-		// Verify menu has expected options for root folder
-		const createSubfolderOption = contextMenu.getByText(/create.*subfolder|new.*folder/i);
-		const createDocumentOption = contextMenu.getByText(/create.*document|new.*document/i);
-		const exportOption = contextMenu.getByText(/export/i);
-
-		await expect(createSubfolderOption).toBeVisible();
-		await expect(createDocumentOption).toBeVisible();
-		await expect(exportOption).toBeVisible();
-
-		// Verify that rename and delete options are NOT present for root folder
-		await expect(contextMenu.getByText(/rename/i)).toHaveCount(0);
-		await expect(contextMenu.getByText(/delete/i)).toHaveCount(0);
-
-		// Close context menu by clicking elsewhere
-		await page.click('body', { position: { x: 10, y: 10 } });
-		await expect(contextMenu).not.toBeVisible();
+		await folderPage.verifyContainsFolder(folderName);
 	});
 
 	test('should handle context menu outside tree items gracefully', async ({ folderPage, page }) => {

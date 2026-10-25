@@ -8,7 +8,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug } from '$lib/utils/path';
-	import { Check, Trash2, RotateCcw } from '@lucide/svelte';
+	import { Check, Trash2, RotateCcw, Ellipsis } from '@lucide/svelte';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import type { Document } from '$lib/api/types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
@@ -260,16 +261,28 @@
 					Cancel
 				</Button>
 
-				<Button
-					variant="outline"
-					class="text-destructive hover:bg-destructive/10 hover:text-destructive dark:text-destructive dark:hover:text-destructive"
-					data-testid="delete-document-button"
-					onclick={handleDeleteClick}
-					disabled={isDeleting}
-				>
-					<Trash2 class="h-4 w-4" />
-					Delete
-				</Button>
+				<!-- Delete lives in a menu so it never sits next to Save. -->
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger
+						class="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-9 w-9 items-center justify-center rounded-md border transition-colors"
+						aria-label="More actions"
+						title="More actions"
+						data-testid="document-actions-menu"
+					>
+						<Ellipsis class="h-4 w-4" />
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="end" class="w-44">
+						<DropdownMenu.Item
+							variant="destructive"
+							onSelect={handleDeleteClick}
+							disabled={isDeleting}
+							data-testid="delete-document-button"
+						>
+							<Trash2 />
+							Delete
+						</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
 
 				<Button
 					variant="default"

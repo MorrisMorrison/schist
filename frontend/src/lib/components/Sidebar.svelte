@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import FolderTree from './folder/FolderTree.svelte';
+	import WorkspaceIndicator from './WorkspaceIndicator.svelte';
 	import CreateFolderModal from './modal/CreateFolderModal.svelte';
 	import RenameFolderModal from './modal/RenameFolderModal.svelte';
 	import RenameDocumentModal from './modal/RenameDocumentModal.svelte';
@@ -10,7 +11,6 @@
 	import type { Folder as FolderType, Document } from '$lib/api/types';
 	import { folderActions, documentActions, foldersStore } from '$lib/stores/documents.svelte';
 	import { apiClient } from '$lib/api/client';
-	import { Button } from './ui/button';
 	import { onMount } from 'svelte';
 
 	let showCreateFolderModal = $state(false);
@@ -171,21 +171,13 @@
 			onfolderexport={handleFolderExport}
 			ondocumentexport={handleDocumentExport}
 			onexportall={handleExportAll}
+			onimport={handleImportDocuments}
 		/>
 	</div>
 
-	<div class="border-border flex-shrink-0 border-t p-4">
-		<Button variant="outline" onclick={handleImportDocuments} class="w-full">
-			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-				/>
-			</svg>
-			Import Documents
-		</Button>
+	<!-- Only shown for a shared workspace (moved here from the old footer bar). -->
+	<div class="flex-shrink-0 px-4 py-3 empty:hidden">
+		<WorkspaceIndicator />
 	</div>
 </aside>
 

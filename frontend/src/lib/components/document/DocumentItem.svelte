@@ -84,7 +84,7 @@
 			onclick={onSelect}
 			data-testid="document-name-button"
 		>
-			<File class="text-blue-primary h-4 w-4 flex-shrink-0" />
+			<File class="text-muted-foreground h-4 w-4 flex-shrink-0" />
 			<span class="truncate text-left" title={document.metaData?.title || 'Untitled'}
 				>{document.metaData?.title || 'Untitled'}</span
 			>

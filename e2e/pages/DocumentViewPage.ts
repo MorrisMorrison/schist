@@ -16,6 +16,7 @@ export class DocumentViewPage extends BasePage {
 	readonly editButton: Locator;
 	readonly shareButton: Locator;
 	readonly deleteButton: Locator;
+	readonly actionsMenuButton: Locator;
 
 	// Navigation
 	readonly breadcrumbs: Locator;
@@ -47,6 +48,8 @@ export class DocumentViewPage extends BasePage {
 		this.editButton = page.getByTestId('edit-document-button');
 		this.shareButton = page.getByTestId('share-document-button');
 		this.deleteButton = page.getByTestId('delete-document-button');
+		// Delete, download and history live in the "More actions" menu.
+		this.actionsMenuButton = page.getByTestId('document-actions-menu');
 
 		// Navigation
 		this.breadcrumbs = page.getByTestId('breadcrumbs');
@@ -110,6 +113,7 @@ export class DocumentViewPage extends BasePage {
 	 * still in flight, and find it still there.)
 	 */
 	async deleteDocument() {
+		await this.actionsMenuButton.click();
 		await this.deleteButton.click();
 
 		const confirmButton = this.page.getByTestId('confirm-delete-button');

@@ -89,7 +89,8 @@ describe('SecretManager', () => {
 		expect(screen.getByText('Secrets Unlocked')).toBeInTheDocument();
 		expect(screen.getByText('{{secret:api_key}}')).toBeInTheDocument();
 		expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
-		expect(screen.getByText('Usage')).toBeInTheDocument();
+		expect(screen.getByRole('note')).toHaveAttribute('data-variant', 'info');
+		expect(screen.getByRole('note')).toHaveTextContent('Usage');
 	});
 
 	it('shows the setup empty state when there are no secrets', async () => {

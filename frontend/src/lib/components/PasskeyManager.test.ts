@@ -42,7 +42,8 @@ describe('PasskeyManager', () => {
 		expect(screen.getByText('Passkey Security')).toBeInTheDocument();
 		expect(await screen.findByText('Laptop')).toBeInTheDocument();
 		expect(screen.getByText('Phone')).toBeInTheDocument();
-		expect(screen.getByText('Security Note')).toBeInTheDocument();
+		expect(screen.getByRole('note')).toHaveAttribute('data-variant', 'info');
+		expect(screen.getByRole('note')).toHaveTextContent('Security Note');
 		expect(apiClient.getPasskeyStatus).toHaveBeenCalled();
 		expect(apiClient.listPasskeys).toHaveBeenCalled();
 	});

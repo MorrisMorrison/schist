@@ -2,7 +2,7 @@
 	import { secretStore } from '$lib/stores/secrets.svelte';
 	import { authStore } from '$lib/stores/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import {
 		Card,
 		CardContent,
@@ -12,9 +12,8 @@
 	} from '$lib/components/ui/card';
 	import PasskeyUnlockModal from './modal/PasskeyUnlockModal.svelte';
 	import SecretEditModal from './modal/SecretEditModal.svelte';
-	import InfoBox from '$lib/components/ui/info-box.svelte';
 	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
-	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus } from '@lucide/svelte';
+	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus, Info } from '@lucide/svelte';
 	import LoadingRow from '$lib/components/LoadingRow.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 
@@ -240,10 +239,14 @@
 					</div>
 				{/if}
 
-				<InfoBox
-					title="Usage"
-					description="Reference secrets in your documents using the placeholder syntax. When viewing documents with unlocked secrets, the placeholders will be replaced with the actual values."
-				/>
+				<Alert variant="info" role="note">
+					<Info />
+					<AlertTitle>Usage</AlertTitle>
+					<AlertDescription>
+						Reference secrets in your documents using the placeholder syntax. When viewing documents
+						with unlocked secrets, the placeholders will be replaced with the actual values.
+					</AlertDescription>
+				</Alert>
 			</div>
 
 			<!-- Locked State -->

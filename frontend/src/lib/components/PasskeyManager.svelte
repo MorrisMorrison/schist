@@ -19,10 +19,14 @@
 	let showSetupModal = $state(false);
 	let deletingPasskey: string | null = $state(null);
 
-	onMount(() => {
-		passkeyStore.loadStatus();
-		passkeyStore.loadPasskeys();
-	});
+	// Load failures are shown through passkeyStore.error; swallow the rethrown
+	// rejection so it doesn't surface as an unhandled promise rejection.
+	function reload() {
+		passkeyStore.loadStatus().catch(() => {});
+		passkeyStore.loadPasskeys().catch(() => {});
+	}
+
+	onMount(reload);
 
 	async function handleDeletePasskey(passkey: { id: string; name: string }) {
 		if (!confirm(`Delete passkey "${passkey.name}"? This cannot be undone.`)) {
@@ -52,9 +56,7 @@
 
 	function handleSetupSuccess() {
 		showSetupModal = false;
-
-		passkeyStore.loadStatus();
-		passkeyStore.loadPasskeys();
+		reload();
 	}
 </script>
 

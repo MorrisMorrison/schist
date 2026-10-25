@@ -10,6 +10,7 @@
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { Document, Folder as FolderType } from '$lib/api/types';
+	import { isDirectChild } from '$lib/utils/path';
 
 	interface Props {
 		path?: string;
@@ -44,21 +45,9 @@
 			// Copy: the sort below is in place and must not mutate store state.
 			filteredDocuments = [...(documentsStore.documents || [])];
 		} else {
-			filteredDocuments = (documentsStore.documents || []).filter((document) => {
-				const documentPath = document.metaData?.path || '';
-				const isRoot = path === '' || path === '/';
-				if (isRoot) {
-					return documentPath.split('/').length === 2; // ['', 'filename']
-				}
-
-				const folderSegments = path.split('/').filter(Boolean);
-				const documentSegments = documentPath.split('/').filter(Boolean);
-
-				return (
-					documentSegments.length === folderSegments.length + 1 &&
-					documentSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
-				);
-			});
+			filteredDocuments = (documentsStore.documents || []).filter((document) =>
+				isDirectChild(document.metaData?.path || '', path)
+			);
 		}
 
 		return filteredDocuments.sort((a, b) => {

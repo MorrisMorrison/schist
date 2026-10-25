@@ -12,6 +12,7 @@
 	import { Folder } from '@lucide/svelte';
 	import { parseError } from '$lib/utils/error';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import { folderNameToSegment, isValidFolderName, joinPath } from '$lib/utils/path';
 
 	interface Props {
 		parentPath?: string;
@@ -34,27 +35,8 @@
 		}
 	});
 
-	const folderPath = $derived(constructFolderPath(folderName, parentPath));
-	const isValidName = $derived(validateFolderName(folderName));
-
-	function validateFolderName(name: string): boolean {
-		if (!name.trim()) return false;
-
-		if (!/^[a-zA-Z0-9\-_\s]+$/.test(name)) {
-			return false;
-		}
-
-		if (name.length > 50) {
-			return false;
-		}
-
-		return true;
-	}
-
-	function constructFolderPath(folderName: string, parentPath: string, normalize = false): string {
-		const name = normalize ? folderName.trim().toLowerCase().replace(/\s+/g, '-') : folderName;
-		return parentPath && parentPath !== '/' ? `${parentPath}/${name}` : `/${name}`;
-	}
+	const folderPath = $derived(joinPath(parentPath, folderName));
+	const isValidName = $derived(isValidFolderName(folderName));
 
 	async function createFolder() {
 		if (!isValidName || isLoading) return;
@@ -62,9 +44,9 @@
 		isLoading = true;
 		error = '';
 
-		try {
-			const fullPath = constructFolderPath(folderName, parentPath, true);
+		const fullPath = joinPath(parentPath, folderNameToSegment(folderName));
 
+		try {
 			await folderActions.createFolder(fullPath);
 			onCreated();
 		} catch (err) {
@@ -73,7 +55,7 @@
 
 			console.error('Failed to create folder', {
 				folderName,
-				fullPath: constructFolderPath(folderName, parentPath, true),
+				fullPath,
 				error: parsedError
 			});
 		} finally {

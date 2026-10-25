@@ -17,6 +17,7 @@
 		folderActions
 	} from '$lib/stores/documents.svelte';
 	import { cn } from '$lib/utils.js';
+	import { isDirectChild } from '$lib/utils/path';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 	import { authService } from '$lib/auth/auth-service';
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
@@ -252,21 +253,7 @@
 	}
 
 	function getPagesForFolder(folderPath: string) {
-		return documents.filter((page) => {
-			const pagePath = page.metaData?.path || '';
-
-			if (folderPath === '' || folderPath === '/') {
-				return pagePath.split('/').length === 2;
-			}
-
-			const folderSegments = folderPath.split('/').filter(Boolean);
-			const pageSegments = pagePath.split('/').filter(Boolean);
-
-			return (
-				pageSegments.length === folderSegments.length + 1 &&
-				pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
-			);
-		});
+		return documents.filter((page) => isDirectChild(page.metaData?.path || '', folderPath));
 	}
 
 	function getFilteredPagesForFolder(folderPath: string) {

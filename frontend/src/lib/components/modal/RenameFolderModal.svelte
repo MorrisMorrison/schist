@@ -13,6 +13,7 @@
 	import InlineError from '$lib/components/ui/InlineError.svelte';
 	import type { Folder as FolderType } from '$lib/api/types';
 	import { getErrorMessage } from '$lib/utils/error';
+	import { folderNameToSegment, getParentPath, isValidFolderName, joinPath } from '$lib/utils/path';
 
 	interface Props {
 		folder?: FolderType;
@@ -28,11 +29,10 @@
 	let isLoading = $state(false);
 
 	const currentPath = $derived(folder?.path || '');
-	const parentPath = $derived(
-		currentPath ? currentPath.split('/').slice(0, -1).join('/') || '/' : '/'
+	const newPath = $derived(joinPath(getParentPath(currentPath), folderName));
+	const isValidName = $derived(
+		isValidFolderName(folderName) && !(folder && folderName.trim() === folder.name)
 	);
-	const newPath = $derived(parentPath === '/' ? `/${folderName}` : `${parentPath}/${folderName}`);
-	const isValidName = $derived(validateFolderName(folderName));
 
 	$effect(() => {
 		if (folder && open) {
@@ -41,24 +41,6 @@
 		}
 	});
 
-	function validateFolderName(name: string): boolean {
-		if (!name.trim()) return false;
-
-		if (!/^[a-zA-Z0-9\-_\s]+$/.test(name)) {
-			return false;
-		}
-
-		if (name.length > 50) {
-			return false;
-		}
-
-		if (folder && name.trim() === folder.name) {
-			return false;
-		}
-
-		return true;
-	}
-
 	async function renameFolder() {
 		if (!isValidName || isLoading || !folder) return;
 
@@ -66,8 +48,7 @@
 		error = '';
 
 		try {
-			const normalizedName = folderName.trim().toLowerCase().replace(/\s+/g, '-');
-			await folderActions.renameFolder(folder.path, normalizedName);
+			await folderActions.renameFolder(folder.path, folderNameToSegment(folderName));
 			onRenamed();
 		} catch (err) {
 			error = getErrorMessage(err, 'Failed to rename folder');

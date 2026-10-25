@@ -1,5 +1,6 @@
 import type { Folder as FolderType, Document } from '$lib/api/types';
 import { folderActions, documentActions } from '$lib/stores/documents.svelte';
+import { joinPath } from '$lib/utils/path';
 
 export interface DragItem {
 	type: 'folder' | 'page';
@@ -91,7 +92,7 @@ export function useDragAndDrop(showPages: boolean) {
 		try {
 			const sourcePathSegments = sourcePath.split('/').filter(Boolean);
 			const itemName = sourcePathSegments[sourcePathSegments.length - 1];
-			const newPath = targetPath === '/' ? `/${itemName}` : `${targetPath}/${itemName}`;
+			const newPath = joinPath(targetPath, itemName);
 
 			if (type === 'folder') {
 				await folderActions.moveFolder(sourcePath, newPath);

@@ -73,7 +73,7 @@ test.describe('In-place editing', () => {
 
 		await expect(page).toHaveURL(new RegExp(`/documents${testDocument.path}\\?mode=edit$`));
 		await expect(editorPage.documentTitle).toContainText(testDocument.title);
-		await expect(documentViewPage.editButton).toHaveAttribute('aria-pressed', 'true');
+		await expect(documentViewPage.editButton).toHaveAttribute('aria-checked', 'true');
 	});
 
 	test('asks before leaving with unsaved changes; Discard keeps the stored text', async ({

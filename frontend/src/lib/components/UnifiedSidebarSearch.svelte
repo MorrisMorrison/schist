@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Search, X } from '@lucide/svelte';
+	import { Input } from '$lib/components/ui/input';
 
 	interface Props {
 		value?: string;
@@ -42,12 +43,12 @@
 		<Search
 			class="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform"
 		/>
-		<input
+		<Input
 			data-testid={dataTestId}
 			bind:value={currentQuery}
 			type="text"
 			{placeholder}
-			class="border-border bg-background focus:border-primary focus:ring-primary placeholder:text-muted-foreground w-full rounded-md border py-2 pr-10 pl-9 text-sm focus:ring-2 focus:outline-none"
+			class="pr-10 pl-9"
 			oninput={handleInput}
 			onkeydown={handleKeydown}
 		/>

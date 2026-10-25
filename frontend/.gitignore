@@ -29,3 +29,6 @@ playwright/.auth/
 
 # Vitest browser-mode failure screenshots
 __screenshots__
+
+# Vitest browser-mode failure screenshots
+.vitest-attachments/

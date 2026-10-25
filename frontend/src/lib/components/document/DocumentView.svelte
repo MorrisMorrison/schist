@@ -20,6 +20,7 @@
 		markLockedSecretPlaceholders
 	} from '$lib/stores/secrets.svelte';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
+	import { stripLeadingTitleHeading } from '$lib/utils/document-title';
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
 	import { documentActions, linksStore } from '$lib/stores/documents.svelte';
@@ -82,7 +83,8 @@
 	}
 
 	$effect(() => {
-		const content = document.content;
+		// The header already shows the title; don't render it twice.
+		const content = stripLeadingTitleHeading(document.content ?? '', documentTitle);
 		const unlocked = secretStore.secretsUnlocked;
 		// Secret lookup is async: drop the result if the document or lock state
 		// changed meanwhile, so an older document never overwrites a newer one.
@@ -225,14 +227,17 @@
 	<meta name="description" content={document.content?.slice(0, 160) || ''} />
 </svelte:head>
 
-<div class="mx-auto max-w-7xl space-y-8 p-6" data-testid="document-view">
+<div class="mx-auto max-w-[55rem] space-y-8 p-6" data-testid="document-view">
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
 	>
 		<div class="flex-1">
-			<h1 class="text-primary mb-4 text-4xl leading-tight font-bold" data-testid="document-title">
+			<h1
+				class="text-foreground mb-4 text-4xl leading-tight font-bold tracking-tight"
+				data-testid="document-title"
+			>
 				{documentTitle}
 			</h1>
 
@@ -273,7 +278,7 @@
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each documentTags as tag (tag)}
-								<Badge variant="default" class="text-xs text-white " data-testid="document-tag"
+								<Badge variant="secondary" class="text-xs font-medium" data-testid="document-tag"
 									>{tag}</Badge
 								>
 							{/each}
@@ -307,8 +312,9 @@
 			</Button>
 
 			<Button
-				variant="destructive"
+				variant="outline"
 				size="sm"
+				class="text-destructive hover:bg-destructive/10 hover:text-destructive dark:text-destructive dark:hover:text-destructive"
 				onclick={handleDeleteClick}
 				disabled={isDeleting}
 				title="Delete document"
@@ -320,9 +326,9 @@
 		</div>
 	</header>
 
-	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
+	<main>
 		{#if document.content}
-			<div bind:this={contentContainer} class="max-w-none" data-testid="document-content">
+			<div bind:this={contentContainer} class="reading max-w-[70ch]" data-testid="document-content">
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
@@ -337,7 +343,7 @@
 	</main>
 
 	{#if (linksStore.backlinks?.length || 0) > 0 || validOutgoingLinks.length > 0}
-		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
+		<section class="border-border rounded-lg border p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<Link2 class="text-muted-foreground h-5 w-5" />

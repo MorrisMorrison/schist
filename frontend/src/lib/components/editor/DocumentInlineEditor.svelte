@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { pageContainerVariants } from '$lib/components/ui/page-container';
 	// Edit mode of the document page: the markdown in the reading column, with a
 	// slim toolbar and save status above it. DocumentView keeps this mounted
 	// (hidden) while reading, so cursor, selection and undo survive the toggle.
@@ -101,7 +102,7 @@
 	aria-modal={focusMode ? true : undefined}
 	aria-label={focusMode ? 'Focus mode' : undefined}
 >
-	<div class={focusMode ? 'mx-auto max-w-[70ch] px-6 pb-6' : ''}>
+	<div class={focusMode ? pageContainerVariants({ class: 'space-y-0 pt-0' }) : ''}>
 		<div
 			class="bg-background/95 border-border sticky top-0 z-10 mb-6 flex items-center gap-3 border-b py-1.5 backdrop-blur"
 		>
@@ -145,7 +146,7 @@
 			</div>
 		{/if}
 
-		<div class="max-w-[70ch]">
+		<div>
 			<LazyProseEditor
 				bind:this={editor}
 				content={draft.content}

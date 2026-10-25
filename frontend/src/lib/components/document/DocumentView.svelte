@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PageContainer } from '$lib/components/ui/page-container';
 	import { formatLongDate } from '$lib/utils/date';
 	import {
 		BookOpen,
@@ -92,7 +93,7 @@
 	const documentTags = $derived(document.metaData?.tags || []);
 
 	let contentContainer = $state<HTMLDivElement>();
-	let viewRoot = $state<HTMLDivElement>();
+	let viewRoot = $state<HTMLElement | null>(null);
 
 	function scroller(): HTMLElement | null {
 		return (
@@ -330,12 +331,7 @@
 
 <svelte:window onkeydown={handleModeShortcut} />
 
-<div
-	bind:this={viewRoot}
-	class="mx-auto max-w-[55rem] space-y-8 p-6"
-	data-testid="document-view"
-	data-mode={mode}
->
+<PageContainer bind:ref={viewRoot} data-testid="document-view" data-mode={mode}>
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<header
@@ -489,7 +485,7 @@
 		{#if mode === 'edit'}
 			<!-- Editing: the editor above takes the rendered content's place. -->
 		{:else if document.content}
-			<div bind:this={contentContainer} class="reading max-w-[70ch]" data-testid="document-content">
+			<div bind:this={contentContainer} class="reading" data-testid="document-content">
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
@@ -614,7 +610,7 @@
 			{/if}
 		</section>
 	{/if}
-</div>
+</PageContainer>
 
 <DeleteConfirmModal
 	open={showDeleteModal}

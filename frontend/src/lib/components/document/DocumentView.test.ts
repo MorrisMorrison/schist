@@ -104,7 +104,8 @@ describe('DocumentView', () => {
 		]);
 		const content = screen.getByTestId('document-content');
 		expect(await within(content).findByText('Hello world')).toBeInTheDocument();
-		expect(within(content).getByRole('heading', { level: 1, name: 'Plan' })).toBeInTheDocument();
+		// The leading `# Plan` repeats the title: the header shows it, the body doesn't.
+		expect(within(content).queryByRole('heading', { level: 1, name: 'Plan' })).toBeNull();
 		expect(screen.getByTestId('breadcrumbs')).toHaveTextContent('notes');
 	});
 

@@ -278,13 +278,14 @@ describe('Sidebar', () => {
 		render(Sidebar);
 		expect(stubProps.ImportDocumentsModal.open).toBe(false);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Import Documents' }));
+		// Import moved into the tree's "+" menu, which calls onimport.
+		call('FolderTree', 'onimport');
 		expect(stubProps.ImportDocumentsModal.open).toBe(true);
 
 		call('ImportDocumentsModal', 'onSuccess');
 		expect(stubProps.ImportDocumentsModal.open).toBe(false);
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Import Documents' }));
+		call('FolderTree', 'onimport');
 		call('ImportDocumentsModal', 'onClose');
 		expect(stubProps.ImportDocumentsModal.open).toBe(false);
 	});

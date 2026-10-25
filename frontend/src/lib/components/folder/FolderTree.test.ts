@@ -66,7 +66,9 @@ describe('FolderTree', () => {
 	}
 
 	function treeItemNames() {
-		return screen.getAllByTestId('folder-name-button').map((b) => b.textContent!.trim());
+		return screen
+			.getAllByTestId('folder-name-button')
+			.map((b) => b.textContent!.replace(/\s+/g, ' ').trim());
 	}
 
 	beforeEach(() => {
@@ -82,6 +84,8 @@ describe('FolderTree', () => {
 
 	afterEach(() => {
 		cleanup();
+		// A menu that was open when the test ended leaves pointer events off.
+		document.body.style.pointerEvents = '';
 		resetAllState();
 		localStorage.removeItem(STORAGE_KEY);
 		vi.clearAllMocks();
@@ -93,7 +97,7 @@ describe('FolderTree', () => {
 		await waitFor(() => expect(apiClient.getFolderTree).toHaveBeenCalledTimes(1));
 		expect(apiClient.getDocuments).not.toHaveBeenCalled();
 		expect(screen.getByRole('tree', { name: 'Folder tree' })).toBeInTheDocument();
-		expect(treeItemNames()).toEqual(['notes (2)', 'work']);
+		expect(treeItemNames()).toEqual(['notes 2', 'work']);
 	});
 
 	it('also loads documents when pages are shown', async () => {
@@ -121,14 +125,15 @@ describe('FolderTree', () => {
 		expect(treeItemNames()).toEqual(['notes', 'work']);
 	});
 
-	it('keeps the root node in the sidebar when there are no folders yet', async () => {
+	it('keeps an (empty) tree in the sidebar when there are no folders yet', async () => {
 		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
 		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
 		setFoldersState({ folders: [] });
 		setDocumentsState({ documents: [] });
 		renderTree({ showPages: true });
-		// The root node's context menu is how the first folder gets created.
-		expect(screen.getByRole('button', { name: 'Open folder /' })).toBeInTheDocument();
+		// The sidebar has no root row; the "+" menu creates the first folder.
+		expect(screen.getByRole('tree', { name: 'Folder tree' })).toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: 'Open folder /' })).not.toBeInTheDocument();
 		expect(screen.queryByText('No folders yet')).not.toBeInTheDocument();
 	});
 
@@ -226,24 +231,56 @@ describe('FolderTree', () => {
 		expect(oncollapseall).toHaveBeenCalled();
 		expect(screen.queryByRole('button', { name: 'Open folder daily' })).not.toBeInTheDocument();
 
-		await userEvent.click(screen.getByTitle('Create new document'));
+		await userEvent.click(screen.getByTestId('sidebar-new-menu'));
+		await userEvent.click(await screen.findByRole('menuitem', { name: 'New page' }));
 		expect(ondocumentcreate).toHaveBeenCalledWith({ parentPath: '/' });
 	});
 
-	it('expand all includes the root node when pages are shown', async () => {
+	it('offers new page, new folder, import and export all in the + menu', async () => {
+		const handlers = {
+			ondocumentcreate: vi.fn(),
+			oncreate: vi.fn(),
+			onimport: vi.fn(),
+			onexportall: vi.fn()
+		};
+		renderTree({ showActions: true, showPages: true, ...handlers });
+
+		const pick = async (name: string) => {
+			// bits-ui disables pointer events on <body> until a closing menu is gone.
+			await waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'));
+			await userEvent.click(screen.getByTestId('sidebar-new-menu'));
+			await userEvent.click(await screen.findByRole('menuitem', { name }));
+		};
+		await pick('New folder');
+		expect(handlers.oncreate).toHaveBeenCalledWith({ parentPath: '/' });
+		await pick('Import documents');
+		expect(handlers.onimport).toHaveBeenCalledTimes(1);
+		await pick('Export all');
+		expect(handlers.onexportall).toHaveBeenCalledTimes(1);
+	});
+
+	it('leaves out import and export all when they are not wired', async () => {
+		renderTree({ showActions: true });
+		await userEvent.click(screen.getByTestId('sidebar-new-menu'));
+		expect(await screen.findByRole('menuitem', { name: 'New page' })).toBeInTheDocument();
+		expect(screen.queryByRole('menuitem', { name: 'Import documents' })).not.toBeInTheDocument();
+		expect(screen.queryByRole('menuitem', { name: 'Export all' })).not.toBeInTheDocument();
+	});
+
+	it('keeps top-level pages visible when collapsing all', async () => {
 		renderTree({ showActions: true, showPages: true });
 		await userEvent.click(screen.getByTitle('Collapse all folders'));
-		expect(screen.queryByText('Readme')).not.toBeInTheDocument();
-		await userEvent.click(screen.getByTitle('Expand all folders'));
+		// Top-level pages have no folder to collapse into.
 		expect(screen.getByText('Readme')).toBeInTheDocument();
+		expect(screen.queryByText('Today')).not.toBeInTheDocument();
+		await userEvent.click(screen.getByTitle('Expand all folders'));
 		expect(screen.getByText('Today')).toBeInTheDocument();
 	});
 
-	it('renders a root node with pages and selects documents', async () => {
+	it('lists top-level pages without a root row and selects documents', async () => {
 		const ondocumentselect = vi.fn();
 		renderTree({ showPages: true, ondocumentselect, currentPath: '/documents/readme' });
-		const root = folderItem('/');
-		expect(root).toHaveAttribute('aria-expanded', 'true');
+		expect(screen.queryByRole('button', { name: 'Open folder /' })).not.toBeInTheDocument();
 		expect(screen.getByText('Readme')).toBeInTheDocument();
 
 		await userEvent.click(
@@ -272,7 +309,7 @@ describe('FolderTree', () => {
 
 	it('finds a top-level page when no folder matches the search', async () => {
 		renderTree({ showSearch: true, showPages: true });
-		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");
+		const search = screen.getByPlaceholderText('Filter pages… (tag:name)');
 
 		await userEvent.type(search, 'readme');
 		expect(screen.getByText('Readme')).toBeInTheDocument();
@@ -283,7 +320,7 @@ describe('FolderTree', () => {
 		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
 		setFoldersState({ folders: [] });
 		renderTree({ showSearch: true, showPages: true });
-		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");
+		const search = screen.getByPlaceholderText('Filter pages… (tag:name)');
 
 		await userEvent.type(search, 'zzz-nothing');
 		expect(screen.getByText('No folders match your search.')).toBeInTheDocument();
@@ -292,7 +329,7 @@ describe('FolderTree', () => {
 
 	it('filters folders and pages by text and tag', async () => {
 		renderTree({ showSearch: true, showPages: true });
-		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");
+		const search = screen.getByPlaceholderText('Filter pages… (tag:name)');
 
 		await userEvent.type(search, 'daily');
 		expect(screen.getByRole('button', { name: 'Open folder notes' })).toBeInTheDocument();
@@ -385,15 +422,44 @@ describe('FolderTree', () => {
 		expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 	});
 
-	it('offers export-all on the root folder menu and hides rename/delete there', async () => {
-		const onexportall = vi.fn();
-		renderTree({ showPages: true, onexportall });
-		await fireEvent.contextMenu(folderItem('/'));
-		const menu = screen.getByRole('menu', { name: 'Folder actions' });
-		expect(within(menu).queryByText('Rename')).not.toBeInTheDocument();
-		expect(within(menu).queryByText('Delete')).not.toBeInTheDocument();
-		await userEvent.click(within(menu).getByText('Export'));
-		expect(onexportall).toHaveBeenCalledTimes(1);
+	it('moves an item to the top level when dropped on blank tree space', async () => {
+		vi.mocked(apiClient.moveFolder).mockResolvedValue(undefined as never);
+		renderTree({ showPages: true });
+		await userEvent.click(
+			screen.getByRole('button', { name: 'Open folder notes' }).previousElementSibling!
+		);
+		const dataTransfer = new DataTransfer();
+		const source = folderItem('daily');
+		const tree = screen.getByRole('tree', { name: 'Folder tree' });
+
+		await fireEvent.dragStart(source, { dataTransfer });
+		await fireEvent.dragOver(tree, { dataTransfer });
+		await fireEvent.drop(tree, { dataTransfer });
+
+		await waitFor(() =>
+			expect(apiClient.moveFolder).toHaveBeenCalledWith({
+				oldPath: '/notes/daily',
+				newPath: '/daily'
+			})
+		);
+		await fireEvent.dragEnd(source);
+	});
+
+	it('does not also move to the top level when dropped on a folder row', async () => {
+		vi.mocked(apiClient.moveFolder).mockResolvedValue(undefined as never);
+		renderTree({ showPages: true });
+		const dataTransfer = new DataTransfer();
+		const source = folderItem('work');
+		const target = folderItem('notes');
+
+		await fireEvent.dragStart(source, { dataTransfer });
+		await fireEvent.dragEnter(target, { dataTransfer });
+		await fireEvent.dragOver(target, { dataTransfer });
+		await fireEvent.drop(target, { dataTransfer });
+
+		await waitFor(() => expect(apiClient.moveFolder).toHaveBeenCalledTimes(1));
+		expect(apiClient.moveFolder).toHaveBeenCalledWith({ oldPath: '/work', newPath: '/notes/work' });
+		await fireEvent.dragEnd(source);
 	});
 
 	it('opens the document context menu and routes its actions', async () => {

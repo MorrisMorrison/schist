@@ -1,9 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import ThemeToggle from './ThemeToggle.svelte';
-	import { BurgerIcon } from './ui/burger-icon';
 	import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
-	import { Settings, Search, LogOut, User, Lock, Unlock } from '@lucide/svelte';
+	import {
+		Settings,
+		Search,
+		LogOut,
+		User,
+		Lock,
+		Unlock,
+		PanelLeftClose,
+		PanelLeftOpen,
+		Keyboard
+	} from '@lucide/svelte';
 	import { authStore } from '$lib/stores/auth.svelte';
 	import { authService } from '$lib/auth/auth-service';
 	import { secretStore } from '$lib/stores/secrets.svelte';
@@ -25,6 +34,10 @@
 
 	function openQuickSwitcher() {
 		window.dispatchEvent(new CustomEvent('openQuickSwitcher'));
+	}
+
+	function openKeyboardShortcuts() {
+		window.dispatchEvent(new CustomEvent('openKeyboardShortcuts'));
 	}
 
 	function handleLogout() {
@@ -71,45 +84,51 @@
 
 <nav class="border-primary bg-primary sticky top-0 z-50 border-b shadow-sm transition-colors">
 	<div class="relative">
-		<div class="absolute top-1/2 left-4 z-10 -translate-y-1/2 transform">
-			<BurgerIcon
-				isOpen={sidebar.isOpen}
-				onClick={sidebarActions.toggle}
-				size="lg"
-				class="text-muted-foreground hover:text-foreground"
-			/>
-		</div>
+		<div class="flex h-16 items-center">
+			<!-- Sidebar toggle and logo sit above the sidebar (same width when it's open). -->
+			<div
+				class="flex shrink-0 items-center gap-1 px-3 transition-[width] duration-300 ease-in-out"
+				class:md:w-[280px]={isSidebarOpen}
+			>
+				<button
+					type="button"
+					onclick={sidebarActions.toggle}
+					class="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md transition-colors"
+					aria-label={sidebar.isOpen ? 'Close sidebar' : 'Open sidebar'}
+					aria-expanded={sidebar.isOpen}
+					title={sidebar.isOpen ? 'Close sidebar (⌘B)' : 'Open sidebar (⌘B)'}
+				>
+					{#if sidebar.isOpen}
+						<PanelLeftClose class="h-5 w-5" />
+					{:else}
+						<PanelLeftOpen class="h-5 w-5" />
+					{/if}
+				</button>
+				<a href="/" class="flex items-center gap-1 no-underline hover:no-underline">
+					<img src="/icon-128x128.png" alt="Schist Logo" class="h-8 w-8 object-contain" />
+					<span class="text-foreground text-lg font-semibold tracking-tight">Schist</span>
+				</a>
+			</div>
 
-		<div
-			class="mx-auto ml-6 max-w-none px-4 pl-16 transition-colors duration-300 ease-in-out sm:px-6 lg:px-8"
-			class:md:ml-[280px]={isSidebarOpen}
-		>
-			<div class="flex h-16 justify-between">
-				<div class="flex items-center">
-					<div class="flex-shrink-0">
-						<a href="/" class="flex items-center">
-							<img src="/icon-128x128.png" alt="Schist Logo" class="h-10 w-10 object-contain" />
-							<span class="text-foreground text-xl font-semibold tracking-tight">Schist</span>
-						</a>
-					</div>
-
-					<div class="hidden md:ml-6 md:flex md:space-x-6">
+			<div class="flex flex-1 items-center justify-between px-4 sm:px-6">
+				<div class="flex h-16 items-center">
+					<div class="hidden md:flex md:space-x-6">
 						<a
 							href="/"
-							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page
+							class="inline-flex h-16 items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page
 								.url.pathname === '/' || page.url.pathname.startsWith('/folders')
-								? 'text-primary border-blue-500'
-								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"
+								? 'text-foreground border-primary'
+								: 'text-muted-foreground hover:text-foreground border-transparent'}"
 							data-testid="nav-home"
 						>
 							Home
 						</a>
 						<a
 							href="/recent"
-							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page
+							class="inline-flex h-16 items-center border-b-2 px-1 pt-1 text-sm font-medium no-underline transition-colors {page
 								.url.pathname === '/recent'
-								? 'text-primary border-blue-500'
-								: 'text-secondary border-transparent hover:border-gray-300 hover:text-white'}"
+								? 'text-foreground border-primary'
+								: 'text-muted-foreground hover:text-foreground border-transparent'}"
 							data-testid="nav-recent"
 						>
 							Recent
@@ -141,6 +160,18 @@
 
 					<!-- 2. Theme Toggle -->
 					<ThemeToggle />
+
+					<!-- Keyboard shortcuts (also on "?") -->
+					<button
+						type="button"
+						onclick={openKeyboardShortcuts}
+						class="border-secondary bg-primary text-primary hover:bg-gray-hover hidden cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none md:inline-flex"
+						title="Keyboard shortcuts (?)"
+						aria-label="Keyboard shortcuts"
+						data-testid="keyboard-shortcuts-button"
+					>
+						<Keyboard class="h-4 w-4" />
+					</button>
 
 					<!-- 3. Secret Lock Toggle Button -->
 					{#if authStore.user && !secretStore.secretsUnlocked}
@@ -330,7 +361,7 @@
 						onclick={closeMenu}
 						class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {page.url.pathname ===
 							'/' || page.url.pathname.startsWith('/folders')
-							? 'bg-blue-muted text-blue-primary border-blue-500'
+							? 'bg-accent text-foreground border-primary'
 							: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"
 					>
 						Home
@@ -340,7 +371,7 @@
 						onclick={closeMenu}
 						class="block border-l-4 py-2 pr-4 pl-3 text-base font-medium {page.url.pathname ===
 						'/recent'
-							? 'bg-blue-muted text-blue-primary border-blue-500'
+							? 'bg-accent text-foreground border-primary'
 							: 'text-secondary hover:bg-gray-hover hover:text-primary border-transparent hover:border-gray-300'}"
 						data-testid="nav-recent-mobile"
 					>

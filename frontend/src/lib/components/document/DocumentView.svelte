@@ -1,7 +1,19 @@
 <script lang="ts">
-	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History, Share } from '@lucide/svelte';
+	import {
+		Edit,
+		Trash2,
+		Calendar,
+		Tag,
+		Link2,
+		GitBranch,
+		History,
+		Share,
+		Download,
+		Ellipsis
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
 	import VersionHistoryModal from '../VersionHistoryModal.svelte';
@@ -311,18 +323,43 @@
 				Share
 			</Button>
 
-			<Button
-				variant="outline"
-				size="sm"
-				class="text-destructive hover:bg-destructive/10 hover:text-destructive dark:text-destructive dark:hover:text-destructive"
-				onclick={handleDeleteClick}
-				disabled={isDeleting}
-				title="Delete document"
-				data-testid="delete-document-button"
-			>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</Button>
+			<!-- Less frequent actions, and Delete away from the everyday buttons. -->
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger
+					class="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+					aria-label="More actions"
+					title="More actions"
+					data-testid="document-actions-menu"
+				>
+					<Ellipsis class="h-4 w-4" />
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end" class="w-48">
+					<DropdownMenu.Item
+						onSelect={handleVersionHistoryClick}
+						data-testid="version-history-menu-item"
+					>
+						<History />
+						Version history
+					</DropdownMenu.Item>
+					<DropdownMenu.Item
+						onSelect={() => apiClient.exportDocument(documentPath)}
+						data-testid="download-document-menu-item"
+					>
+						<Download />
+						Download
+					</DropdownMenu.Item>
+					<DropdownMenu.Separator />
+					<DropdownMenu.Item
+						variant="destructive"
+						onSelect={handleDeleteClick}
+						disabled={isDeleting}
+						data-testid="delete-document-button"
+					>
+						<Trash2 />
+						Delete
+					</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
 		</div>
 	</header>
 

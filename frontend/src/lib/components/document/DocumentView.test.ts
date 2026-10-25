@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import { flushSync } from 'svelte';
 import type { Document, DocumentVersion, WikiLink } from '$lib/api/types';
 
@@ -16,7 +17,8 @@ vi.mock('$lib/api/client', () => ({
 		getDocumentByPath: vi.fn(),
 		getAssetUrl: vi.fn((path: string) => path),
 		getSecretsStatus: vi.fn(),
-		getSecret: vi.fn()
+		getSecret: vi.fn(),
+		exportDocument: vi.fn()
 	}
 }));
 
@@ -71,6 +73,14 @@ function deferred<T>() {
 	return { promise, resolve };
 }
 
+// Delete lives in the "More actions" menu. bits-ui turns pointer events off on
+// <body> while a menu or dialog closes, so wait for that before clicking.
+async function clickDelete() {
+	await vi.waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'));
+	await userEvent.click(screen.getByTestId('document-actions-menu'));
+	await userEvent.click(await screen.findByTestId('delete-document-button'));
+}
+
 describe('DocumentView', () => {
 	beforeEach(() => {
 		pageState.url = new URL('http://localhost/documents/notes/plan');
@@ -85,6 +95,7 @@ describe('DocumentView', () => {
 
 	afterEach(() => {
 		cleanup();
+		document.body.style.pointerEvents = '';
 		resetAllState();
 		secretStore.reset();
 		for (const key of Object.keys(stubProps)) delete stubProps[key];
@@ -144,6 +155,21 @@ describe('DocumentView', () => {
 		stubProps.VersionHistoryModal.onClose();
 		flushSync();
 		expect(stubProps.VersionHistoryModal.open).toBe(false);
+	});
+
+	it('offers version history and download in the more-actions menu', async () => {
+		render(DocumentView, { props: { document: makeDoc() } });
+
+		await userEvent.click(screen.getByTestId('document-actions-menu'));
+		await userEvent.click(await screen.findByRole('menuitem', { name: 'Version history' }));
+		expect(stubProps.VersionHistoryModal.open).toBe(true);
+		stubProps.VersionHistoryModal.onClose();
+		flushSync();
+
+		await vi.waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'));
+		await userEvent.click(screen.getByTestId('document-actions-menu'));
+		await userEvent.click(await screen.findByRole('menuitem', { name: 'Download' }));
+		expect(apiClient.exportDocument).toHaveBeenCalledWith('/notes/plan');
 	});
 
 	it('shows an empty version list when loading the history fails', async () => {
@@ -224,23 +250,23 @@ describe('DocumentView', () => {
 		const onDelete = vi.fn(() => done.promise);
 		render(DocumentView, { props: { document: makeDoc(), onDelete } });
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await fireEvent.click(await screen.findByTestId('confirm-delete-button'));
 
 		expect(onDelete).toHaveBeenCalledWith('/notes/plan');
-		expect(screen.getByTestId('delete-document-button')).toBeDisabled();
+		// The dialog waits for the async delete before closing.
+		expect(screen.getByTestId('confirm-delete-button')).toBeInTheDocument();
 		done.resolve();
 		await vi.waitFor(() =>
 			expect(screen.queryByTestId('confirm-delete-button')).not.toBeInTheDocument()
 		);
-		expect(screen.getByTestId('delete-document-button')).not.toBeDisabled();
 	});
 
 	it('deletes with a synchronous onDelete', async () => {
 		const onDelete = vi.fn();
 		render(DocumentView, { props: { document: makeDoc(), onDelete } });
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await fireEvent.click(await screen.findByTestId('confirm-delete-button'));
 
 		expect(onDelete).toHaveBeenCalledTimes(1);
@@ -254,7 +280,7 @@ describe('DocumentView', () => {
 		const onDelete = vi.fn().mockRejectedValue(new Error('locked'));
 		render(DocumentView, { props: { document: makeDoc(), onDelete } });
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await fireEvent.click(await screen.findByTestId('confirm-delete-button'));
 
 		await vi.waitFor(() => expect(console.error).toHaveBeenCalled());
@@ -265,7 +291,7 @@ describe('DocumentView', () => {
 		const onDelete = vi.fn();
 		render(DocumentView, { props: { document: makeDoc(), onDelete } });
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 
 		await vi.waitFor(() =>

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
 import type { Document, UpdateDocumentRequest } from '$lib/api/types';
 
 vi.mock('$lib/components/editor/LazyEditor.svelte', async () => ({
@@ -38,6 +39,14 @@ async function typeInEditor(value: string) {
 
 const saveButton = () => screen.getByTestId('save-document-button');
 
+// Delete lives in the "More actions" menu. bits-ui turns pointer events off on
+// <body> while a menu or dialog closes, so wait for that before clicking.
+async function clickDelete() {
+	await vi.waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'));
+	await userEvent.click(screen.getByTestId('document-actions-menu'));
+	await userEvent.click(await screen.findByTestId('delete-document-button'));
+}
+
 describe('DocumentEditView', () => {
 	beforeEach(() => {
 		vi.mocked(documentActions.checkDocumentExists).mockResolvedValue(false);
@@ -49,6 +58,7 @@ describe('DocumentEditView', () => {
 
 	afterEach(() => {
 		cleanup();
+		document.body.style.pointerEvents = '';
 		vi.useRealTimers();
 		vi.clearAllMocks();
 		vi.restoreAllMocks();
@@ -204,7 +214,7 @@ describe('DocumentEditView', () => {
 		vi.mocked(documentActions.deleteDocumentByPath).mockResolvedValue(undefined as never);
 		renderView();
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await fireEvent.click(await screen.findByTestId('confirm-delete-button'));
 
 		await vi.waitFor(() => expect(goto).toHaveBeenCalledWith('/'));
@@ -216,7 +226,7 @@ describe('DocumentEditView', () => {
 		vi.mocked(documentActions.deleteDocumentByPath).mockRejectedValue(new Error('locked'));
 		renderView();
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await fireEvent.click(await screen.findByTestId('confirm-delete-button'));
 
 		expect(await screen.findByText('locked')).toBeInTheDocument();
@@ -226,13 +236,13 @@ describe('DocumentEditView', () => {
 	it('closes the delete dialog with Cancel or Escape', async () => {
 		renderView();
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 		await vi.waitFor(() =>
 			expect(screen.queryByTestId('confirm-delete-button')).not.toBeInTheDocument()
 		);
 
-		await fireEvent.click(screen.getByTestId('delete-document-button'));
+		await clickDelete();
 		await screen.findByTestId('confirm-delete-button');
 		await fireEvent.keyDown(window, { key: 'Escape' });
 		await vi.waitFor(() =>

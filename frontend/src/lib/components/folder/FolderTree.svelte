@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Folder, FolderOpen, Plus } from '@lucide/svelte';
+	import { Folder, FolderOpen, FolderPlus, FilePlus, Plus, Upload, Download } from '@lucide/svelte';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
@@ -45,6 +46,7 @@
 		onfolderexport?: (event: { path: string; folder: FolderType }) => void;
 		ondocumentexport?: (event: { path: string; document: Document }) => void;
 		onexportall?: () => void;
+		onimport?: () => void;
 	}
 
 	let {
@@ -70,7 +72,8 @@
 		oncollapseall,
 		onfolderexport,
 		ondocumentexport,
-		onexportall
+		onexportall,
+		onimport
 	}: Props = $props();
 
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
@@ -476,13 +479,13 @@
 
 <div class={cn('select-none', className)}>
 	{#if showActions}
-		<div class="border-border flex items-center justify-between border-b p-4">
-			<h2 class="text-primary text-lg font-semibold">Pages</h2>
+		<div class="border-border flex items-center justify-between border-b px-4 py-3">
+			<h2 class="text-foreground text-sm font-semibold">Pages</h2>
 			<div class="flex items-center gap-1">
 				<Button
 					variant="ghost"
 					size="icon"
-					class="h-6 w-6"
+					class="h-7 w-7"
 					onclick={expandAll}
 					title="Expand all folders"
 				>
@@ -491,21 +494,54 @@
 				<Button
 					variant="ghost"
 					size="icon"
-					class="h-6 w-6"
+					class="h-7 w-7"
 					onclick={collapseAll}
 					title="Collapse all folders"
 				>
 					<Folder class="h-4 w-4" />
 				</Button>
-				<Button
-					variant="ghost"
-					size="icon"
-					class="h-6 w-6"
-					onclick={() => ondocumentcreate?.({ parentPath: '/' })}
-					title="Create new document"
-				>
-					<Plus class="h-4 w-4" />
-				</Button>
+				<!-- One "new" menu: replaces the root node's context menu and the Import button. -->
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger
+						class="hover:bg-accent hover:text-accent-foreground inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+						title="New page, folder or import"
+						aria-label="New"
+						data-testid="sidebar-new-menu"
+					>
+						<Plus class="h-4 w-4" />
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="end" class="w-48">
+						<DropdownMenu.Item
+							onSelect={() => ondocumentcreate?.({ parentPath: '/' })}
+							data-testid="new-page-menu-item"
+						>
+							<FilePlus />
+							New page
+						</DropdownMenu.Item>
+						<DropdownMenu.Item
+							onSelect={() => oncreate?.({ parentPath: '/' })}
+							data-testid="new-folder-menu-item"
+						>
+							<FolderPlus />
+							New folder
+						</DropdownMenu.Item>
+						{#if onimport || onexportall}
+							<DropdownMenu.Separator />
+						{/if}
+						{#if onimport}
+							<DropdownMenu.Item onSelect={onimport} data-testid="import-documents-menu-item">
+								<Upload />
+								Import documents
+							</DropdownMenu.Item>
+						{/if}
+						{#if onexportall}
+							<DropdownMenu.Item onSelect={onexportall} data-testid="export-all-menu-item">
+								<Download />
+								Export all
+							</DropdownMenu.Item>
+						{/if}
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
 			</div>
 		</div>
 	{/if}
@@ -515,7 +551,7 @@
 			<UnifiedSidebarSearch
 				dataTestId="sidebar-search"
 				value={unifiedSearchQuery}
-				placeholder="Filter folders, pages... (try 'tag:name')"
+				placeholder="Filter pages… (tag:name)"
 				onSearch={(query: string) => {
 					unifiedSearchQuery = query;
 				}}
@@ -547,12 +583,21 @@
 		</div>
 	{:else}
 		<!-- Folder Tree -->
+		<!-- With the root row hidden, blank space in the tree is the drop target
+		     for moving something to the top level. Only drops on the tree itself
+		     count: drops on a folder or page row bubble up here too. -->
 		<div
-			class="space-y-1"
+			class={cn('space-y-1', showPages && 'min-h-16 pb-6')}
 			role="tree"
 			aria-label="Folder tree"
 			data-testid="folder-tree"
 			tabindex="0"
+			ondragover={(e) => {
+				if (showPages && e.target === e.currentTarget) dragAndDrop.handleDragOver(e, '/');
+			}}
+			ondrop={(e) => {
+				if (showPages && e.target === e.currentTarget) dragAndDrop.handleDrop(e, '/');
+			}}
 			oncontextmenu={(e) => {
 				// Prevent context menu from appearing when right-clicking on empty tree space
 				// Only allow context menus on specific folder/page items
@@ -576,7 +621,8 @@
 						document_count: getFilteredPagesForFolder('/').length,
 						sub_folders: filteredFolders
 					}}
-					depth={0}
+					hideRow
+					depth={-1}
 					{maxDepth}
 					isExpanded={expandedFolders.has('/')}
 					isSelected={selectedPath === '/'}

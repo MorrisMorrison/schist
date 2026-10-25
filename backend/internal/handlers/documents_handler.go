@@ -26,8 +26,7 @@ func (h *APIHandler) listDocuments(c *gin.Context) {
 
 func (h *APIHandler) createDocument(c *gin.Context) {
 	document := &models.Document{}
-	if apiErr := ValidateJSONBody(c, document); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, document) {
 		return
 	}
 
@@ -48,12 +47,7 @@ func (h *APIHandler) createDocument(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentByPath(c *gin.Context) {
-	path, apiErr := ValidatePathParameter(c, "path")
-	if apiErr != nil {
-		HandleError(c, apiErr)
-		return
-	}
-	path = utils.EnsureLeadingSlash(path)
+	path := pathParam(c)
 
 	document, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
@@ -65,12 +59,7 @@ func (h *APIHandler) getDocumentByPath(c *gin.Context) {
 }
 
 func (h *APIHandler) checkDocumentExists(c *gin.Context) {
-	path, apiErr := ValidatePathParameter(c, "path")
-	if apiErr != nil {
-		HandleError(c, apiErr)
-		return
-	}
-	path = utils.EnsureLeadingSlash(path)
+	path := pathParam(c)
 
 	_, err := h.DocumentService.GetDocumentByPath(path)
 	if err != nil {
@@ -82,12 +71,7 @@ func (h *APIHandler) checkDocumentExists(c *gin.Context) {
 }
 
 func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
-	path, apiErr := ValidatePathParameter(c, "path")
-	if apiErr != nil {
-		HandleError(c, apiErr)
-		return
-	}
-	path = utils.EnsureLeadingSlash(path)
+	path := pathParam(c)
 
 	type UpdateDocumentRequest struct {
 		*models.Document
@@ -95,8 +79,7 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	}
 
 	var req UpdateDocumentRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -129,12 +112,7 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 }
 
 func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {
-	path, apiErr := ValidatePathParameter(c, "path")
-	if apiErr != nil {
-		HandleError(c, apiErr)
-		return
-	}
-	path = utils.EnsureLeadingSlash(path)
+	path := pathParam(c)
 
 	if strings.HasPrefix(path, "/trash") {
 		if err := h.DocumentService.DeleteDocument(path); err != nil {
@@ -178,8 +156,7 @@ func (h *APIHandler) moveDocument(c *gin.Context) {
 	}
 
 	var req MoveRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 

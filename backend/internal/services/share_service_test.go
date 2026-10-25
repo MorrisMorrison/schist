@@ -1,7 +1,6 @@
 package services_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -12,9 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupShareServiceTest(t *testing.T) (string, *services.ShareService, *services.DocumentService, func()) {
-	testDir, err := os.MkdirTemp("", "share-service-test-*")
-	require.NoError(t, err)
+func setupShareServiceTest(t *testing.T) (string, *services.ShareService, *services.DocumentService) {
+	testDir := t.TempDir()
 
 	// Setup config
 	cfg := &config.Config{
@@ -24,13 +22,7 @@ func setupShareServiceTest(t *testing.T) (string, *services.ShareService, *servi
 		ShareMaxExpiryDays:     30,
 	}
 
-	// Setup document service
-	gitService, err := services.NewGitService(testDir)
-	if err != nil {
-		t.Skipf("Skipping test, git service not available: %v", err)
-	}
-	ignoreService := services.NewIgnoreService(testDir)
-	documentService := services.NewDocumentService(testDir, gitService, ignoreService)
+	documentService := setupDocumentService(t, testDir)
 
 	// Create a test document
 	testDoc := &models.Document{
@@ -45,23 +37,17 @@ func setupShareServiceTest(t *testing.T) (string, *services.ShareService, *servi
 
 	shareService := services.NewShareService(cfg, documentService)
 
-	cleanup := func() {
-		os.RemoveAll(testDir)
-	}
-
-	return testDir, shareService, documentService, cleanup
+	return testDir, shareService, documentService
 }
 
 func TestShareService_NewShareService(t *testing.T) {
-	_, shareService, _, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, _ := setupShareServiceTest(t)
 
 	assert.NotNil(t, shareService)
 }
 
 func TestShareService_CreateShare(t *testing.T) {
-	_, shareService, _, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, _ := setupShareServiceTest(t)
 
 	t.Run("creates share successfully with default expiry", func(t *testing.T) {
 		share, err := shareService.CreateShare("/test-share-doc", "admin", 0)
@@ -134,8 +120,7 @@ func TestShareService_CreateShare(t *testing.T) {
 }
 
 func TestShareService_GetSharedDocument(t *testing.T) {
-	_, shareService, _, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, _ := setupShareServiceTest(t)
 
 	// Create a share first
 	share, err := shareService.CreateShare("/test-share-doc", "admin", 7)
@@ -168,8 +153,7 @@ func TestShareService_GetSharedDocument(t *testing.T) {
 }
 
 func TestShareService_ListShares(t *testing.T) {
-	_, shareService, _, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, _ := setupShareServiceTest(t)
 
 	t.Run("returns empty list when no shares", func(t *testing.T) {
 		shares, err := shareService.ListShares("admin")
@@ -214,8 +198,7 @@ func TestShareService_ListShares(t *testing.T) {
 }
 
 func TestShareService_RevokeShare(t *testing.T) {
-	_, shareService, _, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, _ := setupShareServiceTest(t)
 
 	// Create a share
 	share, err := shareService.CreateShare("/test-share-doc", "admin", 7)
@@ -259,8 +242,7 @@ func TestShareService_RevokeShare(t *testing.T) {
 }
 
 func TestShareService_CleanupExpiredShares(t *testing.T) {
-	_, shareService, _, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, _ := setupShareServiceTest(t)
 
 	// Create some shares (we can't easily create expired ones with the current API)
 	_, err := shareService.CreateShare("/test-share-doc", "admin", 7)
@@ -286,8 +268,7 @@ func TestShareService_CleanupExpiredShares(t *testing.T) {
 }
 
 func TestShareService_Integration(t *testing.T) {
-	_, shareService, documentService, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, documentService := setupShareServiceTest(t)
 
 	t.Run("full share workflow", func(t *testing.T) {
 		// Create multiple documents
@@ -369,14 +350,9 @@ func TestShareService_ErrorCases(t *testing.T) {
 		}
 
 		// Create a mock document service (this would normally fail too)
-		testDir, err := os.MkdirTemp("", "temp-doc-service-*")
-		require.NoError(t, err)
-		defer os.RemoveAll(testDir)
+		testDir := t.TempDir()
 
-		gitService, err := services.NewGitService(testDir)
-		require.NoError(t, err)
-		ignoreService := services.NewIgnoreService(testDir)
-		documentService := services.NewDocumentService(testDir, gitService, ignoreService)
+		documentService := setupDocumentService(t, testDir)
 
 		shareService := services.NewShareService(cfg, documentService)
 
@@ -384,7 +360,7 @@ func TestShareService_ErrorCases(t *testing.T) {
 		assert.NotNil(t, shareService)
 
 		// But operations that need to write should fail
-		_, err = shareService.CreateShare("/non-existent", "admin", 7)
+		_, err := shareService.CreateShare("/non-existent", "admin", 7)
 		assert.Error(t, err)
 	})
 }

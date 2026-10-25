@@ -52,7 +52,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 ## Conventions
 - **Errors:** services return typed errors from `internal/errors`; handlers just call `HandleError(c, err)`, which finds them with `errors.As` (so `%w` wrapping is fine) and writes the `{error, code, details}` envelope. Plain `fmt.Errorf` means an internal 500: the cause is logged, not returned. Never map status codes by matching error text, and never send `err.Error()` to the client.
 - **Paths:** every user-supplied path goes through the `utils` path helpers (no `..`, stays inside the data dir).
-- **JSON stores** (users, shares) are guarded by a mutex and written atomically (temp file + rename); follow `saveShares` / `saveUsers` for any new store.
+- **JSON stores** (users, shares, passkeys) use the generic `jsonStore[T]` in `services/json_store.go`: every read-modify-write runs under its mutex (`update`) and every write is atomic (temp file + rename). Use it for any new store.
 - **Config:** new settings are `SCHIST_*` env vars in `internal/config`, documented in `docs/CONFIGURATION.md` with a safe default.
 - **Frontend:** Svelte 5 runes, TypeScript everywhere. Backend calls only through `lib/api/client.ts`; shared state in `lib/stores`. Handle API errors by HTTP status / `code`, not message strings.
 - **Component library:** `lib/components/ui/*`, its variants and the design tokens in `app.css` are a complete library. Don't delete parts because they're currently unused. Unused *app* code is fair to remove.

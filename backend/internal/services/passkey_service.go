@@ -4,14 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/url"
-	"os"
 	"path/filepath"
-	"sync"
+	"slices"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -20,7 +18,6 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/errors"
-	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 // PasskeyCredential represents a stored passkey credential
@@ -82,13 +79,13 @@ func (u PasskeyUser) WebAuthnIcon() string {
 
 // PasskeyService provides WebAuthn passkey functionality
 type PasskeyService struct {
-	dataDir  string
 	webauthn *webauthn.WebAuthn
 
-	// mu serializes read-modify-write cycles on passkeys.json so concurrent
-	// registrations, sign-count updates and deletes cannot drop each other's
-	// changes (losing a just-registered passkey locks the user out).
-	mu sync.Mutex
+	// credentials is passkeys.json. Its lock serializes read-modify-write
+	// cycles so concurrent registrations, sign-count updates and deletes cannot
+	// drop each other's changes (losing a just-registered passkey locks the
+	// user out).
+	credentials *jsonStore[PasskeyStorage]
 }
 
 // NewPasskeyService creates a new passkey service with proper WebAuthn configuration
@@ -150,60 +147,21 @@ func NewPasskeyService(config *config.Config) (*PasskeyService, error) {
 	}
 
 	return &PasskeyService{
-		dataDir:  config.DataDir,
 		webauthn: webAuthn,
+		credentials: &jsonStore[PasskeyStorage]{
+			path: filepath.Join(config.DataDir, appStateDir, "passkeys.json"),
+			perm: 0600,
+			name: "passkey storage",
+			empty: func() PasskeyStorage {
+				return PasskeyStorage{Version: 1, Credentials: []PasskeyCredential{}}
+			},
+		},
 	}, nil
-}
-
-func (ps *PasskeyService) getStoragePath() string {
-	return filepath.Join(ps.dataDir, ".schist", "passkeys.json")
-}
-
-func (ps *PasskeyService) loadCredentials() (*PasskeyStorage, error) {
-	storagePath := ps.getStoragePath()
-
-	if _, err := os.Stat(storagePath); os.IsNotExist(err) {
-		return &PasskeyStorage{
-			Version:     1,
-			Credentials: []PasskeyCredential{},
-		}, nil
-	}
-
-	data, err := os.ReadFile(storagePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read passkey storage: %w", err)
-	}
-
-	var storage PasskeyStorage
-	if err := json.Unmarshal(data, &storage); err != nil {
-		return nil, fmt.Errorf("failed to parse passkey storage: %w", err)
-	}
-
-	return &storage, nil
-}
-
-func (ps *PasskeyService) saveCredentials(storage *PasskeyStorage) error {
-	storagePath := ps.getStoragePath()
-
-	if err := os.MkdirAll(filepath.Dir(storagePath), 0755); err != nil {
-		return fmt.Errorf("failed to create passkey directory: %w", err)
-	}
-
-	data, err := json.MarshalIndent(storage, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal passkey storage: %w", err)
-	}
-
-	if err := utils.WriteFileAtomic(storagePath, data, 0600); err != nil {
-		return fmt.Errorf("failed to write passkey storage: %w", err)
-	}
-
-	return nil
 }
 
 // getUser creates a PasskeyUser with all stored credentials
 func (ps *PasskeyService) getUser() (*PasskeyUser, error) {
-	storage, err := ps.loadCredentials()
+	storage, err := ps.credentials.read()
 	if err != nil {
 		return nil, err
 	}
@@ -312,17 +270,11 @@ func (ps *PasskeyService) FinishRegistration(
 		KeySeed: keySeed,
 	}
 
-	// Save to storage
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-
-	storage, err := ps.loadCredentials()
+	err = ps.credentials.update(func(storage *PasskeyStorage) error {
+		storage.Credentials = append(storage.Credentials, passkeyCredential)
+		return nil
+	})
 	if err != nil {
-		return "", err
-	}
-
-	storage.Credentials = append(storage.Credentials, passkeyCredential)
-	if err := ps.saveCredentials(storage); err != nil {
 		return "", err
 	}
 
@@ -364,28 +316,18 @@ func (ps *PasskeyService) FinishAuthentication(
 	}
 
 	// Update the credential's sign count
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-
-	storage, err := ps.loadCredentials()
-	if err != nil {
-		return "", err
-	}
-
 	var credentialID string
-	for i, cred := range storage.Credentials {
-		if string(cred.CredentialID) == string(credential.ID) {
-			storage.Credentials[i].Authenticator.SignCount = credential.Authenticator.SignCount
-			credentialID = cred.ID
-			break
+	err = ps.credentials.update(func(storage *PasskeyStorage) error {
+		for i, cred := range storage.Credentials {
+			if string(cred.CredentialID) == string(credential.ID) {
+				storage.Credentials[i].Authenticator.SignCount = credential.Authenticator.SignCount
+				credentialID = cred.ID
+				return nil
+			}
 		}
-	}
-
-	if credentialID == "" {
-		return "", errors.NewUnauthorizedError("Authentication failed")
-	}
-
-	if err := ps.saveCredentials(storage); err != nil {
+		return errors.NewUnauthorizedError("Authentication failed")
+	})
+	if err != nil {
 		return "", err
 	}
 
@@ -394,7 +336,7 @@ func (ps *PasskeyService) FinishAuthentication(
 
 // GetEncryptionKey derives an encryption key from a passkey
 func (ps *PasskeyService) GetEncryptionKey(credentialID string) ([]byte, error) {
-	storage, err := ps.loadCredentials()
+	storage, err := ps.credentials.read()
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +363,7 @@ func (ps *PasskeyService) deriveKeyFromSeed(keySeed []byte) ([]byte, error) {
 
 // ListCredentials returns a list of registered passkey credentials
 func (ps *PasskeyService) ListCredentials() ([]PasskeyCredentialInfo, error) {
-	storage, err := ps.loadCredentials()
+	storage, err := ps.credentials.read()
 	if err != nil {
 		return nil, err
 	}
@@ -447,27 +389,19 @@ type PasskeyCredentialInfo struct {
 
 // DeleteCredential removes a passkey credential
 func (ps *PasskeyService) DeleteCredential(credentialID string) error {
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-
-	storage, err := ps.loadCredentials()
-	if err != nil {
-		return err
-	}
-
-	for i, cred := range storage.Credentials {
-		if cred.ID == credentialID {
-			storage.Credentials = append(storage.Credentials[:i], storage.Credentials[i+1:]...)
-			return ps.saveCredentials(storage)
+	return ps.credentials.update(func(storage *PasskeyStorage) error {
+		i := slices.IndexFunc(storage.Credentials, func(c PasskeyCredential) bool { return c.ID == credentialID })
+		if i < 0 {
+			return errors.NewNotFoundError("passkey", credentialID)
 		}
-	}
-
-	return errors.NewNotFoundError("passkey", credentialID)
+		storage.Credentials = slices.Delete(storage.Credentials, i, i+1)
+		return nil
+	})
 }
 
 // HasCredentials returns whether any passkey credentials are registered
 func (ps *PasskeyService) HasCredentials() (bool, error) {
-	storage, err := ps.loadCredentials()
+	storage, err := ps.credentials.read()
 	if err != nil {
 		return false, err
 	}

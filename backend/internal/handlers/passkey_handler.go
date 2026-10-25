@@ -15,6 +15,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 
 	"github.com/MorrisMorrison/schist/internal/errors"
+	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
 )
 
@@ -147,8 +148,7 @@ func (s *sessionStoreT) Take(id string) (*webauthn.SessionData, bool) {
 func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req BeginRegistrationRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -179,8 +179,7 @@ func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFun
 func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req FinishRegistrationRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -252,8 +251,7 @@ func BeginPasskeyAuthenticationHandler(services *services.Services) gin.HandlerF
 func FinishPasskeyAuthenticationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req FinishAuthenticationRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -298,15 +296,8 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 
 func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		username, ok := currentUser(c)
+		user, ok := requireUserRecord(c, services)
 		if !ok {
-			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
-			return
-		}
-
-		user, err := services.UserService.GetUserByUsername(username)
-		if err != nil {
-			HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
 			return
 		}
 
@@ -322,7 +313,7 @@ func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 				userPasskeys = append(userPasskeys, PasskeyInfo{
 					ID:        cred.ID,
 					Name:      cred.Name,
-					CreatedAt: cred.CreatedAt.Format("2006-01-02T15:04:05Z"),
+					CreatedAt: cred.CreatedAt.Format(apiTimeFormat),
 				})
 			}
 		}
@@ -338,8 +329,7 @@ func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 func UnlockWithPasskeyHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req UnlockWithPasskeyRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -366,21 +356,13 @@ func UnlockWithPasskeyHandler(services *services.Services) gin.HandlerFunc {
 
 func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		credentialID := c.Param("id")
-		if credentialID == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("id"))
-			return
-		}
-
-		username, ok := currentUser(c)
+		credentialID, ok := requiredParam(c, "id")
 		if !ok {
-			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 			return
 		}
 
-		user, err := services.UserService.GetUserByUsername(username)
-		if err != nil {
-			HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
+		user, ok := requireUserRecord(c, services)
+		if !ok {
 			return
 		}
 
@@ -389,7 +371,7 @@ func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 			return
 		}
 
-		err = services.PasskeyService.DeleteCredential(credentialID)
+		err := services.PasskeyService.DeleteCredential(credentialID)
 		if err != nil {
 			HandleError(c, err)
 			return
@@ -415,6 +397,21 @@ func PasskeyStatusHandler(services *services.Services) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, status)
 	}
+}
+
+// requireUserRecord returns the signed-in user's record: 401 without a session,
+// 404 when the user no longer exists.
+func requireUserRecord(c *gin.Context, services *services.Services) (*models.User, bool) {
+	username, ok := requireUser(c)
+	if !ok {
+		return nil, false
+	}
+	user, err := services.UserService.GetUserByUsername(username)
+	if err != nil {
+		HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
+		return nil, false
+	}
+	return user, true
 }
 
 // authorizePasskeyRegistration gates passkey registration. In this single-user

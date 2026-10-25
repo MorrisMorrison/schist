@@ -8,7 +8,6 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
-	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 // Git-backed version history operations for documents. Split out of
@@ -42,33 +41,33 @@ func validateCommitHash(field, commitHash string) *errors.APIError {
 	return nil
 }
 
-// versionNotFound reports whether err comes from a version lookup that found
-// no such commit (or no such document in that commit), and returns the hash
-// that could not be resolved.
-func versionNotFound(err error) (string, bool) {
+// versionError maps a git version lookup failure: an unknown commit (or a
+// document absent from that commit) is a typed NotFound, anything else an
+// internal error wrapped with context.
+func versionError(err error, context string) error {
 	var notFound *VersionNotFoundError
 	if stderrors.As(err, &notFound) {
-		return notFound.Hash, true
+		return errors.NewNotFoundError("version", notFound.Hash).WithCause(err)
 	}
-	return "", false
+	return fmt.Errorf("%s: %w", context, err)
 }
 
-// validateDocumentPath applies the shared path rules to a version-endpoint
-// path so a crafted path can never reach the git tree lookup or the restore
-// write outside the data directory.
-func validateDocumentPath(documentPath string) error {
-	if err := utils.ValidatePath(documentPath); err != nil {
-		return errors.NewInvalidPathError(documentPath).WithCause(err)
+// requireHistory applies the shared path rules to a version-endpoint path, so
+// a crafted path can never reach the git tree lookup or the restore write
+// outside the data directory, and checks that version history is available.
+func (d *DocumentService) requireHistory(documentPath string) error {
+	if err := validatePath(documentPath); err != nil {
+		return err
+	}
+	if d.gitService == nil {
+		return fmt.Errorf("git service not available")
 	}
 	return nil
 }
 
 func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentVersion, error) {
-	if err := validateDocumentPath(documentPath); err != nil {
+	if err := d.requireHistory(documentPath); err != nil {
 		return nil, err
-	}
-	if d.gitService == nil {
-		return nil, fmt.Errorf("git service not available")
 	}
 
 	versions, err := d.gitService.GetDocumentVersions(documentPath)
@@ -93,11 +92,8 @@ func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentV
 }
 
 func (d *DocumentService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Document, error) {
-	if err := validateDocumentPath(documentPath); err != nil {
+	if err := d.requireHistory(documentPath); err != nil {
 		return nil, err
-	}
-	if d.gitService == nil {
-		return nil, fmt.Errorf("git service not available")
 	}
 
 	if apiErr := validateCommitHash("hash", commitHash); apiErr != nil {
@@ -106,10 +102,7 @@ func (d *DocumentService) GetDocumentAtVersion(documentPath string, commitHash s
 
 	document, err := d.gitService.GetDocumentAtVersion(documentPath, commitHash)
 	if err != nil {
-		if hash, ok := versionNotFound(err); ok {
-			return nil, errors.NewNotFoundError("version", hash).WithCause(err)
-		}
-		return nil, fmt.Errorf("failed to get document at version: %w", err)
+		return nil, versionError(err, "failed to get document at version")
 	}
 
 	return document, nil
@@ -140,11 +133,8 @@ func (d *DocumentService) commitDocumentChange(message string, documentPaths ...
 }
 
 func (d *DocumentService) CompareDocumentVersions(documentPath, hash1, hash2 string) (*DiffResult, error) {
-	if err := validateDocumentPath(documentPath); err != nil {
+	if err := d.requireHistory(documentPath); err != nil {
 		return nil, err
-	}
-	if d.gitService == nil {
-		return nil, fmt.Errorf("git service not available")
 	}
 
 	if apiErr := validateCommitHash("hash1", hash1); apiErr != nil {
@@ -156,21 +146,15 @@ func (d *DocumentService) CompareDocumentVersions(documentPath, hash1, hash2 str
 
 	diff, err := d.gitService.CompareVersions(documentPath, hash1, hash2)
 	if err != nil {
-		if missing, ok := versionNotFound(err); ok {
-			return nil, errors.NewNotFoundError("version", missing).WithCause(err)
-		}
-		return nil, fmt.Errorf("failed to compare document versions: %w", err)
+		return nil, versionError(err, "failed to compare document versions")
 	}
 
 	return diff, nil
 }
 
 func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) error {
-	if err := validateDocumentPath(path); err != nil {
+	if err := d.requireHistory(path); err != nil {
 		return err
-	}
-	if d.gitService == nil {
-		return fmt.Errorf("git service not available")
 	}
 
 	if apiErr := validateCommitHash("hash", commitHash); apiErr != nil {
@@ -178,10 +162,7 @@ func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) erro
 	}
 
 	if err := d.gitService.RestoreDocument(path, commitHash); err != nil {
-		if hash, ok := versionNotFound(err); ok {
-			return errors.NewNotFoundError("version", hash).WithCause(err)
-		}
-		return fmt.Errorf("failed to restore document: %w", err)
+		return versionError(err, "failed to restore document")
 	}
 
 	return nil

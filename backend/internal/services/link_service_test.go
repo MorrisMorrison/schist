@@ -1,12 +1,25 @@
 package services
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/MorrisMorrison/schist/internal/models"
 )
+
+// newLinkTestServices returns a link service over a git-backed document
+// service in a fresh temp dir.
+func newLinkTestServices(t *testing.T) (*DocumentService, *LinkService) {
+	t.Helper()
+	dir := t.TempDir()
+	gitService, err := NewGitService(dir)
+	if err != nil {
+		t.Skipf("Skipping test, git service not available: %v", err)
+	}
+	ignoreService := NewIgnoreService(dir)
+	documentService := NewDocumentService(dir, gitService, ignoreService)
+	return documentService, NewLinkService(documentService, ignoreService)
+}
 
 func TestLinkService_ParseWikiLinks(t *testing.T) {
 	tests := []struct {
@@ -86,20 +99,7 @@ func TestLinkService_ParseWikiLinks(t *testing.T) {
 		},
 	}
 
-	// Create temporary directory for test
-	tempDir, err := os.MkdirTemp("", "link_service_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	gitService, err := NewGitService(tempDir)
-	if err != nil {
-		t.Skipf("Skipping test, git service not available: %v", err)
-	}
-	ignoreService := NewIgnoreService(tempDir)
-	documentService := NewDocumentService(tempDir, gitService, ignoreService)
-	linkService := NewLinkService(documentService, ignoreService)
+	_, linkService := newLinkTestServices(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -127,20 +127,7 @@ func TestLinkService_ParseWikiLinks(t *testing.T) {
 }
 
 func TestLinkService_ResolveTargetToPath(t *testing.T) {
-	// Create temporary directory for test
-	tempDir, err := os.MkdirTemp("", "link_service_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	gitService, err := NewGitService(tempDir)
-	if err != nil {
-		t.Skipf("Skipping test, git service not available: %v", err)
-	}
-	ignoreService := NewIgnoreService(tempDir)
-	documentService := NewDocumentService(tempDir, gitService, ignoreService)
-	linkService := NewLinkService(documentService, ignoreService)
+	documentService, linkService := newLinkTestServices(t)
 
 	// Create a test page
 	testDocument := &models.Document{
@@ -154,7 +141,7 @@ func TestLinkService_ResolveTargetToPath(t *testing.T) {
 		Content: "Test content",
 	}
 
-	err = documentService.CreateDocument(testDocument)
+	err := documentService.CreateDocument(testDocument)
 	if err != nil {
 		t.Fatalf("Failed to create test page: %v", err)
 	}
@@ -197,20 +184,7 @@ func TestLinkService_ResolveTargetToPath(t *testing.T) {
 }
 
 func TestLinkService_BacklinksManagement(t *testing.T) {
-	// Create temporary directory for test
-	tempDir, err := os.MkdirTemp("", "link_service_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	gitService, err := NewGitService(tempDir)
-	if err != nil {
-		t.Skipf("Skipping test, git service not available: %v", err)
-	}
-	ignoreService := NewIgnoreService(tempDir)
-	documentService := NewDocumentService(tempDir, gitService, ignoreService)
-	linkService := NewLinkService(documentService, ignoreService)
+	documentService, linkService := newLinkTestServices(t)
 
 	// Create test pages
 	targetDocument := &models.Document{
@@ -258,7 +232,7 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 	}
 
 	// Test updating backlinks
-	err = linkService.UpdateBacklinks("/source-one")
+	err := linkService.UpdateBacklinks("/source-one")
 	if err != nil {
 		t.Fatalf("Failed to update backlinks: %v", err)
 	}
@@ -311,20 +285,7 @@ func TestLinkService_BacklinksManagement(t *testing.T) {
 }
 
 func TestLinkService_GetBrokenLinks(t *testing.T) {
-	// Create temporary directory for test
-	tempDir, err := os.MkdirTemp("", "link_service_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	gitService, err := NewGitService(tempDir)
-	if err != nil {
-		t.Skipf("Skipping test, git service not available: %v", err)
-	}
-	ignoreService := NewIgnoreService(tempDir)
-	documentService := NewDocumentService(tempDir, gitService, ignoreService)
-	linkService := NewLinkService(documentService, ignoreService)
+	documentService, linkService := newLinkTestServices(t)
 
 	// Create a page with broken links
 	documentWithBrokenLinks := &models.Document{

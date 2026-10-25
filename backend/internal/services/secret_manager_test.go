@@ -1,35 +1,22 @@
 package services_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/crypto"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func setupSecretManagerTest(t *testing.T) (string, *config.Settings, *services.PasskeyService, func()) {
-	testDir, err := os.MkdirTemp("", "secret-manager-test-*")
-	require.NoError(t, err)
-
-	settings := &config.Settings{}
-
-	// Create a mock passkey service that implements the interface
-	passkeyService := &services.PasskeyService{} // We'll mock this properly
-
-	cleanup := func() {
-		os.RemoveAll(testDir)
-	}
-
-	return testDir, settings, passkeyService, cleanup
+func setupSecretManagerTest(t *testing.T) (string, *config.Settings, *services.PasskeyService) {
+	// A passkey service with no credentials, rooted in its own temp dir.
+	passkeyService, testDir := newTestPasskeyService(t)
+	return testDir, &config.Settings{}, passkeyService
 }
 
 func TestSecretManager_NewSecretManager(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -38,8 +25,7 @@ func TestSecretManager_NewSecretManager(t *testing.T) {
 }
 
 func TestSecretManager_IsUnlocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -54,8 +40,7 @@ func TestSecretManager_IsUnlocked(t *testing.T) {
 }
 
 func TestSecretManager_Lock(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -69,8 +54,7 @@ func TestSecretManager_Lock(t *testing.T) {
 }
 
 func TestSecretManager_SetSecretWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -80,8 +64,7 @@ func TestSecretManager_SetSecretWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_GetSecretWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -91,8 +74,7 @@ func TestSecretManager_GetSecretWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_ListSecretsWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -102,8 +84,7 @@ func TestSecretManager_ListSecretsWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_DeleteSecretWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -113,8 +94,7 @@ func TestSecretManager_DeleteSecretWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_GetGitHubTokenWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -124,8 +104,7 @@ func TestSecretManager_GetGitHubTokenWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_SetGitHubTokenWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -135,8 +114,7 @@ func TestSecretManager_SetGitHubTokenWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_HasSecrets(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -161,8 +139,7 @@ func TestSecretManager_HasSecrets(t *testing.T) {
 }
 
 func TestSecretManager_RequiresPassword(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -177,8 +154,7 @@ func TestSecretManager_RequiresPassword(t *testing.T) {
 }
 
 func TestSecretManager_RequiresSetup(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -207,8 +183,7 @@ func TestSecretManager_RequiresSetup(t *testing.T) {
 }
 
 func TestSecretManager_PasskeyOperations(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -224,7 +199,7 @@ func TestSecretManager_ErrorHandling(t *testing.T) {
 		// Use an invalid directory path that can't be written to
 		invalidPath := "/invalid/path/that/does/not/exist"
 		settings := &config.Settings{}
-		passkeyService := &services.PasskeyService{}
+		passkeyService, _ := newTestPasskeyService(t)
 
 		sm := services.NewSecretManager(settings, invalidPath, passkeyService)
 

@@ -38,8 +38,7 @@ func validateGitHubRepoRequest(req *services.GitHubSetupRequest) *errors.APIErro
 
 func (h *APIHandler) setupGitHub(c *gin.Context) {
 	var req services.GitHubSetupRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -116,8 +115,7 @@ func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 	}
 
 	var req services.GitHubConfigRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -144,8 +142,7 @@ func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 
 func (h *APIHandler) testGitHubConnection(c *gin.Context) {
 	var req services.GitHubSetupRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 

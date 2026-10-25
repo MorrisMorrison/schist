@@ -301,7 +301,22 @@ func TestTemplates_UnreadableDir(t *testing.T) {
 	env.svc.TemplateService = newTemplateServiceFor(env)
 
 	w := env.do(t, http.MethodGet, "/api/templates", nil, "")
-	requireAPIError(t, w, http.StatusInternalServerError, "INTERNAL_ERROR")
+	resp := requireAPIError(t, w, http.StatusInternalServerError, "INTERNAL_ERROR")
+	assert.Equal(t, "Internal server error", resp.Error, "the cause (with its file path) is logged, not returned")
+}
+
+// When the data dir cannot be listed, the listing endpoints report a plain
+// internal error: the cause names server file paths and is only logged.
+func TestListings_InternalFailureHidesCause(t *testing.T) {
+	env := newAPIEnv(t, apiEnvOptions{})
+	env.createDoc(t, "/a", "A", "content")
+	require.NoError(t, os.RemoveAll(env.dataDir))
+
+	for _, target := range []string{"/api/search?q=a", "/api/tags", "/api/links/broken"} {
+		w := env.do(t, http.MethodGet, target, nil, "")
+		resp := requireAPIError(t, w, http.StatusInternalServerError, "INTERNAL_ERROR")
+		assert.Equal(t, "Internal server error", resp.Error, target)
+	}
 }
 
 func TestLinks_OverHTTP(t *testing.T) {

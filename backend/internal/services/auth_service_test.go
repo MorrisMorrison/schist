@@ -1,7 +1,6 @@
 package services
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -282,9 +281,7 @@ func BenchmarkAuthService_ValidateToken(b *testing.B) {
 }
 
 func TestAuthService_GetUser(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "auth-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	userService := NewUserService(testDir)
 	cfg := &config.Config{
@@ -316,9 +313,7 @@ func TestAuthService_GetUser(t *testing.T) {
 }
 
 func TestAuthService_IsFirstSetup(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "auth-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	userService := NewUserService(testDir)
 	cfg := &config.Config{
@@ -345,9 +340,7 @@ func TestAuthService_IsFirstSetup(t *testing.T) {
 }
 
 func TestAuthService_CreateFirstUser(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "auth-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	userService := NewUserService(testDir)
 	cfg := &config.Config{
@@ -371,15 +364,13 @@ func TestAuthService_CreateFirstUser(t *testing.T) {
 
 	t.Run("fails when users already exist", func(t *testing.T) {
 		// This test uses a fresh service since the previous test already created a user
-		testDir2, err := os.MkdirTemp("", "auth-test-2-*")
-		require.NoError(t, err)
-		defer os.RemoveAll(testDir2)
+		testDir2 := t.TempDir()
 
 		userService2 := NewUserService(testDir2)
 		authService2 := NewAuthService(cfg, userService2)
 
 		// Create first user
-		err = authService2.CreateFirstUser("admin", "credential-123")
+		err := authService2.CreateFirstUser("admin", "credential-123")
 		require.NoError(t, err)
 
 		// Try to create first user again
@@ -389,9 +380,7 @@ func TestAuthService_CreateFirstUser(t *testing.T) {
 }
 
 func TestAuthService_GenerateInviteToken(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "auth-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	userService := NewUserService(testDir)
 	cfg := &config.Config{
@@ -419,9 +408,7 @@ func TestAuthService_GenerateInviteToken(t *testing.T) {
 }
 
 func TestAuthService_CreateUserFromInvite(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "auth-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	userService := NewUserService(testDir)
 	cfg := &config.Config{
@@ -431,7 +418,7 @@ func TestAuthService_CreateUserFromInvite(t *testing.T) {
 	authService := NewAuthService(cfg, userService)
 
 	// Create admin user to generate invite tokens
-	err = userService.CreateFirstUser("admin", "admin-credential")
+	err := userService.CreateFirstUser("admin", "admin-credential")
 	require.NoError(t, err)
 
 	t.Run("creates user with valid invite token", func(t *testing.T) {
@@ -459,9 +446,7 @@ func TestAuthService_CreateUserFromInvite(t *testing.T) {
 }
 
 func TestAuthService_LoginWithPasskey(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "auth-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	userService := NewUserService(testDir)
 	cfg := &config.Config{
@@ -471,7 +456,7 @@ func TestAuthService_LoginWithPasskey(t *testing.T) {
 	authService := NewAuthService(cfg, userService)
 
 	// Create a test user
-	err = userService.CreateFirstUser("testuser", "credential-123")
+	err := userService.CreateFirstUser("testuser", "credential-123")
 	require.NoError(t, err)
 
 	t.Run("issuing a ticket for unknown credential fails", func(t *testing.T) {

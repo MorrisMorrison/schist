@@ -23,11 +23,7 @@ import (
 func newSafetyDocumentService(t *testing.T) (*services.DocumentService, string) {
 	t.Helper()
 	dir := t.TempDir()
-	gitService, err := services.NewGitService(dir)
-	if err != nil {
-		t.Skipf("git service not available: %v", err)
-	}
-	return services.NewDocumentService(dir, gitService, services.NewIgnoreService(dir)), dir
+	return setupDocumentService(t, dir), dir
 }
 
 func mustCreate(t *testing.T, ds *services.DocumentService, path, title, content string) {

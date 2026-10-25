@@ -11,22 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupUserServiceTest(t *testing.T) (string, *services.UserService, func()) {
-	testDir, err := os.MkdirTemp("", "user-service-test-*")
-	require.NoError(t, err)
-
-	userService := services.NewUserService(testDir)
-
-	cleanup := func() {
-		os.RemoveAll(testDir)
-	}
-
-	return testDir, userService, cleanup
+func setupUserServiceTest(t *testing.T) (string, *services.UserService) {
+	testDir := t.TempDir()
+	return testDir, services.NewUserService(testDir)
 }
 
 func TestUserService_NewUserService(t *testing.T) {
-	testDir, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	testDir, userService := setupUserServiceTest(t)
 
 	assert.NotNil(t, userService)
 
@@ -43,8 +34,7 @@ func TestUserService_NewUserService(t *testing.T) {
 }
 
 func TestUserService_IsFirstSetup(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	t.Run("returns true when no users exist", func(t *testing.T) {
 		isFirstSetup, err := userService.IsFirstSetup()
@@ -66,8 +56,7 @@ func TestUserService_IsFirstSetup(t *testing.T) {
 
 func TestUserService_CreateFirstUser(t *testing.T) {
 	t.Run("creates first user successfully", func(t *testing.T) {
-		_, userService, cleanup := setupUserServiceTest(t)
-		defer cleanup()
+		_, userService := setupUserServiceTest(t)
 
 		err := userService.CreateFirstUser("admin", "credential-123")
 
@@ -90,8 +79,7 @@ func TestUserService_CreateFirstUser(t *testing.T) {
 	})
 
 	t.Run("fails when users already exist", func(t *testing.T) {
-		_, userService, cleanup := setupUserServiceTest(t)
-		defer cleanup()
+		_, userService := setupUserServiceTest(t)
 
 		// Create first user
 		err := userService.CreateFirstUser("admin", "credential-123")
@@ -105,8 +93,7 @@ func TestUserService_CreateFirstUser(t *testing.T) {
 }
 
 func TestUserService_GetUserByCredentialID(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test users
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -155,8 +142,7 @@ func TestUserService_GetUserByCredentialID(t *testing.T) {
 }
 
 func TestUserService_GetUserByUsername(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test users
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -194,8 +180,7 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 }
 
 func TestUserService_UpdateLastLogin(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test user
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -227,8 +212,7 @@ func TestUserService_UpdateLastLogin(t *testing.T) {
 }
 
 func TestUserService_AddPasskeyToUser(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test user
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -263,8 +247,7 @@ func TestUserService_AddPasskeyToUser(t *testing.T) {
 }
 
 func TestUserService_CreateUser(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create first user to enable regular user creation
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -306,8 +289,7 @@ func TestUserService_CreateUser(t *testing.T) {
 }
 
 func TestUserService_DeleteUser(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test users
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -348,8 +330,7 @@ func TestUserService_DeleteUser(t *testing.T) {
 }
 
 func TestUserService_ListUsers(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	t.Run("returns empty list when no users", func(t *testing.T) {
 		users, err := userService.ListUsers()
@@ -396,8 +377,7 @@ func TestUserService_ListUsers(t *testing.T) {
 }
 
 func TestUserService_InviteTokenSystem(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create admin user
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -486,8 +466,7 @@ func TestUserService_InviteTokenSystem(t *testing.T) {
 }
 
 func TestUserService_Integration(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	t.Run("full user management workflow", func(t *testing.T) {
 		// 1. Initially should be first setup
@@ -576,12 +555,10 @@ func TestUserService_ErrorCases(t *testing.T) {
 	t.Run("read-only directory", func(t *testing.T) {
 		skipIfRoot(t)
 
-		testDir, err := os.MkdirTemp("", "user-service-readonly-*")
-		require.NoError(t, err)
-		defer os.RemoveAll(testDir)
+		testDir := t.TempDir()
 
 		// Make directory read-only after creating it
-		err = os.Chmod(testDir, 0444)
+		err := os.Chmod(testDir, 0444)
 		require.NoError(t, err)
 
 		// Restore permissions for cleanup

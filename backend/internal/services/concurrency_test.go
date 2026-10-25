@@ -13,8 +13,7 @@ import (
 // calls don't lose writes due to a lock-free read-modify-write race. Every
 // distinct user that returns nil error must be present in the final file.
 func TestUserService_ConcurrentCreateUser(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	const n = 25
 	var wg sync.WaitGroup
@@ -37,8 +36,7 @@ func TestUserService_ConcurrentCreateUser(t *testing.T) {
 // TestUserService_ConcurrentConsumeInvite verifies that a single invite token
 // can be consumed exactly once even under concurrent consume attempts.
 func TestUserService_ConcurrentConsumeInvite(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	token, err := userService.GenerateInviteToken("admin")
 	require.NoError(t, err)
@@ -68,8 +66,7 @@ func TestUserService_ConcurrentConsumeInvite(t *testing.T) {
 // TestShareService_ConcurrentCreateShare verifies that concurrent CreateShare
 // calls don't lose writes due to a lock-free read-modify-write race.
 func TestShareService_ConcurrentCreateShare(t *testing.T) {
-	_, shareService, _, cleanup := setupShareServiceTest(t)
-	defer cleanup()
+	_, shareService, _ := setupShareServiceTest(t)
 
 	const n = 25
 	var wg sync.WaitGroup

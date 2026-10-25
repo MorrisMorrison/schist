@@ -5,6 +5,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
 	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
@@ -287,13 +288,19 @@
 				{#if !isConnected}
 					<div class="space-y-3">
 						<label class="flex items-center space-x-2">
-							<input type="checkbox" bind:checked={createRepository} class="rounded" />
+							<Checkbox
+								checked={createRepository}
+								onCheckedChange={(checked) => (createRepository = checked)}
+							/>
 							<span class="text-sm">Create repository if it doesn't exist</span>
 						</label>
 
 						{#if createRepository}
 							<label class="ml-6 flex items-center space-x-2">
-								<input type="checkbox" bind:checked={private_repo} class="rounded" />
+								<Checkbox
+									checked={private_repo}
+									onCheckedChange={(checked) => (private_repo = checked)}
+								/>
 								<span class="text-sm">Make repository private</span>
 							</label>
 						{/if}

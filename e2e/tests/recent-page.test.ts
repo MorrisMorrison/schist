@@ -5,15 +5,7 @@ test.describe('Recent Page', () => {
 		await page.goto('/');
 	});
 
-	test('should navigate to recent page from navbar', async ({ page }) => {
-		await page.getByTestId('nav-recent').click();
-
-		await expect(page).toHaveURL('/recent');
-
-		await expect(page.locator('h1')).toContainText('Recent Documents');
-	});
-
-	test('should handle empty state gracefully', async ({ page }) => {
+	test('should navigate to recent page from navbar and show the empty state', async ({ page }) => {
 		await page.getByTestId('nav-recent').click();
 
 		await expect(page).toHaveURL('/recent');

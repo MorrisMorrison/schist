@@ -7,11 +7,7 @@ test.describe('Quick Switcher', () => {
 		await page.goto('/');
 	});
 
-	test('should open quick switcher with button click', async ({ homePage }) => {
-		await homePage.openQuickSwitcher();
-	});
-
-	test('should close quick switcher when clicking outside or escape', async ({
+	test('should open quick switcher with button click and close it with escape', async ({
 		homePage,
 		page
 	}) => {
@@ -52,13 +48,6 @@ test.describe('Quick Switcher with Data', () => {
 		await page.goto('/');
 	});
 
-	test('should search documents successfully', async ({ homePage, withTestDocument }) => {
-		await homePage.openQuickSwitcher();
-		await homePage.quickSwitcherInput.fill(withTestDocument.title.split(' ')[0]);
-
-		await expect(homePage.quickSwitcher.getByText(withTestDocument.title)).toBeVisible();
-	});
-
 	test('should handle no search results gracefully', async ({ homePage }) => {
 		await homePage.openQuickSwitcher();
 		await homePage.quickSwitcherInput.fill('nonexistent');
@@ -66,7 +55,11 @@ test.describe('Quick Switcher with Data', () => {
 		await expect(homePage.quickSwitcher.getByText('No documents found')).toBeVisible();
 	});
 
-	test('should navigate to selected document', async ({ homePage, page, withTestDocument }) => {
+	test('should find a document and navigate to it', async ({
+		homePage,
+		page,
+		withTestDocument
+	}) => {
 		await homePage.openQuickSwitcher();
 		await homePage.quickSwitcherInput.fill(withTestDocument.title.split(' ')[0]);
 

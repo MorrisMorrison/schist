@@ -5,8 +5,7 @@ import { goto } from '$app/navigation';
 import DocumentGraphView from './DocumentGraphView.svelte';
 import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 
-// The global ResizeObserver stub in test/setup.ts is an arrow-function mock, which
-// cannot be called with `new`; the graph constructs one on mount.
+// Capture the graph's ResizeObserver callback so a test can simulate a resize.
 const resizeCallbacks: ResizeObserverCallback[] = [];
 class FakeResizeObserver {
 	constructor(cb: ResizeObserverCallback) {

@@ -234,7 +234,7 @@
 						type="password"
 						bind:value={token}
 						placeholder="github_token_here"
-						required
+						required={!isConnected}
 						oninput={() => (tokenChanged = true)}
 					/>
 					<p class="text-muted-foreground text-sm">

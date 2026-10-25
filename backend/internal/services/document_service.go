@@ -283,13 +283,10 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 			return nil
 		}
 
-		relPath, err := filepath.Rel(d.dataDir, path)
+		logicalPath, err := d.logicalPath(path)
 		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
+			return err
 		}
-
-		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
-
 		logicalPath = strings.TrimSuffix(logicalPath, MARKDOWN_FILE_ENDING)
 
 		document, err := d.GetDocumentByPath(logicalPath)
@@ -307,6 +304,16 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 	}
 
 	return documents, nil
+}
+
+// logicalPath maps a file or folder under the data dir to its slash-separated
+// logical path ("/projects/a.md").
+func (d *DocumentService) logicalPath(fsPath string) (string, error) {
+	relPath, err := filepath.Rel(d.dataDir, fsPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get relative path: %w", err)
+	}
+	return "/" + filepath.ToSlash(relPath), nil
 }
 
 func (d *DocumentService) buildFilePathFromPath(path string) string {
@@ -519,15 +526,20 @@ func (d *DocumentService) createSubfolder(parentPath string, entry os.DirEntry) 
 }
 
 func (d *DocumentService) countDocumentsInFolder(folderPath string) int {
-	subfolderFilePath := utils.BuildFilePath(d.dataDir, folderPath)
-	subEntries, err := os.ReadDir(subfolderFilePath)
+	return countMarkdownFiles(utils.BuildFilePath(d.dataDir, folderPath))
+}
+
+// countMarkdownFiles counts the documents directly inside dir (0 if it
+// cannot be read).
+func countMarkdownFiles(dir string) int {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return 0
 	}
 
 	count := 0
-	for _, subEntry := range subEntries {
-		if !subEntry.IsDir() && strings.HasSuffix(subEntry.Name(), MARKDOWN_FILE_ENDING) {
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
 			count++
 		}
 	}
@@ -565,25 +577,13 @@ func (d *DocumentService) getRootFolder() (*models.Folder, error) {
 				continue
 			}
 
-			subfolderPath := "/" + entry.Name()
-			subfolder := &models.Folder{
+			folder.SubFolders = append(folder.SubFolders, &models.Folder{
 				Name:          entry.Name(),
-				Path:          subfolderPath,
+				Path:          "/" + entry.Name(),
 				Created:       entryInfo.ModTime(),
-				DocumentCount: 0,
+				DocumentCount: countMarkdownFiles(entryPath),
 				SubFolders:    []*models.Folder{},
-			}
-
-			subfolderFilePath := filepath.Join(d.dataDir, entry.Name())
-			if subEntries, err := os.ReadDir(subfolderFilePath); err == nil {
-				for _, subEntry := range subEntries {
-					if !subEntry.IsDir() && strings.HasSuffix(subEntry.Name(), MARKDOWN_FILE_ENDING) {
-						subfolder.DocumentCount++
-					}
-				}
-			}
-
-			folder.SubFolders = append(folder.SubFolders, subfolder)
+			})
 		} else if strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
 			folder.DocumentCount++
 		}
@@ -612,12 +612,10 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 			return nil
 		}
 
-		relPath, err := filepath.Rel(d.dataDir, path)
+		logicalPath, err := d.logicalPath(path)
 		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
+			return err
 		}
-
-		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
 
 		if dirEntry.IsDir() {
 			info, err := dirEntry.Info()
@@ -704,14 +702,9 @@ func (d *DocumentService) RenameFolder(oldPath, newName string) error {
 
 	newPath := utils.NormalizePath(slashpath.Dir(oldPath) + "/" + newName)
 
-	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
-	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
-		return errors.NewNotFoundError("folder", oldPath)
-	}
-
-	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
-	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
-		return errors.NewAlreadyExistsError("folder", newPath)
+	oldFolderPath, newFolderPath, err := d.folderMoveTargets(oldPath, newPath)
+	if err != nil {
+		return err
 	}
 
 	if err := os.Rename(oldFolderPath, newFolderPath); err != nil {
@@ -726,21 +719,41 @@ func (d *DocumentService) RenameFolder(oldPath, newName string) error {
 		return fmt.Errorf("failed to list documents: %w", err)
 	}
 
-	var affectedDocuments []*models.Document
-	for _, document := range documents {
-		documentPath := document.MetaData.Path
-		if documentPath == oldPath || strings.HasPrefix(documentPath, oldPath+"/") {
-			affectedDocuments = append(affectedDocuments, document)
-		}
-	}
-
-	for _, document := range affectedDocuments {
+	for _, document := range documentsUnder(documents, oldPath) {
 		if err := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// folderMoveTargets resolves the folders of a rename or move on disk: the
+// source must exist and the target must not.
+func (d *DocumentService) folderMoveTargets(oldPath, newPath string) (string, string, error) {
+	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
+	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
+		return "", "", errors.NewNotFoundError("folder", oldPath)
+	}
+
+	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
+	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
+		return "", "", errors.NewAlreadyExistsError("folder", newPath)
+	}
+
+	return oldFolderPath, newFolderPath, nil
+}
+
+// documentsUnder returns the documents inside folderPath, at any depth.
+func documentsUnder(documents []*models.Document, folderPath string) []*models.Document {
+	var inside []*models.Document
+	for _, document := range documents {
+		documentPath := document.MetaData.Path
+		if documentPath == folderPath || strings.HasPrefix(documentPath, folderPath+"/") {
+			inside = append(inside, document)
+		}
+	}
+	return inside
 }
 
 func (d *DocumentService) updateDocumentPath(
@@ -803,14 +816,9 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 		return errors.NewValidationError("cannot move folder into itself or its subdirectory")
 	}
 
-	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
-	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
-		return errors.NewNotFoundError("folder", oldPath)
-	}
-
-	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
-	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
-		return errors.NewAlreadyExistsError("folder", newPath)
+	oldFolderPath, newFolderPath, err := d.folderMoveTargets(oldPath, newPath)
+	if err != nil {
+		return err
 	}
 
 	parentPath := filepath.Dir(newFolderPath)
@@ -832,15 +840,7 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 		return fmt.Errorf("failed to list documents after folder move: %w", err)
 	}
 
-	var affectedDocuments []*models.Document
-	for _, document := range documents {
-		documentPath := document.MetaData.Path
-		if documentPath == oldPath || strings.HasPrefix(documentPath, oldPath+"/") {
-			affectedDocuments = append(affectedDocuments, document)
-		}
-	}
-
-	for _, document := range affectedDocuments {
+	for _, document := range documentsUnder(documents, oldPath) {
 		if err := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
 			if rollbackErr := os.Rename(newFolderPath, oldFolderPath); rollbackErr != nil {
 				return fmt.Errorf("failed to update document metadata AND failed to rollback: %w (rollback error: %v)",

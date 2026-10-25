@@ -204,14 +204,18 @@ func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {
 		return nil, "", err
 	}
 
-	content := fmt.Sprintf("# %s\n\n%s", document.MetaData.Title, document.Content)
-
 	filename := slashpath.Base(path)
 	if !strings.HasSuffix(filename, ".md") {
 		filename += ".md"
 	}
 
-	return []byte(content), filename, nil
+	return exportMarkdown(document), filename, nil
+}
+
+// exportMarkdown is a document as exported: its title as a heading, then the
+// content.
+func exportMarkdown(document *models.Document) []byte {
+	return []byte(fmt.Sprintf("# %s\n\n%s", document.MetaData.Title, document.Content))
 }
 
 func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error) {
@@ -220,18 +224,9 @@ func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error
 		return nil, "", errors.NewInvalidPathError(folderPath).WithCause(err)
 	}
 
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
-
-	err := d.addFolderToZip(zipWriter, normalizedPath, "")
+	content, err := d.zipFolder(normalizedPath)
 	if err != nil {
-		zipWriter.Close()
-		return nil, "", fmt.Errorf("failed to create zip: %w", err)
-	}
-
-	err = zipWriter.Close()
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to close zip: %w", err)
+		return nil, "", err
 	}
 
 	folderName := slashpath.Base(normalizedPath)
@@ -240,26 +235,32 @@ func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error
 	}
 	filename := fmt.Sprintf("%s.zip", folderName)
 
-	return buf.Bytes(), filename, nil
+	return content, filename, nil
 }
 
 func (d *DocumentService) ExportAll() ([]byte, string, error) {
+	content, err := d.zipFolder("/")
+	if err != nil {
+		return nil, "", err
+	}
+	return content, "all-documents.zip", nil
+}
+
+// zipFolder builds a zip of the documents in folderPath and its subfolders.
+func (d *DocumentService) zipFolder(folderPath string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 
-	err := d.addFolderToZip(zipWriter, "/", "")
-	if err != nil {
+	if err := d.addFolderToZip(zipWriter, folderPath, ""); err != nil {
 		zipWriter.Close()
-		return nil, "", fmt.Errorf("failed to create zip: %w", err)
+		return nil, fmt.Errorf("failed to create zip: %w", err)
 	}
 
-	err = zipWriter.Close()
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to close zip: %w", err)
+	if err := zipWriter.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close zip: %w", err)
 	}
 
-	filename := "all-documents.zip"
-	return buf.Bytes(), filename, nil
+	return buf.Bytes(), nil
 }
 
 // zipSafeName turns a document title into a single, non-traversing zip entry
@@ -295,8 +296,7 @@ func (d *DocumentService) addFolderToZip(
 				return fmt.Errorf("failed to create file in zip: %w", err)
 			}
 
-			content := fmt.Sprintf("# %s\n\n%s", doc.MetaData.Title, doc.Content)
-			_, err = fileWriter.Write([]byte(content))
+			_, err = fileWriter.Write(exportMarkdown(doc))
 			if err != nil {
 				return fmt.Errorf("failed to write file content: %w", err)
 			}

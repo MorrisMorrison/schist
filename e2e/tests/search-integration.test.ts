@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures';
-import { createTestDocument } from '../utils/test-data';
 
 test.describe.serial('Search Integration with Folder Tree', () => {
 	test('should filter folder tree by text query', async ({
@@ -9,27 +8,21 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		page
 	}) => {
 		// Seed documents this test asserts on (the folder-tree filter matches page titles).
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Searchable Content ${testId}`,
-				path: `/searchable-content-${testId}`,
-				tags: ['searchable']
-			})
-		);
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Nested Searchable ${testId}`,
-				path: `/nested-searchable-${testId}`,
-				tags: ['searchable']
-			})
-		);
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Different Title ${testId}`,
-				path: `/different-title-${testId}`,
-				tags: ['other']
-			})
-		);
+		await apiHelper.seedDocument({
+			title: `Searchable Content ${testId}`,
+			path: `/searchable-content-${testId}`,
+			tags: ['searchable']
+		});
+		await apiHelper.seedDocument({
+			title: `Nested Searchable ${testId}`,
+			path: `/nested-searchable-${testId}`,
+			tags: ['searchable']
+		});
+		await apiHelper.seedDocument({
+			title: `Different Title ${testId}`,
+			path: `/different-title-${testId}`,
+			tags: ['other']
+		});
 
 		// Navigate to root to see full tree
 		await folderPage.navigateToRoot();
@@ -62,34 +55,26 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		testId,
 		page
 	}) => {
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Important Document ${testId}`,
-				path: `/important-document-${testId}`,
-				tags: ['important']
-			})
-		);
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Draft Content ${testId}`,
-				path: `/draft-content-${testId}`,
-				tags: ['draft']
-			})
-		);
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Project Alpha ${testId}`,
-				path: `/project-alpha-${testId}`,
-				tags: ['project-alpha']
-			})
-		);
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Project Beta ${testId}`,
-				path: `/project-beta-${testId}`,
-				tags: ['project-beta']
-			})
-		);
+		await apiHelper.seedDocument({
+			title: `Important Document ${testId}`,
+			path: `/important-document-${testId}`,
+			tags: ['important']
+		});
+		await apiHelper.seedDocument({
+			title: `Draft Content ${testId}`,
+			path: `/draft-content-${testId}`,
+			tags: ['draft']
+		});
+		await apiHelper.seedDocument({
+			title: `Project Alpha ${testId}`,
+			path: `/project-alpha-${testId}`,
+			tags: ['project-alpha']
+		});
+		await apiHelper.seedDocument({
+			title: `Project Beta ${testId}`,
+			path: `/project-beta-${testId}`,
+			tags: ['project-beta']
+		});
 
 		await folderPage.navigateToRoot();
 
@@ -123,27 +108,21 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		testId,
 		page
 	}) => {
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Important Project ${testId}`,
-				path: `/important-project-${testId}`,
-				tags: ['project']
-			})
-		);
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Regular Content ${testId}`,
-				path: `/regular-content-${testId}`,
-				tags: ['project']
-			})
-		);
-		await apiHelper.createDocument(
-			createTestDocument({
-				title: `Important Notes ${testId}`,
-				path: `/important-notes-${testId}`,
-				tags: ['notes']
-			})
-		);
+		await apiHelper.seedDocument({
+			title: `Important Project ${testId}`,
+			path: `/important-project-${testId}`,
+			tags: ['project']
+		});
+		await apiHelper.seedDocument({
+			title: `Regular Content ${testId}`,
+			path: `/regular-content-${testId}`,
+			tags: ['project']
+		});
+		await apiHelper.seedDocument({
+			title: `Important Notes ${testId}`,
+			path: `/important-notes-${testId}`,
+			tags: ['notes']
+		});
 
 		await folderPage.navigateToRoot();
 
@@ -174,23 +153,19 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.createFolder('empty-folder-no-matches');
 
 		// Add matching content to first folder only
-		const matchingDocument = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Unique Content ${testId}`,
 			content: '# Unique Content\n\nThis is unique searchable content.',
 			path: '/folder-with-matches/unique-page',
 			tags: ['unique']
 		});
 
-		await apiHelper.createDocument(matchingDocument);
-
 		// Add non-matching content to second folder
-		const nonMatchingPage = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Different Content ${testId}`,
 			content: '# Different Content\n\nThis content does not match.',
 			path: '/empty-folder-no-matches/different-page'
 		});
-
-		await apiHelper.createDocument(nonMatchingPage);
 
 		await folderPage.navigateToRoot();
 
@@ -240,30 +215,24 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		page
 	}) => {
 		// Create pages with tags that share prefixes
-		const pages = [
-			createTestDocument({
-				title: `Prefix Test 1 ${testId}`,
-				content: '# Prefix Test\n\nTesting prefix matching.',
-				path: `/prefix-test-1-${testId}`,
-				tags: ['project-alpha', 'important']
-			}),
-			createTestDocument({
-				title: `Prefix Test 2 ${testId}`,
-				content: '# Another Prefix Test\n\nMore prefix testing.',
-				path: `/prefix-test-2-${testId}`,
-				tags: ['project-beta', 'documentation']
-			}),
-			createTestDocument({
-				title: `Non-matching ${testId}`,
-				content: '# Different Content\n\nNo matching tags.',
-				path: `/non-matching-${testId}`,
-				tags: ['alpha-project', 'notes'] // Should not match "tag:project"
-			})
-		];
-
-		for (const document of pages) {
-			await apiHelper.createDocument(document);
-		}
+		await apiHelper.seedDocument({
+			title: `Prefix Test 1 ${testId}`,
+			content: '# Prefix Test\n\nTesting prefix matching.',
+			path: `/prefix-test-1-${testId}`,
+			tags: ['project-alpha', 'important']
+		});
+		await apiHelper.seedDocument({
+			title: `Prefix Test 2 ${testId}`,
+			content: '# Another Prefix Test\n\nMore prefix testing.',
+			path: `/prefix-test-2-${testId}`,
+			tags: ['project-beta', 'documentation']
+		});
+		await apiHelper.seedDocument({
+			title: `Non-matching ${testId}`,
+			content: '# Different Content\n\nNo matching tags.',
+			path: `/non-matching-${testId}`,
+			tags: ['alpha-project', 'notes'] // Should not match "tag:project"
+		});
 
 		await folderPage.navigateToRoot();
 
@@ -289,14 +258,12 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		page
 	}) => {
 		// Create searchable content
-		const testDocument = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Persistent Search ${testId}`,
 			content: '# Persistent Search\n\nTesting search persistence.',
 			path: `/persistent-search-${testId}`,
 			tags: ['persistent']
 		});
-
-		await apiHelper.createDocument(testDocument);
 		await folderPage.navigateToRoot();
 
 		const searchInput = page.getByTestId('sidebar-search');

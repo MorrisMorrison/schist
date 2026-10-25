@@ -1,5 +1,4 @@
 import { expect, test } from '../fixtures';
-import { createTestDocument } from '../utils/test-data';
 
 test.describe.serial('Document Move', () => {
 	const testDocumentPath = '/test-document-operations';
@@ -17,13 +16,11 @@ test.describe.serial('Document Move', () => {
 		await folderPage.verifyContainsFolder(testFolderName);
 
 		// Create test document in root
-		const testDocument = createTestDocument({
+		const testDocument = await apiHelper.seedDocument({
 			title: `Moveable Document ${testId}`,
 			content: '# Moveable Document\n\nThis document will be moved to a folder.',
 			path: testDocumentPath
 		});
-
-		expect((await apiHelper.createDocument(testDocument)).status).toBe(201);
 
 		// Navigate to root to see both folder and document
 		await folderPage.navigateToRoot();
@@ -62,13 +59,11 @@ test.describe.serial('Document Move', () => {
 		testId
 	}) => {
 		// Create test document
-		const testDocument = createTestDocument({
+		const testDocument = await apiHelper.seedDocument({
 			title: `Protected Document ${testId}`,
 			content: '# Protected Document\n\nThis document move should be prevented.',
 			path: testDocumentPath
 		});
-
-		expect((await apiHelper.createDocument(testDocument)).status).toBe(201);
 
 		// Try to drag document to itself or invalid target
 		await folderPage.navigateToRoot();

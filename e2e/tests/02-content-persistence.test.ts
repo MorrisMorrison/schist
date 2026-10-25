@@ -149,13 +149,11 @@ function test() {
 
 End of formatting test.`;
 
-		const testDocument = createTestDocument({
+		const testDocument = await apiHelper.seedDocument({
 			title: `Formatting Test ${testId}`,
 			content: formattedContent,
 			path: `/formatting-test-${testId}`
 		});
-
-		await apiHelper.createDocument(testDocument);
 
 		// Verify initial rendering
 		await documentViewPage.navigateToDocument(testDocument.path!);
@@ -205,13 +203,11 @@ End of formatting test.`;
 			'Final line'
 		].join('\n');
 
-		const testDocument = createTestDocument({
+		const testDocument = await apiHelper.seedDocument({
 			title: `Line Endings ${testId}`,
 			content: mixedLineEndingContent,
 			path: `/line-endings-${testId}`
 		});
-
-		await apiHelper.createDocument(testDocument);
 
 		// Verify content displays correctly
 		await documentViewPage.navigateToDocument(testDocument.path!);
@@ -237,16 +233,14 @@ End of formatting test.`;
 		testId
 	}) => {
 		// Create target document first
-		const targetDocument = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Target Document ${testId}`,
 			content: '# Target Document\n\nThis is the target of internal links.',
 			path: `/target-${testId}`
 		});
 
-		await apiHelper.createDocument(targetDocument);
-
 		// Create document with internal links
-		const linkingDocument = createTestDocument({
+		const linkingDocument = await apiHelper.seedDocument({
 			title: `Linking Document ${testId}`,
 			content: `# Linking Document
 
@@ -258,8 +252,6 @@ This document contains links to other documents:
 The links should remain functional after edits.`,
 			path: `/linking-${testId}`
 		});
-
-		await apiHelper.createDocument(linkingDocument);
 
 		// Navigate to linking document
 		await documentViewPage.navigateToDocument(linkingDocument.path!);

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 )
 
@@ -86,7 +87,7 @@ func TestUserService_InviteTokenLifecycle(t *testing.T) {
 
 		_, err = us.ValidateInviteToken(token)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "expired")
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
 		_, err = os.Stat(path)
 		assert.True(t, os.IsNotExist(err), "expired invite file should be deleted")
 	})

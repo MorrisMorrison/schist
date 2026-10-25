@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,7 +89,7 @@ func TestUserService_CreateFirstUser(t *testing.T) {
 		// Try to create first user again
 		err = userService.CreateFirstUser("admin2", "credential-456")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "users already exist, cannot create first user")
+		assert.Equal(t, apierrors.ErrCodeConflict, apiErrorCode(err))
 	})
 }
 
@@ -137,7 +138,7 @@ func TestUserService_GetUserByCredentialID(t *testing.T) {
 		_, err := userService.GetUserByCredentialID("non-existent")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found for credential ID")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
@@ -175,7 +176,7 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 		_, err := userService.GetUserByUsername("non-existent")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
@@ -207,7 +208,7 @@ func TestUserService_UpdateLastLogin(t *testing.T) {
 	t.Run("returns error for non-existent user", func(t *testing.T) {
 		err := userService.UpdateLastLogin("non-existent")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
@@ -242,7 +243,7 @@ func TestUserService_AddPasskeyToUser(t *testing.T) {
 	t.Run("returns error for non-existent user", func(t *testing.T) {
 		err := userService.AddPasskeyToUser("non-existent", "credential-789")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
@@ -284,7 +285,7 @@ func TestUserService_CreateUser(t *testing.T) {
 		err := userService.CreateUser("admin", false, "credential-new")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user already exists")
+		assert.Equal(t, apierrors.ErrCodeAlreadyExists, apiErrorCode(err))
 	})
 }
 
@@ -308,7 +309,7 @@ func TestUserService_DeleteUser(t *testing.T) {
 		// Verify user is deleted
 		_, err = userService.GetUserByUsername("user1")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 
 		// Verify credential ID no longer works
 		_, err = userService.GetUserByCredentialID("credential-456")
@@ -325,7 +326,7 @@ func TestUserService_DeleteUser(t *testing.T) {
 	t.Run("returns error for non-existent user", func(t *testing.T) {
 		err := userService.DeleteUser("non-existent")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
@@ -420,7 +421,7 @@ func TestUserService_InviteTokenSystem(t *testing.T) {
 		_, err := userService.ValidateInviteToken("invalid-token")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid invite token")
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
 	})
 
 	t.Run("consumes invite token successfully", func(t *testing.T) {
@@ -438,13 +439,13 @@ func TestUserService_InviteTokenSystem(t *testing.T) {
 		// Verify token is no longer valid
 		_, err = userService.ValidateInviteToken(token)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid invite token")
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
 	})
 
 	t.Run("fails to consume invalid token", func(t *testing.T) {
 		err := userService.ConsumeInviteToken("invalid-token")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid invite token")
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
 	})
 
 	t.Run("generates unique tokens", func(t *testing.T) {

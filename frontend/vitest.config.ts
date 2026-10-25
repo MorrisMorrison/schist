@@ -22,8 +22,8 @@ export default defineConfig({
 		globals: true,
 		setupFiles: ['src/lib/test/setup.ts'],
 		coverage: {
-			include: ['src/lib/components/**/*.svelte', 'src/lib/utils/**/*.ts'],
-			exclude: ['src/lib/test/**/*']
+			include: ['src/lib/**/*.{ts,svelte}'],
+			exclude: ['src/lib/test/**', '**/*.test.ts', '**/*.d.ts', 'src/lib/types/**']
 		}
 	},
 	// Ensure Svelte components can be tested in browser-like environment

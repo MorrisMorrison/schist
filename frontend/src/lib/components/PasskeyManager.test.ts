@@ -11,10 +11,9 @@ vi.mock('$lib/api/client', () => ({
 	apiClient: { getPasskeyStatus: vi.fn(), listPasskeys: vi.fn(), deletePasskey: vi.fn() }
 }));
 
-vi.mock('$lib/utils/webauthn', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('$lib/utils/webauthn')>();
-	return { ...actual, registerPasskey: vi.fn(), isWebAuthnSupported: vi.fn(() => true) };
-});
+vi.mock('$lib/utils/webauthn', async (importOriginal) =>
+	(await import('$lib/test/webauthn-mock')).mockWebAuthn(importOriginal)
+);
 
 const passkeys = [
 	{ id: 'pk-1', name: 'Laptop', createdAt: '2024-05-01T10:00:00Z' },
@@ -33,7 +32,6 @@ describe('PasskeyManager', () => {
 
 	afterEach(() => {
 		cleanup();
-		document.body.style.pointerEvents = '';
 		passkeyStore.reset();
 		vi.clearAllMocks();
 		vi.restoreAllMocks();

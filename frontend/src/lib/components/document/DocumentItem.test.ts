@@ -32,18 +32,21 @@ describe('DocumentItem', () => {
 		isSelected: false,
 		isCurrent: false,
 		enableContextMenu: true,
-		isDragging: false,
-		draggedItem: null,
-		dropTarget: null,
-		dragOverTarget: null,
+		dnd: {
+			isDragging: false,
+			draggedItem: null,
+			dropTarget: null,
+			dragOverTarget: null,
+			handleDragStart: vi.fn(),
+			handleDragEnd: vi.fn(),
+			handleDragOver: vi.fn(),
+			handleDragEnter: vi.fn(),
+			handleDragLeave: vi.fn(),
+			handleDrop: vi.fn()
+		},
+		folderPath: '/test',
 		onSelect: vi.fn(),
-		onContextMenu: vi.fn(),
-		onDragStart: vi.fn(),
-		onDragEnd: vi.fn(),
-		onDragOver: vi.fn(),
-		onDragEnter: vi.fn(),
-		onDragLeave: vi.fn(),
-		onDrop: vi.fn()
+		onContextMenu: vi.fn()
 	};
 
 	beforeEach(() => {
@@ -153,16 +156,18 @@ describe('DocumentItem', () => {
 		await fireEvent.drop(item);
 		await fireEvent.dragEnd(item);
 
-		expect(defaultProps.onDragStart).toHaveBeenCalledWith(
+		const { dnd } = defaultProps;
+		expect(dnd.handleDragStart).toHaveBeenCalledWith(
 			expect.any(Event),
 			'page',
 			'/test/document.md',
 			mockDocument
 		);
-		expect(defaultProps.onDragEnter).toHaveBeenCalled();
-		expect(defaultProps.onDragOver).toHaveBeenCalled();
-		expect(defaultProps.onDragLeave).toHaveBeenCalled();
-		expect(defaultProps.onDrop).toHaveBeenCalled();
-		expect(defaultProps.onDragEnd).toHaveBeenCalled();
+		// Dropping on a document targets the folder it is in.
+		expect(dnd.handleDragEnter).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDragOver).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDragLeave).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDrop).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDragEnd).toHaveBeenCalled();
 	});
 });

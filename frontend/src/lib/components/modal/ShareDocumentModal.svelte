@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '$lib/utils/date';
 	import { Copy, Share, RefreshCw, Trash2, Clock, ExternalLink } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -7,6 +8,7 @@
 	import { apiClient } from '$lib/api/client';
 	import type { ShareToken } from '$lib/api/types';
 	import { isUnauthorizedError } from '$lib/utils/error';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 
 	interface Props {
 		open: boolean;
@@ -103,17 +105,6 @@
 		}
 	}
 
-	function formatDate(dateString: string): string {
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
-
 	function isExpiringSoon(expiresAt: string): boolean {
 		const expiryDate = new Date(expiresAt);
 		const now = new Date();
@@ -144,9 +135,7 @@
 			{/if}
 
 			{#if error}
-				<div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-					{error}
-				</div>
+				<ErrorAlert {error} />
 			{/if}
 
 			<!-- Create New Share -->
@@ -215,9 +204,11 @@
 										<span class="text-muted-foreground text-sm">
 											{#if share.expires_at && new Date(share.expires_at) > new Date()}
 												{#if isExpiringSoon(share.expires_at)}
-													<span class="text-amber-600">Expires {formatDate(share.expires_at)}</span>
+													<span class="text-amber-600"
+														>Expires {formatDateTime(share.expires_at)}</span
+													>
 												{:else}
-													Expires {formatDate(share.expires_at)}
+													Expires {formatDateTime(share.expires_at)}
 												{/if}
 											{:else}
 												Never expires
@@ -255,7 +246,7 @@
 								</div>
 
 								<p class="text-muted-foreground text-xs">
-									Created {formatDate(share.created_at)}
+									Created {formatDateTime(share.created_at)}
 								</p>
 							</div>
 						{/each}

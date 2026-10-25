@@ -40,6 +40,7 @@ import { apiClient } from '$lib/api/client';
 import { resetAllState } from '$lib/stores/documents.svelte';
 import { secretStore } from '$lib/stores/secrets.svelte';
 import { stubProps } from '$lib/test/stub-registry';
+import { waitForPointerEvents } from '$lib/test/dialog';
 import { inlineEditorStub } from '$lib/test/inline-editor-stub';
 import DocumentView from './DocumentView.svelte';
 
@@ -80,7 +81,7 @@ function deferred<T>() {
 // Delete lives in the "More actions" menu. bits-ui turns pointer events off on
 // <body> while a menu or dialog closes, so wait for that before clicking.
 async function clickDelete() {
-	await vi.waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'));
+	await waitForPointerEvents();
 	await userEvent.click(screen.getByTestId('document-actions-menu'));
 	await userEvent.click(await screen.findByTestId('delete-document-button'));
 }
@@ -99,7 +100,6 @@ describe('DocumentView', () => {
 
 	afterEach(() => {
 		cleanup();
-		document.body.style.pointerEvents = '';
 		resetAllState();
 		secretStore.reset();
 		for (const key of Object.keys(stubProps)) delete stubProps[key];
@@ -171,7 +171,7 @@ describe('DocumentView', () => {
 		stubProps.VersionHistoryModal.onClose();
 		flushSync();
 
-		await vi.waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'));
+		await waitForPointerEvents();
 		await userEvent.click(screen.getByTestId('document-actions-menu'));
 		await userEvent.click(await screen.findByRole('menuitem', { name: 'Download' }));
 		expect(apiClient.exportDocument).toHaveBeenCalledWith('/notes/plan');

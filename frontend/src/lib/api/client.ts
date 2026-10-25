@@ -62,6 +62,9 @@ import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
 import { parseError, getErrorCodeFromStatus } from '$lib/utils/error';
 import { requestDeduplicator, createRequestKey } from '$lib/utils/request-deduplication';
 
+/** The `{ message }` body many mutating endpoints answer with. */
+type MessageResponse = { message: string };
+
 class SchistApiClient {
 	private baseUrl: string;
 	private authToken: string | null = null;
@@ -289,6 +292,14 @@ class SchistApiClient {
 		}
 	}
 
+	/** A request with a method and, if given, a JSON body. */
+	private send<T>(method: 'POST' | 'PUT' | 'DELETE', endpoint: string, body?: unknown): Promise<T> {
+		return this.request<T>(
+			endpoint,
+			body === undefined ? { method } : { method, body: JSON.stringify(body) }
+		);
+	}
+
 	private async deduplicatedRequest<T>(
 		endpoint: string,
 		options: RequestInit = {},
@@ -307,20 +318,17 @@ class SchistApiClient {
 	}
 
 	async loginWithPasskey(authTicket: string): Promise<LoginResponse> {
-		const response = await this.request<LoginResponse>('/auth/login/passkey', {
-			method: 'POST',
-			body: JSON.stringify({ authTicket } satisfies PasskeyLoginRequest)
-		});
+		const response = await this.send<LoginResponse>('POST', '/auth/login/passkey', {
+			authTicket
+		} satisfies PasskeyLoginRequest);
 
 		this.setAuthToken(response.token);
 
 		return response;
 	}
 
-	async logout(): Promise<{ message: string }> {
-		const response = await this.request<{ message: string }>('/auth/logout', {
-			method: 'POST'
-		});
+	async logout(): Promise<MessageResponse> {
+		const response = await this.send<MessageResponse>('POST', '/auth/logout');
 
 		this.setAuthToken(null);
 
@@ -343,19 +351,17 @@ class SchistApiClient {
 	async createDocument(documentData: CreateDocumentRequest): Promise<CreateDocumentResponse> {
 		const normalizedDocumentData = this.normalizeDocumentData(documentData);
 
-		return this.request<CreateDocumentResponse>('/documents', {
-			method: 'POST',
-			body: JSON.stringify(normalizedDocumentData)
-		});
+		return this.send<CreateDocumentResponse>('POST', '/documents', normalizedDocumentData);
 	}
 
 	async updateDocument(slug: string, documentData: UpdateDocumentRequest): Promise<Document> {
 		const normalizedDocumentData = this.normalizeDocumentData(documentData);
 
-		return this.request<Document>(`/documents/${encodeURIComponent(slug)}`, {
-			method: 'PUT',
-			body: JSON.stringify(normalizedDocumentData)
-		});
+		return this.send<Document>(
+			'PUT',
+			`/documents/${encodeURIComponent(slug)}`,
+			normalizedDocumentData
+		);
 	}
 
 	async getDocumentByPath(path: string): Promise<Document> {
@@ -404,16 +410,11 @@ class SchistApiClient {
 			saveType
 		};
 
-		return this.request<Document>(buildApiEndpoint('/documents', path), {
-			method: 'PUT',
-			body: JSON.stringify(normalizedDocumentData)
-		});
+		return this.send<Document>('PUT', buildApiEndpoint('/documents', path), normalizedDocumentData);
 	}
 
 	async deleteDocumentByPath(path: string): Promise<void> {
-		await this.request<void>(buildApiEndpoint('/documents', path), {
-			method: 'DELETE'
-		});
+		await this.send<void>('DELETE', buildApiEndpoint('/documents', path));
 	}
 
 	async getFolderTree(force = false): Promise<Folder[]> {
@@ -424,23 +425,17 @@ class SchistApiClient {
 
 	async createFolder(path: string): Promise<FolderOperationResponse> {
 		const normalizedPath = normalizePath(path);
-		return this.request<FolderOperationResponse>('/folders', {
-			method: 'POST',
-			body: JSON.stringify({ path: normalizedPath })
-		});
+		return this.send<FolderOperationResponse>('POST', '/folders', { path: normalizedPath });
 	}
 
 	async renameFolder(path: string, newName: string): Promise<FolderOperationResponse> {
-		return this.request<FolderOperationResponse>(buildApiEndpoint('/folders', path), {
-			method: 'PUT',
-			body: JSON.stringify({ newName })
+		return this.send<FolderOperationResponse>('PUT', buildApiEndpoint('/folders', path), {
+			newName
 		});
 	}
 
 	async deleteFolder(path: string): Promise<FolderOperationResponse> {
-		return this.request<FolderOperationResponse>(buildApiEndpoint('/folders', path), {
-			method: 'DELETE'
-		});
+		return this.send<FolderOperationResponse>('DELETE', buildApiEndpoint('/folders', path));
 	}
 
 	async moveDocument(moveRequest: MoveDocumentRequest): Promise<MoveDocumentResponse> {
@@ -448,10 +443,7 @@ class SchistApiClient {
 			oldPath: normalizePath(moveRequest.oldPath),
 			newPath: normalizePath(moveRequest.newPath)
 		};
-		return this.request<MoveDocumentResponse>('/documents/move', {
-			method: 'POST',
-			body: JSON.stringify(normalizedRequest)
-		});
+		return this.send<MoveDocumentResponse>('POST', '/documents/move', normalizedRequest);
 	}
 
 	async moveFolder(moveRequest: MoveDocumentRequest): Promise<MoveDocumentResponse> {
@@ -459,10 +451,7 @@ class SchistApiClient {
 			oldPath: normalizePath(moveRequest.oldPath),
 			newPath: normalizePath(moveRequest.newPath)
 		};
-		return this.request<MoveDocumentResponse>('/folders/move', {
-			method: 'POST',
-			body: JSON.stringify(normalizedRequest)
-		});
+		return this.send<MoveDocumentResponse>('POST', '/folders/move', normalizedRequest);
 	}
 
 	async searchDocuments(query: string): Promise<SearchResult> {
@@ -511,9 +500,7 @@ class SchistApiClient {
 			path: normalizedPath,
 			hash
 		});
-		return this.request<RestoreResponse>(`/versions/restore?${params}`, {
-			method: 'POST'
-		});
+		return this.send<RestoreResponse>('POST', `/versions/restore?${params}`);
 	}
 
 	async uploadImage(file: File, onProgress?: (progress: number) => void): Promise<Asset> {
@@ -673,17 +660,11 @@ class SchistApiClient {
 	}
 
 	async updateGitHubSettings(settings: GitHubConfigRequest): Promise<GitHubSettings> {
-		return this.request<GitHubSettings>('/github/config', {
-			method: 'PUT',
-			body: JSON.stringify(settings)
-		});
+		return this.send<GitHubSettings>('PUT', '/github/config', settings);
 	}
 
 	async setupGitHub(setupRequest: GitHubSetupRequest): Promise<GitHubSetupResponse> {
-		return this.request<GitHubSetupResponse>('/github/setup', {
-			method: 'POST',
-			body: JSON.stringify(setupRequest)
-		});
+		return this.send<GitHubSetupResponse>('POST', '/github/setup', setupRequest);
 	}
 
 	async testGitHubConnection(
@@ -691,16 +672,16 @@ class SchistApiClient {
 		owner: string,
 		repository: string
 	): Promise<GitHubConnectionTest> {
-		return this.request<GitHubConnectionTest>('/github/test', {
-			method: 'POST',
-			body: JSON.stringify({ token, owner, repo: repository, branch: 'main' })
+		return this.send<GitHubConnectionTest>('POST', '/github/test', {
+			token,
+			owner,
+			repo: repository,
+			branch: 'main'
 		});
 	}
 
 	async syncToGitHub(): Promise<GitHubSyncResult> {
-		return this.request<GitHubSyncResult>('/github/sync', {
-			method: 'POST'
-		});
+		return this.send<GitHubSyncResult>('POST', '/github/sync');
 	}
 
 	async disconnectGitHub(): Promise<{
@@ -708,21 +689,16 @@ class SchistApiClient {
 		settings: GitHubSettings;
 		connection: GitHubConnectionStatus;
 	}> {
-		return this.request<{
+		return this.send<{
 			message: string;
 			settings: GitHubSettings;
 			connection: GitHubConnectionStatus;
-		}>('/github/disconnect', {
-			method: 'POST'
-		});
+		}>('POST', '/github/disconnect');
 	}
 
 	// Share management
 	async createShare(request: CreateShareRequest): Promise<ShareToken> {
-		return this.request<ShareToken>('/shares', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+		return this.send<ShareToken>('POST', '/shares', request);
 	}
 
 	async getSharedDocument(token: string): Promise<Document> {
@@ -737,10 +713,8 @@ class SchistApiClient {
 		});
 	}
 
-	async revokeShare(shareId: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/shares/${encodeURIComponent(shareId)}`, {
-			method: 'DELETE'
-		});
+	async revokeShare(shareId: string): Promise<MessageResponse> {
+		return this.send<MessageResponse>('DELETE', `/shares/${encodeURIComponent(shareId)}`);
 	}
 
 	// Passkey management methods
@@ -752,51 +726,47 @@ class SchistApiClient {
 		return this.deduplicatedRequest<PasskeyListResponse>('/passkeys', {}, force);
 	}
 
-	async deletePasskey(credentialId: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/passkeys/${encodeURIComponent(credentialId)}`, {
-			method: 'DELETE'
-		});
+	async deletePasskey(credentialId: string): Promise<MessageResponse> {
+		return this.send<MessageResponse>('DELETE', `/passkeys/${encodeURIComponent(credentialId)}`);
 	}
 
-	async unlockWithPasskey(request: PasskeyUnlockRequest): Promise<{ message: string }> {
-		return this.request<{ message: string }>('/passkeys/unlock', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+	async unlockWithPasskey(request: PasskeyUnlockRequest): Promise<MessageResponse> {
+		return this.send<MessageResponse>('POST', '/passkeys/unlock', request);
 	}
 
 	// WebAuthn passkey methods
 	async beginPasskeyRegistration(
 		request: WebAuthnBeginRegistrationRequest
 	): Promise<WebAuthnBeginRegistrationResponse> {
-		return this.request<WebAuthnBeginRegistrationResponse>('/passkeys/register/begin', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+		return this.send<WebAuthnBeginRegistrationResponse>(
+			'POST',
+			'/passkeys/register/begin',
+			request
+		);
 	}
 
 	async finishPasskeyRegistration(
 		request: WebAuthnFinishRegistrationRequest
 	): Promise<WebAuthnFinishRegistrationResponse> {
-		return this.request<WebAuthnFinishRegistrationResponse>('/passkeys/register/finish', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+		return this.send<WebAuthnFinishRegistrationResponse>(
+			'POST',
+			'/passkeys/register/finish',
+			request
+		);
 	}
 
 	async beginPasskeyAuthentication(): Promise<WebAuthnBeginAuthenticationResponse> {
-		return this.request<WebAuthnBeginAuthenticationResponse>('/passkeys/authenticate/begin', {
-			method: 'POST'
-		});
+		return this.send<WebAuthnBeginAuthenticationResponse>('POST', '/passkeys/authenticate/begin');
 	}
 
 	async finishPasskeyAuthentication(
 		request: WebAuthnFinishAuthenticationRequest
 	): Promise<WebAuthnFinishAuthenticationResponse> {
-		return this.request<WebAuthnFinishAuthenticationResponse>('/passkeys/authenticate/finish', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+		return this.send<WebAuthnFinishAuthenticationResponse>(
+			'POST',
+			'/passkeys/authenticate/finish',
+			request
+		);
 	}
 
 	// Secret management methods
@@ -806,38 +776,28 @@ class SchistApiClient {
 
 	// Password-based unlock removed - secrets unlocked via passkey authentication
 
-	async lockSecrets(): Promise<{ message: string }> {
-		return this.request<{ message: string }>('/secrets/lock', {
-			method: 'POST'
-		});
+	async lockSecrets(): Promise<MessageResponse> {
+		return this.send<MessageResponse>('POST', '/secrets/lock');
 	}
 
 	async listSecrets(force = false): Promise<SecretListResponse> {
 		return this.deduplicatedRequest<SecretListResponse>('/secrets', {}, force);
 	}
 
-	async createSecret(request: CreateSecretRequest): Promise<{ message: string }> {
-		return this.request<{ message: string }>('/secrets', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+	async createSecret(request: CreateSecretRequest): Promise<MessageResponse> {
+		return this.send<MessageResponse>('POST', '/secrets', request);
 	}
 
 	async getSecret(key: string): Promise<SecretValueResponse> {
 		return this.request<SecretValueResponse>(`/secrets/${encodeURIComponent(key)}`);
 	}
 
-	async updateSecret(key: string, request: UpdateSecretRequest): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/secrets/${encodeURIComponent(key)}`, {
-			method: 'PUT',
-			body: JSON.stringify(request)
-		});
+	async updateSecret(key: string, request: UpdateSecretRequest): Promise<MessageResponse> {
+		return this.send<MessageResponse>('PUT', `/secrets/${encodeURIComponent(key)}`, request);
 	}
 
-	async deleteSecret(key: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/secrets/${encodeURIComponent(key)}`, {
-			method: 'DELETE'
-		});
+	async deleteSecret(key: string): Promise<MessageResponse> {
+		return this.send<MessageResponse>('DELETE', `/secrets/${encodeURIComponent(key)}`);
 	}
 
 	// Setup and user management methods
@@ -848,25 +808,25 @@ class SchistApiClient {
 	async createFirstUser(
 		request: CreateFirstUserRequest
 	): Promise<{ message: string; username: string }> {
-		return this.request<{ message: string; username: string }>('/auth/setup/first-user', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+		return this.send<{ message: string; username: string }>(
+			'POST',
+			'/auth/setup/first-user',
+			request
+		);
 	}
 
 	async generateInviteToken(): Promise<GenerateInviteTokenResponse> {
-		return this.request<GenerateInviteTokenResponse>('/auth/invite', {
-			method: 'POST'
-		});
+		return this.send<GenerateInviteTokenResponse>('POST', '/auth/invite');
 	}
 
 	async createUserFromInvite(
 		request: CreateUserFromInviteRequest
 	): Promise<{ message: string; username: string }> {
-		return this.request<{ message: string; username: string }>('/auth/setup/invite-user', {
-			method: 'POST',
-			body: JSON.stringify(request)
-		});
+		return this.send<{ message: string; username: string }>(
+			'POST',
+			'/auth/setup/invite-user',
+			request
+		);
 	}
 
 	// User management methods
@@ -874,10 +834,8 @@ class SchistApiClient {
 		return this.request<{ users: UserInfo[] }>('/auth/users');
 	}
 
-	async deleteUser(username: string): Promise<{ message: string }> {
-		return this.request<{ message: string }>(`/auth/users/${encodeURIComponent(username)}`, {
-			method: 'DELETE'
-		});
+	async deleteUser(username: string): Promise<MessageResponse> {
+		return this.send<MessageResponse>('DELETE', `/auth/users/${encodeURIComponent(username)}`);
 	}
 
 	async getTemplates(force = false): Promise<Template[]> {
@@ -890,9 +848,7 @@ class SchistApiClient {
 	}
 
 	async repairGitRepository(): Promise<{ success: boolean; message?: string; error?: string }> {
-		return this.request<{ success: boolean; message?: string; error?: string }>('/git/repair', {
-			method: 'POST'
-		});
+		return this.send<{ success: boolean; message?: string; error?: string }>('POST', '/git/repair');
 	}
 }
 

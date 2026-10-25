@@ -5,6 +5,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
 	import type { GitHubSetupRequest } from '$lib/api/types';
 	import { onMount } from 'svelte';
@@ -179,6 +180,9 @@
 			console.error('Error repairing Git repository');
 		}
 	}
+
+	const notConnectedMessage =
+		'GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.';
 </script>
 
 <div class="space-y-6">
@@ -284,13 +288,19 @@
 				{#if !isConnected}
 					<div class="space-y-3">
 						<label class="flex items-center space-x-2">
-							<input type="checkbox" bind:checked={createRepository} class="rounded" />
+							<Checkbox
+								checked={createRepository}
+								onCheckedChange={(checked) => (createRepository = checked)}
+							/>
 							<span class="text-sm">Create repository if it doesn't exist</span>
 						</label>
 
 						{#if createRepository}
 							<label class="ml-6 flex items-center space-x-2">
-								<input type="checkbox" bind:checked={private_repo} class="rounded" />
+								<Checkbox
+									checked={private_repo}
+									onCheckedChange={(checked) => (private_repo = checked)}
+								/>
 								<span class="text-sm">Make repository private</span>
 							</label>
 						{/if}
@@ -458,12 +468,7 @@
 	{#if activeTab === 'sync'}
 		<div class="space-y-4">
 			{#if !isConnected}
-				<div
-					class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-				>
-					<AlertCircle class="h-4 w-4 flex-shrink-0" />
-					GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.
-				</div>
+				<ErrorAlert variant="warning" error={notConnectedMessage} />
 			{/if}
 
 			{#if isConnected}

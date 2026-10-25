@@ -46,9 +46,6 @@ describe('FolderView', () => {
 
 	afterEach(() => {
 		cleanup();
-		// bits-ui restores body pointer-events shortly after a dialog closes; a
-		// cleanup that lands before that would leak the lock into the next test.
-		document.body.style.pointerEvents = '';
 		resetAllState();
 		vi.clearAllMocks();
 		vi.restoreAllMocks();

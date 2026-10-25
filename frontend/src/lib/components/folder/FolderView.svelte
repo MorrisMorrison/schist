@@ -6,10 +6,12 @@
 	import CreateFolderModal from '../modal/CreateFolderModal.svelte';
 	import { Plus, FolderPlus, File } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Label } from '$lib/components/ui/label';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { Document, Folder as FolderType } from '$lib/api/types';
+	import { isDirectChild } from '$lib/utils/path';
 
 	interface Props {
 		path?: string;
@@ -44,21 +46,9 @@
 			// Copy: the sort below is in place and must not mutate store state.
 			filteredDocuments = [...(documentsStore.documents || [])];
 		} else {
-			filteredDocuments = (documentsStore.documents || []).filter((document) => {
-				const documentPath = document.metaData?.path || '';
-				const isRoot = path === '' || path === '/';
-				if (isRoot) {
-					return documentPath.split('/').length === 2; // ['', 'filename']
-				}
-
-				const folderSegments = path.split('/').filter(Boolean);
-				const documentSegments = documentPath.split('/').filter(Boolean);
-
-				return (
-					documentSegments.length === folderSegments.length + 1 &&
-					documentSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
-				);
-			});
+			filteredDocuments = (documentsStore.documents || []).filter((document) =>
+				isDirectChild(document.metaData?.path || '', path)
+			);
 		}
 
 		return filteredDocuments.sort((a, b) => {
@@ -170,7 +160,7 @@
 			<div
 				class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2"
 			>
-				<label class="text-secondary text-sm font-medium" for="sort-select">Sort by:</label>
+				<Label for="sort-select" class="text-secondary">Sort by:</Label>
 				<select
 					bind:value={sortBy}
 					class="bg-primary text-primary cursor-pointer rounded border px-2 py-1 text-sm"

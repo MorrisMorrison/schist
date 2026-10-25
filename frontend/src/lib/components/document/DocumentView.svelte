@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/utils/date';
 	import {
 		BookOpen,
 		Calendar,
@@ -14,7 +15,7 @@
 		Trash2
 	} from '@lucide/svelte';
 	import { tick } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
@@ -164,16 +165,6 @@
 			return true;
 		});
 	});
-
-	function formatDate(dateString?: string): string {
-		if (!dateString) return '';
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-	}
 
 	let processedContent = $state('');
 
@@ -365,14 +356,14 @@
 				{#if documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Created {formatDate(documentCreated)}</span>
+						<span>Created {formatLongDate(documentCreated)}</span>
 					</div>
 				{/if}
 
 				{#if documentUpdated && documentUpdated !== documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Updated {formatDate(documentUpdated)}</span>
+						<span>Updated {formatLongDate(documentUpdated)}</span>
 					</div>
 				{/if}
 
@@ -444,7 +435,7 @@
 			<!-- Less frequent actions, and Delete away from the everyday buttons. -->
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger
-					class="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+					class={buttonVariants({ variant: 'outline', size: 'icon-sm' })}
 					aria-label="More actions"
 					title="More actions"
 					data-testid="document-actions-menu"
@@ -562,7 +553,7 @@
 												{backlinkDocument.metaData.title}
 											</h4>
 											<span class="text-muted-foreground text-xs">
-												{formatDate(backlinkDocument.metaData.updated)}
+												{formatLongDate(backlinkDocument.metaData.updated)}
 											</span>
 										</div>
 

@@ -1,14 +1,8 @@
 <script lang="ts">
 	import { documentActions } from '$lib/stores/documents.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import {
-		Dialog,
-		DialogContent,
-		DialogHeader,
-		DialogTitle,
-		DialogFooter
-	} from '$lib/components/ui/dialog';
+	import FormDialog from './FormDialog.svelte';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { Edit } from '@lucide/svelte';
 	import InlineError from '$lib/components/ui/InlineError.svelte';
 	import type { Document } from '$lib/api/types';
@@ -97,68 +91,41 @@
 	}
 </script>
 
-<Dialog {open} onOpenChange={(openState) => !openState && handleClose()}>
-	<DialogContent class="max-w-md">
-		<DialogHeader>
-			<DialogTitle class="flex items-center gap-3">
-				<Edit class="h-5 w-5 text-blue-500" />
-				Rename Document
-			</DialogTitle>
-		</DialogHeader>
+<FormDialog
+	{open}
+	title="Rename Document"
+	icon={Edit}
+	submitLabel="Rename Document"
+	busyLabel="Renaming..."
+	busy={isLoading}
+	canSubmit={isValidTitle}
+	onSubmit={renameDocument}
+	onClose={handleClose}
+	submitTestId="rename-document-btn"
+>
+	<div class="space-y-2">
+		<Label for="document-title" class="text-primary">New Document Title</Label>
+		<Input
+			id="document-title"
+			type="text"
+			data-testId="document-name"
+			bind:value={documentTitle}
+			placeholder="Enter new document title"
+			class={error && documentTitle ? 'border-red-500' : ''}
+			required
+		/>
 
-		<form
-			onsubmit={(e) => {
-				e.preventDefault();
-				renameDocument();
-			}}
-			class="space-y-6"
-		>
-			<div class="space-y-4">
-				<div class="space-y-2">
-					<label for="document-title" class="text-primary text-sm font-medium"
-						>New Document Title</label
-					>
-					<Input
-						id="document-title"
-						type="text"
-						data-testId="document-name"
-						bind:value={documentTitle}
-						placeholder="Enter new document title"
-						class={error && documentTitle ? 'border-red-500' : ''}
-						required
-					/>
+		{#if error && documentTitle}
+			<InlineError message={error} />
+		{/if}
 
-					{#if error && documentTitle}
-						<InlineError message={error} />
-					{/if}
-
-					<div class="bg-secondary rounded-lg border p-4">
-						<div class="space-y-2">
-							<span class="text-secondary text-sm font-medium">Current Title:</span>
-							<div class="bg-primary block w-full rounded border px-3 py-2 text-sm text-gray-600">
-								{currentTitle}
-							</div>
-						</div>
-					</div>
+		<div class="bg-secondary rounded-lg border p-4">
+			<div class="space-y-2">
+				<span class="text-secondary text-sm font-medium">Current Title:</span>
+				<div class="bg-primary block w-full rounded border px-3 py-2 text-sm text-gray-600">
+					{currentTitle}
 				</div>
 			</div>
-
-			<DialogFooter>
-				<Button type="button" variant="outline" onclick={handleClose} disabled={isLoading}>
-					Cancel
-				</Button>
-				<Button
-					type="submit"
-					data-testId="rename-document-btn"
-					disabled={!isValidTitle || isLoading}
-				>
-					{#if isLoading}
-						Renaming...
-					{:else}
-						Rename Document
-					{/if}
-				</Button>
-			</DialogFooter>
-		</form>
-	</DialogContent>
-</Dialog>
+		</div>
+	</div>
+</FormDialog>

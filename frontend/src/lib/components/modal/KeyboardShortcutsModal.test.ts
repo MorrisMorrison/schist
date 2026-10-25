@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
+import { pressOutsideDialog, waitForDialogFocus } from '$lib/test/dialog';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal.svelte';
 
 describe('KeyboardShortcutsModal', () => {
@@ -18,7 +19,7 @@ describe('KeyboardShortcutsModal', () => {
 
 	it('lists every shortcut group', () => {
 		render(KeyboardShortcutsModal, { props: { open: true, onClose } });
-		const dialog = screen.getByRole('dialog', { name: 'Keyboard shortcuts' });
+		const dialog = screen.getByRole('dialog', { name: 'Keyboard Shortcuts' });
 		expect(dialog).toBeInTheDocument();
 		for (const heading of ['Navigation', 'Document Actions', 'UI Controls']) {
 			expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
@@ -46,17 +47,18 @@ describe('KeyboardShortcutsModal', () => {
 
 	it('takes focus when it opens, so Escape works however it was opened', async () => {
 		render(KeyboardShortcutsModal, { props: { open: true, onClose } });
-		const dialog = screen.getByRole('dialog');
-		await vi.waitFor(() => expect(document.activeElement).toBe(dialog));
+		await waitForDialogFocus();
 		await userEvent.keyboard('{Escape}');
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
-	it('closes on a backdrop click but not on a click inside the panel', async () => {
+	it('closes on a press outside the panel but not on a click inside it', async () => {
 		render(KeyboardShortcutsModal, { props: { open: true, onClose } });
-		await fireEvent.click(screen.getByRole('document'));
+		await waitForDialogFocus();
+		await userEvent.click(screen.getByRole('heading', { name: 'Navigation' }));
 		expect(onClose).not.toHaveBeenCalled();
-		await fireEvent.click(screen.getByRole('dialog'));
-		expect(onClose).toHaveBeenCalledTimes(1);
+		await pressOutsideDialog();
+		// bits-ui handles outside presses after a short debounce.
+		await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 	});
 });

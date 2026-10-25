@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
 // Tests run in real Chromium, which has ResizeObserver and IntersectionObserver.
@@ -52,3 +52,10 @@ vi.mock('$app/environment', () => ({
 	building: false,
 	version: 'test'
 }));
+
+// bits-ui turns pointer events off on <body> while a dialog or menu is open and
+// restores them a moment after it closes. A test that ends (or unmounts) before
+// that would leave the next test unable to click anything.
+afterEach(() => {
+	document.body.style.pointerEvents = '';
+});

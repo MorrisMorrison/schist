@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Folder, FolderOpen, FolderPlus, FilePlus, Plus, Upload, Download } from '@lucide/svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
@@ -17,6 +17,7 @@
 		folderActions
 	} from '$lib/stores/documents.svelte';
 	import { cn } from '$lib/utils.js';
+	import { isDirectChild } from '$lib/utils/path';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 	import { authService } from '$lib/auth/auth-service';
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
@@ -252,21 +253,7 @@
 	}
 
 	function getPagesForFolder(folderPath: string) {
-		return documents.filter((page) => {
-			const pagePath = page.metaData?.path || '';
-
-			if (folderPath === '' || folderPath === '/') {
-				return pagePath.split('/').length === 2;
-			}
-
-			const folderSegments = folderPath.split('/').filter(Boolean);
-			const pageSegments = pagePath.split('/').filter(Boolean);
-
-			return (
-				pageSegments.length === folderSegments.length + 1 &&
-				pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
-			);
-		});
+		return documents.filter((page) => isDirectChild(page.metaData?.path || '', folderPath));
 	}
 
 	function getFilteredPagesForFolder(folderPath: string) {
@@ -461,19 +448,50 @@
 		closeContextMenu();
 	}
 
+	/** The root as a folder: the top-level folders and pages that pass the filter. */
+	function rootFolder(): FolderType {
+		return {
+			name: '/',
+			path: '/',
+			created: new Date().toISOString(),
+			document_count: getFilteredPagesForFolder('/').length,
+			sub_folders: filteredFolders
+		};
+	}
+
 	function getCurrentFolderFromPath(path: string): FolderType | null {
 		if (path === '/') {
-			return {
-				name: '/',
-				path: '/',
-				created: new Date().toISOString(),
-				document_count: getFilteredPagesForFolder('/').length,
-				sub_folders: filteredFolders
-			};
+			return rootFolder();
 		}
 		return findFolderByPath(foldersStore.folders || [], path);
 	}
 </script>
+
+{#snippet treeNode(folder: FolderType, depth: number, hideRow = false)}
+	<FolderTreeNode
+		{folder}
+		{hideRow}
+		{depth}
+		{maxDepth}
+		isExpanded={expandedFolders.has(folder.path)}
+		isSelected={selectedPath === folder.path}
+		isCurrent={isCurrentPath(folder.path)}
+		{showPages}
+		{showPageCounts}
+		{enableContextMenu}
+		filteredPages={getFilteredPagesForFolder(folder.path)}
+		{selectedPath}
+		{currentPath}
+		dnd={dragAndDrop}
+		{expandedFolders}
+		onToggleExpanded={toggleExpanded}
+		onFolderSelect={handleFolderSelect}
+		onContextMenu={handleContextMenu}
+		onDocumentSelect={ondocumentselect}
+		onDocumentContextMenu={handlePageContextMenu}
+		{getFilteredPagesForFolder}
+	/>
+{/snippet}
 
 <svelte:window onclick={handleOutsideClick} />
 
@@ -503,7 +521,7 @@
 				<!-- One "new" menu: replaces the root node's context menu and the Import button. -->
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger
-						class="hover:bg-accent hover:text-accent-foreground inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+						class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-7 w-7')}
 						title="New page, folder or import"
 						aria-label="New"
 						data-testid="sidebar-new-menu"
@@ -613,77 +631,10 @@
 			}}
 		>
 			{#if showPages}
-				<FolderTreeNode
-					folder={{
-						name: '/',
-						path: '/',
-						created: new Date().toISOString(),
-						document_count: getFilteredPagesForFolder('/').length,
-						sub_folders: filteredFolders
-					}}
-					hideRow
-					depth={-1}
-					{maxDepth}
-					isExpanded={expandedFolders.has('/')}
-					isSelected={selectedPath === '/'}
-					isCurrent={isCurrentPath('/')}
-					{showPages}
-					{showPageCounts}
-					{enableContextMenu}
-					filteredPages={getFilteredPagesForFolder('/')}
-					{selectedPath}
-					{currentPath}
-					isDragging={dragAndDrop.isDragging}
-					draggedItem={dragAndDrop.draggedItem}
-					dropTarget={dragAndDrop.dropTarget}
-					dragOverTarget={dragAndDrop.dragOverTarget}
-					{expandedFolders}
-					onToggleExpanded={toggleExpanded}
-					onFolderSelect={handleFolderSelect}
-					onContextMenu={handleContextMenu}
-					onDragStart={dragAndDrop.handleDragStart}
-					onDragEnd={dragAndDrop.handleDragEnd}
-					onDragOver={dragAndDrop.handleDragOver}
-					onDragEnter={dragAndDrop.handleDragEnter}
-					onDragLeave={dragAndDrop.handleDragLeave}
-					onDrop={dragAndDrop.handleDrop}
-					onDocumentSelect={ondocumentselect}
-					onDocumentContextMenu={handlePageContextMenu}
-					{getFilteredPagesForFolder}
-				/>
+				{@render treeNode(rootFolder(), -1, true)}
 			{:else}
 				{#each filteredFolders as folder (folder.path)}
-					<FolderTreeNode
-						{folder}
-						depth={0}
-						{maxDepth}
-						isExpanded={expandedFolders.has(folder.path)}
-						isSelected={selectedPath === folder.path}
-						isCurrent={isCurrentPath(folder.path)}
-						{showPages}
-						{showPageCounts}
-						{enableContextMenu}
-						filteredPages={getFilteredPagesForFolder(folder.path)}
-						{selectedPath}
-						{currentPath}
-						isDragging={dragAndDrop.isDragging}
-						draggedItem={dragAndDrop.draggedItem}
-						dropTarget={dragAndDrop.dropTarget}
-						dragOverTarget={dragAndDrop.dragOverTarget}
-						{expandedFolders}
-						onToggleExpanded={toggleExpanded}
-						onFolderSelect={handleFolderSelect}
-						onContextMenu={handleContextMenu}
-						onDragStart={dragAndDrop.handleDragStart}
-						onDragEnd={dragAndDrop.handleDragEnd}
-						onDragOver={dragAndDrop.handleDragOver}
-						onDragEnter={dragAndDrop.handleDragEnter}
-						onDragLeave={dragAndDrop.handleDragLeave}
-						onDrop={dragAndDrop.handleDrop}
-						onDocumentSelect={ondocumentselect}
-						onDocumentContextMenu={handlePageContextMenu}
-						{getFilteredPagesForFolder}
-					/>
+					{@render treeNode(folder, 0)}
 				{/each}
 			{/if}
 		</div>

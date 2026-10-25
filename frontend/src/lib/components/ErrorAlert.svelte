@@ -3,14 +3,16 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { X, AlertCircle, AlertTriangle, Info } from '@lucide/svelte';
 
-	export interface Props {
+	import type { HTMLAttributes } from 'svelte/elements';
+
+	export interface Props extends HTMLAttributes<HTMLDivElement> {
 		error: string;
 		variant?: 'error' | 'warning' | 'info';
 		onDismiss?: () => void;
 		class?: string;
 	}
 
-	let { error, variant = 'error', onDismiss, class: className }: Props = $props();
+	let { error, variant = 'error', onDismiss, class: className, ...restProps }: Props = $props();
 
 	const variantClasses = {
 		error:
@@ -29,7 +31,7 @@
 	const IconComponent = $derived(icons[variant]);
 </script>
 
-<Alert class="{variantClasses[variant]} {className}">
+<Alert class="{variantClasses[variant]} {className}" {...restProps}>
 	<IconComponent class="h-4 w-4" />
 	<AlertDescription class="flex items-center justify-between">
 		<span>{error}</span>

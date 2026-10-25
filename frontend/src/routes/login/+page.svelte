@@ -10,12 +10,13 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import { Fingerprint, AlertCircle } from '@lucide/svelte';
+	import { Fingerprint } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authenticateWithPasskey } from '$lib/utils/webauthn';
 	import { authService } from '$lib/auth/auth-service';
 	import { getErrorMessage } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 
 	let isLoading = $state(false);
 	let error = $state('');
@@ -83,13 +84,7 @@
 
 		<CardContent class="space-y-6">
 			{#if error}
-				<div
-					class="border-destructive/20 bg-destructive/10 text-destructive flex items-center gap-2 rounded-md border p-3 text-sm"
-					data-testid="login-error"
-				>
-					<AlertCircle class="h-4 w-4" />
-					{error}
-				</div>
+				<ErrorAlert {error} data-testid="login-error" />
 			{/if}
 
 			{#if checkingSetup}

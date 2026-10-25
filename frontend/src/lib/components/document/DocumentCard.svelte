@@ -118,8 +118,8 @@
 						{#if onEdit}
 							<Button
 								variant="ghost"
-								size="sm"
-								class="hover:bg-primary/10 hover:text-primary h-8 w-8 p-0"
+								size="icon-sm"
+								class="hover:bg-primary/10 hover:text-primary"
 								onclick={(e) => {
 									e.stopPropagation();
 									onEdit(document.metaData.path!);
@@ -132,8 +132,8 @@
 						{#if onMove}
 							<Button
 								variant="ghost"
-								size="sm"
-								class="hover:bg-primary/10 hover:text-primary h-8 w-8 p-0"
+								size="icon-sm"
+								class="hover:bg-primary/10 hover:text-primary"
 								onclick={(e) => {
 									e.stopPropagation();
 									onMove(document);
@@ -146,8 +146,8 @@
 						{#if onDelete}
 							<Button
 								variant="ghost"
-								size="sm"
-								class="hover:bg-destructive/10 hover:text-destructive h-8 w-8 p-0"
+								size="icon-sm"
+								class="hover:bg-destructive/10 hover:text-destructive"
 								onclick={(e) => {
 									e.stopPropagation();
 									onDelete(document.metaData.slug!);

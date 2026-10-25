@@ -10,6 +10,7 @@ import {
 	currentFolder
 } from '$lib/stores/documents.svelte';
 import type { Document, Folder } from '$lib/api/types';
+import { waitForPointerEvents } from '$lib/test/dialog';
 import FolderTree from './FolderTree.svelte';
 
 vi.mock('$lib/api/client', () => ({
@@ -84,8 +85,6 @@ describe('FolderTree', () => {
 
 	afterEach(() => {
 		cleanup();
-		// A menu that was open when the test ended leaves pointer events off.
-		document.body.style.pointerEvents = '';
 		resetAllState();
 		localStorage.removeItem(STORAGE_KEY);
 		vi.clearAllMocks();
@@ -247,7 +246,7 @@ describe('FolderTree', () => {
 
 		const pick = async (name: string) => {
 			// bits-ui disables pointer events on <body> until a closing menu is gone.
-			await waitFor(() => expect(document.body.style.pointerEvents).not.toBe('none'));
+			await waitForPointerEvents();
 			await userEvent.click(screen.getByTestId('sidebar-new-menu'));
 			await userEvent.click(await screen.findByRole('menuitem', { name }));
 		};

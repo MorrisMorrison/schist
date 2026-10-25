@@ -47,3 +47,24 @@ export function formatDate(dateString?: string): string {
 	if (!dateString) return '';
 	return new Date(dateString).toLocaleDateString();
 }
+
+/** Calendar date with the month spelled out ("March 5, 2024"); '' without a date. */
+export function formatLongDate(dateString?: string): string {
+	if (!dateString) return '';
+	return new Date(dateString).toLocaleDateString('en-US', {
+		year: 'numeric',
+		month: 'long',
+		day: 'numeric'
+	});
+}
+
+/** Short date plus time of day ("Mar 5, 2024, 12:00 PM"). */
+export function formatDateTime(dateString: string): string {
+	return new Date(dateString).toLocaleDateString('en-US', {
+		year: 'numeric',
+		month: 'short',
+		day: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit'
+	});
+}

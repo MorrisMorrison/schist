@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/utils/date';
 	import { Calendar, Tag, Eye } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
@@ -18,16 +19,6 @@
 	const documentTags = $derived(document.metaData?.tags || []);
 
 	let contentContainer = $state<HTMLElement>();
-
-	function formatDate(dateString?: string): string {
-		if (!dateString) return '';
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-	}
 
 	// Initialize markdown interactions after content is rendered
 	$effect(() => {
@@ -67,14 +58,14 @@
 				{#if documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Created {formatDate(documentCreated)}</span>
+						<span>Created {formatLongDate(documentCreated)}</span>
 					</div>
 				{/if}
 
 				{#if documentUpdated && documentUpdated !== documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Updated {formatDate(documentUpdated)}</span>
+						<span>Updated {formatLongDate(documentUpdated)}</span>
 					</div>
 				{/if}
 
@@ -144,7 +135,7 @@
 				Schist
 			</a>
 		</div>
-		<ThemeToggle size="sm" />
+		<ThemeToggle />
 	</div>
 </footer>
 

@@ -3,6 +3,7 @@
 	// document never downloads the editor.
 	import { onMount } from 'svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import type { FormattingType, ProseEditorProps } from '$lib/types/editor';
 	import type ProseEditorComponent from './ProseEditor.svelte';
 
@@ -41,12 +42,9 @@
 {#if loadError}
 	<div class="py-12 text-center">
 		<p class="text-destructive">{loadError}</p>
-		<button
-			class="text-primary mt-2 text-sm hover:underline"
-			onclick={() => window.location.reload()}
-		>
+		<Button variant="link" size="sm" class="mt-2" onclick={() => window.location.reload()}>
 			Retry
-		</button>
+		</Button>
 	</div>
 {:else if EditorComponent}
 	<EditorComponent bind:this={editor} {...props} />

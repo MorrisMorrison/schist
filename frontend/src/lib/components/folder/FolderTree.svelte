@@ -448,19 +448,50 @@
 		closeContextMenu();
 	}
 
+	/** The root as a folder: the top-level folders and pages that pass the filter. */
+	function rootFolder(): FolderType {
+		return {
+			name: '/',
+			path: '/',
+			created: new Date().toISOString(),
+			document_count: getFilteredPagesForFolder('/').length,
+			sub_folders: filteredFolders
+		};
+	}
+
 	function getCurrentFolderFromPath(path: string): FolderType | null {
 		if (path === '/') {
-			return {
-				name: '/',
-				path: '/',
-				created: new Date().toISOString(),
-				document_count: getFilteredPagesForFolder('/').length,
-				sub_folders: filteredFolders
-			};
+			return rootFolder();
 		}
 		return findFolderByPath(foldersStore.folders || [], path);
 	}
 </script>
+
+{#snippet treeNode(folder: FolderType, depth: number, hideRow = false)}
+	<FolderTreeNode
+		{folder}
+		{hideRow}
+		{depth}
+		{maxDepth}
+		isExpanded={expandedFolders.has(folder.path)}
+		isSelected={selectedPath === folder.path}
+		isCurrent={isCurrentPath(folder.path)}
+		{showPages}
+		{showPageCounts}
+		{enableContextMenu}
+		filteredPages={getFilteredPagesForFolder(folder.path)}
+		{selectedPath}
+		{currentPath}
+		dnd={dragAndDrop}
+		{expandedFolders}
+		onToggleExpanded={toggleExpanded}
+		onFolderSelect={handleFolderSelect}
+		onContextMenu={handleContextMenu}
+		onDocumentSelect={ondocumentselect}
+		onDocumentContextMenu={handlePageContextMenu}
+		{getFilteredPagesForFolder}
+	/>
+{/snippet}
 
 <svelte:window onclick={handleOutsideClick} />
 
@@ -600,59 +631,10 @@
 			}}
 		>
 			{#if showPages}
-				<FolderTreeNode
-					folder={{
-						name: '/',
-						path: '/',
-						created: new Date().toISOString(),
-						document_count: getFilteredPagesForFolder('/').length,
-						sub_folders: filteredFolders
-					}}
-					hideRow
-					depth={-1}
-					{maxDepth}
-					isExpanded={expandedFolders.has('/')}
-					isSelected={selectedPath === '/'}
-					isCurrent={isCurrentPath('/')}
-					{showPages}
-					{showPageCounts}
-					{enableContextMenu}
-					filteredPages={getFilteredPagesForFolder('/')}
-					{selectedPath}
-					{currentPath}
-					dnd={dragAndDrop}
-					{expandedFolders}
-					onToggleExpanded={toggleExpanded}
-					onFolderSelect={handleFolderSelect}
-					onContextMenu={handleContextMenu}
-					onDocumentSelect={ondocumentselect}
-					onDocumentContextMenu={handlePageContextMenu}
-					{getFilteredPagesForFolder}
-				/>
+				{@render treeNode(rootFolder(), -1, true)}
 			{:else}
 				{#each filteredFolders as folder (folder.path)}
-					<FolderTreeNode
-						{folder}
-						depth={0}
-						{maxDepth}
-						isExpanded={expandedFolders.has(folder.path)}
-						isSelected={selectedPath === folder.path}
-						isCurrent={isCurrentPath(folder.path)}
-						{showPages}
-						{showPageCounts}
-						{enableContextMenu}
-						filteredPages={getFilteredPagesForFolder(folder.path)}
-						{selectedPath}
-						{currentPath}
-						dnd={dragAndDrop}
-						{expandedFolders}
-						onToggleExpanded={toggleExpanded}
-						onFolderSelect={handleFolderSelect}
-						onContextMenu={handleContextMenu}
-						onDocumentSelect={ondocumentselect}
-						onDocumentContextMenu={handlePageContextMenu}
-						{getFilteredPagesForFolder}
-					/>
+					{@render treeNode(folder, 0)}
 				{/each}
 			{/if}
 		</div>

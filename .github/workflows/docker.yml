@@ -50,8 +50,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: docker/setup-buildx-action@v4
+
+      # Layer cache shared with the e2e workflow (same image, same scope): an
+      # unchanged frontend or backend stage, and the npm/go dependency layers,
+      # come from the cache instead of being rebuilt.
       - name: Build Docker image
-        run: docker build -t "schist-test:${GITHUB_RUN_ID}" .
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: schist-test:${{ github.run_id }}
+          cache-from: type=gha,scope=schist-image
+          cache-to: type=gha,mode=max,scope=schist-image
 
       - name: Test Docker image
         run: |

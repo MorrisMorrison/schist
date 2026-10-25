@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { passkeyStore } from '$lib/stores/passkeys.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import {
 		Card,
 		CardContent,
@@ -12,8 +12,7 @@
 		CardTitle
 	} from '$lib/components/ui/card';
 	import PasskeySetupModal from './modal/PasskeySetupModal.svelte';
-	import InfoBox from '$lib/components/ui/info-box.svelte';
-	import { Shield, Key, Plus, Trash2, Loader2 } from '@lucide/svelte';
+	import { Shield, Key, Plus, Trash2, Loader2, Info } from '@lucide/svelte';
 	import LoadingRow from '$lib/components/LoadingRow.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 
@@ -119,10 +118,14 @@
 					</div>
 				{/if}
 
-				<InfoBox
-					title="Security Note"
-					description="Each passkey provides unique device-based encryption. Only devices with registered passkeys can unlock your secrets."
-				/>
+				<Alert variant="info" role="note">
+					<Info />
+					<AlertTitle>Security Note</AlertTitle>
+					<AlertDescription>
+						Each passkey provides unique device-based encryption. Only devices with registered
+						passkeys can unlock your secrets.
+					</AlertDescription>
+				</Alert>
 			</div>
 		{/if}
 	</CardContent>

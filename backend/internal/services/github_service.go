@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -29,11 +30,15 @@ const (
 type GitHubService struct {
 	config        *appconfig.Config
 	settings      *appconfig.Settings
-	client        *github.Client
 	gitService    *GitService
 	secretManager *SecretManager
 	ctx           context.Context
 	dataDir       string
+
+	// clientMu guards client: requests (status, sync, setup, disconnect) read
+	// and replace it concurrently. Use currentClient/setClient/ensureClient.
+	clientMu sync.Mutex
+	client   *github.Client
 }
 
 type GitHubSettings struct {
@@ -102,7 +107,7 @@ func NewGitHubService(
 
 	githubSettings := settings.GetGitHubSettings()
 	if githubSettings.Enabled && service.hasToken() {
-		if err := service.initializeClient(); err != nil {
+		if _, err := service.ensureClient(); err != nil {
 			fmt.Printf("Warning: failed to initialize GitHub client: %v\n", err)
 		}
 	}
@@ -138,25 +143,35 @@ func newGitHubClient(ctx context.Context, token string) *github.Client {
 	return github.NewClient(oauth2.NewClient(ctx, ts))
 }
 
-func (gs *GitHubService) initializeClient() error {
-	token, err := gs.getToken()
-	if err != nil {
-		return err
-	}
-
-	gs.client = newGitHubClient(gs.ctx, token)
-
-	return nil
+// currentClient returns the shared client, or nil if it hasn't been built.
+func (gs *GitHubService) currentClient() *github.Client {
+	gs.clientMu.Lock()
+	defer gs.clientMu.Unlock()
+	return gs.client
 }
 
-// ensureClient lazily initializes the shared client if it has not been created
-// yet. It is the single guard used by every caller that needs gs.client, so the
-// "client == nil → initializeClient()" pattern lives in exactly one place.
-func (gs *GitHubService) ensureClient() error {
+// setClient replaces the shared client (nil drops it).
+func (gs *GitHubService) setClient(client *github.Client) {
+	gs.clientMu.Lock()
+	defer gs.clientMu.Unlock()
+	gs.client = client
+}
+
+// ensureClient returns the shared client, building it from the stored token
+// the first time. The lock is held while building, so concurrent callers get
+// one client. Callers keep the returned client rather than re-reading the field.
+func (gs *GitHubService) ensureClient() (*github.Client, error) {
+	gs.clientMu.Lock()
+	defer gs.clientMu.Unlock()
 	if gs.client != nil {
-		return nil
+		return gs.client, nil
 	}
-	return gs.initializeClient()
+	token, err := gs.getToken()
+	if err != nil {
+		return nil, err
+	}
+	gs.client = newGitHubClient(gs.ctx, token)
+	return gs.client, nil
 }
 
 // requestContext returns a per-call context with a bounded timeout plus its
@@ -236,7 +251,7 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, fmt.Errorf("failed to save GitHub config: %w", err)
 	}
 
-	gs.client = tempClient
+	gs.setClient(tempClient)
 
 	if err := gs.setupGitRemote(); err != nil {
 		return nil, fmt.Errorf("failed to setup git remote: %w", err)
@@ -288,13 +303,15 @@ func (gs *GitHubService) GetGitHubConnectionStatus() (*GitHubConnectionStatus, e
 	}
 
 	// Try to initialize client (requires secret unlock)
-	if gs.client == nil && gs.hasToken() {
-		if err := gs.ensureClient(); err != nil {
+	client := gs.currentClient()
+	if client == nil && gs.hasToken() {
+		var err error
+		if client, err = gs.ensureClient(); err != nil {
 			return status, fmt.Errorf("failed to initialize GitHub client: %w", err)
 		}
 	}
 
-	if gs.client == nil {
+	if client == nil {
 		return status, nil
 	}
 
@@ -302,7 +319,7 @@ func (gs *GitHubService) GetGitHubConnectionStatus() (*GitHubConnectionStatus, e
 	githubSettings := gs.settings.GetGitHubSettings()
 	if githubSettings.Owner != "" && githubSettings.Repository != "" {
 		ctx, cancel := gs.requestContext()
-		_, _, err := gs.client.Repositories.Get(ctx, githubSettings.Owner, githubSettings.Repository)
+		_, _, err := client.Repositories.Get(ctx, githubSettings.Owner, githubSettings.Repository)
 		cancel()
 		status.Connected = err == nil
 
@@ -332,9 +349,9 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 	}
 
 	if req.Branch != nil && *req.Branch != "" {
-		if gs.client != nil {
+		if client := gs.currentClient(); client != nil {
 			ctx, cancel := gs.requestContext()
-			_, _, err := gs.client.Repositories.GetBranch(
+			_, _, err := client.Repositories.GetBranch(
 				ctx, githubSettings.Owner, githubSettings.Repository, *req.Branch, 1)
 			cancel()
 			if err != nil {
@@ -369,9 +386,11 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 		return nil, fmt.Errorf("github integration is not enabled")
 	}
 
-	if gs.client == nil {
+	client := gs.currentClient()
+	if client == nil {
 		log.Printf("[GitHubService] GitHub client not initialized, attempting to initialize...")
-		if err := gs.ensureClient(); err != nil {
+		var err error
+		if client, err = gs.ensureClient(); err != nil {
 			log.Printf("[GitHubService] ERROR: Failed to initialize GitHub client: %v", err)
 			return nil, fmt.Errorf("failed to initialize github client: %w", err)
 		}
@@ -410,7 +429,7 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 
 	log.Printf("[GitHubService] Verifying GitHub repository access...")
 	verifyCtx, verifyCancel := gs.requestContext()
-	_, _, err := gs.client.Repositories.Get(verifyCtx, githubSettings.Owner, githubSettings.Repository)
+	_, _, err := client.Repositories.Get(verifyCtx, githubSettings.Owner, githubSettings.Repository)
 	verifyCancel()
 	if err != nil {
 		return fail("Failed to connect to GitHub repository", err)
@@ -673,7 +692,7 @@ func (gs *GitHubService) Disconnect() error {
 		return fmt.Errorf("failed to clear GitHub settings: %w", err)
 	}
 
-	gs.client = nil
+	gs.setClient(nil)
 
 	log.Printf("[GitHubService] Successfully disconnected GitHub integration")
 	return nil

@@ -187,8 +187,17 @@ const appStateDir = ".schist"
 
 const appStateIgnoreRule = appStateDir + "/"
 
+// UserService keeps its store and pending invite tokens in the data dir root
+// rather than in appStateDir. They are app state all the same: an invite
+// token pushed to the backup repository is a working sign-up link.
+const (
+	userStoreFile  = "users.json"
+	userInvitesDir = "invites/"
+)
+
 func isAppStatePath(p string) bool {
-	return p == appStateDir || strings.HasPrefix(p, appStateIgnoreRule)
+	return p == appStateDir || strings.HasPrefix(p, appStateIgnoreRule) ||
+		p == userStoreFile || strings.HasPrefix(p, userInvitesDir)
 }
 
 // untrackAppState makes sure an existing repository ignores and no longer

@@ -97,6 +97,10 @@
 			: foldersStore.folders || []
 	);
 
+	// Top-level pages count as results too: without this, a search that only
+	// matches a page in the root showed "No folders match" and hid the page.
+	const rootPages = $derived(showPages ? getFilteredPagesForFolder('/') : []);
+
 	let hasInitialized = $state(false);
 
 	$effect(() => {
@@ -518,7 +522,7 @@
 		<div class="flex items-center justify-center py-8">
 			<LoadingSpinner size="md" />
 		</div>
-	{:else if !folderLoader.loading && foldersStore.folders !== null && filteredFolders.length === 0}
+	{:else if !folderLoader.loading && foldersStore.folders !== null && filteredFolders.length === 0 && rootPages.length === 0}
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>

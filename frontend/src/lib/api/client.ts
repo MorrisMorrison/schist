@@ -418,7 +418,8 @@ class SchistApiClient {
 
 	async getFolderTree(force = false): Promise<Folder[]> {
 		const response = await this.deduplicatedRequest<FolderTreeResponse>('/folders', {}, force);
-		return response.folders;
+		// The server sends null (a nil Go slice) when there are no folders.
+		return response.folders ?? [];
 	}
 
 	async createFolder(path: string): Promise<FolderOperationResponse> {

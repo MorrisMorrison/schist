@@ -305,6 +305,7 @@
 					<div class="space-y-2">
 						<Label for="backup-mode">Backup Mode</Label>
 						<select
+							id="backup-mode"
 							bind:value={backupMode}
 							class="border-input bg-background w-full rounded-md border px-3 py-2"
 						>

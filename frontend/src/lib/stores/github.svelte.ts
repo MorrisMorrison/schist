@@ -197,7 +197,7 @@ export const githubActions = {
 					errorMessage =
 						'GitHub integration is not properly configured. Please set up GitHub connection first.';
 				} else {
-					errorMessage = error.message;
+					errorMessage = getErrorMessage(error, errorMessage);
 				}
 			}
 

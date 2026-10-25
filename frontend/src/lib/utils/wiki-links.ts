@@ -7,6 +7,7 @@ import { tags } from '@lezer/highlight';
 import { goto } from '$app/navigation';
 import { generateSlug } from '$lib/utils/path';
 import { getCachedDocuments } from '$lib/utils/markdown-cache';
+import { findWikiLinkMatches } from '$lib/utils/wiki-link-syntax';
 
 const existsCache = new Map<string, { exists: boolean; time: number }>();
 const EXISTS_CACHE_DURATION = 30000;
@@ -49,7 +50,6 @@ async function resolveDocumentPath(documentName: string): Promise<string> {
 	return `/${slug}`;
 }
 
-const wikiLinkRegex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 class WikiLinkWidget extends WidgetType {
 	constructor(
 		private documentName: string,
@@ -117,14 +117,9 @@ async function findWikiLinks(state: EditorState): Promise<Range<Decoration>[]> {
 	const decorations: Range<Decoration>[] = [];
 	const text = state.doc.toString();
 
-	let match;
-	wikiLinkRegex.lastIndex = 0;
-
-	while ((match = wikiLinkRegex.exec(text)) !== null) {
-		const [fullMatch, documentName, displayText] = match;
-		const from = match.index;
-		const to = match.index + fullMatch.length;
-
+	for (const { from, to, target: documentName, display: displayText } of findWikiLinkMatches(
+		text
+	)) {
 		if (!documentName?.trim()) continue;
 
 		const exists = await documentExists(documentName.trim());

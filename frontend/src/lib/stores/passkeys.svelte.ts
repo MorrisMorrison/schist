@@ -6,6 +6,7 @@ import {
 	isWebAuthnSupported
 } from '$lib/utils/webauthn';
 import { runAsync } from './resource.svelte';
+import { getErrorMessage } from '$lib/utils/error';
 
 import type { PasskeyInfo, PasskeyStatus } from '$lib/api/types';
 
@@ -94,8 +95,8 @@ function createPasskeyStore() {
 						default:
 							errorMsg = error.message;
 					}
-				} else if (error instanceof Error) {
-					errorMsg = error.message;
+				} else {
+					errorMsg = getErrorMessage(error, errorMsg);
 				}
 
 				passkeyState.error = errorMsg;
@@ -157,8 +158,8 @@ function createPasskeyStore() {
 						default:
 							errorMsg = error.message;
 					}
-				} else if (error instanceof Error) {
-					errorMsg = error.message;
+				} else {
+					errorMsg = getErrorMessage(error, errorMsg);
 				}
 
 				passkeyState.error = errorMsg;

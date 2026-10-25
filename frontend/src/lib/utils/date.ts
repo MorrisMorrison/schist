@@ -9,7 +9,7 @@ export function formatRelativeDate(dateString?: string): string {
 	const date = new Date(dateString);
 	const now = new Date();
 	const diffTime = Math.abs(now.getTime() - date.getTime());
-	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+	const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
 	// Handle same day
 	if (diffDays === 0) return 'Today';
@@ -20,13 +20,13 @@ export function formatRelativeDate(dateString?: string): string {
 
 	// Handle weeks
 	if (diffDays < 30) {
-		const weeks = Math.ceil(diffDays / 7);
+		const weeks = Math.floor(diffDays / 7);
 		return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
 	}
 
 	// Handle months
 	if (diffDays < 365) {
-		const months = Math.ceil(diffDays / 30);
+		const months = Math.floor(diffDays / 30);
 		return `${months} month${months === 1 ? '' : 's'} ago`;
 	}
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { documentPageWidth } from '$lib/stores/settings.svelte';
 	import { PageContainer } from '$lib/components/ui/page-container';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
@@ -193,7 +194,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<PageContainer>
+<PageContainer width={documentPageWidth()}>
 	<header
 		class="border-border flex flex-col gap-4 border-b pb-6 md:flex-row md:items-center md:justify-between"
 	>

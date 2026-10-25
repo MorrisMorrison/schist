@@ -42,6 +42,7 @@ import { secretStore } from '$lib/stores/secrets.svelte';
 import { stubProps } from '$lib/test/stub-registry';
 import { waitForPointerEvents } from '$lib/test/dialog';
 import { inlineEditorStub } from '$lib/test/inline-editor-stub';
+import { settingsActions } from '$lib/stores/settings.svelte';
 import DocumentView from './DocumentView.svelte';
 
 function makeDoc(
@@ -106,6 +107,20 @@ describe('DocumentView', () => {
 		inlineEditorStub.reset();
 		vi.clearAllMocks();
 		vi.restoreAllMocks();
+	});
+
+	it('uses the reading width, or the full width when that setting is on', async () => {
+		render(DocumentView, { props: { document: makeDoc() } });
+		expect(screen.getByTestId('document-view')).toHaveAttribute('data-width', 'reading');
+		cleanup();
+
+		settingsActions.updateAppSetting('fullWidthDocuments', true);
+		try {
+			render(DocumentView, { props: { document: makeDoc() } });
+			expect(screen.getByTestId('document-view')).toHaveAttribute('data-width', 'full');
+		} finally {
+			settingsActions.updateAppSetting('fullWidthDocuments', false);
+		}
 	});
 
 	it('renders the title, dates, tags and markdown content', async () => {

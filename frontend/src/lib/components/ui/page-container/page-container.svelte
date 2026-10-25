@@ -3,16 +3,19 @@
 
 	/**
 	 * The content column every page sits in. Two widths only:
-	 * - `reading`: documents, the editor, new pages, shares and settings. 47rem
-	 *   including padding leaves a 44rem column, about 70 characters of body text.
+	 * - `reading`: documents, the editor, new pages, shares and settings. 59rem
+	 *   including padding leaves a 56rem column: docs-site width, so tables and
+	 *   code blocks have room while prose stays readable.
 	 * - `wide`: browse pages with card grids (home, folders, recent).
+	 * - `full`: no cap; documents use it when "Full-width documents" is on.
 	 */
 	export const pageContainerVariants = tv({
 		base: 'mx-auto w-full space-y-8 p-6',
 		variants: {
 			width: {
-				reading: 'max-w-[47rem]',
-				wide: 'max-w-6xl'
+				reading: 'max-w-[59rem]',
+				wide: 'max-w-6xl',
+				full: 'max-w-none'
 			}
 		},
 		defaultVariants: {

@@ -141,7 +141,11 @@ test.describe.serial('Document Lifecycle', () => {
 
 		// Verify markdown has been rendered to HTML
 		await documentViewPage.verifyMarkdownRendering();
-		await documentViewPage.verifyHeading(testDocument.title, 1);
+		// The leading `# <title>` is shown as the page title in the header (checked
+		// above) and not repeated as a heading in the body.
+		await expect(
+			documentViewPage.documentContent.locator('h1', { hasText: testDocument.title })
+		).toHaveCount(0);
 		await documentViewPage.verifyHeading('Table of Contents', 2);
 
 		// Verify we have expected number of elements

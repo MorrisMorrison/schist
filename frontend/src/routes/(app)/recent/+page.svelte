@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PageContainer } from '$lib/components/ui/page-container';
 	import FolderView from '$lib/components/folder/FolderView.svelte';
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import type { PageData } from './$types';
@@ -16,12 +17,12 @@
 </svelte:head>
 
 {#if data.loadError}
-	<div class="mx-auto max-w-7xl space-y-8 p-6">
+	<PageContainer width="wide">
 		<Alert variant="destructive" class="border-destructive">
 			<AlertTitle>Error loading documents</AlertTitle>
 			<AlertDescription>{data.loadError}</AlertDescription>
 		</Alert>
-	</div>
+	</PageContainer>
 {:else}
 	<FolderView
 		mode="recent"

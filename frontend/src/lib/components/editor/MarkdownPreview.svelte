@@ -47,7 +47,7 @@
 
 <div
 	bind:this={containerRef}
-	class="markdown-preview reading max-w-[70ch] {className}"
+	class="markdown-preview reading {className}"
 	role="region"
 	aria-label="Markdown preview"
 	data-testid="markdown-preview"

@@ -57,6 +57,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 - **Frontend:** Svelte 5 runes, TypeScript everywhere. Backend calls only through `lib/api/client.ts`; shared state in `lib/stores`. Handle API errors by HTTP status / `code`, not message strings.
 - **Component library:** `lib/components/ui/*`, its variants and the design tokens in `app.css` are a complete library. Don't delete parts because they're currently unused. Unused *app* code is fair to remove.
 - **Use the library, don't hand-roll UI:** build buttons, inputs, labels, checkboxes, badges, dialogs, dropdown menus and alerts from `lib/components/ui` (render custom triggers through `Button` / `buttonVariants`), not raw elements with copied Tailwind classes or custom modal shells. If a variant is missing, add it to the library. Icons inside `Button` take `size-*` classes (the button forces other svgs to `size-4`).
+- **Page width:** every page sits in `PageContainer` (`ui/page-container`): `width="reading"` (default; documents, editor, new page, share, settings) or `width="wide"` (browse pages with card grids). No per-page `max-w-*` on the outer container or on the text inside it; use `pageContainerVariants` where the element is not a plain div.
 - **Formatting:** `gofmt`; prettier (with the svelte + tailwind plugins) for frontend and e2e.
 
 ## Workflow

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PageContainer } from '$lib/components/ui/page-container';
 	import {
 		Card,
 		CardContent,
@@ -27,7 +28,7 @@
 	<meta name="description" content="Configure your Schist application settings" />
 </svelte:head>
 
-<div class="mx-auto max-w-5xl space-y-8 p-6">
+<PageContainer>
 	<div class="space-y-2">
 		<h1 class="text-foreground text-3xl font-bold tracking-tight">Settings</h1>
 		<p class="text-muted-foreground">Manage your application settings and integrations.</p>
@@ -91,4 +92,4 @@
 			</div>
 		</CardContent>
 	</Card> -->
-</div>
+</PageContainer>

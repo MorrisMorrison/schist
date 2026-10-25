@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PageContainer } from '$lib/components/ui/page-container';
 	import { goto } from '$app/navigation';
 	import { documentsStore, folderActions, documentActions } from '$lib/stores/documents.svelte';
 	import DocumentGrid from '../document/DocumentGrid.svelte';
@@ -108,7 +109,7 @@
 	}
 </script>
 
-<div class="mx-auto max-w-7xl space-y-8 p-6">
+<PageContainer width="wide">
 	{#if mode === 'folder'}
 		<Breadcrumbs {path} />
 	{/if}
@@ -292,7 +293,7 @@
 			{/if}
 		</CardContent>
 	</Card>
-</div>
+</PageContainer>
 
 <CreateFolderModal
 	open={showCreateFolderModal}

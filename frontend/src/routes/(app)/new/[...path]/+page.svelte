@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PageContainer } from '$lib/components/ui/page-container';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
 	import LazyProseEditor from '$lib/components/editor/LazyProseEditor.svelte';
@@ -192,7 +193,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="mx-auto max-w-[55rem] space-y-8 p-6">
+<PageContainer>
 	<header
 		class="border-border flex flex-col gap-4 border-b pb-6 md:flex-row md:items-center md:justify-between"
 	>
@@ -263,7 +264,7 @@
 		>
 			<EditorToolbar onFormat={(type, value) => editorRef?.formatText(type, value)} />
 		</div>
-		<div class="max-w-[70ch]">
+		<div>
 			<LazyProseEditor
 				bind:this={editorRef}
 				{content}
@@ -331,7 +332,7 @@
 	</div>
 
 	<MarkdownInfoHelp showTaskExample={true} />
-</div>
+</PageContainer>
 
 <!-- Unsaved Changes Modal -->
 <UnsavedChangesModal

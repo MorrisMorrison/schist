@@ -13,6 +13,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
+	import * as RadioGroup from '$lib/components/ui/radio-group';
 	import { Upload, AlertCircle, CheckCircle } from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import InlineError from '$lib/components/ui/InlineError.svelte';
@@ -29,7 +30,13 @@
 
 	let selectedFiles = $state<FileList | null>(null);
 	let targetPath = $state('/');
-	let overwriteMode = $state<'skip' | 'overwrite' | 'rename'>('rename');
+	type OverwriteMode = 'skip' | 'overwrite' | 'rename';
+	const overwriteModes: { value: OverwriteMode; label: string; class?: string }[] = [
+		{ value: 'skip', label: 'Skip' },
+		{ value: 'rename', label: 'Rename' },
+		{ value: 'overwrite', label: 'Overwrite', class: 'text-orange-600' }
+	];
+	let overwriteMode = $state<OverwriteMode>('rename');
 	let isLoading = $state(false);
 	let error = $state('');
 	let importResult = $state<ImportResult | null>(null);
@@ -177,21 +184,21 @@
 
 					<!-- Overwrite Mode -->
 					<div class="space-y-2">
-						<Label>If file already exists</Label>
-						<div class="space-y-2">
-							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="skip" />
-								<span class="text-sm">Skip</span>
-							</label>
-							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="rename" />
-								<span class="text-sm">Rename</span>
-							</label>
-							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="overwrite" />
-								<span class="text-sm text-orange-600">Overwrite</span>
-							</label>
-						</div>
+						<Label id="overwrite-mode-label">If file already exists</Label>
+						<RadioGroup.Root
+							class="gap-2"
+							aria-labelledby="overwrite-mode-label"
+							bind:value={() => overwriteMode, (value) => (overwriteMode = value as OverwriteMode)}
+						>
+							{#each overwriteModes as mode (mode.value)}
+								<div class="flex items-center gap-2">
+									<RadioGroup.Item id="overwrite-mode-{mode.value}" value={mode.value} />
+									<Label for="overwrite-mode-{mode.value}" class="font-normal {mode.class ?? ''}"
+										>{mode.label}</Label
+									>
+								</div>
+							{/each}
+						</RadioGroup.Root>
 					</div>
 				</div>
 

@@ -86,6 +86,22 @@ describe('ImportDocumentsModal', () => {
 		expect(screen.getByTestId('import-documents-modal')).toBeInTheDocument();
 	});
 
+	it('offers the overwrite modes as a radio group, renaming by default', async () => {
+		await renderModal();
+		const group = screen.getByRole('radiogroup', { name: 'If file already exists' });
+		const radios = Array.from(group.querySelectorAll('[role="radio"]'));
+		expect(radios.map((radio) => radio.getAttribute('data-value'))).toEqual([
+			'skip',
+			'rename',
+			'overwrite'
+		]);
+		expect(screen.getByRole('radio', { name: 'Rename' })).toHaveAttribute('aria-checked', 'true');
+
+		await userEvent.click(screen.getByRole('radio', { name: 'Skip' }));
+		expect(screen.getByRole('radio', { name: 'Skip' })).toHaveAttribute('aria-checked', 'true');
+		expect(screen.getByRole('radio', { name: 'Rename' })).toHaveAttribute('aria-checked', 'false');
+	});
+
 	it('keeps import disabled until markdown files are selected', async () => {
 		await renderModal();
 		expect(importButton()).toBeDisabled();

@@ -1,10 +1,18 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { DocumentViewPage } from './DocumentViewPage';
 
 /**
  * Page object for viewing shared documents (/share/[token])
  * These pages are public and don't require authentication
  */
+/** The token of a share link (`…/share/<64 hex chars>`), asserting its format. */
+export function shareToken(shareUrl: string): string {
+	const token = shareUrl.split('/share/')[1];
+	expect(token).toMatch(/^[a-f0-9]{64}$/);
+	return token;
+}
+
 export class SharedDocumentPage extends BasePage {
 	// Header elements
 	readonly header: Locator;
@@ -50,6 +58,15 @@ export class SharedDocumentPage extends BasePage {
 	async navigateToSharedDocument(token: string) {
 		await this.goto(`/share/${token}`);
 		await this.waitForLoad();
+	}
+
+	/**
+	 * Open a share link the app handed out. Navigates by token rather than the
+	 * absolute URL: its origin is the server's configured frontend URL, which
+	 * need not be the address the tests reach it on.
+	 */
+	async navigateToShareUrl(shareUrl: string) {
+		await this.navigateToSharedDocument(shareToken(shareUrl));
 	}
 
 	/**
@@ -124,13 +141,11 @@ export class SharedDocumentPage extends BasePage {
 	 * (This confirms the document is truly read-only)
 	 */
 	async verifyReadOnlyMode() {
-		const editButton = this.page.getByTestId('edit-document-button');
-		const shareButton = this.page.getByTestId('share-document-button');
-		const deleteButton = this.page.getByTestId('delete-document-button');
+		const documentPage = new DocumentViewPage(this.page);
 
-		await expect(editButton).not.toBeVisible();
-		await expect(shareButton).not.toBeVisible();
-		await expect(deleteButton).not.toBeVisible();
+		await expect(documentPage.editButton).not.toBeVisible();
+		await expect(documentPage.shareButton).not.toBeVisible();
+		await expect(documentPage.deleteButton).not.toBeVisible();
 	}
 
 	/**
@@ -141,7 +156,7 @@ export class SharedDocumentPage extends BasePage {
 		// Check that main app navigation elements are not present
 		const sidebar = this.page.getByTestId('sidebar');
 		const mainNav = this.page.getByTestId('main-navigation');
-		const breadcrumbs = this.page.getByTestId('breadcrumbs');
+		const { breadcrumbs } = new DocumentViewPage(this.page);
 
 		await expect(sidebar).not.toBeVisible();
 		await expect(mainNav).not.toBeVisible();

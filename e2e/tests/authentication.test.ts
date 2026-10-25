@@ -19,19 +19,6 @@ test.describe('Passkey Authentication System', () => {
 	});
 
 	test.describe('Authentication Enabled', () => {
-		test('should allow passkey authentication for existing user', async ({ page }) => {
-			// Since auth.setup.ts already authenticated the user, verify auth is working
-			// by checking we can access protected pages directly
-
-			await page.goto(BASE_URL);
-
-			// Should be able to access home page (not redirected to login)
-			await expect(page).toHaveURL(BASE_URL);
-
-			// Should show authenticated UI elements
-			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
-		});
-
 		test('should handle passkey authentication failure gracefully', async ({ page }) => {
 			const webauthnHelper = new WebAuthnHelper(page);
 
@@ -82,16 +69,17 @@ test.describe('Passkey Authentication System', () => {
 			await expect(page).toHaveURL(/\/login/);
 		});
 
-		test('should persist authentication across page reloads', async ({ page }) => {
+		test('should allow passkey authentication and persist it across page reloads', async ({
+			page
+		}) => {
+			// auth.setup.ts already signed in with a passkey; its session must open
+			// protected pages directly (no redirect to login)...
 			await page.goto(BASE_URL);
-
-			// Verify we're authenticated
+			await expect(page).toHaveURL(BASE_URL);
 			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
 
-			// Reload the page
+			// ...and survive a reload
 			await page.reload();
-
-			// Should remain authenticated
 			await expect(page).toHaveURL(BASE_URL);
 			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
 		});

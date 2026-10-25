@@ -11,8 +11,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyContentContains('simple test document');
 
 		await documentViewPage.page.close();
@@ -20,8 +19,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 
 		const newDocumentView = new DocumentViewPage(newPage);
 
-		await newDocumentView.navigateToDocument(testDocument.path!);
-		await newDocumentView.verifyDocumentLoaded(testDocument.title);
+		await newDocumentView.openDocument(testDocument);
 		await newDocumentView.verifyContentContains('simple test document');
 	});
 
@@ -34,21 +32,18 @@ test.describe('Content Persistence and Data Integrity', () => {
 		const testDocument = withSimpleTestDocument;
 
 		await editorPage.navigateToEdit(testDocument.path!);
-		await editorPage.verifyLoaded();
 
 		const page2 = await context.newPage();
 		const editorPage2 = new EditorPage(page2);
 
 		await editorPage2.navigateToEdit(testDocument.path!);
-		await editorPage2.verifyLoaded();
 
 		await editorPage.typeContent('\n\nChanges from Editor 1');
 		await editorPage.save();
 		await editorPage2.typeContent('\n\nChanges from Editor 2');
 		await editorPage2.save();
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Last save wins: the second editor's change is what's stored.
 		const content = await documentViewPage.getDocumentContent();
@@ -62,15 +57,13 @@ test.describe('Content Persistence and Data Integrity', () => {
 		documentViewPage,
 		withUnicodeDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyContentContains('🚀 🌟 ✅');
 		await documentViewPage.verifyContentContains('ÄÖÜß çñ');
 		await documentViewPage.verifyContentContains('中文 日本語 한국어');
 		await documentViewPage.verifyContentContains('∑ ∂ ∆');
 
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.verifyContent('🚀 🌟 ✅');
 		await editorPage.typeContent('\n\nAdditional unicode: 🔥 ⭐ 💡');
 		await editorPage.saveAndExpectNavigation();
@@ -84,15 +77,13 @@ test.describe('Content Persistence and Data Integrity', () => {
 		documentViewPage,
 		withLargeDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		await documentViewPage.verifyContentContains('Large Content Test');
 		await documentViewPage.verifyContentContains('Lorem ipsum dolor sit amet');
 		await documentViewPage.verifyContentContains('Section 2');
 
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 
 		await editorPage.typeContent('\n\n## Additional Section\n\nAdded to large content.');
 		await editorPage.saveAndExpectNavigation();
@@ -149,17 +140,14 @@ function test() {
 
 End of formatting test.`;
 
-		const testDocument = createTestDocument({
+		const testDocument = await apiHelper.seedDocument({
 			title: `Formatting Test ${testId}`,
 			content: formattedContent,
 			path: `/formatting-test-${testId}`
 		});
 
-		await apiHelper.createDocument(testDocument);
-
 		// Verify initial rendering
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Formatting Test ${testId}`);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify various elements are rendered correctly
 		await documentViewPage.verifyHeading('Headers', 2);
@@ -169,7 +157,6 @@ End of formatting test.`;
 
 		// Edit and verify formatting is preserved in editor
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.verifyContent('**Bold text**');
 		await editorPage.verifyContent('```javascript');
 		await editorPage.verifyContent('1. First item');
@@ -205,23 +192,19 @@ End of formatting test.`;
 			'Final line'
 		].join('\n');
 
-		const testDocument = createTestDocument({
+		const testDocument = await apiHelper.seedDocument({
 			title: `Line Endings ${testId}`,
 			content: mixedLineEndingContent,
 			path: `/line-endings-${testId}`
 		});
 
-		await apiHelper.createDocument(testDocument);
-
 		// Verify content displays correctly
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Line Endings ${testId}`);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyContentContains('Line with LF ending');
 		await documentViewPage.verifyContentContains('Final line');
 
 		// Edit and save to ensure line endings are preserved
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.typeContent('\n\nAdded line with standard ending.');
 		await editorPage.saveAndExpectNavigation();
 
@@ -237,16 +220,14 @@ End of formatting test.`;
 		testId
 	}) => {
 		// Create target document first
-		const targetDocument = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Target Document ${testId}`,
 			content: '# Target Document\n\nThis is the target of internal links.',
 			path: `/target-${testId}`
 		});
 
-		await apiHelper.createDocument(targetDocument);
-
 		// Create document with internal links
-		const linkingDocument = createTestDocument({
+		const linkingDocument = await apiHelper.seedDocument({
 			title: `Linking Document ${testId}`,
 			content: `# Linking Document
 
@@ -259,21 +240,16 @@ The links should remain functional after edits.`,
 			path: `/linking-${testId}`
 		});
 
-		await apiHelper.createDocument(linkingDocument);
-
 		// Navigate to linking document
-		await documentViewPage.navigateToDocument(linkingDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Linking Document ${testId}`);
+		await documentViewPage.openDocument(linkingDocument);
 
 		// Click internal link to verify it works
 		await documentViewPage.clickContentLink('Link to target document');
 		await documentViewPage.verifyDocumentLoaded(`Target Document ${testId}`);
 
 		// Go back and edit the linking document
-		await documentViewPage.navigateToDocument(linkingDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Linking Document ${testId}`);
+		await documentViewPage.openDocument(linkingDocument);
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 
 		// Add another internal link
 		await editorPage.typeContent(`\n\n[New link to target](/documents/target-${testId})`);
@@ -297,7 +273,6 @@ The links should remain functional after edits.`,
 
 		// Create the first document
 		await editorPage.navigateToNew();
-		await editorPage.verifyLoaded();
 		await editorPage.fillDocumentDetails(
 			testDocument.title,
 			testDocument.content,
@@ -310,7 +285,6 @@ The links should remain functional after edits.`,
 
 		// Try to create a second document with the same name
 		await editorPage.navigateToNew();
-		await editorPage.verifyLoaded();
 
 		// Type the same title (this should trigger the warning)
 		await editorPage.fillTitle(testDocument.title);
@@ -336,7 +310,7 @@ The links should remain functional after edits.`,
 		await expect(saveButton).toBeEnabled();
 
 		// Fill content and save successfully
-		await editorPage.fillContent('This is a unique document.');
+		await editorPage.appendContent('This is a unique document.');
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify the unique document was created

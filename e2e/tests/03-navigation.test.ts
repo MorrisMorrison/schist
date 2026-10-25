@@ -1,37 +1,32 @@
 import { test, expect } from '../fixtures';
-import { createTestDocument } from '../utils/test-data';
 
 test.describe('Navigation and Routing', () => {
 	test('should handle deep path navigation correctly', async ({
 		documentViewPage,
+		folderPage,
 		apiHelper,
 		testId
 	}) => {
 		// Create nested pages manually for this complex navigation test
-		const parentDocument = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Parent ${testId}`,
 			content: '# Parent Page\n\nThis is a parent page.',
 			path: `/parent-${testId}`
 		});
 
-		const childDocument = createTestDocument({
+		const childDocument = await apiHelper.seedDocument({
 			title: `Child ${testId}`,
 			content: '# Child Page\n\nThis is a child page.',
 			path: `/parent-${testId}/child-${testId}`
 		});
 
-		const grandchildDocument = createTestDocument({
+		const grandchildDocument = await apiHelper.seedDocument({
 			title: `Grandchild ${testId}`,
 			content: '# Grandchild Page\n\nThis is a grandchild page.',
 			path: `/parent-${testId}/child-${testId}/grandchild-${testId}`
 		});
 
-		for (const document of [parentDocument, childDocument, grandchildDocument]) {
-			expect((await apiHelper.createDocument(document)).status).toBe(201);
-		}
-
-		await documentViewPage.navigateToDocument(grandchildDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(grandchildDocument.title);
+		await documentViewPage.openDocument(grandchildDocument);
 		await documentViewPage.verifyDocumentUrl(grandchildDocument.path!);
 
 		const breadcrumbs = await documentViewPage.getBreadcrumbPath();
@@ -44,8 +39,7 @@ test.describe('Navigation and Routing', () => {
 		await documentViewPage.expectUrl(`/folders/parent-${testId}`);
 
 		// The parent folder lists the child document
-		const documentsSection = documentViewPage.page.getByTestId('documents-section');
-		await expect(documentsSection.getByText(childDocument.title)).toBeVisible();
+		await folderPage.verifyContainsDocument(childDocument.title);
 	});
 
 	test('should handle URL changes correctly', async ({
@@ -55,12 +49,10 @@ test.describe('Navigation and Routing', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyDocumentUrl(testDocument.path!);
 
 		await editorPage.navigateToEdit(testDocument.path!);
-		await editorPage.verifyLoaded();
 		// /edit/<path> is a deep link into the document page's edit mode.
 		await editorPage.expectUrl(`/documents${testDocument.path!}?mode=edit`);
 
@@ -80,13 +72,11 @@ test.describe('Navigation and Routing', () => {
 		await homePage.navigate();
 		await homePage.verifyLoaded();
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Switching to edit mode is a toggle on the same page, not a navigation:
 		// it replaces the history entry (?mode=edit) instead of adding one.
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 
 		// Wait for the URL to settle after each history move before asserting the
 		// DOM: page.goBack/goForward resolve on the 'load' event, but SPA history
@@ -118,8 +108,7 @@ test.describe('Navigation and Routing', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		await page.reload();
 
@@ -134,14 +123,12 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create a searchable page manually for this search-specific test
-		const searchableDocument = createTestDocument({
+		const searchableDocument = await apiHelper.seedDocument({
 			title: `Searchable ${testId}`,
 			content: `# Searchable Content ${testId}\n\nThis page contains unique searchable content for testing.`,
 			path: `/searchable-${testId}`,
 			tags: ['searchable', 'unique']
 		});
-
-		await apiHelper.createDocument(searchableDocument);
 
 		await homePage.navigate();
 		await homePage.verifyLoaded();
@@ -160,26 +147,21 @@ test.describe('Navigation and Routing', () => {
 		testId
 	}) => {
 		// Create two pages manually for this concurrent navigation test
-		const document1 = createTestDocument({
+		const document1 = await apiHelper.seedDocument({
 			title: `Concurrent 1 ${testId}`,
 			content: '# Concurrent Page 1',
 			path: `/concurrent-1-${testId}`
 		});
 
-		const document2 = createTestDocument({
+		const document2 = await apiHelper.seedDocument({
 			title: `Concurrent 2 ${testId}`,
 			content: '# Concurrent Page 2',
 			path: `/concurrent-2-${testId}`
 		});
 
-		await apiHelper.createDocument(document1);
-		await apiHelper.createDocument(document2);
+		await documentViewPage.openDocument(document1);
 
-		await documentViewPage.navigateToDocument(document1.path!);
-		await documentViewPage.verifyDocumentLoaded(document1.title);
-
-		await documentViewPage.navigateToDocument(document2.path!);
-		await documentViewPage.verifyDocumentLoaded(document2.title);
+		await documentViewPage.openDocument(document2);
 
 		await documentViewPage.verifyDocumentUrl(document2.path!);
 	});
@@ -197,19 +179,15 @@ test.describe('Navigation and Routing', () => {
 			.map((_, i) => `## Section ${i + 1}\n\nThis is section ${i + 1} with some content.\n\n`)
 			.join('');
 
-		const longDocument = createTestDocument({
+		const longDocument = await apiHelper.seedDocument({
 			title: `Long Page ${testId}`,
 			content: `# Long Page\n\n${longContent}`,
 			path: `/long-page-${testId}`
 		});
 
-		await apiHelper.createDocument(longDocument);
-
-		await documentViewPage.navigateToDocument(longDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(longDocument.title);
+		await documentViewPage.openDocument(longDocument);
 
 		await documentViewPage.goto('/');
-		await documentViewPage.navigateToDocument(longDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(longDocument.title);
+		await documentViewPage.openDocument(longDocument);
 	});
 });

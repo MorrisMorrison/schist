@@ -5,15 +5,9 @@
 import { test, expect } from '../fixtures';
 
 test.describe('E2E Infrastructure', () => {
-	test('page objects work correctly', async ({ homePage }) => {
-		await homePage.navigate();
-		await homePage.verifyLoaded();
-	});
-
 	test('fixtures create backend data', async ({ withTestDocument, documentViewPage }) => {
 		// Navigate to the page created by the fixture
-		await documentViewPage.navigateToDocument(withTestDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(withTestDocument.title);
+		await documentViewPage.openDocument(withTestDocument);
 	});
 });
 
@@ -36,7 +30,6 @@ test.describe('Basic App Functionality', () => {
 
 	test('editor page loads correctly', async ({ editorPage }) => {
 		await editorPage.navigateToNew();
-		await editorPage.verifyLoaded();
 
 		// Basic editor elements should be present
 		await expect(editorPage.contentEditor).toBeVisible();

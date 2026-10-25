@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures';
 import type { Page } from '@playwright/test';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
+import { SharedDocumentPage } from '../pages/SharedDocumentPage';
 import { EditorPage } from '../pages/EditorPage';
 
 /**
@@ -179,13 +180,9 @@ Normal content to verify rendering works.`;
 
 		await createDocument(page, maliciousContent);
 
-		// Share it, then open the public share page. Navigate by token rather
-		// than the returned absolute URL: its origin is the server's configured
-		// frontend URL, which need not be the address the tests reach it on.
+		// Share it, then open the public share page.
 		const shareUrl = await new DocumentViewPage(page).createShareLink();
-		const token = shareUrl.split('/share/')[1];
-		expect(token).toMatch(/^[a-f0-9]{64}$/);
-		await page.goto(`/share/${token}`);
+		await new SharedDocumentPage(page).navigateToShareUrl(shareUrl);
 
 		const content = await renderedHtml(
 			page,

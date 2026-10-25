@@ -4,21 +4,19 @@ test.describe.serial('Folder Rename and Delete', () => {
 	const testFolderName = 'rename-delete-test';
 	const renamedFolderName = 'renamed-folder';
 
-	test('should rename folder via context menu', async ({ folderPage, page }) => {
-		// Create test folder first
+	// Every test starts from a folder created through the UI at the root.
+	test.beforeEach(async ({ folderPage }) => {
 		await folderPage.navigateToRoot();
 		await folderPage.createFolder(testFolderName);
 		await folderPage.verifyContainsFolder(testFolderName);
+	});
 
-		const contextMenu = await folderPage.openContextMenu(testFolderName);
-		await contextMenu.getByText(/rename/i).click();
-
+	test('should rename folder via context menu', async ({ folderPage }) => {
 		// The rename modal opens prefilled with the current name
-		const renameInput = page.getByTestId('folder-name');
-		await expect(renameInput).toBeVisible();
+		const renameInput = await folderPage.openRenameFolderModal(testFolderName);
 		await renameInput.fill(renamedFolderName);
 
-		await page.getByTestId('rename-folder-btn').click();
+		await folderPage.renameFolderButton.click();
 		await expect(renameInput).toBeHidden();
 
 		// Verify folder was renamed and the old name is gone
@@ -30,21 +28,12 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.verifyFolderLoaded(renamedFolderName);
 	});
 
-	test('should delete empty folder via context menu', async ({ folderPage, page }) => {
-		// Create test folder
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder(testFolderName);
-		await folderPage.verifyContainsFolder(testFolderName);
-
+	test('should delete empty folder via context menu', async ({ folderPage }) => {
 		// Get initial folder count
 		const initialCount = await folderPage.getSubFolderCount();
 
-		const contextMenu = await folderPage.openContextMenu(testFolderName);
-		await contextMenu.getByText(/delete/i).click();
-
 		// Handle confirmation dialog - it should appear
-		const confirmDialog = page.getByTestId('confirm-dialog');
-		await expect(confirmDialog).toBeVisible();
+		const confirmDialog = await folderPage.openDeleteFolderDialog(testFolderName);
 		await confirmDialog.getByTestId('confirm-delete-button').click();
 		await expect(confirmDialog).toBeHidden();
 
@@ -57,23 +46,17 @@ test.describe.serial('Folder Rename and Delete', () => {
 	});
 
 	test('should delete folder with content', async ({ folderPage, page, apiHelper, testId }) => {
-		// Create test folder with content
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder(testFolderName);
-		await folderPage.verifyContainsFolder(testFolderName);
-
 		// Navigate into folder and create a page
 		await folderPage.openSubFolder(testFolderName);
 		await folderPage.verifyFolderLoaded(testFolderName);
 
 		// Create a page inside the folder via API for reliability
-		const testDocument = {
+		const testDocument = await apiHelper.seedDocument({
 			title: `Test Page ${testId}`,
 			content: '# Test Page\n\nContent in folder to be deleted.',
-			path: `/${testFolderName}/test-page-${testId}`
-		};
-		const created = await apiHelper.createDocument(testDocument);
-		expect(created.status).toBe(201);
+			path: `/${testFolderName}/test-page-${testId}`,
+			tags: []
+		});
 
 		// Refresh to see the new page
 		await page.reload();
@@ -84,11 +67,7 @@ test.describe.serial('Folder Rename and Delete', () => {
 		await folderPage.navigateToRoot();
 
 		// Delete folder with content; a non-empty folder asks for confirmation too
-		const contextMenu = await folderPage.openContextMenu(testFolderName);
-		await contextMenu.getByText(/delete/i).click();
-
-		const confirmDialog = page.getByTestId('confirm-dialog');
-		await expect(confirmDialog).toBeVisible();
+		const confirmDialog = await folderPage.openDeleteFolderDialog(testFolderName);
 		await expect(confirmDialog).toContainText(/delete/i);
 		await confirmDialog.getByTestId('confirm-delete-button').click();
 		await expect(confirmDialog).toBeHidden();
@@ -102,21 +81,11 @@ test.describe.serial('Folder Rename and Delete', () => {
 		expect(documentAfterDelete.status).toBe(404);
 	});
 
-	test('should cancel folder deletion', async ({ folderPage, page }) => {
-		// Create test folder
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder(testFolderName);
-		await folderPage.verifyContainsFolder(testFolderName);
-
+	test('should cancel folder deletion', async ({ folderPage }) => {
 		const initialCount = await folderPage.getSubFolderCount();
 
-		// Open context menu and select delete
-		const contextMenu = await folderPage.openContextMenu(testFolderName);
-		await contextMenu.getByText(/delete/i).click();
-
 		// Cancel the confirmation dialog
-		const confirmDialog = page.getByTestId('confirm-dialog');
-		await expect(confirmDialog).toBeVisible();
+		const confirmDialog = await folderPage.openDeleteFolderDialog(testFolderName);
 		await confirmDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
 		await expect(confirmDialog).toBeHidden();
 
@@ -127,25 +96,16 @@ test.describe.serial('Folder Rename and Delete', () => {
 		expect(finalCount).toBe(initialCount);
 	});
 
-	test('should handle rename validation errors', async ({ folderPage, page }) => {
-		// Create test folder
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder(testFolderName);
-		await folderPage.verifyContainsFolder(testFolderName);
-
+	test('should handle rename validation errors', async ({ folderPage }) => {
 		// Try to rename with invalid name
-		const contextMenu = await folderPage.openContextMenu(testFolderName);
-		await contextMenu.getByText(/rename/i).click();
-
-		const renameInput = page.getByTestId('folder-name');
-		await expect(renameInput).toBeVisible();
+		const renameInput = await folderPage.openRenameFolderModal(testFolderName);
 
 		// Characters outside [a-zA-Z0-9-_ ] are rejected client-side
 		await renameInput.fill('invalid/folder*name!');
-		await expect(page.getByTestId('rename-folder-btn')).toBeDisabled();
+		await expect(folderPage.renameFolderButton).toBeDisabled();
 
 		// Cancel the operation
-		await page.getByTestId('cancel-rename-folder-btn').click();
+		await folderPage.cancelRenameFolderButton.click();
 		await expect(renameInput).toBeHidden();
 
 		// Verify original folder name unchanged
@@ -153,19 +113,12 @@ test.describe.serial('Folder Rename and Delete', () => {
 	});
 
 	test('should prevent renaming to duplicate folder name', async ({ folderPage, page }) => {
-		// Create two test folders
-		await folderPage.navigateToRoot();
-		await folderPage.createFolder(testFolderName);
+		// A second folder to collide with
 		await folderPage.createFolder(renamedFolderName);
-		await folderPage.verifyContainsFolder(testFolderName);
 		await folderPage.verifyContainsFolder(renamedFolderName);
 
 		// Try to rename first folder to same name as second
-		const contextMenu = await folderPage.openContextMenu(testFolderName);
-		await contextMenu.getByText(/rename/i).click();
-
-		const renameInput = page.getByTestId('folder-name');
-		await expect(renameInput).toBeVisible();
+		const renameInput = await folderPage.openRenameFolderModal(testFolderName);
 		await renameInput.fill(renamedFolderName);
 
 		// The name is syntactically valid, so the request is sent -- and refused.
@@ -174,11 +127,11 @@ test.describe.serial('Folder Rename and Delete', () => {
 				response.request().method() === 'PUT' &&
 				new URL(response.url()).pathname.includes('/api/folders/')
 		);
-		await page.getByTestId('rename-folder-btn').click();
+		await folderPage.renameFolderButton.click();
 		expect((await renameResponse).ok()).toBe(false);
 
 		// The modal stays open on error; cancel it
-		await page.getByTestId('cancel-rename-folder-btn').click();
+		await folderPage.cancelRenameFolderButton.click();
 		await expect(renameInput).toBeHidden();
 
 		// Verify both folders still exist with original names

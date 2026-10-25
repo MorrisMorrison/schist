@@ -4,7 +4,6 @@ import { BasePage } from './BasePage';
 export class HomePage extends BasePage {
 	readonly pageTitle: Locator;
 	readonly newDocumentButton: Locator;
-	readonly quickSwitcherButton: Locator;
 	readonly quickSwitcher: Locator;
 	readonly quickSwitcherInput: Locator;
 	readonly quickSwitcherResults: Locator;
@@ -15,10 +14,6 @@ export class HomePage extends BasePage {
 		this.pageTitle = page.locator('h1').first();
 		// The root folder view's "New Document" button
 		this.newDocumentButton = page.getByTestId('create-document');
-		// Desktop and mobile navs each render their own button; only one is visible.
-		this.quickSwitcherButton = page
-			.getByTestId('quick-switcher-button')
-			.or(page.getByTestId('quick-switcher-button-mobile'));
 		this.quickSwitcher = page.getByTestId('quick-switcher');
 		this.quickSwitcherInput = page.getByTestId('quick-switcher-input');
 		this.quickSwitcherResults = page.getByTestId('quick-switcher-result');

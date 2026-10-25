@@ -18,6 +18,12 @@ export class EditorPage extends BasePage {
 	/** The first `# heading` line, which is the title while editing. */
 	readonly documentTitle: Locator;
 
+	/** Shown while there are changes auto-save has not written yet. */
+	readonly unsavedIndicator: Locator;
+	/** New-document page: switches the editor to its rendered preview. */
+	readonly previewButton: Locator;
+	readonly preview: Locator;
+
 	constructor(page: Page) {
 		super(page);
 
@@ -28,6 +34,10 @@ export class EditorPage extends BasePage {
 		this.readButton = page.getByTestId('read-mode-button');
 
 		this.documentTitle = page.locator('.cm-editor .cm-prose-title').first();
+
+		this.unsavedIndicator = page.getByTestId('unsaved-indicator');
+		this.previewButton = page.getByTestId('preview-mode-button');
+		this.preview = page.getByTestId('markdown-preview');
 	}
 
 	/** True on the new-document page, false in a document's edit mode. */
@@ -35,16 +45,22 @@ export class EditorPage extends BasePage {
 		return new URL(this.page.url()).pathname.startsWith('/new');
 	}
 
+	/** Opens the new-document page and waits until the editor is ready. */
 	async navigateToNew() {
 		await this.goto('/new');
 		await this.waitForLoad();
+		await this.verifyLoaded();
 	}
 
-	/** Opens a document in edit mode through the /edit/<path> deep link. */
+	/**
+	 * Opens a document in edit mode through the /edit/<path> deep link and waits
+	 * until the editor is ready.
+	 */
 	async navigateToEdit(documentPath: string) {
 		await this.goto(`/edit${documentPath}`);
 		await this.page.waitForURL(/\/documents\/.*\?mode=edit/);
 		await this.waitForLoad();
+		await this.verifyLoaded();
 	}
 
 	async verifyLoaded() {
@@ -113,6 +129,12 @@ export class EditorPage extends BasePage {
 		await this.readButton.click();
 	}
 
+	/** Switch to the rendered preview and return it. */
+	async showPreview() {
+		await this.previewButton.click();
+		return this.preview;
+	}
+
 	async typeContent(content: string) {
 		await this.contentEditor.click();
 		await this.contentEditor.pressSequentially(content);
@@ -132,7 +154,7 @@ export class EditorPage extends BasePage {
 
 	async waitForAutoSave(timeoutMs: number = 15000) {
 		try {
-			await this.page.getByTestId('unsaved-indicator').waitFor({
+			await this.unsavedIndicator.waitFor({
 				state: 'visible',
 				timeout: 2000
 			});
@@ -161,9 +183,5 @@ export class EditorPage extends BasePage {
 	async fillTitle(title: string) {
 		await this.clearContent();
 		await this.typeContent(`# ${title}\n\n`);
-	}
-
-	async fillContent(content: string) {
-		await this.appendContent(content);
 	}
 }

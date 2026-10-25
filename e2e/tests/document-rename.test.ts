@@ -1,13 +1,13 @@
-import { test, expect } from '../fixtures';
-import type { Page } from '@playwright/test';
+import { test, expect, type FolderPage } from '../fixtures';
 
 /**
  * Open the rename modal for a document through its folder-tree context menu.
  * The document must already be in the tree (it is created by a fixture), so
  * its presence is a precondition rather than an optional path.
  */
-async function openRenameModal(page: Page, documentTitle: string) {
-	const documentTreeItem = page.getByTestId('folder-tree').getByText(documentTitle);
+async function openRenameModal(folderPage: FolderPage, documentTitle: string) {
+	const { page } = folderPage;
+	const documentTreeItem = folderPage.folderTree.getByText(documentTitle);
 	await expect(documentTreeItem).toBeVisible();
 	await documentTreeItem.click({ button: 'right' });
 
@@ -24,14 +24,14 @@ async function openRenameModal(page: Page, documentTitle: string) {
 test.describe.serial('Document Rename', () => {
 	test('should rename document via context menu', async ({
 		documentViewPage,
+		folderPage,
 		withSimpleTestDocument: testDocument,
-		testId,
-		page
+		testId
 	}) => {
 		// Navigate to root to see document in folder tree
-		await documentViewPage.navigateToDocument('/');
+		await folderPage.navigateToRoot();
 
-		const { renameInput, submitButton } = await openRenameModal(page, testDocument.title);
+		const { renameInput, submitButton } = await openRenameModal(folderPage, testDocument.title);
 
 		// Enter new name
 		const newTitle = `Renamed Test Document ${testId}`;
@@ -41,7 +41,7 @@ test.describe.serial('Document Rename', () => {
 		await expect(renameInput).toBeHidden();
 
 		// Verify document was renamed - the new title appears in the tree
-		const renamedDocumentItem = page.getByTestId('folder-tree').getByText(newTitle);
+		const renamedDocumentItem = folderPage.folderTree.getByText(newTitle);
 		await expect(renamedDocumentItem).toBeVisible();
 
 		// Navigate to the document and verify title changed
@@ -51,19 +51,20 @@ test.describe.serial('Document Rename', () => {
 
 	test('should handle document rename validation', async ({
 		documentViewPage,
+		folderPage,
 		withSimpleTestDocument: testDocument,
 		testId,
 		page
 	}) => {
 		// Open the rename modal via the same proven entry point as the happy-path
 		// test: the document's folder-tree context menu.
-		await documentViewPage.navigateToDocument('/');
+		await folderPage.navigateToRoot();
 
 		const {
 			documentTreeItem,
 			renameInput,
 			submitButton: saveButton
-		} = await openRenameModal(page, testDocument.title);
+		} = await openRenameModal(folderPage, testDocument.title);
 		await expect(saveButton).toBeVisible();
 
 		// An empty title is invalid: the submit button must be disabled so the
@@ -92,19 +93,18 @@ test.describe.serial('Document Rename', () => {
 
 	test('should preserve document metadata during rename', async ({
 		documentViewPage,
+		folderPage,
 		withComplexTestDocument: testDocument,
-		testId,
-		page
+		testId
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify original tags are present
 		await documentViewPage.verifyTags(testDocument.tags!);
 
 		// Rename the document via its folder-tree context menu (the proven entry
 		// point exercised by the happy-path test above).
-		const { renameInput, submitButton } = await openRenameModal(page, testDocument.title);
+		const { renameInput, submitButton } = await openRenameModal(folderPage, testDocument.title);
 
 		const newTitle = `Renamed Metadata Test ${testId}`;
 		await renameInput.fill(newTitle);

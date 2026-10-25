@@ -337,8 +337,7 @@ type PasskeyLoginRequest struct {
 
 func (h *APIHandler) loginWithPasskey(c *gin.Context) {
 	var req PasskeyLoginRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -405,8 +404,7 @@ type CreateFirstUserRequest struct {
 
 func (h *APIHandler) createFirstUser(c *gin.Context) {
 	var req CreateFirstUserRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -436,9 +434,8 @@ type GenerateInviteTokenResponse struct {
 }
 
 func (h *APIHandler) generateInviteToken(c *gin.Context) {
-	username, ok := currentUser(c)
+	username, ok := requireUser(c)
 	if !ok {
-		HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 		return
 	}
 
@@ -464,8 +461,7 @@ type CreateUserFromInviteRequest struct {
 
 func (h *APIHandler) createUserFromInvite(c *gin.Context) {
 	var req CreateUserFromInviteRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -495,8 +491,7 @@ type CreateUserRequest struct {
 func (h *APIHandler) createUser(c *gin.Context) {
 	// Authorization is enforced by middleware.RequireAdmin on this route group.
 	var req CreateUserRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -504,9 +499,8 @@ func (h *APIHandler) createUser(c *gin.Context) {
 	// route is already admin-gated, but verify explicitly so the client-settable
 	// is_admin flag can never escalate privileges if the gate is ever relaxed.
 	if req.IsAdmin {
-		username, ok := currentUser(c)
+		username, ok := requireUser(c)
 		if !ok {
-			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 			return
 		}
 		caller, err := h.Services.UserService.GetUserByUsername(username)
@@ -543,9 +537,8 @@ func (h *APIHandler) listUsers(c *gin.Context) {
 
 func (h *APIHandler) deleteUser(c *gin.Context) {
 	// Authorization is enforced by middleware.RequireAdmin on this route group.
-	username := c.Param("username")
-	if username == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("username"))
+	username, ok := requiredParam(c, "username")
+	if !ok {
 		return
 	}
 

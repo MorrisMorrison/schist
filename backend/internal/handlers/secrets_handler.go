@@ -83,8 +83,7 @@ func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req CreateSecretRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -105,15 +104,13 @@ func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("key")
-		if key == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("key"))
+		key, ok := requiredParam(c, "key")
+		if !ok {
 			return
 		}
 
 		var req UpdateSecretRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -129,9 +126,8 @@ func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 func DeleteSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("key")
-		if key == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("key"))
+		key, ok := requiredParam(c, "key")
+		if !ok {
 			return
 		}
 
@@ -154,9 +150,8 @@ func LockSecretsHandler(services *services.Services) gin.HandlerFunc {
 
 func GetSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("key")
-		if key == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("key"))
+		key, ok := requiredParam(c, "key")
+		if !ok {
 			return
 		}
 

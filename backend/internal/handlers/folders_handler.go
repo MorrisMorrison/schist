@@ -38,8 +38,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 	}
 
 	var req CreateFolderRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -65,8 +64,7 @@ func (h *APIHandler) renameFolder(c *gin.Context) {
 	}
 
 	var req RenameRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -105,8 +103,7 @@ func (h *APIHandler) moveFolder(c *gin.Context) {
 	}
 
 	var req MoveFolderRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 

@@ -259,6 +259,26 @@ describe('FolderTree', () => {
 		expect(await screen.findByRole('button', { name: 'Open folder daily' })).toBeInTheDocument();
 	});
 
+	it('finds a top-level page when no folder matches the search', async () => {
+		renderTree({ showSearch: true, showPages: true });
+		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");
+
+		await userEvent.type(search, 'readme');
+		expect(screen.getByText('Readme')).toBeInTheDocument();
+		expect(screen.queryByText('No folders match your search.')).not.toBeInTheDocument();
+	});
+
+	it('shows the no-match message when nothing matches and there are no folders', async () => {
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
+		setFoldersState({ folders: [] });
+		renderTree({ showSearch: true, showPages: true });
+		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");
+
+		await userEvent.type(search, 'zzz-nothing');
+		expect(screen.getByText('No folders match your search.')).toBeInTheDocument();
+		expect(screen.queryByRole('treeitem')).not.toBeInTheDocument();
+	});
+
 	it('filters folders and pages by text and tag', async () => {
 		renderTree({ showSearch: true, showPages: true });
 		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");

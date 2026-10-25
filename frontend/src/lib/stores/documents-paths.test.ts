@@ -208,7 +208,7 @@ describe('documents store: path-based actions, folders and links', () => {
 				[{ oldPath: '/f', newPath: '/x/f' }]
 			]
 		] as const)('%s reloads the tree and the documents', async (_n, run, method, args) => {
-			vi.mocked(api[method]).mockResolvedValueOnce({ message: 'ok' } as never);
+			(api[method] as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ message: 'ok' });
 
 			await run();
 

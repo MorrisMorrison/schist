@@ -319,7 +319,7 @@ The links should remain functional after edits.`,
 		await expect(saveButton).toBeEnabled();
 
 		// Fill content and save successfully
-		await editorPage.fillContent('This is a unique document.');
+		await editorPage.appendContent('This is a unique document.');
 		await editorPage.saveAndExpectNavigation();
 
 		// Verify the unique document was created

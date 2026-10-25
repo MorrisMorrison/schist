@@ -178,8 +178,4 @@ export class EditorPage extends BasePage {
 		await this.clearContent();
 		await this.typeContent(`# ${title}\n\n`);
 	}
-
-	async fillContent(content: string) {
-		await this.appendContent(content);
-	}
 }

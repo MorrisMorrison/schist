@@ -11,6 +11,7 @@ import { HomePage } from '../pages/HomePage';
 import { EditorPage } from '../pages/EditorPage';
 import { DocumentViewPage } from '../pages/DocumentViewPage';
 import { FolderPage } from '../pages/FolderPage';
+import { SharedDocumentPage } from '../pages/SharedDocumentPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { ApiHelper } from '../utils/api-helpers';
 import { BASE_URL } from '../utils/routes';
@@ -24,6 +25,7 @@ export const test = base.extend<{
 	documentViewPage: DocumentViewPage;
 	folderPage: FolderPage;
 	settingsPage: SettingsPage;
+	sharedDocumentPage: SharedDocumentPage;
 	apiHelper: ApiHelper;
 	testId: string;
 	_autoCleanup: void;
@@ -58,6 +60,12 @@ export const test = base.extend<{
 		await page.goto(BASE_URL);
 		const settingsPage = new SettingsPage(page);
 		await use(settingsPage);
+	},
+
+	// The public share page: no warm-up visit to the app, the test navigates to
+	// a share link itself.
+	sharedDocumentPage: async ({ page }, use) => {
+		await use(new SharedDocumentPage(page));
 	},
 
 	apiHelper: async ({ request }, use, testInfo) => {

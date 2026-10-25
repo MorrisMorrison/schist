@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { SharedDocumentPage } from '../pages/SharedDocumentPage';
+import { shareToken } from '../pages/SharedDocumentPage';
 
 test.describe.serial('Share Functionality', () => {
 	test('should open share modal from document view', async ({
@@ -86,8 +86,8 @@ test.describe.serial('Share Functionality', () => {
 		let activeLinks = await documentViewPage.getActiveShareLinks();
 		expect(activeLinks).toHaveLength(2);
 
-		const token = activeLinks[0].split('/share/')[1];
-		expect(token).toMatch(/^[a-f0-9]{64}$/);
+		// Each link carries a 64-hex-character token.
+		shareToken(activeLinks[0]);
 
 		await documentViewPage.revokeShareLink(0);
 
@@ -101,7 +101,7 @@ test.describe.serial('Share Functionality', () => {
 	});
 
 	test('should access shared document without authentication', async ({
-		page,
+		sharedDocumentPage: sharedPage,
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
@@ -110,22 +110,15 @@ test.describe.serial('Share Functionality', () => {
 		const shareUrl = await documentViewPage.createShareLink();
 		await documentViewPage.closeShareModal();
 
-		// Extract token from share URL
-		const token = shareUrl.split('/share/')[1];
-		expect(token).toMatch(/^[a-f0-9]{64}$/);
-
-		// Create new SharedDocumentPage instance
-		const sharedPage = new SharedDocumentPage(page);
-
 		// Navigate to shared document (this should work without authentication)
-		await sharedPage.navigateToSharedDocument(token);
+		await sharedPage.navigateToShareUrl(shareUrl);
 
 		// Verify shared document is loaded
 		await sharedPage.verifySharedDocumentLoaded(testDocument.title);
 	});
 
 	test('should display shared document with proper layout', async ({
-		page,
+		sharedDocumentPage: sharedPage,
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
@@ -134,10 +127,7 @@ test.describe.serial('Share Functionality', () => {
 		const shareUrl = await documentViewPage.createShareLink();
 		await documentViewPage.closeShareModal();
 
-		const token = shareUrl.split('/share/')[1];
-		const sharedPage = new SharedDocumentPage(page);
-
-		await sharedPage.navigateToSharedDocument(token);
+		await sharedPage.navigateToShareUrl(shareUrl);
 		await sharedPage.verifySharedDocumentLoaded(testDocument.title);
 
 		// Verify minimal layout (no main app navigation)
@@ -159,9 +149,7 @@ test.describe.serial('Share Functionality', () => {
 		await sharedPage.verifyDocumentPath(testDocument.path!);
 	});
 
-	test('should handle invalid share tokens', async ({ page }) => {
-		const sharedPage = new SharedDocumentPage(page);
-
+	test('should handle invalid share tokens', async ({ sharedDocumentPage: sharedPage }) => {
 		const invalidToken = 'invalid-token-123';
 		await sharedPage.navigateToSharedDocument(invalidToken);
 
@@ -169,7 +157,7 @@ test.describe.serial('Share Functionality', () => {
 	});
 
 	test('should show proper error for revoked shares', async ({
-		page,
+		sharedDocumentPage: sharedPage,
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
@@ -182,10 +170,7 @@ test.describe.serial('Share Functionality', () => {
 		await documentViewPage.closeShareModal();
 
 		// Try to access the revoked share
-		const token = shareUrl.split('/share/')[1];
-		const sharedPage = new SharedDocumentPage(page);
-
-		await sharedPage.navigateToSharedDocument(token);
+		await sharedPage.navigateToShareUrl(shareUrl);
 
 		// Should show not found error
 		await sharedPage.verifyNotFound();

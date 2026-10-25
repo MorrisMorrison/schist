@@ -6,6 +6,13 @@ import { DocumentViewPage } from './DocumentViewPage';
  * Page object for viewing shared documents (/share/[token])
  * These pages are public and don't require authentication
  */
+/** The token of a share link (`…/share/<64 hex chars>`), asserting its format. */
+export function shareToken(shareUrl: string): string {
+	const token = shareUrl.split('/share/')[1];
+	expect(token).toMatch(/^[a-f0-9]{64}$/);
+	return token;
+}
+
 export class SharedDocumentPage extends BasePage {
 	// Header elements
 	readonly header: Locator;
@@ -51,6 +58,15 @@ export class SharedDocumentPage extends BasePage {
 	async navigateToSharedDocument(token: string) {
 		await this.goto(`/share/${token}`);
 		await this.waitForLoad();
+	}
+
+	/**
+	 * Open a share link the app handed out. Navigates by token rather than the
+	 * absolute URL: its origin is the server's configured frontend URL, which
+	 * need not be the address the tests reach it on.
+	 */
+	async navigateToShareUrl(shareUrl: string) {
+		await this.navigateToSharedDocument(shareToken(shareUrl));
 	}
 
 	/**

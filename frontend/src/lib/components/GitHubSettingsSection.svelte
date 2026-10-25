@@ -4,6 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
@@ -344,21 +345,21 @@
 			{/if}
 
 			{#if githubStore.connectionTest}
-				<div
+				<Alert
 					data-testid="github-connection-test-result"
-					class="flex items-center gap-2 rounded-md p-3 text-sm {githubStore.connectionTest.success
-						? 'bg-accent/50 text-accent-foreground'
-						: 'bg-destructive/10 text-destructive'}"
+					variant={githubStore.connectionTest.success ? 'success' : 'destructive'}
 				>
 					{#if githubStore.connectionTest.success}
-						<CheckCircle class="h-4 w-4 flex-shrink-0" />
+						<CheckCircle />
 					{:else}
-						<AlertCircle class="h-4 w-4 flex-shrink-0" />
+						<AlertCircle />
 					{/if}
-					<span data-testid="github-connection-test-message"
-						>{githubStore.connectionTest.message}</span
-					>
-				</div>
+					<AlertDescription>
+						<span data-testid="github-connection-test-message"
+							>{githubStore.connectionTest.message}</span
+						>
+					</AlertDescription>
+				</Alert>
 			{/if}
 
 			{#if isConnected && githubStore.settings}
@@ -526,26 +527,20 @@
 					{/if}
 
 					{#if githubStore.lastRepairResult}
-						<div
-							class="flex items-start gap-2 rounded-md p-3 text-sm {githubStore.lastRepairResult
-								.success
-								? 'border border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950/30 dark:text-green-400'
-								: 'border border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400'}"
-						>
-							{#if githubStore.lastRepairResult.success}
-								<CheckCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
-								<div>
-									<div class="font-medium">Repair Successful</div>
-									{githubStore.lastRepairResult.message}
-								</div>
+						{@const repaired = githubStore.lastRepairResult.success}
+						<Alert variant={repaired ? 'success' : 'destructive'}>
+							{#if repaired}
+								<CheckCircle />
 							{:else}
-								<AlertCircle class="mt-0.5 h-4 w-4 flex-shrink-0" />
-								<div>
-									<div class="font-medium">Repair Failed</div>
-									{githubStore.lastRepairResult.error}
-								</div>
+								<AlertCircle />
 							{/if}
-						</div>
+							<AlertTitle>{repaired ? 'Repair Successful' : 'Repair Failed'}</AlertTitle>
+							<AlertDescription>
+								{repaired
+									? githubStore.lastRepairResult.message
+									: githubStore.lastRepairResult.error}
+							</AlertDescription>
+						</Alert>
 					{/if}
 
 					<div class="text-muted-foreground text-sm">
@@ -574,40 +569,32 @@
 			</div>
 
 			{#if githubStore.lastSyncResult}
-				<div class="space-y-2 rounded-lg border p-4">
-					<div class="flex items-center gap-2">
-						{#if githubStore.lastSyncResult.success}
-							<CheckCircle class="h-4 w-4 text-green-500" />
-							<span class="font-medium text-green-600 dark:text-green-400"
-								>Last Sync Successful</span
-							>
-						{:else}
-							<AlertCircle class="h-4 w-4 text-red-500" />
-							<span class="text-destructive font-medium">Last Sync Failed</span>
+				{@const synced = githubStore.lastSyncResult.success}
+				<Alert variant={synced ? 'success' : 'destructive'}>
+					{#if synced}
+						<CheckCircle />
+					{:else}
+						<AlertCircle />
+					{/if}
+					<AlertTitle>{synced ? 'Last Sync Successful' : 'Last Sync Failed'}</AlertTitle>
+					<AlertDescription>
+						<p class="opacity-80">{formatLastSync(githubStore.lastSyncResult.timestamp)}</p>
+						<p>{githubStore.lastSyncResult.message}</p>
+
+						{#if githubStore.lastSyncResult.syncedFiles !== undefined}
+							<p>Files synced: {githubStore.lastSyncResult.syncedFiles}</p>
 						{/if}
-					</div>
 
-					<div class="text-muted-foreground text-sm">
-						{formatLastSync(githubStore.lastSyncResult.timestamp)}
-					</div>
-
-					<div class="text-sm">{githubStore.lastSyncResult.message}</div>
-
-					{#if githubStore.lastSyncResult.syncedFiles !== undefined}
-						<div class="text-muted-foreground text-sm">
-							Files synced: {githubStore.lastSyncResult.syncedFiles}
-						</div>
-					{/if}
-
-					{#if githubStore.lastSyncResult.errors && githubStore.lastSyncResult.errors.length > 0}
-						<div class="space-y-1">
-							<div class="text-destructive text-sm font-medium">Errors:</div>
-							{#each githubStore.lastSyncResult.errors as error, index (index)}
-								<div class="text-destructive text-sm">• {error}</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
+						{#if githubStore.lastSyncResult.errors && githubStore.lastSyncResult.errors.length > 0}
+							<p class="font-medium">Errors:</p>
+							<ul class="list-inside list-disc">
+								{#each githubStore.lastSyncResult.errors as error, index (index)}
+									<li>{error}</li>
+								{/each}
+							</ul>
+						{/if}
+					</AlertDescription>
+				</Alert>
 			{/if}
 
 			<div class="text-muted-foreground text-sm">

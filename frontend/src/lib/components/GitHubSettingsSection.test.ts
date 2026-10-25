@@ -114,6 +114,10 @@ describe('GitHubSettingsSection', () => {
 			expect(await screen.findByTestId('github-connection-test-message')).toHaveTextContent(
 				'Repository is accessible'
 			);
+			expect(screen.getByTestId('github-connection-test-result')).toHaveAttribute(
+				'data-variant',
+				'success'
+			);
 		});
 
 		it('shows a failed connection test', async () => {
@@ -126,7 +130,12 @@ describe('GitHubSettingsSection', () => {
 			expect(await screen.findByTestId('github-connection-test-message')).toHaveTextContent(
 				'Bad credentials'
 			);
-			expect(screen.getByRole('alert')).toHaveTextContent('Bad credentials');
+			// The store error and the test result are both alerts.
+			expect(screen.getAllByRole('alert')).toHaveLength(2);
+			expect(screen.getByTestId('github-connection-test-result')).toHaveAttribute(
+				'data-variant',
+				'destructive'
+			);
 		});
 
 		it('validates the branch on submit', async () => {
@@ -291,7 +300,7 @@ describe('GitHubSettingsSection', () => {
 			expect(await screen.findByText('Last Sync Failed')).toBeInTheDocument();
 			expect(screen.getByText('Partial sync')).toBeInTheDocument();
 			expect(screen.getByText('Files synced: 3')).toBeInTheDocument();
-			expect(screen.getByText('• a.md failed')).toBeInTheDocument();
+			expect(screen.getByRole('listitem')).toHaveTextContent('a.md failed');
 		});
 
 		it('shows a successful sync and a syncing state', async () => {

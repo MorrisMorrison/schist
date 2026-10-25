@@ -261,7 +261,8 @@
 				</Button>
 
 				<Button
-					variant="destructive"
+					variant="outline"
+					class="text-destructive hover:bg-destructive/10 hover:text-destructive dark:text-destructive dark:hover:text-destructive"
 					data-testid="delete-document-button"
 					onclick={handleDeleteClick}
 					disabled={isDeleting}

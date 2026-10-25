@@ -30,7 +30,7 @@
 			height: '100%',
 			fontSize: '16px',
 			fontFamily:
-				'-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
+				'"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
 			lineHeight: '1.625'
 		},
 		'.cm-content': {

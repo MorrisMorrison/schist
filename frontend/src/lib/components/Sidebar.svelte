@@ -175,7 +175,7 @@
 	</div>
 
 	<div class="border-border flex-shrink-0 border-t p-4">
-		<Button onclick={handleImportDocuments} class="w-full">
+		<Button variant="outline" onclick={handleImportDocuments} class="w-full">
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"

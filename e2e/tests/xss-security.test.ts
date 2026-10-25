@@ -132,7 +132,9 @@ Final paragraph.`;
 
 		const content = page.getByTestId('document-content');
 
-		await expect(content.locator('h1')).toContainText('Safe Markdown Test');
+		// The leading `# Safe Markdown Test` becomes the title, shown in the header (the
+		// document view doesn't repeat it in the body).
+		await expect(page.getByTestId('document-title')).toContainText('Safe Markdown Test');
 		await expect(content.locator('h2')).toContainText('Subheading');
 		await expect(content.locator('strong')).toContainText('Bold text');
 		await expect(content.locator('em')).toContainText('italic text');
@@ -282,7 +284,9 @@ interface User {
 		const content = page.getByTestId('document-content');
 
 		// Verify key content exists (structure may be affected by markdown parsing issues)
-		await expect(content.locator('h1')).toContainText('Complex Markdown Test');
+		// The leading `# Complex Markdown Test` becomes the title, shown in the header (the
+		// document view doesn't repeat it in the body).
+		await expect(page.getByTestId('document-title')).toContainText('Complex Markdown Test');
 		await expect(content.locator('h2').first()).toContainText('Code Blocks');
 
 		// Check for code content (may not be in perfect pre/code structure)

@@ -32,7 +32,7 @@
 	}
 </script>
 
-<nav class="mb-4 border-b pb-2" aria-label="Breadcrumb navigation" data-testid="breadcrumbs">
+<nav class="mb-2" aria-label="Breadcrumb navigation" data-testid="breadcrumbs">
 	<ol class="m-0 flex list-none flex-wrap items-center gap-1 p-0">
 		<!-- Home/Root -->
 		<li class="flex items-center gap-1">

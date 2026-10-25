@@ -62,8 +62,9 @@ test.describe.serial('Document Lifecycle', () => {
 		// Save changes
 		await editorPage.saveAndExpectNavigation();
 
-		// Verify changes are reflected
-		await documentViewPage.verifyContentContains('Updated Content');
+		// Verify changes are reflected. The new leading `# Updated Content` becomes
+		// the title, shown in the header (the body doesn't repeat it).
+		await documentViewPage.verifyDocumentLoaded('Updated Content');
 		await documentViewPage.verifyContentContains('edited via e2e test');
 	});
 
@@ -140,7 +141,11 @@ test.describe.serial('Document Lifecycle', () => {
 
 		// Verify markdown has been rendered to HTML
 		await documentViewPage.verifyMarkdownRendering();
-		await documentViewPage.verifyHeading(testDocument.title, 1);
+		// The leading `# <title>` is shown as the page title in the header (checked
+		// above) and not repeated as a heading in the body.
+		await expect(
+			documentViewPage.documentContent.locator('h1', { hasText: testDocument.title })
+		).toHaveCount(0);
 		await documentViewPage.verifyHeading('Table of Contents', 2);
 
 		// Verify we have expected number of elements

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -63,10 +64,35 @@ type LoginResponse struct {
 	User  User   `json:"user"`
 }
 
+// Sentinels for the authentication failures. AuthService returns them wrapped
+// in a typed 401 (see errAuthFailed / errInvalidToken), so callers can still
+// test for them with errors.Is.
 var (
 	ErrInvalidCredentials = errors.New("invalid username or password")
 	ErrInvalidToken       = errors.New("invalid token")
 )
+
+// errAuthFailed is the one answer for every rejected sign-in (unknown, expired
+// or reused ticket, credential without a user), so the response never reveals
+// which check failed or whether a user exists.
+func errAuthFailed() error {
+	return apierrors.NewUnauthorizedError("Authentication failed").WithCause(ErrInvalidCredentials)
+}
+
+func errInvalidToken() error {
+	return apierrors.NewUnauthorizedError("Invalid token").WithCause(ErrInvalidToken)
+}
+
+// credentialUser looks up the user owning a verified credential. A credential
+// without a user is an authentication failure; a store failure stays an
+// internal error (and is never a success either).
+func (s *AuthService) credentialUser(credentialId string) (*models.User, error) {
+	user, err := s.userService.GetUserByCredentialID(credentialId)
+	if apierrors.HasCode(err, apierrors.ErrCodeNotFound) {
+		return nil, errAuthFailed()
+	}
+	return user, err
+}
 
 func NewAuthService(config *config.Config, userService *UserService) *AuthService {
 	return &AuthService{
@@ -82,8 +108,8 @@ func NewAuthService(config *config.Config, userService *UserService) *AuthServic
 // finish-authentication path after the assertion has been validated.
 func (s *AuthService) IssueAuthTicket(credentialId string) (string, error) {
 	// Ensure the credential actually maps to a user before issuing a ticket.
-	if _, err := s.userService.GetUserByCredentialID(credentialId); err != nil {
-		return "", ErrInvalidCredentials
+	if _, err := s.credentialUser(credentialId); err != nil {
+		return "", err
 	}
 
 	buf := make([]byte, 32)
@@ -141,6 +167,9 @@ func (s *AuthService) RedeemAuthTicket(ticket, username string) (string, error) 
 	}
 	if username != "" {
 		user, err := s.userService.GetUserByCredentialID(entry.credentialID)
+		if err != nil && !apierrors.HasCode(err, apierrors.ErrCodeNotFound) {
+			return "", err
+		}
 		if err != nil || user.Username != username {
 			return "", apierrors.NewForbiddenError("This passkey belongs to another user")
 		}
@@ -154,19 +183,19 @@ func (s *AuthService) RedeemAuthTicket(ticket, username string) (string, error) 
 func (s *AuthService) LoginWithPasskeyTicket(ticket string) (*LoginResponse, error) {
 	entry, ok := s.takeTicket(ticket)
 	if !ok {
-		return nil, ErrInvalidCredentials
+		return nil, errAuthFailed()
 	}
 
 	// Find user by the verified credential ID.
-	user, err := s.userService.GetUserByCredentialID(entry.credentialID)
+	user, err := s.credentialUser(entry.credentialID)
 	if err != nil {
-		return nil, ErrInvalidCredentials
+		return nil, err
 	}
 
 	// Update last login time
 	if err := s.userService.UpdateLastLogin(user.Username); err != nil {
 		// Log error but don't fail login
-		fmt.Printf("Warning: failed to update last login for user %s: %v\n", user.Username, err)
+		log.Printf("WARN: failed to update last login for user %s: %v", user.Username, err)
 	}
 
 	token, err := s.generateJWT(user.Username)
@@ -196,20 +225,20 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
 	)
 
 	if err != nil {
-		return "", ErrInvalidToken
+		return "", errInvalidToken()
 	}
 
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		return claims.Username, nil
 	}
 
-	return "", ErrInvalidToken
+	return "", errInvalidToken()
 }
 
 func (s *AuthService) GetUser(username string) (*User, error) {
 	user, err := s.userService.GetUserByUsername(username)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, err
 	}
 
 	dto := newUserDTO(user)

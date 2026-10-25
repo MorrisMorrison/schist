@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
 	"sync"
 	"time"
 
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
@@ -34,7 +36,33 @@ func NewUserService(dataDir string) *UserService {
 	}
 }
 
-var errUserNotFound = fmt.Errorf("user not found")
+// UserService errors: lookups, duplicates, setup state and bad input return
+// typed errors from internal/errors; a users store or invite file that cannot
+// be read or written stays a plain error, which the handlers answer with a 500
+// that only logs the cause.
+
+func userNotFound(username string) error {
+	return apierrors.NewNotFoundError("user", username)
+}
+
+// errCredentialUserNotFound is returned when no user owns a passkey. The
+// credential ID is deliberately not echoed back.
+func errCredentialUserNotFound() error {
+	return apierrors.NewAPIError(apierrors.ErrCodeNotFound, "User not found", http.StatusNotFound).
+		WithDetails("resource", "user")
+}
+
+func errInvalidInvite() error {
+	return apierrors.NewValidationError("Invalid invite token")
+}
+
+// validateNewUser rejects a user without a name or passkey.
+func validateNewUser(username, credentialId string) error {
+	if username == "" || credentialId == "" {
+		return apierrors.NewValidationError("Username and credential ID are required")
+	}
+	return nil
+}
 
 // userIndex returns the index of username in storage, or -1.
 func userIndex(storage *models.UserStorage, username string) int {
@@ -46,7 +74,7 @@ func (us *UserService) updateUser(username string, fn func(*models.User)) error 
 	return us.users.update(func(storage *models.UserStorage) error {
 		i := userIndex(storage, username)
 		if i < 0 {
-			return errUserNotFound
+			return userNotFound(username)
 		}
 		fn(&storage.Users[i])
 		return nil
@@ -55,6 +83,9 @@ func (us *UserService) updateUser(username string, fn func(*models.User)) error 
 
 // addUser appends a new user, after check has accepted the current store.
 func (us *UserService) addUser(username string, isAdmin bool, credentialId string, check func(*models.UserStorage) error) error {
+	if err := validateNewUser(username, credentialId); err != nil {
+		return err
+	}
 	return us.users.update(func(storage *models.UserStorage) error {
 		if err := check(storage); err != nil {
 			return err
@@ -84,7 +115,7 @@ func (us *UserService) IsFirstSetup() (bool, error) {
 func (us *UserService) CreateFirstUser(username, credentialId string) error {
 	return us.addUser(username, true, credentialId, func(storage *models.UserStorage) error {
 		if len(storage.Users) > 0 {
-			return fmt.Errorf("users already exist, cannot create first user")
+			return apierrors.NewConflictError("Setup is already complete: users already exist")
 		}
 		return nil
 	})
@@ -103,7 +134,7 @@ func (us *UserService) GetUserByCredentialID(credentialId string) (*models.User,
 		}
 	}
 
-	return nil, fmt.Errorf("user not found for credential ID")
+	return nil, errCredentialUserNotFound()
 }
 
 // GetUserByUsername finds a user by their username
@@ -115,7 +146,7 @@ func (us *UserService) GetUserByUsername(username string) (*models.User, error) 
 
 	i := userIndex(&storage, username)
 	if i < 0 {
-		return nil, errUserNotFound
+		return nil, userNotFound(username)
 	}
 	return &storage.Users[i], nil
 }
@@ -134,7 +165,7 @@ func (us *UserService) AddPasskeyToUser(username, credentialId string) error {
 func (us *UserService) CreateUser(username string, isAdmin bool, credentialId string) error {
 	return us.addUser(username, isAdmin, credentialId, func(storage *models.UserStorage) error {
 		if userIndex(storage, username) >= 0 {
-			return fmt.Errorf("user already exists")
+			return apierrors.NewAlreadyExistsError("user", username)
 		}
 		return nil
 	})
@@ -145,7 +176,7 @@ func (us *UserService) DeleteUser(username string) error {
 	return us.users.update(func(storage *models.UserStorage) error {
 		i := userIndex(storage, username)
 		if i < 0 {
-			return errUserNotFound
+			return userNotFound(username)
 		}
 		storage.Users = slices.Delete(storage.Users, i, i+1)
 		return nil
@@ -205,17 +236,22 @@ func (us *UserService) validateInviteToken(token string) (*Invite, error) {
 	// GenerateInviteToken issues (32 random bytes, hex) so a crafted token such
 	// as "../users" can never read or delete a file outside that directory.
 	if !isWellFormedInviteToken(token) {
-		return nil, fmt.Errorf("invalid invite token")
+		return nil, errInvalidInvite()
 	}
 
 	invite, err := us.loadInvite(token)
+	if os.IsNotExist(err) {
+		return nil, errInvalidInvite()
+	}
 	if err != nil {
-		return nil, fmt.Errorf("invalid invite token")
+		// An invite file that exists but cannot be read is a store failure,
+		// not a bad token. It is rejected either way.
+		return nil, err
 	}
 
 	if time.Now().After(invite.ExpiresAt) {
 		_ = us.deleteInvite(token)
-		return nil, fmt.Errorf("invite token expired")
+		return nil, apierrors.NewValidationError("Invite token expired")
 	}
 
 	return invite, nil
@@ -262,7 +298,10 @@ func (us *UserService) saveInvite(invite Invite) error {
 		return fmt.Errorf("failed to marshal invite: %w", err)
 	}
 
-	return utils.WriteFileAtomic(filePath, data, 0600)
+	if err := utils.WriteFileAtomic(filePath, data, 0600); err != nil {
+		return fmt.Errorf("failed to write invite: %w", err)
+	}
+	return nil
 }
 
 func (us *UserService) loadInvite(token string) (*Invite, error) {
@@ -274,7 +313,7 @@ func (us *UserService) loadInvite(token string) (*Invite, error) {
 
 	var invite Invite
 	if err := json.Unmarshal(data, &invite); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse invite: %w", err)
 	}
 
 	return &invite, nil
@@ -283,5 +322,8 @@ func (us *UserService) loadInvite(token string) (*Invite, error) {
 // deleteInvite removes an invite file. Callers must hold us.inviteMu.
 func (us *UserService) deleteInvite(token string) error {
 	filePath := filepath.Join(us.getInvitesDir(), token+".json")
-	return os.Remove(filePath)
+	if err := os.Remove(filePath); err != nil {
+		return fmt.Errorf("failed to delete invite: %w", err)
+	}
+	return nil
 }

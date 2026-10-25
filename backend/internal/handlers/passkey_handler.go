@@ -280,7 +280,7 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 		// never sufficient on its own.
 		ticket, err := services.AuthService.IssueAuthTicket(credentialID)
 		if err != nil {
-			HandleError(c, errors.NewUnauthorizedError("Authentication failed").WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -408,7 +408,7 @@ func requireUserRecord(c *gin.Context, services *services.Services) (*models.Use
 	}
 	user, err := services.UserService.GetUserByUsername(username)
 	if err != nil {
-		HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
+		HandleError(c, err)
 		return nil, false
 	}
 	return user, true

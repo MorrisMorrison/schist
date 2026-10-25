@@ -3,6 +3,7 @@ import { test, expect } from '../fixtures';
 test.describe('Navigation and Routing', () => {
 	test('should handle deep path navigation correctly', async ({
 		documentViewPage,
+		folderPage,
 		apiHelper,
 		testId
 	}) => {
@@ -38,8 +39,7 @@ test.describe('Navigation and Routing', () => {
 		await documentViewPage.expectUrl(`/folders/parent-${testId}`);
 
 		// The parent folder lists the child document
-		const documentsSection = documentViewPage.page.getByTestId('documents-section');
-		await expect(documentsSection.getByText(childDocument.title)).toBeVisible();
+		await folderPage.verifyContainsDocument(childDocument.title);
 	});
 
 	test('should handle URL changes correctly', async ({

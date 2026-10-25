@@ -1,12 +1,7 @@
 import { test, expect } from '../fixtures';
 
 test.describe.serial('Search Integration with Folder Tree', () => {
-	test('should filter folder tree by text query', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
+	test('should filter folder tree by text query', async ({ folderPage, apiHelper, testId }) => {
 		// Seed documents this test asserts on (the folder-tree filter matches page titles).
 		await apiHelper.seedDocument({
 			title: `Searchable Content ${testId}`,
@@ -28,8 +23,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.navigateToRoot();
 
 		// Use unified search box
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
 		await expect(searchInput).toBeVisible();
 
 		// Search for specific text that exists in our seeded data (matched against page title)
@@ -49,12 +44,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await expect(folderTree.getByText('Different Title')).toBeVisible();
 	});
 
-	test('should filter folder tree by tag query', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
+	test('should filter folder tree by tag query', async ({ folderPage, apiHelper, testId }) => {
 		await apiHelper.seedDocument({
 			title: `Important Document ${testId}`,
 			path: `/important-document-${testId}`,
@@ -79,8 +69,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await folderPage.navigateToRoot();
 
 		// Use tag search
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
 		await expect(searchInput).toBeVisible();
 
 		// Search for pages with specific tag
@@ -102,12 +92,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await expect(folderTree.getByText('Draft Content')).toHaveCount(0);
 	});
 
-	test('should support combined text and tag search', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
+	test('should support combined text and tag search', async ({ folderPage, apiHelper, testId }) => {
 		await apiHelper.seedDocument({
 			title: `Important Project ${testId}`,
 			path: `/important-project-${testId}`,
@@ -126,8 +111,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
 		await expect(searchInput).toBeVisible();
 
 		// Combined search: text (matched in title) + tag
@@ -141,12 +126,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await expect(folderTree.getByText('Important Notes')).toHaveCount(0); // important title but no "project" tag
 	});
 
-	test('should hide empty folders during search', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
+	test('should hide empty folders during search', async ({ folderPage, apiHelper, testId }) => {
 		// Create folders with and without matching content
 		await folderPage.navigateToRoot();
 		await folderPage.createFolder('folder-with-matches');
@@ -169,8 +149,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
 		await expect(searchInput).toBeVisible();
 
 		// Search for unique content
@@ -189,7 +169,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 	test('should handle search with no results gracefully', async ({ folderPage, page }) => {
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
+		const searchInput = folderPage.treeFilter;
 		await expect(searchInput).toBeVisible();
 
 		// Search for something that doesn't exist
@@ -197,7 +177,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await expect(searchInput).toHaveValue('nonexistent-content-xyz-123');
 
 		// Should show empty state or message
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+		const { folderTree } = folderPage;
 		const emptyMessage = page.getByText(/no.*match|no.*found|empty/i);
 
 		// Either empty tree or explicit message
@@ -208,12 +188,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		expect(hasResults === 0 || hasEmptyMessage).toBe(true);
 	});
 
-	test('should support prefix matching for tags', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
+	test('should support prefix matching for tags', async ({ folderPage, apiHelper, testId }) => {
 		// Create pages with tags that share prefixes
 		await apiHelper.seedDocument({
 			title: `Prefix Test 1 ${testId}`,
@@ -236,8 +211,8 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
 		await expect(searchInput).toBeVisible();
 
 		// Search for tag prefix
@@ -266,12 +241,12 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		});
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
+		const searchInput = folderPage.treeFilter;
 		await expect(searchInput).toBeVisible();
 
 		// Apply search (matched against title)
 		await searchInput.fill('persistent');
-		await expect(page.getByTestId('folder-tree').getByText('Persistent Search')).toBeVisible();
+		await expect(folderPage.folderTree.getByText('Persistent Search')).toBeVisible();
 
 		// Navigate to a different section and back
 		await page.goto('/');
@@ -283,8 +258,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 
 		if (isSearchPersistent) {
 			// If search persists, verify filtered results
-			const folderTree = page.getByTestId('folder-tree');
-			await expect(folderTree.getByText('Persistent Search')).toBeVisible();
+			await expect(folderPage.folderTree.getByText('Persistent Search')).toBeVisible();
 		} else {
 			// If search clears, verify the input is empty
 			await expect(searchInput).toHaveValue('');

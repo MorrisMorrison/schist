@@ -18,6 +18,8 @@ export class FolderPage extends BasePage {
 	readonly confirmDialog: Locator;
 
 	readonly folderTree: Locator;
+	/** The sidebar box that filters the tree by title and `tag:` queries. */
+	readonly treeFilter: Locator;
 	readonly contextMenu: Locator;
 
 	constructor(page: Page) {
@@ -43,6 +45,7 @@ export class FolderPage extends BasePage {
 		this.confirmDialog = page.getByTestId('confirm-dialog');
 
 		this.folderTree = page.getByTestId('folder-tree');
+		this.treeFilter = page.getByTestId('sidebar-search');
 		this.contextMenu = page.getByTestId('context-menu');
 	}
 

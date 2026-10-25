@@ -107,17 +107,10 @@ func (a *SoftAuthenticator) Attestation(t *testing.T, challenge string) json.Raw
 	})
 	require.NoError(t, err)
 
-	resp, err := json.Marshal(map[string]any{
-		"id":    B64URL.EncodeToString(a.CredID),
-		"rawId": B64URL.EncodeToString(a.CredID),
-		"type":  "public-key",
-		"response": map[string]any{
-			"clientDataJSON":    B64URL.EncodeToString(a.clientData(t, "webauthn.create", challenge)),
-			"attestationObject": B64URL.EncodeToString(attObj),
-		},
+	return a.credentialJSON(t, map[string]any{
+		"clientDataJSON":    B64URL.EncodeToString(a.clientData(t, "webauthn.create", challenge)),
+		"attestationObject": B64URL.EncodeToString(attObj),
 	})
-	require.NoError(t, err)
-	return resp
 }
 
 // Assertion answers an authentication challenge with the JSON of a
@@ -132,19 +125,26 @@ func (a *SoftAuthenticator) Assertion(t *testing.T, challenge string) json.RawMe
 	sig, err := ecdsa.SignASN1(rand.Reader, a.Key, digest[:])
 	require.NoError(t, err)
 
-	resp, err := json.Marshal(map[string]any{
-		"id":    B64URL.EncodeToString(a.CredID),
-		"rawId": B64URL.EncodeToString(a.CredID),
-		"type":  "public-key",
-		"response": map[string]any{
-			"clientDataJSON":    B64URL.EncodeToString(clientData),
-			"authenticatorData": B64URL.EncodeToString(authData),
-			"signature":         B64URL.EncodeToString(sig),
-			"userHandle":        B64URL.EncodeToString([]byte("schist-user")),
-		},
+	return a.credentialJSON(t, map[string]any{
+		"clientDataJSON":    B64URL.EncodeToString(clientData),
+		"authenticatorData": B64URL.EncodeToString(authData),
+		"signature":         B64URL.EncodeToString(sig),
+		"userHandle":        B64URL.EncodeToString([]byte("schist-user")),
+	})
+}
+
+// credentialJSON wraps an authenticator response in the PublicKeyCredential
+// JSON a browser sends.
+func (a *SoftAuthenticator) credentialJSON(t *testing.T, response map[string]any) json.RawMessage {
+	t.Helper()
+	data, err := json.Marshal(map[string]any{
+		"id":       B64URL.EncodeToString(a.CredID),
+		"rawId":    B64URL.EncodeToString(a.CredID),
+		"type":     "public-key",
+		"response": response,
 	})
 	require.NoError(t, err)
-	return resp
+	return data
 }
 
 // Register is Attestation parsed the way the server parses it, for tests that

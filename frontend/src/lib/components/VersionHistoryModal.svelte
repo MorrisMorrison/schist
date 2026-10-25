@@ -19,6 +19,7 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import DiffViewer from './DiffViewer.svelte';
+	import ErrorAlert from './ErrorAlert.svelte';
 	import type { DocumentVersion, DiffResult } from '$lib/api/types';
 	import { apiClient } from '$lib/api/client';
 	import { getErrorMessage } from '$lib/utils/error';
@@ -289,9 +290,7 @@
 			</div>
 
 			{#if diffError}
-				<div class="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
-					<p class="text-destructive text-sm">{diffError}</p>
-				</div>
+				<ErrorAlert error={diffError} />
 			{/if}
 
 			<DialogFooter>

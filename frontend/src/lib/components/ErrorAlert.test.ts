@@ -17,6 +17,14 @@ describe('ErrorAlert', () => {
 		expect(container).toHaveTextContent('Something went wrong');
 	});
 
+	it('passes extra attributes such as test ids to the alert', () => {
+		const { container } = render(ErrorAlert, {
+			props: { error: 'Nope', 'data-testid': 'login-error' }
+		});
+
+		expect(container.querySelector('[role="alert"]')).toHaveAttribute('data-testid', 'login-error');
+	});
+
 	it('applies error variant by default', () => {
 		const { container } = render(ErrorAlert, {
 			props: { error: 'Error message' }

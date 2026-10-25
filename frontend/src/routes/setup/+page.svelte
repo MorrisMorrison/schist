@@ -11,7 +11,8 @@
 	} from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Fingerprint, AlertCircle, CheckCircle } from '@lucide/svelte';
+	import { Fingerprint, CheckCircle } from '@lucide/svelte';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import { apiClient } from '$lib/api/client';
 	import { registerPasskey } from '$lib/utils/webauthn';
 	import { getErrorMessage } from '$lib/utils/error';
@@ -126,12 +127,7 @@
 
 		<CardContent class="space-y-6">
 			{#if error}
-				<div
-					class="border-destructive/20 bg-destructive/10 text-destructive flex items-center gap-2 rounded-md border p-3 text-sm"
-				>
-					<AlertCircle class="h-4 w-4" />
-					{error}
-				</div>
+				<ErrorAlert {error} />
 			{/if}
 
 			{#if currentStep === 1}

@@ -179,6 +179,9 @@
 			console.error('Error repairing Git repository');
 		}
 	}
+
+	const notConnectedMessage =
+		'GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.';
 </script>
 
 <div class="space-y-6">
@@ -458,12 +461,7 @@
 	{#if activeTab === 'sync'}
 		<div class="space-y-4">
 			{#if !isConnected}
-				<div
-					class="flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-				>
-					<AlertCircle class="h-4 w-4 flex-shrink-0" />
-					GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.
-				</div>
+				<ErrorAlert variant="warning" error={notConnectedMessage} />
 			{/if}
 
 			{#if isConnected}

@@ -15,6 +15,7 @@
 	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import { getErrorMessage } from '$lib/utils/error';
 	import type { UserInfo } from '$lib/api/types';
 
@@ -103,11 +104,7 @@
 
 	<CardContent class="space-y-6">
 		{#if error}
-			<div
-				class="border-destructive/20 bg-destructive/10 text-destructive rounded-md border p-3 text-sm"
-			>
-				{error}
-			</div>
+			<ErrorAlert {error} />
 		{/if}
 
 		{#if loading}

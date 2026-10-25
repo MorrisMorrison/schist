@@ -8,6 +8,7 @@
 	import { apiClient } from '$lib/api/client';
 	import type { ShareToken } from '$lib/api/types';
 	import { isUnauthorizedError } from '$lib/utils/error';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 
 	interface Props {
 		open: boolean;
@@ -134,9 +135,7 @@
 			{/if}
 
 			{#if error}
-				<div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-					{error}
-				</div>
+				<ErrorAlert {error} />
 			{/if}
 
 			<!-- Create New Share -->

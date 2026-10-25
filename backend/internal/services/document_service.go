@@ -849,7 +849,9 @@ func (d *DocumentService) DeleteFolder(path string) error {
 		return errors.NewInvalidPathError(path).WithCause(err)
 	}
 
-	if path == "/" {
+	// Normalise first: "//" passes ValidatePath but resolves to the data dir
+	// itself, and RemoveAll would wipe every note and the git history.
+	if utils.NormalizePath(path) == "/" {
 		return errors.NewValidationError("cannot delete root folder")
 	}
 

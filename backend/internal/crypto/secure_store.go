@@ -120,6 +120,11 @@ func (s *SecureStore) Decrypt(encrypted *EncryptedValue) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to decode nonce: %w", err)
 	}
+	// gcm.Open panics on a nonce of the wrong length; a corrupt or edited
+	// config.json must fail with an error instead.
+	if len(nonce) != s.gcm.NonceSize() {
+		return "", fmt.Errorf("failed to decrypt: invalid nonce length %d", len(nonce))
+	}
 
 	plaintext, err := s.gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {

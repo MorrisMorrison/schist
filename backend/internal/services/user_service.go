@@ -313,6 +313,13 @@ func (us *UserService) ValidateInviteToken(token string) (*Invite, error) {
 // validateInviteToken loads and validates an invite, deleting it if expired.
 // Callers must hold us.mu.
 func (us *UserService) validateInviteToken(token string) (*Invite, error) {
+	// The token names a file under invites/; only accept the exact form
+	// GenerateInviteToken issues (32 random bytes, hex) so a crafted token such
+	// as "../users" can never read or delete a file outside that directory.
+	if !isWellFormedInviteToken(token) {
+		return nil, fmt.Errorf("invalid invite token")
+	}
+
 	invite, err := us.loadInvite(token)
 	if err != nil {
 		return nil, fmt.Errorf("invalid invite token")
@@ -324,6 +331,18 @@ func (us *UserService) validateInviteToken(token string) (*Invite, error) {
 	}
 
 	return invite, nil
+}
+
+func isWellFormedInviteToken(token string) bool {
+	if len(token) != 64 {
+		return false
+	}
+	for _, c := range token {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func (us *UserService) ConsumeInviteToken(token string) error {

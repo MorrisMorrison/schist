@@ -39,7 +39,7 @@ jobs:
       # run. Scoped to those tests to keep the job fast.
       - name: Run concurrency tests with the race detector
         working-directory: backend
-        run: go test -race -count=1 -run 'TestSecretManager_Concurrent|TestSettings_Concurrent' ./internal/services/ ./internal/config/
+        run: go test -race -count=1 -run 'TestSecretManager_Concurrent|TestSettings_Concurrent|TestGitHubService_Concurrent' ./internal/services/ ./internal/config/
 
       # Fork PRs have no secrets; Codecov accepts tokenless uploads from forks of
       # public repos. An upload problem never fails the job.

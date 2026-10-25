@@ -11,6 +11,7 @@ vi.mock('$lib/api/client', () => ({
 import { apiClient } from '$lib/api/client';
 import {
 	parseMarkdownToBlocks,
+	type CodeBlock,
 	type HeadingBlock,
 	type ListBlock,
 	type ParagraphBlock,
@@ -57,6 +58,66 @@ describe('parseMarkdownToBlocks', () => {
 			)) as TableBlock[];
 
 			expect(block.header).toEqual(['<em>Name</em>', '<code>code</code>']);
+		});
+	});
+
+	describe('wiki links and code', () => {
+		beforeEach(() => {
+			vi.mocked(apiClient.getDocuments).mockResolvedValue([
+				{ metaData: { title: 'Writing style', path: '/writing-style' }, content: '' },
+				{ metaData: { title: 'Deployment checklist', path: '/deployment-checklist' }, content: '' }
+			] as unknown as Document[]);
+		});
+
+		it('leaves [[ inside inline code alone and resolves the links after it', async () => {
+			const [block] = (await parseMarkdownToBlocks(
+				'Type `[[` and a page title to link it, like [[Writing style]] or [[Deployment checklist]].'
+			)) as ParagraphBlock[];
+			const doc = new DOMParser().parseFromString(block.text, 'text/html');
+
+			expect(doc.querySelector('code')?.textContent).toBe('[[');
+			const links = Array.from(doc.querySelectorAll('.wiki-link'));
+			expect(links.map((l) => l.textContent)).toEqual(['Writing style', 'Deployment checklist']);
+			expect(links.map((l) => l.getAttribute('data-wiki-target'))).toEqual([
+				'/writing-style',
+				'/deployment-checklist'
+			]);
+			expect(doc.querySelector('.broken-link')).toBeNull();
+			expect(block.text).not.toContain('PLACEHOLDER');
+		});
+
+		it('keeps a whole wiki link inside inline code literal', async () => {
+			const [block] = (await parseMarkdownToBlocks(
+				'Write ``[[Writing style]]`` to get [[Writing style]].'
+			)) as ParagraphBlock[];
+			const doc = new DOMParser().parseFromString(block.text, 'text/html');
+
+			expect(doc.querySelector('code')?.textContent).toBe('[[Writing style]]');
+			expect(doc.querySelectorAll('.wiki-link')).toHaveLength(1);
+		});
+
+		it('keeps wiki links in fenced code blocks literal', async () => {
+			const blocks = await parseMarkdownToBlocks(
+				[
+					'```md',
+					'See [[Writing style]]',
+					'```',
+					'',
+					'~~~',
+					'[[Deployment checklist]]',
+					'~~~',
+					'',
+					'After [[Writing style]]'
+				].join('\n')
+			);
+			const code = blocks.filter((b) => b.type === 'code') as CodeBlock[];
+			const paragraph = blocks.find((b) => b.type === 'paragraph') as ParagraphBlock;
+
+			expect(code.map((c) => c.code)).toEqual([
+				'See [[Writing style]]',
+				'[[Deployment checklist]]'
+			]);
+			expect(paragraph.text).toContain('data-wiki-target="/writing-style"');
 		});
 	});
 

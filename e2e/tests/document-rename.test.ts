@@ -11,8 +11,7 @@ async function openRenameModal(folderPage: FolderPage, documentTitle: string) {
 	await expect(documentTreeItem).toBeVisible();
 	await documentTreeItem.click({ button: 'right' });
 
-	// The document context menu has role="menu" but, unlike the folder menu, no test id.
-	const contextMenu = page.getByRole('menu');
+	const contextMenu = page.getByTestId('document-context-menu');
 	await expect(contextMenu).toBeVisible();
 	await contextMenu.getByText(/rename/i).click();
 

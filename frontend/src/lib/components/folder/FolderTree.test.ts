@@ -13,6 +13,18 @@ import type { Document, Folder } from '$lib/api/types';
 import { waitForPointerEvents } from '$lib/test/dialog';
 import FolderTree from './FolderTree.svelte';
 
+/** The open tree context menu, once it has taken focus (and so listens for outside presses). */
+async function openedMenu(name: string) {
+	const menu = await screen.findByRole('menu', { name });
+	await waitFor(() => expect(menu).toHaveFocus());
+	return menu;
+}
+
+async function menuClosed() {
+	await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+	await waitForPointerEvents();
+}
+
 vi.mock('$lib/api/client', () => ({
 	apiClient: {
 		getFolderTree: vi.fn(),
@@ -365,12 +377,12 @@ describe('FolderTree', () => {
 			await userEvent.click(
 				within(folderItem('notes') as HTMLElement).getByTestId('folder-context-menu-trigger')
 			);
-			return screen.getByRole('menu', { name: 'Folder actions' });
+			return openedMenu('Folder actions');
 		};
 
 		await userEvent.click(within(await openMenu()).getByText('Create Subfolder'));
 		expect(handlers.oncreate).toHaveBeenCalledWith({ parentPath: '/notes' });
-		expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+		await menuClosed();
 
 		await userEvent.click(within(await openMenu()).getByText('Create Document'));
 		expect(handlers.ondocumentcreate).toHaveBeenCalledWith({ parentPath: '/notes' });
@@ -384,35 +396,57 @@ describe('FolderTree', () => {
 		await userEvent.click(within(await openMenu()).getByText('Export'));
 		expect(handlers.onfolderexport).toHaveBeenCalledWith({ path: '/notes', folder: tree[0] });
 
-		const menu = await openMenu();
-		await fireEvent.keyDown(menu, { key: 'Escape' });
-		expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+		await openMenu();
+		await userEvent.keyboard('{Escape}');
+		await menuClosed();
 	});
 
 	it('opens the context menu by right-click and keyboard, and closes it on outside click', async () => {
 		renderTree();
-		await fireEvent.contextMenu(folderItem('work'), { clientX: 5000, clientY: 5000 });
-		const menu = screen.getByRole('menu', { name: 'Folder actions' });
-		// Clamped into the viewport.
-		expect(parseInt(menu.style.left)).toBeLessThan(window.innerWidth);
-		expect(parseInt(menu.style.top)).toBeLessThan(window.innerHeight);
+		// Right-clicked near the viewport's bottom-right corner.
+		await fireEvent.contextMenu(folderItem('work'), {
+			clientX: window.innerWidth - 2,
+			clientY: window.innerHeight - 2
+		});
+		const menu = await openedMenu('Folder actions');
+		// Kept inside the viewport.
+		await waitFor(() => {
+			const rect = menu.getBoundingClientRect();
+			expect(rect.right).toBeLessThanOrEqual(window.innerWidth);
+			expect(rect.bottom).toBeLessThanOrEqual(window.innerHeight);
+		});
 
 		await userEvent.click(document.body);
-		expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+		await menuClosed();
 
 		const trigger = within(folderItem('work') as HTMLElement).getByTestId(
 			'folder-context-menu-trigger'
 		);
 		await fireEvent.keyDown(trigger, { key: 'Enter' });
-		expect(screen.getByRole('menu')).toBeInTheDocument();
+		expect(await screen.findByRole('menu', { name: 'Folder actions' })).toBeInTheDocument();
+	});
+
+	it('opens at the pointer and moves to another row on a second right-click', async () => {
+		renderTree({ showPages: true });
+		await fireEvent.contextMenu(folderItem('work'), { clientX: 40, clientY: 60 });
+		const folderMenu = await openedMenu('Folder actions');
+		await waitFor(() => expect(Math.round(folderMenu.getBoundingClientRect().top)).toBe(60));
+
+		const readme = screen
+			.getAllByTestId('document-item')
+			.find((el) => el.textContent?.includes('Readme'))!;
+		await fireEvent.contextMenu(readme, { clientX: 50, clientY: 80 });
+
+		expect(await screen.findByRole('menu', { name: 'Document actions' })).toBeInTheDocument();
+		expect(screen.queryByRole('menu', { name: 'Folder actions' })).not.toBeInTheDocument();
 	});
 
 	it('suppresses context menus on empty tree space and when disabled', async () => {
 		const { unmount } = renderTree();
 		await fireEvent.contextMenu(folderItem('work'));
-		expect(screen.getByRole('menu')).toBeInTheDocument();
+		expect(await screen.findByRole('menu')).toBeInTheDocument();
 		await fireEvent.contextMenu(screen.getByRole('tree'));
-		expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+		await menuClosed();
 		unmount();
 
 		renderTree({ enableContextMenu: false });
@@ -473,7 +507,7 @@ describe('FolderTree', () => {
 
 		const openMenu = async () => {
 			await fireEvent.contextMenu(readmeItem());
-			return screen.getByRole('menu');
+			return openedMenu('Document actions');
 		};
 
 		await userEvent.click(within(await openMenu()).getByText('Rename'));

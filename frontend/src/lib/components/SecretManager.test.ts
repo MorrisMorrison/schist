@@ -74,7 +74,6 @@ describe('SecretManager', () => {
 
 	afterEach(() => {
 		cleanup();
-		document.body.style.pointerEvents = '';
 		authActions.clearAuth();
 		secretStore.reset();
 		passkeyStore.reset();

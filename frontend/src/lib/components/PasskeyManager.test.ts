@@ -33,7 +33,6 @@ describe('PasskeyManager', () => {
 
 	afterEach(() => {
 		cleanup();
-		document.body.style.pointerEvents = '';
 		passkeyStore.reset();
 		vi.clearAllMocks();
 		vi.restoreAllMocks();

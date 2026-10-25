@@ -28,6 +28,16 @@ export async function waitForDialogFocus() {
 }
 
 /**
+ * Waits until bits-ui has turned pointer events back on for <body> after a
+ * dialog or menu closed, so the next click lands.
+ */
+export async function waitForPointerEvents() {
+	await waitFor(() => {
+		if (document.body.style.pointerEvents === 'none') throw new Error('pointer events still off');
+	});
+}
+
+/**
  * Selects files on a file input. `userEvent.upload` cannot assign
  * `input.files` in real Chromium, so build a FileList via DataTransfer.
  */

@@ -71,7 +71,6 @@ describe('VersionHistoryModal', () => {
 
 	afterEach(() => {
 		cleanup();
-		document.body.style.pointerEvents = '';
 		vi.clearAllMocks();
 		vi.restoreAllMocks();
 	});

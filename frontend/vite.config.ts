@@ -11,7 +11,7 @@ export default defineConfig({
 				codeSplitting: {
 					groups: [
 						// UI components chunk
-						{ name: 'ui', test: /node_modules[\/](@lucide[\/]svelte|bits-ui)[\/]/ }
+						{ name: 'ui', test: /node_modules\/(@lucide\/svelte|bits-ui)\// }
 					]
 				}
 			}

@@ -1,10 +1,6 @@
 # Schist 🪨
 
-[![Build](https://github.com/MorrisMorrison/schist/actions/workflows/build.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/build.yml)
-[![Backend Tests](https://github.com/MorrisMorrison/schist/actions/workflows/test-backend.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/test-backend.yml)
-[![Frontend Tests](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/test-frontend.yml)
 [![E2E Tests](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml)
-[![Docker](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/docker.yml)
 [![codecov](https://codecov.io/gh/MorrisMorrison/schist/graph/badge.svg)](https://codecov.io/gh/MorrisMorrison/schist)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 

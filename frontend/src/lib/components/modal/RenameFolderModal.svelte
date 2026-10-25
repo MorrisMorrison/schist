@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { folderActions } from '$lib/stores/documents.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import {
-		Dialog,
-		DialogContent,
-		DialogHeader,
-		DialogTitle,
-		DialogFooter
-	} from '$lib/components/ui/dialog';
+	import FormDialog from './FormDialog.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Edit } from '@lucide/svelte';
 	import InlineError from '$lib/components/ui/InlineError.svelte';
@@ -64,79 +57,53 @@
 	}
 </script>
 
-<Dialog {open} onOpenChange={(openState) => !openState && handleClose()}>
-	<DialogContent class="max-w-md">
-		<DialogHeader>
-			<DialogTitle class="flex items-center gap-3">
-				<Edit class="h-5 w-5 text-blue-500" />
-				Rename Folder
-			</DialogTitle>
-		</DialogHeader>
+<FormDialog
+	{open}
+	title="Rename Folder"
+	icon={Edit}
+	submitLabel="Rename Folder"
+	busyLabel="Renaming..."
+	busy={isLoading}
+	canSubmit={isValidName}
+	onSubmit={renameFolder}
+	onClose={handleClose}
+	submitTestId="rename-folder-btn"
+	cancelTestId="cancel-rename-folder-btn"
+>
+	<div class="space-y-2">
+		<label for="folder-name" class="text-primary text-sm font-medium">New Folder Name</label>
+		<Input
+			id="folder-name"
+			data-testid="folder-name"
+			type="text"
+			bind:value={folderName}
+			placeholder="Enter new folder name"
+			class={error && folderName ? 'border-red-500' : ''}
+			required
+		/>
 
-		<form
-			onsubmit={(e) => {
-				e.preventDefault();
-				renameFolder();
-			}}
-			class="space-y-6"
-		>
-			<div class="space-y-4">
-				<div class="space-y-2">
-					<label for="folder-name" class="text-primary text-sm font-medium">New Folder Name</label>
-					<Input
-						id="folder-name"
-						data-testid="folder-name"
-						type="text"
-						bind:value={folderName}
-						placeholder="Enter new folder name"
-						class={error && folderName ? 'border-red-500' : ''}
-						required
-					/>
+		{#if error && folderName}
+			<InlineError message={error} />
+		{/if}
+	</div>
 
-					{#if error && folderName}
-						<InlineError message={error} />
-					{/if}
-				</div>
-
-				<div class="space-y-2">
-					<div class="bg-secondary rounded-lg border p-4">
-						<div class="space-y-2">
-							<span class="text-secondary text-sm font-medium">Current Path:</span>
-							<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-gray-600"
-								>{currentPath}</code
-							>
-						</div>
-					</div>
-
-					<div class="bg-secondary rounded-lg border p-4">
-						<div class="space-y-2">
-							<span class="text-secondary text-sm font-medium">New Path:</span>
-							<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-blue-600"
-								>{newPath}</code
-							>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<DialogFooter>
-				<Button
-					type="button"
-					data-testid="cancel-rename-folder-btn"
-					variant="outline"
-					onclick={handleClose}
-					disabled={isLoading}
+	<div class="space-y-2">
+		<div class="bg-secondary rounded-lg border p-4">
+			<div class="space-y-2">
+				<span class="text-secondary text-sm font-medium">Current Path:</span>
+				<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-gray-600"
+					>{currentPath}</code
 				>
-					Cancel
-				</Button>
-				<Button data-testid="rename-folder-btn" type="submit" disabled={!isValidName || isLoading}>
-					{#if isLoading}
-						Renaming...
-					{:else}
-						Rename Folder
-					{/if}
-				</Button>
-			</DialogFooter>
-		</form>
-	</DialogContent>
-</Dialog>
+			</div>
+		</div>
+
+		<div class="bg-secondary rounded-lg border p-4">
+			<div class="space-y-2">
+				<span class="text-secondary text-sm font-medium">New Path:</span>
+				<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-blue-600"
+					>{newPath}</code
+				>
+			</div>
+		</div>
+	</div>
+</FormDialog>

@@ -9,15 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupSecretManagerTest(t *testing.T) (string, *config.Settings, *services.PasskeyService, func()) {
+func setupSecretManagerTest(t *testing.T) (string, *config.Settings, *services.PasskeyService) {
 	// A passkey service with no credentials, rooted in its own temp dir.
 	passkeyService, testDir := newTestPasskeyService(t)
-	return testDir, &config.Settings{}, passkeyService, func() {}
+	return testDir, &config.Settings{}, passkeyService
 }
 
 func TestSecretManager_NewSecretManager(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -26,8 +25,7 @@ func TestSecretManager_NewSecretManager(t *testing.T) {
 }
 
 func TestSecretManager_IsUnlocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -42,8 +40,7 @@ func TestSecretManager_IsUnlocked(t *testing.T) {
 }
 
 func TestSecretManager_Lock(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -57,8 +54,7 @@ func TestSecretManager_Lock(t *testing.T) {
 }
 
 func TestSecretManager_SetSecretWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -68,8 +64,7 @@ func TestSecretManager_SetSecretWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_GetSecretWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -79,8 +74,7 @@ func TestSecretManager_GetSecretWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_ListSecretsWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -90,8 +84,7 @@ func TestSecretManager_ListSecretsWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_DeleteSecretWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -101,8 +94,7 @@ func TestSecretManager_DeleteSecretWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_GetGitHubTokenWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -112,8 +104,7 @@ func TestSecretManager_GetGitHubTokenWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_SetGitHubTokenWhileLocked(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -123,8 +114,7 @@ func TestSecretManager_SetGitHubTokenWhileLocked(t *testing.T) {
 }
 
 func TestSecretManager_HasSecrets(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -149,8 +139,7 @@ func TestSecretManager_HasSecrets(t *testing.T) {
 }
 
 func TestSecretManager_RequiresPassword(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -165,8 +154,7 @@ func TestSecretManager_RequiresPassword(t *testing.T) {
 }
 
 func TestSecretManager_RequiresSetup(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 
@@ -195,8 +183,7 @@ func TestSecretManager_RequiresSetup(t *testing.T) {
 }
 
 func TestSecretManager_PasskeyOperations(t *testing.T) {
-	testDir, settings, passkeyService, cleanup := setupSecretManagerTest(t)
-	defer cleanup()
+	testDir, settings, passkeyService := setupSecretManagerTest(t)
 
 	sm := services.NewSecretManager(settings, testDir, passkeyService)
 

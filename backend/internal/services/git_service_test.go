@@ -16,17 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupGitTestDir(t *testing.T) (string, func()) {
-	testDir, err := os.MkdirTemp("", "schist-git-test-*")
-	require.NoError(t, err)
-
-	cleanup := func() {
-		os.RemoveAll(testDir)
-	}
-
-	return testDir, cleanup
-}
-
 func createTestDocument(path, title, content string) *models.Document {
 	return &models.Document{
 		MetaData: &models.DocumentMetaData{
@@ -58,8 +47,7 @@ func writeTestDocumentToFile(t *testing.T, testDir, docPath string, document *mo
 
 func TestNewGitService(t *testing.T) {
 	t.Run("initializes new git repository successfully", func(t *testing.T) {
-		testDir, cleanup := setupGitTestDir(t)
-		defer cleanup()
+		testDir := t.TempDir()
 
 		gitService, err := services.NewGitService(testDir)
 
@@ -78,8 +66,7 @@ func TestNewGitService(t *testing.T) {
 	})
 
 	t.Run("opens existing git repository successfully", func(t *testing.T) {
-		testDir, cleanup := setupGitTestDir(t)
-		defer cleanup()
+		testDir := t.TempDir()
 
 		// Create first git service to initialize repository
 		_, err := services.NewGitService(testDir)
@@ -104,8 +91,7 @@ func TestNewGitService(t *testing.T) {
 
 	t.Run("handles permission denied directory", func(t *testing.T) {
 		skipIfRoot(t)
-		testDir, cleanup := setupGitTestDir(t)
-		defer cleanup()
+		testDir := t.TempDir()
 
 		// Make directory read-only
 		err := os.Chmod(testDir, 0444)
@@ -123,8 +109,7 @@ func TestNewGitService(t *testing.T) {
 }
 
 func TestGitService_CommitDocument(t *testing.T) {
-	testDir, cleanup := setupGitTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	gitService, err := services.NewGitService(testDir)
 	require.NoError(t, err)
@@ -252,8 +237,7 @@ func TestGitService_CommitDocument(t *testing.T) {
 }
 
 func TestGitService_GetDocumentVersions(t *testing.T) {
-	testDir, cleanup := setupGitTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	gitService, err := services.NewGitService(testDir)
 	require.NoError(t, err)
@@ -340,8 +324,7 @@ func TestGitService_GetDocumentVersions(t *testing.T) {
 }
 
 func TestGitService_GetDocumentAtVersion(t *testing.T) {
-	testDir, cleanup := setupGitTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	gitService, err := services.NewGitService(testDir)
 	require.NoError(t, err)
@@ -469,8 +452,7 @@ func TestGitService_GetDocumentAtVersion(t *testing.T) {
 
 func TestGitService_ErrorHandling(t *testing.T) {
 	t.Run("handles uninitialized repository error", func(t *testing.T) {
-		testDir, cleanup := setupGitTestDir(t)
-		defer cleanup()
+		testDir := t.TempDir()
 
 		// Create a GitService instance but don't initialize it properly
 		// This would require modifying the GitService to allow testing uninitialized state
@@ -490,8 +472,7 @@ func TestGitService_ErrorHandling(t *testing.T) {
 
 	t.Run("handles file system permissions", func(t *testing.T) {
 		skipIfRoot(t)
-		testDir, cleanup := setupGitTestDir(t)
-		defer cleanup()
+		testDir := t.TempDir()
 
 		gitService, err := services.NewGitService(testDir)
 		require.NoError(t, err)
@@ -527,8 +508,7 @@ func TestGitService_ErrorHandling(t *testing.T) {
 }
 
 func TestGitService_Integration(t *testing.T) {
-	testDir, cleanup := setupGitTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	gitService, err := services.NewGitService(testDir)
 	require.NoError(t, err)
@@ -666,8 +646,7 @@ func TestGitService_Integration(t *testing.T) {
 }
 
 func TestGitService_CompareVersions(t *testing.T) {
-	testDir, cleanup := setupGitTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	gitService, err := services.NewGitService(testDir)
 	require.NoError(t, err)
@@ -741,8 +720,7 @@ func TestGitService_CompareVersions(t *testing.T) {
 }
 
 func TestGitService_RestoreDocument(t *testing.T) {
-	testDir, cleanup := setupGitTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	gitService, err := services.NewGitService(testDir)
 	require.NoError(t, err)

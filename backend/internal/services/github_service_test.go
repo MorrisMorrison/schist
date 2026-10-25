@@ -1,7 +1,6 @@
 package services_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/MorrisMorrison/schist/internal/config"
@@ -10,30 +9,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupGitHubTestDir(t *testing.T) (string, *config.Settings, func()) {
-	testDir, err := os.MkdirTemp("", "schist-github-test-*")
-	require.NoError(t, err)
-
+func setupGitHubTestDir(t *testing.T) (string, *config.Settings) {
+	testDir := t.TempDir()
 	settings, err := config.LoadSettings(testDir)
 	require.NoError(t, err)
+	return testDir, settings
+}
 
-	cleanup := func() {
-		os.RemoveAll(testDir)
-	}
-
-	return testDir, settings, cleanup
+// newGitHubTestService returns a GitHub service with no client, over a fresh
+// git repository and settings file.
+func newGitHubTestService(t *testing.T) (*services.GitHubService, *config.Settings, string) {
+	t.Helper()
+	testDir, settings := setupGitHubTestDir(t)
+	gitService, err := services.NewGitService(testDir)
+	require.NoError(t, err)
+	secretManager := services.NewSecretManager(settings, testDir, nil)
+	service := services.NewGitHubService(&config.Config{DataDir: testDir}, gitService, settings, secretManager)
+	return service, settings, testDir
 }
 
 func TestGitHubService_Disconnect(t *testing.T) {
-	testDir, settings, cleanup := setupGitHubTestDir(t)
-	defer cleanup()
-
-	cfg := &config.Config{DataDir: testDir}
-	secretManager := services.NewSecretManager(settings, testDir, nil)
-	gitService, err := services.NewGitService(testDir)
-	require.NoError(t, err)
-
-	service := services.NewGitHubService(cfg, gitService, settings, secretManager)
+	service, settings, testDir := newGitHubTestService(t)
 
 	initialSettings := &config.GitHubSettings{
 		Enabled:    true,
@@ -43,7 +39,7 @@ func TestGitHubService_Disconnect(t *testing.T) {
 		AutoSync:   true,
 		SyncOnSave: false,
 	}
-	err = settings.UpdateGitHubSettings(testDir, initialSettings)
+	err := settings.UpdateGitHubSettings(testDir, initialSettings)
 	require.NoError(t, err)
 
 	err = service.Disconnect()
@@ -60,15 +56,7 @@ func TestGitHubService_Disconnect(t *testing.T) {
 }
 
 func TestGitHubService_GetSyncStatus_WithoutClient(t *testing.T) {
-	testDir, settings, cleanup := setupGitHubTestDir(t)
-	defer cleanup()
-
-	cfg := &config.Config{DataDir: testDir}
-	secretManager := services.NewSecretManager(settings, testDir, nil)
-	gitService, err := services.NewGitService(testDir)
-	require.NoError(t, err)
-
-	service := services.NewGitHubService(cfg, gitService, settings, secretManager)
+	service, settings, testDir := newGitHubTestService(t)
 
 	githubSettings := &config.GitHubSettings{
 		Enabled:    true,
@@ -78,7 +66,7 @@ func TestGitHubService_GetSyncStatus_WithoutClient(t *testing.T) {
 		AutoSync:   false,
 		SyncOnSave: true,
 	}
-	err = settings.UpdateGitHubSettings(testDir, githubSettings)
+	err := settings.UpdateGitHubSettings(testDir, githubSettings)
 	require.NoError(t, err)
 
 	config := service.GetGitHubSettings()
@@ -97,15 +85,7 @@ func TestGitHubService_GetSyncStatus_WithoutClient(t *testing.T) {
 }
 
 func TestGitHubService_GetSyncStatus_Disabled(t *testing.T) {
-	testDir, settings, cleanup := setupGitHubTestDir(t)
-	defer cleanup()
-
-	cfg := &config.Config{DataDir: testDir}
-	secretManager := services.NewSecretManager(settings, testDir, nil)
-	gitService, err := services.NewGitService(testDir)
-	require.NoError(t, err)
-
-	service := services.NewGitHubService(cfg, gitService, settings, secretManager)
+	service, settings, testDir := newGitHubTestService(t)
 
 	githubSettings := &config.GitHubSettings{
 		Enabled:    false,
@@ -115,7 +95,7 @@ func TestGitHubService_GetSyncStatus_Disabled(t *testing.T) {
 		AutoSync:   false,
 		SyncOnSave: false,
 	}
-	err = settings.UpdateGitHubSettings(testDir, githubSettings)
+	err := settings.UpdateGitHubSettings(testDir, githubSettings)
 	require.NoError(t, err)
 
 	config := service.GetGitHubSettings()
@@ -130,18 +110,10 @@ func TestGitHubService_GetSyncStatus_Disabled(t *testing.T) {
 }
 
 func TestGitHubService_IsEnabled(t *testing.T) {
-	testDir, settings, cleanup := setupGitHubTestDir(t)
-	defer cleanup()
-
-	cfg := &config.Config{DataDir: testDir}
-	secretManager := services.NewSecretManager(settings, testDir, nil)
-	gitService, err := services.NewGitService(testDir)
-	require.NoError(t, err)
-
-	service := services.NewGitHubService(cfg, gitService, settings, secretManager)
+	service, settings, testDir := newGitHubTestService(t)
 
 	githubSettings := &config.GitHubSettings{Enabled: false}
-	err = settings.UpdateGitHubSettings(testDir, githubSettings)
+	err := settings.UpdateGitHubSettings(testDir, githubSettings)
 	require.NoError(t, err)
 	assert.False(t, service.IsEnabled())
 
@@ -152,21 +124,13 @@ func TestGitHubService_IsEnabled(t *testing.T) {
 }
 
 func TestGitHubService_ShouldAutoSync(t *testing.T) {
-	testDir, settings, cleanup := setupGitHubTestDir(t)
-	defer cleanup()
-
-	cfg := &config.Config{DataDir: testDir}
-	secretManager := services.NewSecretManager(settings, testDir, nil)
-	gitService, err := services.NewGitService(testDir)
-	require.NoError(t, err)
-
-	service := services.NewGitHubService(cfg, gitService, settings, secretManager)
+	service, settings, testDir := newGitHubTestService(t)
 
 	githubSettings := &config.GitHubSettings{
 		Enabled:  false,
 		AutoSync: true,
 	}
-	err = settings.UpdateGitHubSettings(testDir, githubSettings)
+	err := settings.UpdateGitHubSettings(testDir, githubSettings)
 	require.NoError(t, err)
 	assert.False(t, service.ShouldAutoSync())
 
@@ -182,21 +146,13 @@ func TestGitHubService_ShouldAutoSync(t *testing.T) {
 }
 
 func TestGitHubService_ShouldSyncOnSave(t *testing.T) {
-	testDir, settings, cleanup := setupGitHubTestDir(t)
-	defer cleanup()
-
-	cfg := &config.Config{DataDir: testDir}
-	secretManager := services.NewSecretManager(settings, testDir, nil)
-	gitService, err := services.NewGitService(testDir)
-	require.NoError(t, err)
-
-	service := services.NewGitHubService(cfg, gitService, settings, secretManager)
+	service, settings, testDir := newGitHubTestService(t)
 
 	githubSettings := &config.GitHubSettings{
 		Enabled:    false,
 		SyncOnSave: true,
 	}
-	err = settings.UpdateGitHubSettings(testDir, githubSettings)
+	err := settings.UpdateGitHubSettings(testDir, githubSettings)
 	require.NoError(t, err)
 	assert.False(t, service.ShouldSyncOnSave())
 
@@ -214,8 +170,7 @@ func TestGitHubService_ShouldSyncOnSave(t *testing.T) {
 // TestGitHubSettings_ForcePush_RoundTrip verifies the opt-in ForcePush setting
 // defaults to false (safe FF-only) and persists through save + reload.
 func TestGitHubSettings_ForcePush_RoundTrip(t *testing.T) {
-	testDir, settings, cleanup := setupGitHubTestDir(t)
-	defer cleanup()
+	testDir, settings := setupGitHubTestDir(t)
 
 	// Default (zero value) is false: safe fast-forward-only push.
 	assert.False(t, settings.GetGitHubSettings().ForcePush)

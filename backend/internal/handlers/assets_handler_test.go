@@ -26,7 +26,7 @@ var onePixelPNG = []byte{
 	0x42, 0x60, 0x82,
 }
 
-func (e *handlerTestEnv) upload(t *testing.T, filename, contentType string, data []byte) *httptest.ResponseRecorder {
+func (e *apiEnv) upload(t *testing.T, filename, contentType string, data []byte) *httptest.ResponseRecorder {
 	t.Helper()
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
@@ -47,7 +47,7 @@ func (e *handlerTestEnv) upload(t *testing.T, filename, contentType string, data
 }
 
 func TestAssetHandlers_UploadServeDelete(t *testing.T) {
-	env := newHandlerTestEnv(t)
+	env := newAPIEnv(t, apiEnvOptions{})
 
 	w := env.upload(t, "pic.png", "image/png", onePixelPNG)
 	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
@@ -60,18 +60,18 @@ func TestAssetHandlers_UploadServeDelete(t *testing.T) {
 
 	// The handler routes are relative to /api/assets, e.g. /api/assets/images/<name>.
 	servePath := "/api" + resp.Asset.Path
-	w = env.do(t, http.MethodGet, servePath, nil)
+	w = env.request(t, http.MethodGet, servePath, nil)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	w = env.do(t, http.MethodDelete, servePath, nil)
+	w = env.request(t, http.MethodDelete, servePath, nil)
 	assert.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	_, err := os.Stat(filepath.Join(env.dataDir, "assets", "images", resp.Asset.Name))
 	assert.True(t, os.IsNotExist(err), "asset file must be deleted")
 
-	w = env.do(t, http.MethodGet, servePath, nil)
+	w = env.request(t, http.MethodGet, servePath, nil)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
-	w = env.do(t, http.MethodDelete, servePath, nil)
+	w = env.request(t, http.MethodDelete, servePath, nil)
 	assert.Equal(t, http.StatusNotFound, w.Code, w.Body.String())
 }
 
@@ -88,7 +88,7 @@ func TestAssetHandlers_UploadRejectionsAreClientErrors(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			env := newHandlerTestEnv(t)
+			env := newAPIEnv(t, apiEnvOptions{})
 			w := env.upload(t, tt.filename, tt.contentType, tt.data)
 			assert.Equal(t, http.StatusBadRequest, w.Code, w.Body.String())
 			assert.NotContains(t, w.Body.String(), env.dataDir)

@@ -13,26 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestDir(t *testing.T) (string, func()) {
-	testDir, err := os.MkdirTemp("", "schist-test-*")
-	require.NoError(t, err)
-
-	cleanup := func() {
-		os.RemoveAll(testDir)
-	}
-
-	return testDir, cleanup
-}
-
-func setupDocumentService(t *testing.T, testDir string) *services.DocumentService {
-	gitService, err := services.NewGitService(testDir)
-	if err != nil {
-		t.Skipf("Skipping test, git service not available: %v", err)
-	}
-	ignoreService := services.NewIgnoreService(testDir)
-	return services.NewDocumentService(testDir, gitService, ignoreService)
-}
-
 func createTestPage() *models.Document {
 	return &models.Document{
 		MetaData: &models.DocumentMetaData{
@@ -44,8 +24,7 @@ func createTestPage() *models.Document {
 }
 
 func TestDocumentService_CreateDocument(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -110,8 +89,7 @@ func TestDocumentService_CreateDocument(t *testing.T) {
 }
 
 func TestDocumentService_UpdateDocument(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -142,8 +120,7 @@ func TestDocumentService_UpdateDocument(t *testing.T) {
 }
 
 func TestDocumentService_DeleteDocument(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -176,8 +153,7 @@ func TestDocumentService_DeleteDocument(t *testing.T) {
 }
 
 func TestDocumentService_ListDocuments(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -282,8 +258,7 @@ func TestDocumentService_ListDocuments(t *testing.T) {
 
 func TestDocumentService_BuildFilePath(t *testing.T) {
 	// Note: buildFilePath is not exported, so we test it indirectly through other methods
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -324,8 +299,7 @@ func TestDocumentService_ErrorCases(t *testing.T) {
 
 	t.Run("read-only directory", func(t *testing.T) {
 		skipIfRoot(t)
-		testDir, cleanup := setupTestDir(t)
-		defer cleanup()
+		testDir := t.TempDir()
 
 		// Make directory read-only
 		err := os.Chmod(testDir, 0444)
@@ -345,8 +319,7 @@ func TestDocumentService_ErrorCases(t *testing.T) {
 }
 
 func TestDocumentService_Integration(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -386,8 +359,7 @@ func TestDocumentService_Integration(t *testing.T) {
 }
 
 func TestDocumentService_RenameFolder(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -822,8 +794,7 @@ func TestDocumentService_MoveFolder(t *testing.T) {
 
 // Test the skip functionality by checking the ImportResult structure
 func TestDocumentService_ImportResult_SkippedField(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -855,8 +826,7 @@ func TestDocumentService_ImportResult_SkippedField(t *testing.T) {
 }
 
 func TestDocumentService_SearchFunctionality(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -915,8 +885,7 @@ func TestDocumentService_SearchFunctionality(t *testing.T) {
 }
 
 func TestDocumentService_GetAllTags(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -959,8 +928,7 @@ func TestDocumentService_GetAllTags(t *testing.T) {
 }
 
 func TestDocumentService_GetFolder(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 
@@ -991,8 +959,7 @@ func TestDocumentService_GetFolder(t *testing.T) {
 }
 
 func TestDocumentService_GetFolderTree(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	documentService := setupDocumentService(t, testDir)
 

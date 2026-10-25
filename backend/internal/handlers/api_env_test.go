@@ -91,6 +91,12 @@ func (e *apiEnv) do(t *testing.T, method, target string, body any, token string)
 	return w
 }
 
+// request sends a JSON request as the env's current user (e.token).
+func (e *apiEnv) request(t *testing.T, method, target string, body any) *httptest.ResponseRecorder {
+	t.Helper()
+	return e.do(t, method, target, body, e.token)
+}
+
 // decode unmarshals a JSON response body into a generic map.
 func decode(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	t.Helper()

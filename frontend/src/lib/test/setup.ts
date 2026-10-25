@@ -31,6 +31,7 @@ Object.defineProperty(globalThis, 'crypto', {
 // Mock SvelteKit navigation
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn(),
+	replaceState: vi.fn(),
 	preloadData: vi.fn(),
 	beforeNavigate: vi.fn(),
 	afterNavigate: vi.fn()

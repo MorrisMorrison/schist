@@ -33,7 +33,8 @@
 </script>
 
 <nav class="mb-2" aria-label="Breadcrumb navigation" data-testid="breadcrumbs">
-	<ol class="m-0 flex list-none flex-wrap items-center gap-1 p-0">
+	<!-- -ml-2.5 cancels the Home button's padding (px-2.5 with an icon) so its icon lines up with the heading below. -->
+	<ol class="m-0 -ml-2.5 flex list-none flex-wrap items-center gap-1 p-0">
 		<!-- Home/Root -->
 		<li class="flex items-center gap-1">
 			<Button

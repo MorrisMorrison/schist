@@ -10,6 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/MorrisMorrison/schist/internal/testutil"
 )
 
 func TestPasskeyRegistration_Validation(t *testing.T) {
@@ -23,9 +25,9 @@ func TestPasskeyRegistration_Validation(t *testing.T) {
 	w = env.do(t, http.MethodPost, "/api/passkeys/register/finish", `{"name":"x"}`, "")
 	requireAPIError(t, w, http.StatusBadRequest, "INVALID_REQUEST")
 
-	a := newSoftAuthenticator(t)
+	a := testutil.NewSoftAuthenticator(t)
 	w = env.do(t, http.MethodPost, "/api/passkeys/register/finish", map[string]any{
-		"name": "x", "sessionId": "session_unknown", "response": a.attestation(t, "AAAA"),
+		"name": "x", "sessionId": "session_unknown", "response": a.Attestation(t, "AAAA"),
 	}, "")
 	requireAPIError(t, w, http.StatusBadRequest, "VALIDATION_ERROR")
 
@@ -45,13 +47,13 @@ func TestPasskeyRegistration_Validation(t *testing.T) {
 	// A well-formed attestation over the wrong challenge must not verify.
 	b = begin()
 	w = env.do(t, http.MethodPost, "/api/passkeys/register/finish", map[string]any{
-		"name": "x", "sessionId": b["sessionId"], "response": a.attestation(t, b64url.EncodeToString([]byte("not-the-challenge-0123456789abcd"))),
+		"name": "x", "sessionId": b["sessionId"], "response": a.Attestation(t, testutil.B64URL.EncodeToString([]byte("not-the-challenge-0123456789abcd"))),
 	}, "")
 	requireAPIError(t, w, http.StatusBadRequest, "VALIDATION_ERROR")
 
 	// Sessions are single-use: replaying a consumed session fails.
 	b = begin()
-	body := map[string]any{"name": "x", "sessionId": b["sessionId"], "response": a.attestation(t, challengeFrom(t, b))}
+	body := map[string]any{"name": "x", "sessionId": b["sessionId"], "response": a.Attestation(t, challengeFrom(t, b))}
 	w = env.do(t, http.MethodPost, "/api/passkeys/register/finish", body, "")
 	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
 	w = env.do(t, http.MethodPost, "/api/passkeys/register/finish", body, "")
@@ -67,9 +69,9 @@ func TestPasskeyRegistration_RequiresAuthAfterSetup(t *testing.T) {
 	w := env.do(t, http.MethodPost, "/api/passkeys/register/begin", `{"name":"evil"}`, "")
 	requireAPIError(t, w, http.StatusUnauthorized, "UNAUTHORIZED")
 
-	a := newSoftAuthenticator(t)
+	a := testutil.NewSoftAuthenticator(t)
 	w = env.do(t, http.MethodPost, "/api/passkeys/register/finish", map[string]any{
-		"name": "evil", "sessionId": "session_x", "response": a.attestation(t, "AAAA"),
+		"name": "evil", "sessionId": "session_x", "response": a.Attestation(t, "AAAA"),
 	}, "")
 	requireAPIError(t, w, http.StatusUnauthorized, "UNAUTHORIZED")
 
@@ -88,7 +90,7 @@ func TestPasskeyRegistration_SignedInUserAddsPasskey(t *testing.T) {
 	env := newAPIEnv(t, apiEnvOptions{authEnabled: true})
 	env.setupAdmin(t, "alice")
 
-	second := newSoftAuthenticator(t)
+	second := testutil.NewSoftAuthenticator(t)
 	credID := env.registerPasskey(t, second, "phone", env.token)
 
 	w := env.do(t, http.MethodGet, "/api/passkeys", nil, env.token)
@@ -127,7 +129,7 @@ func TestPasskeyAuthentication_Failures(t *testing.T) {
 	}
 
 	requireAPIError(t, finish(`{`), http.StatusBadRequest, "INVALID_REQUEST")
-	requireAPIError(t, finish(map[string]any{"sessionId": "session_unknown", "response": a.assertion(t, "AAAA")}),
+	requireAPIError(t, finish(map[string]any{"sessionId": "session_unknown", "response": a.Assertion(t, "AAAA")}),
 		http.StatusBadRequest, "VALIDATION_ERROR")
 
 	b := begin()
@@ -135,28 +137,28 @@ func TestPasskeyAuthentication_Failures(t *testing.T) {
 		http.StatusBadRequest, "VALIDATION_ERROR")
 
 	// An assertion signed by a key the server doesn't know.
-	stranger := newSoftAuthenticator(t)
+	stranger := testutil.NewSoftAuthenticator(t)
 	b = begin()
-	requireAPIError(t, finish(map[string]any{"sessionId": b["sessionId"], "response": stranger.assertion(t, challengeFrom(t, b))}),
+	requireAPIError(t, finish(map[string]any{"sessionId": b["sessionId"], "response": stranger.Assertion(t, challengeFrom(t, b))}),
 		http.StatusUnauthorized, "UNAUTHORIZED")
 
 	// The right key over the wrong challenge.
 	b = begin()
-	requireAPIError(t, finish(map[string]any{"sessionId": b["sessionId"], "response": a.assertion(t, b64url.EncodeToString([]byte("wrong-challenge-0123456789abcdef")))}),
+	requireAPIError(t, finish(map[string]any{"sessionId": b["sessionId"], "response": a.Assertion(t, testutil.B64URL.EncodeToString([]byte("wrong-challenge-0123456789abcdef")))}),
 		http.StatusUnauthorized, "UNAUTHORIZED")
 }
 
 // A verified passkey that isn't bound to any user gets no auth ticket.
 func TestPasskeyAuthentication_UnboundCredentialGetsNoTicket(t *testing.T) {
 	env := newAPIEnv(t, apiEnvOptions{authEnabled: true})
-	a := newSoftAuthenticator(t)
+	a := testutil.NewSoftAuthenticator(t)
 	env.registerPasskey(t, a, "orphan", "") // first-time setup, but no user created
 
 	w := env.do(t, http.MethodPost, "/api/passkeys/authenticate/begin", nil, "")
 	require.Equal(t, http.StatusOK, w.Code)
 	b := decode(t, w)
 	w = env.do(t, http.MethodPost, "/api/passkeys/authenticate/finish", map[string]any{
-		"sessionId": b["sessionId"], "response": a.assertion(t, challengeFrom(t, b)),
+		"sessionId": b["sessionId"], "response": a.Assertion(t, challengeFrom(t, b)),
 	}, "")
 	requireAPIError(t, w, http.StatusUnauthorized, "UNAUTHORIZED")
 }

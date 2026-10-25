@@ -100,7 +100,9 @@
 		folders: Folder[],
 		prefix = ''
 	): Array<{ value: string; label: string }> {
-		const options = [{ value: '/', label: 'Root' }];
+		// Only the top level gets the Root option; recursive calls for sub-folders
+		// must not repeat it (a duplicate '/' key breaks the keyed {#each}).
+		const options = prefix ? [] : [{ value: '/', label: 'Root' }];
 
 		for (const folder of folders) {
 			const path = prefix + '/' + folder.name;

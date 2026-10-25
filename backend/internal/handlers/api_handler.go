@@ -350,7 +350,7 @@ func (h *APIHandler) loginWithPasskey(c *gin.Context) {
 	// credential ID.
 	response, err := h.AuthService.LoginWithPasskeyTicket(req.AuthTicket)
 	if err != nil {
-		HandleError(c, errors.NewUnauthorizedError("Authentication failed").WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -372,7 +372,7 @@ func (h *APIHandler) getCurrentUser(c *gin.Context) {
 
 	user, err := h.AuthService.GetUser(username)
 	if err != nil {
-		HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -388,7 +388,7 @@ type SetupStatusResponse struct {
 func (h *APIHandler) checkSetupRequired(c *gin.Context) {
 	isFirstSetup, err := h.AuthService.IsFirstSetup()
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Failed to check setup status").WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -408,14 +408,10 @@ func (h *APIHandler) createFirstUser(c *gin.Context) {
 		return
 	}
 
-	if req.Username == "" || req.CredentialID == "" {
-		HandleError(c, errors.NewValidationError("Username and credential ID are required"))
-		return
-	}
-
-	err := h.AuthService.CreateFirstUser(req.Username, req.CredentialID)
-	if err != nil {
-		HandleError(c, errors.NewConflictError("Failed to create first user: "+err.Error()).WithCause(err))
+	// CreateFirstUser rejects an empty username or credential (400) and any
+	// call once a user exists (409).
+	if err := h.AuthService.CreateFirstUser(req.Username, req.CredentialID); err != nil {
+		HandleError(c, err)
 		return
 	}
 
@@ -470,9 +466,8 @@ func (h *APIHandler) createUserFromInvite(c *gin.Context) {
 		return
 	}
 
-	err := h.AuthService.CreateUserFromInvite(req.Token, req.Username, req.CredentialID)
-	if err != nil {
-		HandleError(c, errors.NewValidationError("Failed to create user from invite: "+err.Error()).WithCause(err))
+	if err := h.AuthService.CreateUserFromInvite(req.Token, req.Username, req.CredentialID); err != nil {
+		HandleError(c, err)
 		return
 	}
 
@@ -510,9 +505,8 @@ func (h *APIHandler) createUser(c *gin.Context) {
 		}
 	}
 
-	err := h.Services.UserService.CreateUser(req.Username, req.IsAdmin, req.CredentialID)
-	if err != nil {
-		HandleError(c, errors.NewConflictError(err.Error()).WithCause(err))
+	if err := h.Services.UserService.CreateUser(req.Username, req.IsAdmin, req.CredentialID); err != nil {
+		HandleError(c, err)
 		return
 	}
 
@@ -542,9 +536,8 @@ func (h *APIHandler) deleteUser(c *gin.Context) {
 		return
 	}
 
-	err := h.Services.UserService.DeleteUser(username)
-	if err != nil {
-		HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
+	if err := h.Services.UserService.DeleteUser(username); err != nil {
+		HandleError(c, err)
 		return
 	}
 

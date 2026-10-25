@@ -211,7 +211,7 @@ func TestAdminEndpoints_UserManagement(t *testing.T) {
 	require.Equal(t, http.StatusCreated, w.Code, w.Body.String())
 
 	w = env.do(t, http.MethodPost, "/api/auth/users", `{"username":"bob","credential_id":"cred-bob2"}`, env.token)
-	requireAPIError(t, w, http.StatusConflict, "RESOURCE_CONFLICT")
+	requireAPIError(t, w, http.StatusConflict, "RESOURCE_ALREADY_EXISTS")
 
 	w = env.do(t, http.MethodPost, "/api/auth/users", `{`, env.token)
 	requireAPIError(t, w, http.StatusBadRequest, "INVALID_REQUEST")

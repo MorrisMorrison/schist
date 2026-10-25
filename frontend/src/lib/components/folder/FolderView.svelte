@@ -41,7 +41,8 @@
 		if (mode === 'recent') {
 			filteredDocuments = (documentsStore.documents || []).slice(0, recentLimit);
 		} else if (mode === 'all') {
-			filteredDocuments = documentsStore.documents || [];
+			// Copy: the sort below is in place and must not mutate store state.
+			filteredDocuments = [...(documentsStore.documents || [])];
 		} else {
 			filteredDocuments = (documentsStore.documents || []).filter((document) => {
 				const documentPath = document.metaData?.path || '';

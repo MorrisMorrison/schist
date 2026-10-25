@@ -226,10 +226,13 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, fmt.Errorf("failed to encrypt GitHub token: %w", err)
 	}
 
-	currentSettings := gs.settings.GetGitHubSettings()
-	githubSettings.Token = currentSettings.Token
-
-	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
+	// Keep the token SetGitHubToken just stored; read it under the same lock
+	// as the write so a concurrent change can't be lost in between.
+	if err := gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
+		githubSettings.Token = st.GitHub.Token
+		st.GitHub = *githubSettings
+		return nil
+	}); err != nil {
 		return nil, fmt.Errorf("failed to save GitHub config: %w", err)
 	}
 
@@ -328,16 +331,6 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 		return fmt.Errorf("github integration is not enabled")
 	}
 
-	updatedConfig := *githubSettings
-
-	if req.AutoSync != nil {
-		updatedConfig.AutoSync = *req.AutoSync
-	}
-
-	if req.SyncOnSave != nil {
-		updatedConfig.SyncOnSave = *req.SyncOnSave
-	}
-
 	if req.Branch != nil && *req.Branch != "" {
 		if gs.client != nil {
 			ctx, cancel := gs.requestContext()
@@ -348,10 +341,22 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 				return fmt.Errorf("branch %s not found in repository: %w", *req.Branch, err)
 			}
 		}
-		updatedConfig.Branch = *req.Branch
 	}
 
-	return gs.settings.UpdateGitHubSettings(gs.dataDir, &updatedConfig)
+	// Apply only the requested fields, under the lock, after the (network)
+	// branch check.
+	return gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
+		if req.AutoSync != nil {
+			st.GitHub.AutoSync = *req.AutoSync
+		}
+		if req.SyncOnSave != nil {
+			st.GitHub.SyncOnSave = *req.SyncOnSave
+		}
+		if req.Branch != nil && *req.Branch != "" {
+			st.GitHub.Branch = *req.Branch
+		}
+		return nil
+	})
 }
 
 func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
@@ -437,8 +442,13 @@ func (gs *GitHubService) SyncToGitHub() (*GitHubSyncResult, error) {
 	}
 	log.Printf("[GitHubService] Successfully pushed to GitHub")
 
-	githubSettings.LastSync = time.Now()
-	if err := gs.settings.UpdateGitHubSettings(gs.dataDir, githubSettings); err != nil {
+	// Only touch LastSync: githubSettings is a snapshot from before the sync
+	// and writing it back whole could undo changes made meanwhile.
+	now := time.Now()
+	if err := gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
+		st.GitHub.LastSync = now
+		return nil
+	}); err != nil {
 		log.Printf("[GitHubService] Warning: failed to update last sync time: %v", err)
 	}
 

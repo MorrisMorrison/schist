@@ -209,6 +209,16 @@ func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFu
 			return
 		}
 
+		// A signed-in user is adding a passkey to their own account: bind it
+		// to them so it can be listed, deleted and used to sign in. During
+		// first-time setup there is no user yet; setup/first-user binds it.
+		if username, ok := currentUser(c); ok {
+			if err := services.UserService.AddPasskeyToUser(username, credentialID); err != nil {
+				HandleError(c, err)
+				return
+			}
+		}
+
 		response := FinishRegistrationResponse{
 			CredentialID: credentialID,
 			Message:      "Passkey registered successfully",

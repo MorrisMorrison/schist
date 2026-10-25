@@ -86,15 +86,28 @@ func parseSettings(data []byte) (*Settings, error) {
 		return nil, err
 	}
 
+	// Configs written before the secret store kept the GitHub token as a bare
+	// string, which can't unmarshal into *crypto.EncryptedValue. Pull it out
+	// first and carry it over as a plaintext value so it can be migrated.
+	var legacyToken string
+	if githubConfig, ok := rawConfig["github"].(map[string]any); ok {
+		if token, ok := githubConfig["token"].(string); ok {
+			legacyToken = token
+			delete(githubConfig, "token")
+			var err error
+			if data, err = json.Marshal(rawConfig); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	var settings Settings
 	if err := json.Unmarshal(data, &settings); err != nil {
 		return nil, err
 	}
 
-	if githubConfig, ok := rawConfig["github"].(map[string]any); ok {
-		if token, ok := githubConfig["token"].(string); ok && token != "" {
-			settings.GitHub.Token = crypto.NewEncryptedValue(token, false)
-		}
+	if legacyToken != "" {
+		settings.GitHub.Token = crypto.NewEncryptedValue(legacyToken, false)
 	}
 
 	return &settings, nil

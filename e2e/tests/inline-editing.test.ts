@@ -17,8 +17,7 @@ test.describe('In-place editing', () => {
 		apiHelper,
 		withSimpleTestDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		// A full page load would drop this marker.
 		await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
 
@@ -47,7 +46,7 @@ test.describe('In-place editing', () => {
 		editorPage,
 		withSimpleTestDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.editDocument();
 		await editorPage.contentEditor.click();
 		// Just after "# " on the title line.
@@ -83,7 +82,7 @@ test.describe('In-place editing', () => {
 		apiHelper,
 		withSimpleTestDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.editDocument();
 		await editorPage.appendContent('\n\nNot meant to be kept.');
 		// An in-app link, so SvelteKit's navigation guard (not beforeunload) runs.

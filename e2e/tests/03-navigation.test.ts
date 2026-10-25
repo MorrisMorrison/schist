@@ -25,8 +25,7 @@ test.describe('Navigation and Routing', () => {
 			path: `/parent-${testId}/child-${testId}/grandchild-${testId}`
 		});
 
-		await documentViewPage.navigateToDocument(grandchildDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(grandchildDocument.title);
+		await documentViewPage.openDocument(grandchildDocument);
 		await documentViewPage.verifyDocumentUrl(grandchildDocument.path!);
 
 		const breadcrumbs = await documentViewPage.getBreadcrumbPath();
@@ -50,8 +49,7 @@ test.describe('Navigation and Routing', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyDocumentUrl(testDocument.path!);
 
 		await editorPage.navigateToEdit(testDocument.path!);
@@ -75,8 +73,7 @@ test.describe('Navigation and Routing', () => {
 		await homePage.navigate();
 		await homePage.verifyLoaded();
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Switching to edit mode is a toggle on the same page, not a navigation:
 		// it replaces the history entry (?mode=edit) instead of adding one.
@@ -113,8 +110,7 @@ test.describe('Navigation and Routing', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		await page.reload();
 
@@ -165,11 +161,9 @@ test.describe('Navigation and Routing', () => {
 			path: `/concurrent-2-${testId}`
 		});
 
-		await documentViewPage.navigateToDocument(document1.path!);
-		await documentViewPage.verifyDocumentLoaded(document1.title);
+		await documentViewPage.openDocument(document1);
 
-		await documentViewPage.navigateToDocument(document2.path!);
-		await documentViewPage.verifyDocumentLoaded(document2.title);
+		await documentViewPage.openDocument(document2);
 
 		await documentViewPage.verifyDocumentUrl(document2.path!);
 	});
@@ -193,11 +187,9 @@ test.describe('Navigation and Routing', () => {
 			path: `/long-page-${testId}`
 		});
 
-		await documentViewPage.navigateToDocument(longDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(longDocument.title);
+		await documentViewPage.openDocument(longDocument);
 
 		await documentViewPage.goto('/');
-		await documentViewPage.navigateToDocument(longDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(longDocument.title);
+		await documentViewPage.openDocument(longDocument);
 	});
 });

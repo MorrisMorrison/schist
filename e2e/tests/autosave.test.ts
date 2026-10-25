@@ -33,8 +33,7 @@ test.describe('Auto-save Functionality', () => {
 		await editorPage.expectUrl(`/documents${testDocument.path}?mode=edit`);
 
 		// Navigate to view page to verify auto-save worked
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyContentContains('Additional content added for auto-save test');
 	});
 

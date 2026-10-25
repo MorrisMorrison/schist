@@ -78,8 +78,7 @@ test.describe.serial('Document Move', () => {
 		// served at its path by the backend, and still viewable there.
 		await expect(documentTreeItem).toBeVisible();
 		expect((await apiHelper.request('GET', `/documents${testDocumentPath}`)).status).toBe(200);
-		await documentViewPage.navigateToDocument(testDocumentPath);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.expectUrl(`/documents${testDocumentPath}`);
 	});
 });

@@ -11,8 +11,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 	}) => {
 		const testDocument = withSimpleTestDocument;
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyContentContains('simple test document');
 
 		await documentViewPage.page.close();
@@ -20,8 +19,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 
 		const newDocumentView = new DocumentViewPage(newPage);
 
-		await newDocumentView.navigateToDocument(testDocument.path!);
-		await newDocumentView.verifyDocumentLoaded(testDocument.title);
+		await newDocumentView.openDocument(testDocument);
 		await newDocumentView.verifyContentContains('simple test document');
 	});
 
@@ -47,8 +45,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await editorPage2.typeContent('\n\nChanges from Editor 2');
 		await editorPage2.save();
 
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Last save wins: the second editor's change is what's stored.
 		const content = await documentViewPage.getDocumentContent();
@@ -62,8 +59,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		documentViewPage,
 		withUnicodeDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyContentContains('🚀 🌟 ✅');
 		await documentViewPage.verifyContentContains('ÄÖÜß çñ');
 		await documentViewPage.verifyContentContains('中文 日本語 한국어');
@@ -84,8 +80,7 @@ test.describe('Content Persistence and Data Integrity', () => {
 		documentViewPage,
 		withLargeDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		await documentViewPage.verifyContentContains('Large Content Test');
 		await documentViewPage.verifyContentContains('Lorem ipsum dolor sit amet');
@@ -156,8 +151,7 @@ End of formatting test.`;
 		});
 
 		// Verify initial rendering
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Formatting Test ${testId}`);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify various elements are rendered correctly
 		await documentViewPage.verifyHeading('Headers', 2);
@@ -210,8 +204,7 @@ End of formatting test.`;
 		});
 
 		// Verify content displays correctly
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Line Endings ${testId}`);
+		await documentViewPage.openDocument(testDocument);
 		await documentViewPage.verifyContentContains('Line with LF ending');
 		await documentViewPage.verifyContentContains('Final line');
 
@@ -254,16 +247,14 @@ The links should remain functional after edits.`,
 		});
 
 		// Navigate to linking document
-		await documentViewPage.navigateToDocument(linkingDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Linking Document ${testId}`);
+		await documentViewPage.openDocument(linkingDocument);
 
 		// Click internal link to verify it works
 		await documentViewPage.clickContentLink('Link to target document');
 		await documentViewPage.verifyDocumentLoaded(`Target Document ${testId}`);
 
 		// Go back and edit the linking document
-		await documentViewPage.navigateToDocument(linkingDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(`Linking Document ${testId}`);
+		await documentViewPage.openDocument(linkingDocument);
 		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();
 

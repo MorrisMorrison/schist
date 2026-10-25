@@ -43,8 +43,7 @@ test.describe.serial('Document Lifecycle', () => {
 		withSimpleTestDocument: originalDocument
 	}) => {
 		// Navigate to the document
-		await documentViewPage.navigateToDocument(originalDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(originalDocument.title);
+		await documentViewPage.openDocument(originalDocument);
 
 		// Click edit button
 		await documentViewPage.editDocument();
@@ -73,8 +72,7 @@ test.describe.serial('Document Lifecycle', () => {
 		withSimpleTestDocument: documentToDelete
 	}) => {
 		// Navigate to the document
-		await documentViewPage.navigateToDocument(documentToDelete.path!);
-		await documentViewPage.verifyDocumentLoaded(documentToDelete.title);
+		await documentViewPage.openDocument(documentToDelete);
 
 		// Delete the document
 		await documentViewPage.deleteDocument();
@@ -102,8 +100,7 @@ test.describe.serial('Document Lifecycle', () => {
 		withSimpleTestDocument: testDocument
 	}) => {
 		// Navigate to document view
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Navigate to edit
 		await documentViewPage.editDocument();
@@ -123,8 +120,7 @@ test.describe.serial('Document Lifecycle', () => {
 		withComplexTestDocument: testDocument
 	}) => {
 		// Navigate to document
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify metadata is displayed
 		await documentViewPage.verifyMetadata();
@@ -136,8 +132,7 @@ test.describe.serial('Document Lifecycle', () => {
 		withComplexTestDocument: testDocument
 	}) => {
 		// Navigate to document
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify markdown has been rendered to HTML
 		await documentViewPage.verifyMarkdownRendering();

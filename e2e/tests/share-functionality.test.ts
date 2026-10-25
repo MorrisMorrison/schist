@@ -7,8 +7,7 @@ test.describe.serial('Share Functionality', () => {
 		withSimpleTestDocument: testDocument
 	}) => {
 		// Navigate to the document
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Click share button
 		await documentViewPage.openShareModal();
@@ -28,7 +27,7 @@ test.describe.serial('Share Functionality', () => {
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 
 		// Create share link with default (7 days) expiry
 		const shareUrl = await documentViewPage.createShareLink();
@@ -49,7 +48,7 @@ test.describe.serial('Share Functionality', () => {
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 
 		const expiryOptions = [1, 7, 30, 90, 0];
 		const shareUrls: string[] = [];
@@ -78,7 +77,7 @@ test.describe.serial('Share Functionality', () => {
 		documentViewPage,
 		withSimpleTestDocument: testDocument
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 
 		await documentViewPage.createShareLink(7);
 		await documentViewPage.closeShareModal();
@@ -107,7 +106,7 @@ test.describe.serial('Share Functionality', () => {
 		withSimpleTestDocument: testDocument
 	}) => {
 		// Create share link while authenticated
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 		const shareUrl = await documentViewPage.createShareLink();
 		await documentViewPage.closeShareModal();
 
@@ -131,7 +130,7 @@ test.describe.serial('Share Functionality', () => {
 		withSimpleTestDocument: testDocument
 	}) => {
 		// Create share link
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 		const shareUrl = await documentViewPage.createShareLink();
 		await documentViewPage.closeShareModal();
 
@@ -175,7 +174,7 @@ test.describe.serial('Share Functionality', () => {
 		withSimpleTestDocument: testDocument
 	}) => {
 		// Create share link
-		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.openDocument(testDocument);
 		const shareUrl = await documentViewPage.createShareLink();
 
 		// Revoke the share immediately

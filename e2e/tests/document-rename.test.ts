@@ -96,8 +96,7 @@ test.describe.serial('Document Rename', () => {
 		testId,
 		page
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify original tags are present
 		await documentViewPage.verifyTags(testDocument.tags!);

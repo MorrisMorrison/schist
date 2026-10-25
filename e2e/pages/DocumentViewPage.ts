@@ -77,6 +77,19 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
+	 * Open a seeded document by its path and wait until it has loaded with its
+	 * title. The usual way into a document; use navigateToDocument for a path
+	 * that is not expected to load (a 404, say).
+	 */
+	async openDocument(document: { path?: string; title: string }) {
+		if (!document.path) {
+			throw new Error(`openDocument: "${document.title}" has no path`);
+		}
+		await this.navigateToDocument(document.path);
+		await this.verifyDocumentLoaded(document.title);
+	}
+
+	/**
 	 * Verify document is loaded and displays content
 	 */
 	async verifyDocumentLoaded(expectedTitle?: string) {

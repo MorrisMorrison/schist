@@ -60,8 +60,7 @@ test.describe('Version History Functionality', () => {
 		withSimpleTestDocument: testDocument,
 		page
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// A freshly created document already has its creation commit.
 		let history = await openVersionHistory(page);
@@ -82,8 +81,7 @@ test.describe('Version History Functionality', () => {
 		withSimpleTestDocument: testDocument,
 		page
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		await appendAndSave(documentViewPage, editorPage, '\n\nFirst edit.');
 		await appendAndSave(documentViewPage, editorPage, '\n\nSecond edit.');
@@ -109,8 +107,7 @@ test.describe('Version History Functionality', () => {
 		withSimpleTestDocument: testDocument,
 		page
 	}) => {
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		await appendAndSave(documentViewPage, editorPage, '\n\nFirst comparison edit.');
 		await appendAndSave(documentViewPage, editorPage, '\n\nSecond comparison edit.');

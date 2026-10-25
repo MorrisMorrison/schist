@@ -16,15 +16,9 @@ vi.mock('$lib/api/client', () => ({
 	apiClient: { unlockWithPasskey: vi.fn(), getPasskeyStatus: vi.fn() }
 }));
 
-vi.mock('$lib/utils/webauthn', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('$lib/utils/webauthn')>();
-	return {
-		...actual,
-		authenticateWithPasskey: vi.fn(),
-		isWebAuthnSupported: vi.fn(() => true),
-		isPlatformAuthenticatorAvailable: vi.fn(async () => false)
-	};
-});
+vi.mock('$lib/utils/webauthn', async (importOriginal) =>
+	(await import('$lib/test/webauthn-mock')).mockWebAuthn(importOriginal)
+);
 
 describe('PasskeyUnlockModal', () => {
 	const onsuccess = vi.fn();

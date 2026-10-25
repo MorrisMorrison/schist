@@ -24,15 +24,9 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-vi.mock('$lib/utils/webauthn', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('$lib/utils/webauthn')>();
-	return {
-		...actual,
-		authenticateWithPasskey: vi.fn(),
-		isWebAuthnSupported: vi.fn(() => true),
-		isPlatformAuthenticatorAvailable: vi.fn(async () => false)
-	};
-});
+vi.mock('$lib/utils/webauthn', async (importOriginal) =>
+	(await import('$lib/test/webauthn-mock')).mockWebAuthn(importOriginal)
+);
 
 function status(overrides: Partial<SecretsStatus> = {}): SecretsStatus {
 	return {

@@ -121,6 +121,17 @@ describe('FolderTree', () => {
 		expect(treeItemNames()).toEqual(['notes', 'work']);
 	});
 
+	it('keeps the root node in the sidebar when there are no folders yet', async () => {
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
+		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
+		setFoldersState({ folders: [] });
+		setDocumentsState({ documents: [] });
+		renderTree({ showPages: true });
+		// The root node's context menu is how the first folder gets created.
+		expect(screen.getByRole('button', { name: 'Open folder /' })).toBeInTheDocument();
+		expect(screen.queryByText('No folders yet')).not.toBeInTheDocument();
+	});
+
 	it('shows the empty state with a create button', async () => {
 		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
 		setFoldersState({ folders: [] });

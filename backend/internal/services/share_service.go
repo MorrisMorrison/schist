@@ -33,7 +33,7 @@ func NewShareService(config *config.Config, documentService *DocumentService) *S
 		documentService: documentService,
 		shares: &jsonStore[[]ShareToken]{
 			path:        filepath.Join(config.DataDir, appStateDir, "shares.json"),
-			perm:        0644,
+			perm:        0600,
 			name:        "shares file",
 			empty:       func() []ShareToken { return []ShareToken{} },
 			emptyFileOK: true,

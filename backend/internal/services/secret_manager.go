@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/base64"
 	"fmt"
+	"sync"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/crypto"
@@ -16,12 +17,23 @@ func errSecretStoreLocked() error {
 	return errors.NewUnauthorizedError("secret store is locked")
 }
 
+// SecretManager holds the unlocked secret store. Requests run concurrently,
+// so mu guards store and unlocked: operations that only use the store take
+// the read lock for their whole duration (so Lock can't clear the key under
+// them), and Lock, unlocking and writes take the write lock.
+//
+// Lock order: SecretManager.mu, then Settings' lock (taken inside the
+// Settings methods). PasskeyService is only called with mu not held, and
+// neither PasskeyService nor Settings calls back into SecretManager. Nothing
+// that can block indefinitely (network) runs under mu; the work done under
+// it is in-memory AES-GCM plus the atomic config.json write.
 type SecretManager struct {
+	mu             sync.RWMutex
 	store          *crypto.SecureStore
+	unlocked       bool
 	settings       *config.Settings
 	passkeyService *PasskeyService
 	dataDir        string
-	unlocked       bool
 }
 
 func NewSecretManager(settings *config.Settings, dataDir string, passkeyService *PasskeyService) *SecretManager {
@@ -37,6 +49,8 @@ func NewSecretManager(settings *config.Settings, dataDir string, passkeyService 
 // See UnlockWithPasskey() method below
 
 func (sm *SecretManager) Lock() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
 	if sm.store != nil {
 		sm.store.Clear()
 		sm.store = nil
@@ -45,11 +59,21 @@ func (sm *SecretManager) Lock() {
 }
 
 func (sm *SecretManager) IsUnlocked() bool {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	return sm.isUnlockedLocked()
+}
+
+// isUnlockedLocked is IsUnlocked for callers already holding mu (RWMutex
+// read locks must not be taken recursively).
+func (sm *SecretManager) isUnlockedLocked() bool {
 	return sm.unlocked && sm.store != nil
 }
 
 func (sm *SecretManager) SetSecret(key, value string) error {
-	if !sm.IsUnlocked() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if !sm.isUnlockedLocked() {
 		return errSecretStoreLocked()
 	}
 
@@ -62,22 +86,22 @@ func (sm *SecretManager) SetSecret(key, value string) error {
 		return fmt.Errorf("failed to encrypt secret: %w", err)
 	}
 
-	secretsConfig := sm.settings.GetSecretsConfig()
-	if secretsConfig == nil {
-		return errors.NewInvalidStateError("Secret store is not set up")
-	}
-
-	if secretsConfig.Store == nil {
-		secretsConfig.Store = make(map[string]*crypto.EncryptedValue)
-	}
-
-	secretsConfig.Store[key] = encrypted
-
-	return sm.settings.UpdateSecretsConfig(sm.dataDir, secretsConfig)
+	return sm.settings.Update(sm.dataDir, func(st *config.Settings) error {
+		if st.Secrets == nil {
+			return errors.NewInvalidStateError("Secret store is not set up")
+		}
+		if st.Secrets.Store == nil {
+			st.Secrets.Store = make(map[string]*crypto.EncryptedValue)
+		}
+		st.Secrets.Store[key] = encrypted
+		return nil
+	})
 }
 
 func (sm *SecretManager) GetSecret(key string) (string, error) {
-	if !sm.IsUnlocked() {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	if !sm.isUnlockedLocked() {
 		return "", errSecretStoreLocked()
 	}
 
@@ -95,7 +119,9 @@ func (sm *SecretManager) GetSecret(key string) (string, error) {
 }
 
 func (sm *SecretManager) ListSecrets() ([]string, error) {
-	if !sm.IsUnlocked() {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	if !sm.isUnlockedLocked() {
 		return nil, errSecretStoreLocked()
 	}
 
@@ -113,38 +139,43 @@ func (sm *SecretManager) ListSecrets() ([]string, error) {
 }
 
 func (sm *SecretManager) DeleteSecret(key string) error {
-	if !sm.IsUnlocked() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if !sm.isUnlockedLocked() {
 		return errSecretStoreLocked()
 	}
 
-	secretsConfig := sm.settings.GetSecretsConfig()
-	if secretsConfig == nil || secretsConfig.Store == nil {
-		return errors.NewNotFoundError("secret", key)
-	}
-
-	if _, exists := secretsConfig.Store[key]; !exists {
-		return errors.NewNotFoundError("secret", key)
-	}
-
-	delete(secretsConfig.Store, key)
-
-	return sm.settings.UpdateSecretsConfig(sm.dataDir, secretsConfig)
+	return sm.settings.Update(sm.dataDir, func(st *config.Settings) error {
+		if st.Secrets == nil || st.Secrets.Store == nil {
+			return errors.NewNotFoundError("secret", key)
+		}
+		if _, exists := st.Secrets.Store[key]; !exists {
+			return errors.NewNotFoundError("secret", key)
+		}
+		delete(st.Secrets.Store, key)
+		return nil
+	})
 }
 
 func (sm *SecretManager) GetGitHubToken() (string, error) {
-	if !sm.IsUnlocked() {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	if !sm.isUnlockedLocked() {
 		return "", errSecretStoreLocked()
 	}
 
-	if sm.settings.GitHub.Token == nil {
+	token := sm.settings.GetGitHubSettings().Token
+	if token == nil {
 		return "", nil
 	}
 
-	return sm.store.Decrypt(sm.settings.GitHub.Token)
+	return sm.store.Decrypt(token)
 }
 
 func (sm *SecretManager) SetGitHubToken(token string) error {
-	if !sm.IsUnlocked() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if !sm.isUnlockedLocked() {
 		return errSecretStoreLocked()
 	}
 
@@ -153,8 +184,10 @@ func (sm *SecretManager) SetGitHubToken(token string) error {
 		return fmt.Errorf("failed to encrypt GitHub token: %w", err)
 	}
 
-	sm.settings.GitHub.Token = encrypted
-	return sm.settings.Save(sm.dataDir)
+	return sm.settings.Update(sm.dataDir, func(st *config.Settings) error {
+		st.GitHub.Token = encrypted
+		return nil
+	})
 }
 
 func (sm *SecretManager) HasSecrets() bool {
@@ -163,30 +196,37 @@ func (sm *SecretManager) HasSecrets() bool {
 }
 
 func (sm *SecretManager) UnlockWithPasskey(credentialID string) error {
-	if sm.unlocked {
+	if sm.IsUnlocked() {
 		return nil
 	}
 
 	// Initialize secrets config if it doesn't exist (similar to password unlock)
-	secretsConfig := sm.settings.GetSecretsConfig()
-	if secretsConfig == nil {
+	if sm.settings.GetSecretsConfig() == nil {
 		salt, err := crypto.GenerateSalt()
 		if err != nil {
 			return fmt.Errorf("failed to generate salt: %w", err)
 		}
 
-		secretsConfig = &config.SecretsConfig{
+		secretsConfig := &config.SecretsConfig{
 			Version:       1,
 			KeyDerivation: "passkey", // Different from password-based ("scrypt")
 			Salt:          base64.StdEncoding.EncodeToString(salt),
 			Store:         make(map[string]*crypto.EncryptedValue),
 		}
 
-		if err := sm.settings.UpdateSecretsConfig(sm.dataDir, secretsConfig); err != nil {
+		// Re-check under the settings lock: a concurrent unlock may have
+		// set it up first, and its config must not be replaced.
+		if err := sm.settings.Update(sm.dataDir, func(st *config.Settings) error {
+			if st.Secrets == nil {
+				st.Secrets = secretsConfig
+			}
+			return nil
+		}); err != nil {
 			return fmt.Errorf("failed to save secrets config: %w", err)
 		}
 	}
 
+	// Reads passkeys.json: done without holding mu.
 	encryptionKey, err := sm.passkeyService.GetEncryptionKey(credentialID)
 	if err != nil {
 		if errors.HasCode(err, errors.ErrCodeNotFound) {
@@ -199,6 +239,14 @@ func (sm *SecretManager) UnlockWithPasskey(credentialID string) error {
 	store, err := crypto.NewSecureStoreWithKey(encryptionKey, salt)
 	if err != nil {
 		return fmt.Errorf("failed to create secure store: %w", err)
+	}
+
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if sm.unlocked {
+		// Another request unlocked while we derived the key.
+		store.Clear()
+		return nil
 	}
 
 	if sm.settings.HasPlaintextSecrets() {

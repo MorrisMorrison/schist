@@ -42,7 +42,7 @@
 
 	const autoSaveConfig = {
 		enabled: true,
-		interval: 30000, // 30 seconds
+		intervalInMillis: 30000, // 30 seconds
 		onSave: onSave,
 		...autoSave
 	};
@@ -145,7 +145,7 @@
 
 		autoSaveTimer = setTimeout(async () => {
 			await saveContent();
-		}, autoSaveConfig.interval);
+		}, autoSaveConfig.intervalInMillis);
 	}
 
 	async function saveContent() {

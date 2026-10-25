@@ -32,7 +32,7 @@ RUN go mod download
 COPY backend/ ./
 
 # Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o schist ./cmd/schist
+RUN CGO_ENABLED=0 GOOS=linux go build -o schist ./cmd/schist
 
 # Stage 3: Production image
 FROM alpine:latest

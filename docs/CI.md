@@ -10,7 +10,7 @@ doc covers what runs, where the image is published, and how to use your own runn
 | Build | `build.yml` | backend, frontend, Dockerfile, docker-compose, Makefile | `make build` |
 | Backend Tests | `test-backend.yml` | `backend/**` | `go test ./...` |
 | Frontend Tests | `test-frontend.yml` | `frontend/**` | Vitest unit tests, lint, `svelte-check` (inside the Playwright image) |
-| E2E Tests | `e2e.yml` | backend, frontend, `e2e/**`, Dockerfile, docker-compose | Playwright suite against the Dockerised app (always GitHub-hosted) |
+| E2E Tests | `e2e.yml` | backend, frontend, `e2e/**`, Dockerfile, docker-compose | Playwright suite against the Dockerised app, split into 2 shards (`e2e (1/2)`, `e2e (2/2)`), each on its own GitHub-hosted runner with its own backend. The image build shares a GitHub Actions layer cache (`scope=schist-image`) with the Docker workflow |
 | Secret Scan | `secret-scan.yml` | all changes | gitleaks over the full history (via `make secret-scan`) |
 | Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose | Build + smoke-test the image on PRs; on push to `main`, publish the tested image |
 

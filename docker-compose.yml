@@ -26,6 +26,9 @@ services:
 
   schist-e2e:
     profiles: ["e2e"]
+    # Named so CI can build it once with a layer cache (docker/build-push-action)
+    # and start it with `up --no-build`; locally `up --build` builds and tags it.
+    image: schist-e2e:local
     build:
       context: .
       args:

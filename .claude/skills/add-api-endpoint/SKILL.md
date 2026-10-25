@@ -10,7 +10,7 @@ Work from the inside out: service → handler → route → client → docs. Wri
 ## 1. Service (`backend/internal/services/`)
 - Put the logic on the existing service for that area (`DocumentService`, `ShareService`, …). A new service gets a constructor and a field on `Services` in `container.go`.
 - Return **typed errors** from `internal/errors`: `NewNotFoundError(resource, id)` → 404, `NewValidationError` / `NewInvalidPathError` / `NewMissingRequiredFieldError` → 400, `NewAlreadyExistsError` / `NewConflictError` → 409, `NewUnauthorizedError` → 401, `NewForbiddenError` → 403. Wrapping with `%w` is fine. A genuine internal failure stays a plain `fmt.Errorf` (→ 500, cause logged, not sent).
-- User-supplied paths go through the `utils` path helpers. New JSON stores copy the mutex + atomic temp-file-and-rename pattern from `saveShares`.
+- User-supplied paths go through the `utils` path helpers. New JSON stores use `jsonStore[T]` (`services/json_store.go`) for the locked, atomic read-modify-write.
 - **Test first** in `<service>_test.go`: table-driven, data in `t.TempDir()`, assert the error *type* (`errors.As`) for each failure case, not its text.
 
 ## 2. Handler (`backend/internal/handlers/<area>_handler.go`)

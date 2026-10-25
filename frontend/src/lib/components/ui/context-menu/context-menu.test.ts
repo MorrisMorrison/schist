@@ -109,10 +109,16 @@ describe('ContextMenu', () => {
 		await fireEvent.contextMenu(screen.getByTestId('area'));
 		await waitForMenuFocus();
 		// <body> has pointer events off while the menu is open, so press on the page root.
-		await userEvent.pointer({
-			keys: '[MouseLeft]',
-			target: document.documentElement,
-			coords: { clientX: window.innerWidth - 5, clientY: window.innerHeight - 5 }
+		// bits-ui arms its outside-press listener a moment after opening, so repeat the press
+		// until it lands (a slow CI runner can get the first one in before that).
+		await waitFor(async () => {
+			await userEvent.pointer({
+				keys: '[MouseLeft]',
+				target: document.documentElement,
+				coords: { clientX: window.innerWidth - 5, clientY: window.innerHeight - 5 }
+			});
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 		});
 		await expectClosed();
 	});

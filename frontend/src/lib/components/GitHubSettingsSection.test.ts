@@ -201,13 +201,25 @@ describe('GitHubSettingsSection', () => {
 			expect(console.error).toHaveBeenCalledWith('Error setting up github');
 		});
 
-		it('explains that sync needs a connection', async () => {
+		it('explains that sync needs a connection when it drops on the Sync tab', async () => {
+			await seedConnected();
 			render(GitHubSettingsSection);
-			// The tab button is disabled, so switch tabs programmatically.
-			input('github-sync-tab').removeAttribute('disabled');
 			await userEvent.click(input('github-sync-tab'));
-			expect(screen.getByText(/GitHub is not connected/)).toBeInTheDocument();
+			expect(input('github-sync-tab')).toHaveAttribute('aria-selected', 'true');
+
+			vi.mocked(apiClient.getGitHubConnectionStatus).mockResolvedValue(disconnected);
+			await githubActions.loadConnectionStatus(true);
+
+			expect(await screen.findByText(/GitHub is not connected/)).toBeInTheDocument();
 			expect(input('github-sync-now-button')).toBeDisabled();
+			expect(input('github-sync-tab')).toBeDisabled();
+		});
+
+		it('keeps the Sync tab disabled until connected', async () => {
+			render(GitHubSettingsSection);
+			expect(input('github-sync-tab')).toBeDisabled();
+			expect(input('github-setup-tab')).toHaveAttribute('aria-selected', 'true');
+			expect(screen.getByRole('tablist', { name: 'GitHub integration' })).toBeInTheDocument();
 		});
 	});
 

@@ -15,6 +15,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 
 	"github.com/MorrisMorrison/schist/internal/errors"
+	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
 )
 
@@ -61,7 +62,9 @@ type FinishAuthenticationResponse struct {
 
 // Types for remaining passkey handlers
 type UnlockWithPasskeyRequest struct {
-	CredentialID string `json:"credentialId" binding:"required"`
+	// AuthTicket comes from POST /api/passkeys/authenticate/finish, i.e. a
+	// verified WebAuthn assertion. A bare credential ID is not accepted.
+	AuthTicket string `json:"authTicket" binding:"required"`
 }
 
 type PasskeyInfo struct {
@@ -145,8 +148,7 @@ func (s *sessionStoreT) Take(id string) (*webauthn.SessionData, bool) {
 func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req BeginRegistrationRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -157,7 +159,7 @@ func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFun
 
 		options, session, err := services.PasskeyService.BeginRegistration(req.Name)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -177,8 +179,7 @@ func BeginPasskeyRegistrationHandler(services *services.Services) gin.HandlerFun
 func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req FinishRegistrationRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -203,8 +204,18 @@ func FinishPasskeyRegistrationHandler(services *services.Services) gin.HandlerFu
 
 		credentialID, err := services.PasskeyService.FinishRegistration(req.Name, session, parsedResponse)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
+		}
+
+		// A signed-in user is adding a passkey to their own account: bind it
+		// to them so it can be listed, deleted and used to sign in. During
+		// first-time setup there is no user yet; setup/first-user binds it.
+		if username, ok := currentUser(c); ok {
+			if err := services.UserService.AddPasskeyToUser(username, credentialID); err != nil {
+				HandleError(c, err)
+				return
+			}
 		}
 
 		response := FinishRegistrationResponse{
@@ -220,7 +231,7 @@ func BeginPasskeyAuthenticationHandler(services *services.Services) gin.HandlerF
 	return func(c *gin.Context) {
 		options, session, err := services.PasskeyService.BeginAuthentication()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -240,8 +251,7 @@ func BeginPasskeyAuthenticationHandler(services *services.Services) gin.HandlerF
 func FinishPasskeyAuthenticationHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req FinishAuthenticationRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -261,7 +271,7 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 
 		credentialID, err := services.PasskeyService.FinishAuthentication(session, parsedResponse)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -270,7 +280,7 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 		// never sufficient on its own.
 		ticket, err := services.AuthService.IssueAuthTicket(credentialID)
 		if err != nil {
-			HandleError(c, errors.NewUnauthorizedError("Authentication failed").WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -286,21 +296,14 @@ func FinishPasskeyAuthenticationHandler(services *services.Services) gin.Handler
 
 func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		username, ok := currentUser(c)
+		user, ok := requireUserRecord(c, services)
 		if !ok {
-			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
-			return
-		}
-
-		user, err := services.UserService.GetUserByUsername(username)
-		if err != nil {
-			HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
 			return
 		}
 
 		credentials, err := services.PasskeyService.ListCredentials()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -310,7 +313,7 @@ func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 				userPasskeys = append(userPasskeys, PasskeyInfo{
 					ID:        cred.ID,
 					Name:      cred.Name,
-					CreatedAt: cred.CreatedAt.Format("2006-01-02T15:04:05Z"),
+					CreatedAt: cred.CreatedAt.Format(apiTimeFormat),
 				})
 			}
 		}
@@ -326,14 +329,24 @@ func ListPasskeysHandler(services *services.Services) gin.HandlerFunc {
 func UnlockWithPasskeyHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req UnlockWithPasskeyRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
-		err := services.SecretManager.UnlockWithPasskey(req.CredentialID)
+		username, _ := currentUser(c)
+		credentialID, err := services.AuthService.RedeemAuthTicket(req.AuthTicket, username)
 		if err != nil {
-			HandleError(c, errors.NewUnauthorizedError("Failed to unlock with passkey: "+err.Error()).WithCause(err))
+			HandleError(c, err)
+			return
+		}
+
+		err = services.SecretManager.UnlockWithPasskey(credentialID)
+		if err != nil {
+			if errors.IsAPIError(err) {
+				HandleError(c, err)
+			} else {
+				HandleError(c, errors.NewUnauthorizedError("Failed to unlock with passkey").WithCause(err))
+			}
 			return
 		}
 
@@ -343,21 +356,13 @@ func UnlockWithPasskeyHandler(services *services.Services) gin.HandlerFunc {
 
 func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		credentialID := c.Param("id")
-		if credentialID == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("id"))
-			return
-		}
-
-		username, ok := currentUser(c)
+		credentialID, ok := requiredParam(c, "id")
 		if !ok {
-			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
 			return
 		}
 
-		user, err := services.UserService.GetUserByUsername(username)
-		if err != nil {
-			HandleError(c, errors.NewNotFoundError("user", username).WithCause(err))
+		user, ok := requireUserRecord(c, services)
+		if !ok {
 			return
 		}
 
@@ -366,9 +371,9 @@ func DeletePasskeyHandler(services *services.Services) gin.HandlerFunc {
 			return
 		}
 
-		err = services.PasskeyService.DeleteCredential(credentialID)
+		err := services.PasskeyService.DeleteCredential(credentialID)
 		if err != nil {
-			HandleError(c, errors.NewNotFoundError("passkey", credentialID).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -380,7 +385,7 @@ func PasskeyStatusHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hasPasskeys, err := services.PasskeyService.HasCredentials()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -392,6 +397,21 @@ func PasskeyStatusHandler(services *services.Services) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, status)
 	}
+}
+
+// requireUserRecord returns the signed-in user's record: 401 without a session,
+// 404 when the user no longer exists.
+func requireUserRecord(c *gin.Context, services *services.Services) (*models.User, bool) {
+	username, ok := requireUser(c)
+	if !ok {
+		return nil, false
+	}
+	user, err := services.UserService.GetUserByUsername(username)
+	if err != nil {
+		HandleError(c, err)
+		return nil, false
+	}
+	return user, true
 }
 
 // authorizePasskeyRegistration gates passkey registration. In this single-user

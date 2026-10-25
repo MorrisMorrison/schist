@@ -123,11 +123,18 @@ class AuthService {
 		}
 
 		try {
-			await apiClient.getCurrentUser();
+			const user = await apiClient.getCurrentUser();
+			authActions.updateUser(user);
 			return true;
-		} catch {
-			authActions.clearAuth();
-			return false;
+		} catch (error) {
+			// Same rule as initialize(): only a genuine 401 ends the session. A
+			// network blip or 5xx must not log the user out.
+			if (isUnauthorizedError(error)) {
+				authActions.clearAuth();
+				return false;
+			}
+			console.warn('Auth status check failed, keeping session:', error);
+			return true;
 		}
 	}
 
@@ -155,16 +162,28 @@ class AuthService {
 		return true;
 	}
 
-	private isPublicRoute(path?: string): boolean {
-		if (!path) {
-			path = window.location.pathname;
+	/**
+	 * Called by the API client once a 401 has been confirmed (the session is
+	 * already cleared). Redirects to login/setup without re-checking the session:
+	 * going through requireAuth() here would await checkAuthStatus(), which may be
+	 * the very request that triggered the 401, and the two promises would wait on
+	 * each other forever.
+	 */
+	async handleSessionExpired(returnUrl?: string) {
+		if (!this.isAuthEnabled() || this.isPublicRoute(returnUrl)) {
+			return;
 		}
+		await this.redirectToAuthPage(returnUrl);
+	}
 
-		if (PUBLIC_ROUTES.includes(path)) {
+	private isPublicRoute(path?: string): boolean {
+		const pathname = (path || window.location.pathname).split(/[?#]/)[0];
+
+		if (PUBLIC_ROUTES.includes(pathname)) {
 			return true;
 		}
 
-		return PUBLIC_ROUTE_PREFIXES.some((prefix) => path!.startsWith(prefix));
+		return PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 	}
 
 	private async redirectToAuthPage(returnUrl?: string) {

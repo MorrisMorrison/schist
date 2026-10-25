@@ -5,19 +5,6 @@ import { WebAuthnHelper } from '../utils/webauthn-helper';
 
 test.describe('Passkey Authentication System', () => {
 	test.describe('Authentication Enabled - Unauthenticated State', () => {
-		// test('should redirect unauthenticated users to login', async ({ page, context }) => {
-		// 	// Clear authentication state to test unauthenticated behavior
-		// 	await context.clearCookies();
-
-		// 	await page.goto(BASE_URL);
-
-		// 	await expect(page).toHaveURL(/\/login/);
-
-		// 	// Should show passkey login interface
-		// 	await expect(page.getByTestId('passkey-login-button')).toBeVisible();
-		// 	await expect(page.getByTestId('login-title')).toBeVisible(); // App branding
-		// });
-
 		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {
 			// Create an unauthenticated API helper against the same service
 			const unauthApiHelper = new ApiHelper(apiHelper['apiContext']);
@@ -32,19 +19,6 @@ test.describe('Passkey Authentication System', () => {
 	});
 
 	test.describe('Authentication Enabled', () => {
-		test('should allow passkey authentication for existing user', async ({ page }) => {
-			// Since auth.setup.ts already authenticated the user, verify auth is working
-			// by checking we can access protected pages directly
-
-			await page.goto(BASE_URL);
-
-			// Should be able to access home page (not redirected to login)
-			await expect(page).toHaveURL(BASE_URL);
-
-			// Should show authenticated UI elements
-			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
-		});
-
 		test('should handle passkey authentication failure gracefully', async ({ page }) => {
 			const webauthnHelper = new WebAuthnHelper(page);
 
@@ -95,16 +69,17 @@ test.describe('Passkey Authentication System', () => {
 			await expect(page).toHaveURL(/\/login/);
 		});
 
-		test('should persist authentication across page reloads', async ({ page }) => {
+		test('should allow passkey authentication and persist it across page reloads', async ({
+			page
+		}) => {
+			// auth.setup.ts already signed in with a passkey; its session must open
+			// protected pages directly (no redirect to login)...
 			await page.goto(BASE_URL);
-
-			// Verify we're authenticated
+			await expect(page).toHaveURL(BASE_URL);
 			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
 
-			// Reload the page
+			// ...and survive a reload
 			await page.reload();
-
-			// Should remain authenticated
 			await expect(page).toHaveURL(BASE_URL);
 			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
 		});
@@ -118,19 +93,12 @@ test.describe('Passkey Authentication System', () => {
 	});
 
 	test.describe('First-Time Setup Flow', () => {
-		test('should handle first-time setup with fresh database', async ({ page }) => {
-			// This test would require a completely fresh database
-			// For now, we'll test the setup API endpoints directly
-			const apiHelper = new ApiHelper(page.request);
-
-			// Test setup required check
+		test('should report setup as done once the first user exists', async ({ apiHelper }) => {
+			// auth.setup.ts registered the first (admin) user on an empty backend, so
+			// the unauthenticated setup check must now say no setup is required.
 			const setupResponse = await apiHelper.checkSetupRequired();
 			expect(setupResponse.status).toBe(200);
-			expect(setupResponse.data).toHaveProperty('requires_setup');
-
-			// The actual value depends on whether users exist
-			const requiresSetup = (setupResponse.data as { requires_setup: boolean }).requires_setup;
-			expect(typeof requiresSetup).toBe('boolean');
+			expect(setupResponse.data).toHaveProperty('requires_setup', false);
 		});
 	});
 
@@ -164,17 +132,9 @@ test.describe('Passkey Authentication System', () => {
 			// Should show branding
 			await expect(page.getByTestId('login-title')).toBeVisible();
 
-			// Should not show old password form elements
-			const usernameInput = page.getByTestId('username-input');
-			const passwordInput = page.getByTestId('password-input');
-
-			if ((await usernameInput.count()) > 0) {
-				// If these elements exist, they should not be visible (they're deprecated)
-				await expect(usernameInput).not.toBeVisible();
-			}
-			if ((await passwordInput.count()) > 0) {
-				await expect(passwordInput).not.toBeVisible();
-			}
+			// Should not show the old (removed) password form elements
+			await expect(page.getByTestId('username-input')).toBeHidden();
+			await expect(page.getByTestId('password-input')).toBeHidden();
 		});
 
 		test('should handle WebAuthn not supported scenario', async ({ page }) => {
@@ -189,20 +149,9 @@ test.describe('Passkey Authentication System', () => {
 
 			await page.goto(LOGIN_URL);
 
-			// Should show appropriate error or fallback message
-			// const notSupportedMessage = page
-			// 	.locator('text=/not supported/i')
-			// 	.or(page.locator('text=/incompatible/i'))
-			// 	.or(page.locator('[role="alert"]'));
-
-			// The exact behavior depends on the frontend implementation
-			// At minimum, the passkey button should be disabled or show an error
-			const passkeyButton = page.getByTestId('passkey-login-button');
-			if ((await passkeyButton.count()) > 0) {
-				// Button might be disabled or show error state
-				const isVisible = await passkeyButton.isVisible();
-				expect(isVisible).toBe(true); // Button should still be visible
-			}
+			// The login page still renders its passkey button without WebAuthn (the
+			// app shows no dedicated "not supported" state yet).
+			await expect(page.getByTestId('passkey-login-button')).toBeVisible();
 		});
 	});
 

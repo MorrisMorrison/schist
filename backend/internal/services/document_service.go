@@ -5,6 +5,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	// Logical document paths are always slash-separated, independent of the
+	// host OS; filepath is only for real filesystem paths.
+	slashpath "path"
 	"strings"
 	"time"
 
@@ -19,12 +22,23 @@ const MARKDOWN_FILE_ENDING = ".md"
 type pathResult struct {
 	finalPath  string
 	shouldSkip bool
+	overwrite  bool
 }
 
 type DocumentService struct {
 	dataDir       string
 	gitService    *GitService
 	ignoreService *IgnoreService
+}
+
+// validatePath applies the shared path rules (utils.ValidatePath) to a
+// user-supplied logical path and reports a violation as a typed InvalidPath
+// error (400).
+func validatePath(path string) error {
+	if err := utils.ValidatePath(path); err != nil {
+		return errors.NewInvalidPathError(path).WithCause(err)
+	}
+	return nil
 }
 
 func NewDocumentService(dataDir string, gitService *GitService, ignoreService *IgnoreService) *DocumentService {
@@ -139,7 +153,18 @@ func (d *DocumentService) GetAllTags() (map[string]int, error) {
 	return tagCounts, nil
 }
 
+// CreateDocument writes a new document. It refuses to replace an existing
+// document at the same path (AlreadyExists) so a stale client-side existence
+// check or a racing request can never silently overwrite a note.
 func (d *DocumentService) CreateDocument(document *models.Document) error {
+	return d.createDocument(document, false)
+}
+
+func (d *DocumentService) createDocument(document *models.Document, overwrite bool) error {
+	if document.MetaData == nil {
+		return errors.NewMissingRequiredFieldError("metaData")
+	}
+
 	if document.MetaData.Slug == "" {
 		document.MetaData.Slug = utils.GenerateSlug(document.MetaData.Title)
 	}
@@ -148,8 +173,18 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 		document.MetaData.Path = "/" + document.MetaData.Slug
 	}
 
-	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
+	if err := validatePath(document.MetaData.Path); err != nil {
+		return err
+	}
+
+	if !overwrite {
+		exists, err := d.documentFileExists(document.MetaData.Path)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return errors.NewAlreadyExistsError("document", document.MetaData.Path)
+		}
 	}
 
 	now := time.Now()
@@ -160,15 +195,40 @@ func (d *DocumentService) CreateDocument(document *models.Document) error {
 		return err
 	}
 
-	return d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Create document: %s", document.MetaData.Path))
+	return d.commitDocumentChange(fmt.Sprintf("Create document: %s", document.MetaData.Path), document.MetaData.Path)
+}
+
+// documentFileExists reports whether a document file exists for the logical
+// path. Any stat failure other than "not exist" is returned as an error so
+// callers never treat an unreadable file as free to overwrite.
+func (d *DocumentService) documentFileExists(documentPath string) (bool, error) {
+	_, err := os.Stat(d.buildFilePathFromPath(documentPath))
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, fmt.Errorf("failed to check document at path %s: %w", documentPath, err)
 }
 
 func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, saveType string) error {
-	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
+	if document.MetaData == nil {
+		return errors.NewMissingRequiredFieldError("metaData")
+	}
+	if err := validatePath(document.MetaData.Path); err != nil {
+		return err
 	}
 
-	document.MetaData.Updated = time.Now()
+	// Created is server-owned: keep the stored value rather than trusting the
+	// client, which typically omits it (zero time) on update.
+	now := time.Now()
+	if existing, err := d.GetDocumentByPath(document.MetaData.Path); err == nil && !existing.MetaData.Created.IsZero() {
+		document.MetaData.Created = existing.MetaData.Created
+	} else if document.MetaData.Created.IsZero() {
+		document.MetaData.Created = now
+	}
+	document.MetaData.Updated = now
 
 	if err := d.saveDocument(document); err != nil {
 		return err
@@ -176,7 +236,7 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 
 	// Only commit to git for manual saves, skip auto-saves to prevent version pollution
 	if saveType == "manual" {
-		return d.commitDocumentChange(document.MetaData.Path, fmt.Sprintf("Update document: %s", document.MetaData.Path))
+		return d.commitDocumentChange(fmt.Sprintf("Update document: %s", document.MetaData.Path), document.MetaData.Path)
 	}
 
 	return nil
@@ -184,11 +244,11 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 
 func (d *DocumentService) DeleteDocument(path string) error {
 	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
-	if err := utils.ValidatePath(documentPath); err != nil {
-		return errors.NewInvalidPathError(documentPath).WithCause(err)
+	if err := validatePath(documentPath); err != nil {
+		return err
 	}
 
-	filePath := d.buildFilePathFromPath(path)
+	filePath := d.buildFilePathFromPath(documentPath)
 
 	if err := os.Remove(filePath); err != nil {
 		if os.IsNotExist(err) {
@@ -197,7 +257,7 @@ func (d *DocumentService) DeleteDocument(path string) error {
 		return fmt.Errorf("failed to delete document file: %w", err)
 	}
 
-	return d.commitDocumentChange(documentPath, fmt.Sprintf("Delete document: %s", documentPath))
+	return d.commitDocumentChange(fmt.Sprintf("Delete document: %s", documentPath), documentPath)
 }
 
 func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
@@ -223,13 +283,10 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 			return nil
 		}
 
-		relPath, err := filepath.Rel(d.dataDir, path)
+		logicalPath, err := d.logicalPath(path)
 		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
+			return err
 		}
-
-		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
-
 		logicalPath = strings.TrimSuffix(logicalPath, MARKDOWN_FILE_ENDING)
 
 		document, err := d.GetDocumentByPath(logicalPath)
@@ -247,6 +304,16 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 	}
 
 	return documents, nil
+}
+
+// logicalPath maps a file or folder under the data dir to its slash-separated
+// logical path ("/projects/a.md").
+func (d *DocumentService) logicalPath(fsPath string) (string, error) {
+	relPath, err := filepath.Rel(d.dataDir, fsPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get relative path: %w", err)
+	}
+	return "/" + filepath.ToSlash(relPath), nil
 }
 
 func (d *DocumentService) buildFilePathFromPath(path string) string {
@@ -272,17 +339,17 @@ func (d *DocumentService) saveDocument(document *models.Document) error {
 		return fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 
-	// 0644 = -rw-r--r-- = read/write permission for owner, read for others
-	fileMode = os.FileMode(0644)
-	if err := os.WriteFile(fileName, content, fileMode); err != nil {
+	// Write atomically so a crash or full disk mid-save can never leave a
+	// truncated note behind. 0644 = owner read/write, others read.
+	if err := utils.WriteFileAtomic(fileName, content, 0644); err != nil {
 		return fmt.Errorf("failed to write document file: %w", err)
 	}
 	return nil
 }
 
 func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, error) {
-	if err := utils.ValidatePath(path); err != nil {
-		return nil, errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return nil, err
 	}
 
 	filePath := d.buildFilePathFromPath(path)
@@ -304,11 +371,11 @@ func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, erro
 }
 
 func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
-	if err := utils.ValidatePath(oldPath); err != nil {
-		return errors.NewInvalidPathError(oldPath).WithCause(err)
+	if err := validatePath(oldPath); err != nil {
+		return err
 	}
-	if err := utils.ValidatePath(newPath); err != nil {
-		return errors.NewInvalidPathError(newPath).WithCause(err)
+	if err := validatePath(newPath); err != nil {
+		return err
 	}
 
 	normalizedOldPath := utils.NormalizePath(oldPath)
@@ -329,6 +396,17 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 		return fmt.Errorf("could not read document from old path: %w", err)
 	}
 
+	// Never replace another document. On a case-insensitive filesystem a
+	// case-only rename also lands here: the "target" is the source file itself,
+	// and the old save-then-remove sequence would have deleted the note.
+	exists, err := d.documentFileExists(normalizedNewPath)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.NewAlreadyExistsError("document", normalizedNewPath)
+	}
+
 	document.MetaData.Path = normalizedNewPath
 	document.MetaData.Slug = utils.ExtractSlugFromPath(normalizedNewPath)
 	document.MetaData.Updated = time.Now()
@@ -342,12 +420,16 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 		return fmt.Errorf("could not remove old file: %w", err)
 	}
 
-	return d.commitDocumentChange(normalizedNewPath, fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath))
+	// Commit both paths so the old file's removal is recorded too.
+	return d.commitDocumentChange(
+		fmt.Sprintf("Move document: %s -> %s", normalizedOldPath, normalizedNewPath),
+		normalizedNewPath, normalizedOldPath,
+	)
 }
 
 func (d *DocumentService) GetFolder(path string) (*models.Folder, error) {
-	if err := utils.ValidatePath(path); err != nil {
-		return nil, errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return nil, err
 	}
 
 	if path == "/" {
@@ -385,7 +467,7 @@ func (d *DocumentService) validateFolderPath(folderPath, path string) (os.FileIn
 }
 
 func (d *DocumentService) createFolderStruct(path string, info os.FileInfo) *models.Folder {
-	folderName := filepath.Base(path)
+	folderName := slashpath.Base(path)
 	if folderName == "." || folderName == "/" {
 		folderName = "Root"
 	}
@@ -407,7 +489,7 @@ func (d *DocumentService) populateFolderContents(folder *models.Folder, folderPa
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			entryPath := filepath.Join(folder.Path, entry.Name())
+			entryPath := slashpath.Join(folder.Path, entry.Name())
 			if d.ignoreService.ShouldIgnore(entryPath) {
 				continue
 			}
@@ -444,15 +526,20 @@ func (d *DocumentService) createSubfolder(parentPath string, entry os.DirEntry) 
 }
 
 func (d *DocumentService) countDocumentsInFolder(folderPath string) int {
-	subfolderFilePath := utils.BuildFilePath(d.dataDir, folderPath)
-	subEntries, err := os.ReadDir(subfolderFilePath)
+	return countMarkdownFiles(utils.BuildFilePath(d.dataDir, folderPath))
+}
+
+// countMarkdownFiles counts the documents directly inside dir (0 if it
+// cannot be read).
+func countMarkdownFiles(dir string) int {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return 0
 	}
 
 	count := 0
-	for _, subEntry := range subEntries {
-		if !subEntry.IsDir() && strings.HasSuffix(subEntry.Name(), MARKDOWN_FILE_ENDING) {
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
 			count++
 		}
 	}
@@ -490,25 +577,13 @@ func (d *DocumentService) getRootFolder() (*models.Folder, error) {
 				continue
 			}
 
-			subfolderPath := "/" + entry.Name()
-			subfolder := &models.Folder{
+			folder.SubFolders = append(folder.SubFolders, &models.Folder{
 				Name:          entry.Name(),
-				Path:          subfolderPath,
+				Path:          "/" + entry.Name(),
 				Created:       entryInfo.ModTime(),
-				DocumentCount: 0,
+				DocumentCount: countMarkdownFiles(entryPath),
 				SubFolders:    []*models.Folder{},
-			}
-
-			subfolderFilePath := filepath.Join(d.dataDir, entry.Name())
-			if subEntries, err := os.ReadDir(subfolderFilePath); err == nil {
-				for _, subEntry := range subEntries {
-					if !subEntry.IsDir() && strings.HasSuffix(subEntry.Name(), MARKDOWN_FILE_ENDING) {
-						subfolder.DocumentCount++
-					}
-				}
-			}
-
-			folder.SubFolders = append(folder.SubFolders, subfolder)
+			})
 		} else if strings.HasSuffix(entry.Name(), MARKDOWN_FILE_ENDING) {
 			folder.DocumentCount++
 		}
@@ -537,12 +612,10 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 			return nil
 		}
 
-		relPath, err := filepath.Rel(d.dataDir, path)
+		logicalPath, err := d.logicalPath(path)
 		if err != nil {
-			return fmt.Errorf("failed to get relative path: %w", err)
+			return err
 		}
-
-		logicalPath := "/" + strings.ReplaceAll(relPath, string(filepath.Separator), "/")
 
 		if dirEntry.IsDir() {
 			info, err := dirEntry.Info()
@@ -560,7 +633,7 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 
 			folderMap[logicalPath] = folder
 
-			parentPath := filepath.Dir(logicalPath)
+			parentPath := slashpath.Dir(logicalPath)
 			isRootFolder := parentPath == "/" || parentPath == "."
 			if isRootFolder {
 				rootFolders = append(rootFolders, folder)
@@ -570,7 +643,7 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 				}
 			}
 		} else if strings.HasSuffix(dirEntry.Name(), MARKDOWN_FILE_ENDING) {
-			folderPath := filepath.Dir(logicalPath)
+			folderPath := slashpath.Dir(logicalPath)
 			if folderPath == "." {
 				folderPath = "/"
 			}
@@ -591,8 +664,8 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 }
 
 func (d *DocumentService) CreateFolder(path string) error {
-	if err := utils.ValidatePath(path); err != nil {
-		return errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return err
 	}
 
 	folderPath := utils.BuildFilePath(d.dataDir, path)
@@ -606,9 +679,10 @@ func (d *DocumentService) CreateFolder(path string) error {
 }
 
 func (d *DocumentService) RenameFolder(oldPath, newName string) error {
-	if err := utils.ValidatePath(oldPath); err != nil {
-		return errors.NewInvalidPathError(oldPath).WithCause(err)
+	if err := validatePath(oldPath); err != nil {
+		return err
 	}
+	oldPath = utils.NormalizePath(oldPath)
 	if oldPath == "/" {
 		return errors.NewValidationError("cannot rename root folder")
 	}
@@ -619,18 +693,18 @@ func (d *DocumentService) RenameFolder(oldPath, newName string) error {
 	if strings.Contains(newName, "/") {
 		return errors.NewValidationError("folder name cannot contain '/' character")
 	}
-
-	parentPath := filepath.Dir(oldPath)
-	newPath := utils.NormalizePath(parentPath + "/" + newName)
-
-	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
-	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
-		return errors.NewNotFoundError("folder", oldPath)
+	// The new name is a single path segment and must follow the same rules as
+	// any other path: "." / ".." or a backslash could escape the data dir, and
+	// spaces etc. would leave documents at paths that can no longer be loaded.
+	if err := utils.ValidatePath("/" + newName); err != nil {
+		return errors.NewInvalidPathError(newName).WithCause(err)
 	}
 
-	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
-	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
-		return errors.NewAlreadyExistsError("folder", newPath)
+	newPath := utils.NormalizePath(slashpath.Dir(oldPath) + "/" + newName)
+
+	oldFolderPath, newFolderPath, err := d.folderMoveTargets(oldPath, newPath)
+	if err != nil {
+		return err
 	}
 
 	if err := os.Rename(oldFolderPath, newFolderPath); err != nil {
@@ -645,22 +719,41 @@ func (d *DocumentService) RenameFolder(oldPath, newName string) error {
 		return fmt.Errorf("failed to list documents: %w", err)
 	}
 
-	var affectedDocuments []*models.Document
-	for _, document := range documents {
-		documentPath := document.MetaData.Path
-		if documentPath == oldPath || strings.HasPrefix(documentPath, oldPath+"/") {
-			affectedDocuments = append(affectedDocuments, document)
-		}
-	}
-
-	for _, document := range affectedDocuments {
-		shouldReturn, err1 := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath)
-		if shouldReturn {
-			return err1
+	for _, document := range documentsUnder(documents, oldPath) {
+		if err := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+// folderMoveTargets resolves the folders of a rename or move on disk: the
+// source must exist and the target must not.
+func (d *DocumentService) folderMoveTargets(oldPath, newPath string) (string, string, error) {
+	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
+	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
+		return "", "", errors.NewNotFoundError("folder", oldPath)
+	}
+
+	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
+	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
+		return "", "", errors.NewAlreadyExistsError("folder", newPath)
+	}
+
+	return oldFolderPath, newFolderPath, nil
+}
+
+// documentsUnder returns the documents inside folderPath, at any depth.
+func documentsUnder(documents []*models.Document, folderPath string) []*models.Document {
+	var inside []*models.Document
+	for _, document := range documents {
+		documentPath := document.MetaData.Path
+		if documentPath == folderPath || strings.HasPrefix(documentPath, folderPath+"/") {
+			inside = append(inside, document)
+		}
+	}
+	return inside
 }
 
 func (d *DocumentService) updateDocumentPath(
@@ -668,7 +761,7 @@ func (d *DocumentService) updateDocumentPath(
 	oldPath string,
 	newPath string,
 	oldFolderPath string,
-	newFolderPath string) (bool, error) {
+	newFolderPath string) error {
 
 	oldDocumentPath := document.MetaData.Path
 	newDocumentPath := strings.Replace(oldDocumentPath, oldPath, newPath, 1)
@@ -678,12 +771,12 @@ func (d *DocumentService) updateDocumentPath(
 
 	fileContent, err := os.ReadFile(newFileInNewFolder)
 	if err != nil {
-		return true, fmt.Errorf("failed to read document file at %s: %w", newFileInNewFolder, err)
+		return fmt.Errorf("failed to read document file at %s: %w", newFileInNewFolder, err)
 	}
 
 	freshDocument, err := serializer.DeserializeDocument(fileContent)
 	if err != nil {
-		return true, fmt.Errorf("failed to deserialize document: %w", err)
+		return fmt.Errorf("failed to deserialize document: %w", err)
 	}
 
 	freshDocument.MetaData.Path = utils.NormalizePath(newDocumentPath)
@@ -692,22 +785,24 @@ func (d *DocumentService) updateDocumentPath(
 
 	content, err := serializer.SerializeDocument(freshDocument)
 	if err != nil {
-		return true, fmt.Errorf("failed to serialize document: %w", err)
+		return fmt.Errorf("failed to serialize document: %w", err)
 	}
 
-	if err := os.WriteFile(newFileInNewFolder, content, 0644); err != nil {
-		return true, fmt.Errorf("failed to write updated document file: %w", err)
+	if err := utils.WriteFileAtomic(newFileInNewFolder, content, 0644); err != nil {
+		return fmt.Errorf("failed to write updated document file: %w", err)
 	}
-	return false, nil
+	return nil
 }
 
 func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
-	if err := utils.ValidatePath(oldPath); err != nil {
-		return errors.NewInvalidPathError(oldPath).WithCause(err)
+	if err := validatePath(oldPath); err != nil {
+		return err
 	}
-	if err := utils.ValidatePath(newPath); err != nil {
-		return errors.NewInvalidPathError(newPath).WithCause(err)
+	if err := validatePath(newPath); err != nil {
+		return err
 	}
+	oldPath = utils.NormalizePath(oldPath)
+	newPath = utils.NormalizePath(newPath)
 
 	if oldPath == "/" {
 		return errors.NewValidationError("cannot move root folder")
@@ -721,14 +816,9 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 		return errors.NewValidationError("cannot move folder into itself or its subdirectory")
 	}
 
-	oldFolderPath := utils.BuildFilePath(d.dataDir, oldPath)
-	if _, err := os.Stat(oldFolderPath); os.IsNotExist(err) {
-		return errors.NewNotFoundError("folder", oldPath)
-	}
-
-	newFolderPath := utils.BuildFilePath(d.dataDir, newPath)
-	if _, err := os.Stat(newFolderPath); !os.IsNotExist(err) {
-		return errors.NewAlreadyExistsError("folder", newPath)
+	oldFolderPath, newFolderPath, err := d.folderMoveTargets(oldPath, newPath)
+	if err != nil {
+		return err
 	}
 
 	parentPath := filepath.Dir(newFolderPath)
@@ -750,16 +840,8 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 		return fmt.Errorf("failed to list documents after folder move: %w", err)
 	}
 
-	var affectedDocuments []*models.Document
-	for _, document := range documents {
-		documentPath := document.MetaData.Path
-		if documentPath == oldPath || strings.HasPrefix(documentPath, oldPath+"/") {
-			affectedDocuments = append(affectedDocuments, document)
-		}
-	}
-
-	for _, document := range affectedDocuments {
-		if _, err := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
+	for _, document := range documentsUnder(documents, oldPath) {
+		if err := d.updateDocumentPath(document, oldPath, newPath, oldFolderPath, newFolderPath); err != nil {
 			if rollbackErr := os.Rename(newFolderPath, oldFolderPath); rollbackErr != nil {
 				return fmt.Errorf("failed to update document metadata AND failed to rollback: %w (rollback error: %v)",
 					err,
@@ -773,11 +855,13 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 }
 
 func (d *DocumentService) DeleteFolder(path string) error {
-	if err := utils.ValidatePath(path); err != nil {
-		return errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return err
 	}
 
-	if path == "/" {
+	// Normalise first: "//" passes ValidatePath but resolves to the data dir
+	// itself, and RemoveAll would wipe every note and the git history.
+	if utils.NormalizePath(path) == "/" {
 		return errors.NewValidationError("cannot delete root folder")
 	}
 
@@ -793,4 +877,3 @@ func (d *DocumentService) DeleteFolder(path string) error {
 
 	return nil
 }
-

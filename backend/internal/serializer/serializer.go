@@ -8,24 +8,34 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// raw file content -> Document
+// DeserializeDocument parses raw file content (YAML front matter followed by
+// the markdown body) into a Document. Both LF and CRLF line endings are
+// accepted. The single blank line that SerializeDocument writes between the
+// front matter and the body is not part of the content.
 func DeserializeDocument(fileContent []byte) (*models.Document, error) {
-	if !bytes.HasPrefix(fileContent, []byte("---\n")) {
+	newline := "\n"
+	if bytes.HasPrefix(fileContent, []byte("---\r\n")) {
+		newline = "\r\n"
+	}
+
+	opening := []byte("---" + newline)
+	if !bytes.HasPrefix(fileContent, opening) {
 		return nil, fmt.Errorf("invalid document format: missing YAML frontmatter")
 	}
 
-	// split into into metadata and content parts
-	parts := bytes.SplitN(fileContent[4:], []byte("\n---\n"), 2)
+	// split into metadata and content parts
+	separator := []byte(newline + "---" + newline)
+	parts := bytes.SplitN(fileContent[len(opening):], separator, 2)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid front matter format")
 	}
 
 	metaData, err := deserializeYAMLMetaData(parts[0])
 	if err != nil {
-		return nil, fmt.Errorf("invalid meta data")
+		return nil, fmt.Errorf("invalid meta data: %w", err)
 	}
 
-	content := deserializeContent(parts[1])
+	content := deserializeContent(bytes.TrimPrefix(parts[1], []byte(newline)))
 
 	document := &models.Document{
 		MetaData: metaData,
@@ -51,7 +61,7 @@ func deserializeContent(contentPart []byte) string {
 func SerializeDocument(document *models.Document) ([]byte, error) {
 	metaData, err := serializeMetaData(document.MetaData)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse metadata")
+		return nil, fmt.Errorf("could not serialize metadata: %w", err)
 	}
 
 	var buf bytes.Buffer

@@ -272,15 +272,15 @@ describe('keyboard-shortcuts', () => {
 		});
 
 		describe('document-specific shortcuts', () => {
-			test('navigates to edit mode on Ctrl+E when viewing document', () => {
+			test('leaves Ctrl+E to the document view (in-place read/edit toggle)', () => {
 				const page = createMockPage('/documents/test-doc');
 				const handler = createKeyboardShortcutHandler(page, handlers);
 				const event = createKeyboardEvent('e', { ctrlKey: true });
 
 				handler(event as unknown as KeyboardEvent);
 
-				expect(event.preventDefault).toHaveBeenCalled();
-				expect(goto).toHaveBeenCalledWith('/edit/test-doc');
+				expect(event.preventDefault).not.toHaveBeenCalled();
+				expect(goto).not.toHaveBeenCalled();
 			});
 
 			test('dispatches delete event on Ctrl+Alt+D when viewing document', () => {
@@ -359,7 +359,7 @@ describe('keyboard-shortcuts', () => {
 					'Cmd/Ctrl + Alt + F': 'Create new folder'
 				},
 				document: {
-					'Cmd/Ctrl + E': 'Edit current document',
+					'Cmd/Ctrl + E': 'Switch between reading and editing',
 					'Cmd/Ctrl + S': 'Save document (silent save in editor)',
 					'Cmd/Ctrl + Alt + D': 'Delete current document',
 					'Cmd/Ctrl + J': 'Download current document'

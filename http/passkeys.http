@@ -37,6 +37,7 @@ POST {{apiUrl}}/passkeys/authenticate/begin
 # => 200 { "options": {...}, "sessionId": "..." }
 
 ### Finish authentication (public) — `response` must come from navigator.credentials.get()
+# @name authFinish
 POST {{apiUrl}}/passkeys/authenticate/finish
 Content-Type: application/json
 
@@ -49,14 +50,17 @@ Content-Type: application/json
 GET {{apiUrl}}/passkeys/status
 # => 200 { "hasPasskeys": ..., "isUnlocked": ..., "requiresPassword": ... }
 
-### Unlock the encrypted secret store with a passkey credential
+### Unlock the encrypted secret store with a fresh passkey assertion
+### Needs the single-use authTicket (60s) from authenticate/finish above; a bare
+### credential ID is rejected. With auth on, the passkey must be your own (403).
 POST {{apiUrl}}/passkeys/unlock
 Content-Type: application/json
 
 {
-  "credentialId": "{{credentialId}}"
+  "authTicket": "{{authFinish.response.body.authTicket}}"
 }
 # => 200 { "message": "Secret store unlocked successfully" }
+# => 400 without authTicket, 401 unknown/used/expired ticket
 
 ### List the current user's passkeys (requires auth)
 GET {{apiUrl}}/passkeys

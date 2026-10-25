@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -29,16 +28,24 @@ func (h *APIHandler) toShareResponse(share services.ShareToken) ShareResponse {
 		DocumentPath: share.DocumentPath,
 		Token:        share.Token,
 		ShareURL:     h.Config.FrontendURL + "/share/" + share.Token,
-		CreatedAt:    share.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		ExpiresAt:    share.ExpiresAt.Format("2006-01-02T15:04:05Z"),
+		CreatedAt:    share.CreatedAt.Format(apiTimeFormat),
+		ExpiresAt:    share.ExpiresAt.Format(apiTimeFormat),
 		CreatedBy:    share.CreatedBy,
 	}
 }
 
+// shareOwner returns whose shares the request manages: the signed-in user, or
+// "anonymous" when auth is disabled.
+func (h *APIHandler) shareOwner(c *gin.Context) (string, bool) {
+	if !h.Config.AuthEnabled {
+		return "anonymous", true
+	}
+	return requireUser(c)
+}
+
 func (h *APIHandler) createShare(c *gin.Context) {
 	var req CreateShareRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -58,9 +65,8 @@ func (h *APIHandler) createShare(c *gin.Context) {
 }
 
 func (h *APIHandler) getSharedDocument(c *gin.Context) {
-	token := c.Param("token")
-	if token == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("token"))
+	token, ok := requiredParam(c, "token")
+	if !ok {
 		return
 	}
 
@@ -74,14 +80,9 @@ func (h *APIHandler) getSharedDocument(c *gin.Context) {
 }
 
 func (h *APIHandler) listShares(c *gin.Context) {
-	username := "anonymous"
-	if h.Config.AuthEnabled {
-		u, ok := currentUser(c)
-		if !ok {
-			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
-			return
-		}
-		username = u
+	username, ok := h.shareOwner(c)
+	if !ok {
+		return
 	}
 
 	shares, err := h.ShareService.ListShares(username)
@@ -102,20 +103,14 @@ func (h *APIHandler) listShares(c *gin.Context) {
 }
 
 func (h *APIHandler) revokeShare(c *gin.Context) {
-	shareID := c.Param("id")
-	if shareID == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("id"))
+	shareID, ok := requiredParam(c, "id")
+	if !ok {
 		return
 	}
 
-	username := "anonymous"
-	if h.Config.AuthEnabled {
-		u, ok := currentUser(c)
-		if !ok {
-			HandleError(c, errors.NewUnauthorizedError("Authentication required"))
-			return
-		}
-		username = u
+	username, ok := h.shareOwner(c)
+	if !ok {
+		return
 	}
 
 	err := h.ShareService.RevokeShare(shareID, username)

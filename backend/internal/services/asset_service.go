@@ -9,10 +9,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
@@ -91,7 +93,7 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 	// strip it before matching against the allowlist.
 	sniffedType, _, _ := strings.Cut(http.DetectContentType(header), ";")
 	if !allowedSniffedTypes[sniffedType] {
-		return nil, fmt.Errorf("file content is not a supported image type: %s", sniffedType)
+		return nil, errors.NewValidationError(fmt.Sprintf("file content is not a supported image type: %s", sniffedType))
 	}
 
 	// Reassemble the full stream: the sniffed header bytes followed by the rest.
@@ -112,42 +114,63 @@ func (s *AssetService) UploadImage(file *multipart.FileHeader) (*models.Asset, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to create destination file: %w", err)
 	}
-	defer dst.Close()
 
 	// Bound the copy so a lying Content-Length can't write an oversized file.
 	// Read one byte past the limit so we can detect (and reject) an overflow.
 	limited := io.LimitReader(fullSrc, MAX_IMAGE_SIZE+1)
 	size, err := io.Copy(dst, limited)
 	if err != nil {
+		_ = dst.Close()
+		_ = os.Remove(destPath)
 		return nil, fmt.Errorf("failed to save file: %w", err)
 	}
 	if size > MAX_IMAGE_SIZE {
 		// Remove the partial/oversized file we just started writing.
 		_ = dst.Close()
 		_ = os.Remove(destPath)
-		return nil, fmt.Errorf("file too large: exceeds max %d bytes", MAX_IMAGE_SIZE)
+		return nil, errors.NewValidationError(fmt.Sprintf("file too large: exceeds max %d bytes", MAX_IMAGE_SIZE))
+	}
+	if err := dst.Close(); err != nil {
+		_ = os.Remove(destPath)
+		return nil, fmt.Errorf("failed to save file: %w", err)
 	}
 
 	asset := &models.Asset{
 		Name:         filename,
 		OriginalName: file.Filename,
-		Path:         filepath.Join("/", ASSETS_DIR, IMAGES_DIR, filename),
-		Size:         size,
-		ContentType:  file.Header.Get("Content-Type"),
-		Created:      time.Now(),
+		// Path is a URL path, so it is always slash-joined (filepath.Join would
+		// produce backslashes on Windows).
+		Path: path.Join("/", ASSETS_DIR, IMAGES_DIR, filename),
+		Size: size,
+		// Report the type sniffed from the bytes, not the client's header.
+		ContentType: sniffedType,
+		Created:     time.Now(),
 	}
 
 	return asset, nil
 }
 
+// GetAssetPath resolves a logical asset path such as "/assets/images/x.png"
+// to its file on disk. Only paths inside the assets directory are accepted, so
+// this can never be used to read or delete notes or the .schist/ stores.
 func (s *AssetService) GetAssetPath(relativePath string) (string, error) {
 	fullPath, err := utils.SafeFilePath(s.dataDir, relativePath)
 	if err != nil {
-		return "", err
+		return "", errors.NewInvalidPathError(relativePath).WithCause(err)
+	}
+	if !strings.HasPrefix(relativePath, "/"+ASSETS_DIR+"/") {
+		return "", errors.NewInvalidPathError(relativePath)
 	}
 
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("asset not found: %s", relativePath)
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", errors.NewNotFoundError("asset", relativePath)
+		}
+		return "", fmt.Errorf("failed to access asset %s: %w", relativePath, err)
+	}
+	if info.IsDir() {
+		return "", errors.NewNotFoundError("asset", relativePath)
 	}
 
 	return fullPath, nil
@@ -168,17 +191,17 @@ func (s *AssetService) DeleteAsset(relativePath string) error {
 
 func (s *AssetService) validateImageFile(file *multipart.FileHeader) error {
 	if file.Size > MAX_IMAGE_SIZE {
-		return fmt.Errorf("file too large: %d bytes (max %d bytes)", file.Size, MAX_IMAGE_SIZE)
+		return errors.NewValidationError(fmt.Sprintf("file too large: %d bytes (max %d bytes)", file.Size, MAX_IMAGE_SIZE))
 	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	if !allowedExtensions[ext] {
-		return fmt.Errorf("unsupported file extension: %s", ext)
+		return errors.NewValidationError(fmt.Sprintf("unsupported file extension: %s", ext))
 	}
 
 	contentType := file.Header.Get("Content-Type")
 	if !allowedImageTypes[contentType] {
-		return fmt.Errorf("unsupported content type: %s", contentType)
+		return errors.NewValidationError(fmt.Sprintf("unsupported content type: %s", contentType))
 	}
 
 	return nil

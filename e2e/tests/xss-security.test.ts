@@ -1,4 +1,37 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
+import { DocumentViewPage } from '../pages/DocumentViewPage';
+import { SharedDocumentPage } from '../pages/SharedDocumentPage';
+import { EditorPage } from '../pages/EditorPage';
+
+/**
+ * Type `content` into a fresh editor opened from the home page's "New Document"
+ * button. Saving is left to the caller (the preview test never saves).
+ */
+async function typeIntoNewDocument(page: Page, content: string) {
+	await page.getByTestId('create-document').click();
+	const editor = new EditorPage(page);
+	await editor.verifyLoaded();
+	await editor.setContent(content);
+}
+
+async function createDocument(page: Page, content: string) {
+	await typeIntoNewDocument(page, content);
+	await page.getByTestId('save-document-button').click();
+	await expect(page.getByTestId('document-view')).toBeVisible();
+}
+
+/**
+ * Wait until the rendered content shows `anchor` (benign text from the same
+ * document), *then* snapshot its HTML. Every negative assertion below runs
+ * against this snapshot, so without the positive anchor a not-yet-rendered (or
+ * empty) container would make "does not contain <script>" pass trivially.
+ */
+async function renderedHtml(page: Page, testId: string, anchor: string): Promise<string> {
+	const container = page.getByTestId(testId);
+	await expect(container).toContainText(anchor);
+	return container.innerHTML();
+}
 
 test.describe('XSS Security Protection', () => {
 	test.beforeEach(async ({ page }) => {
@@ -14,25 +47,9 @@ This is a test with malicious content:
 
 Some normal content here.`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, `# XSS Test Document\n\n${maliciousContent}`);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-
-		// Create content with title and malicious content
-		const fullContent = `# XSS Test Document\n\n${maliciousContent}`;
-		// Type the content using pressSequentially for CodeMirror compatibility
-		await contentEditor.pressSequentially(fullContent);
-
-		await page.locator('[data-testid="save-document-button"]').click();
-
-		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
-
-		const content = await page.locator('[data-testid="document-content"]').first().innerHTML();
+		const content = await renderedHtml(page, 'document-content', 'Some normal content here');
 		expect(content).not.toContain('<script>');
 		expect(content).not.toContain('alert(');
 		expect(content).toContain('Some normal content here');
@@ -47,25 +64,9 @@ Some normal content here.`;
 
 Normal content after image.`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, `# Image XSS Test\n\n${maliciousContent}`);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-
-		// Create content with title and malicious content
-		const fullContent = `# Image XSS Test\n\n${maliciousContent}`;
-		// Type the content using pressSequentially for CodeMirror compatibility
-		await contentEditor.pressSequentially(fullContent);
-
-		await page.locator('[data-testid="save-document-button"]').click();
-
-		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
-
-		const content = await page.locator('[data-testid="document-content"]').first().innerHTML();
+		const content = await renderedHtml(page, 'document-content', 'Normal content after image');
 		expect(content).not.toContain('onclick=');
 		expect(content).not.toContain('alert(');
 		expect(content).toContain('img');
@@ -83,25 +84,13 @@ Normal content after image.`;
 
 <a href="javascript:alert('Link XSS')">Dangerous link</a>`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, `# Attribute XSS Test\n\n${maliciousContent}`);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-
-		// Create content with title and malicious content
-		const fullContent = `# Attribute XSS Test\n\n${maliciousContent}`;
-		// Type the content using pressSequentially for CodeMirror compatibility
-		await contentEditor.pressSequentially(fullContent);
-
-		await page.locator('[data-testid="save-document-button"]').click();
-
-		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
-
-		const content = await page.locator('[data-testid="document-content"]').first().innerHTML();
+		const content = await renderedHtml(
+			page,
+			'document-content',
+			'This div has dangerous attributes'
+		);
 		expect(content).not.toContain('onload=');
 		expect(content).not.toContain('onmouseover=');
 		expect(content).not.toContain('onclick=');
@@ -140,24 +129,13 @@ function safeCode() {
 
 Final paragraph.`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, safeContent);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-		// Type the content using pressSequentially for CodeMirror compatibility (content already includes title)
-		await contentEditor.pressSequentially(safeContent);
+		const content = page.getByTestId('document-content');
 
-		await page.locator('[data-testid="save-document-button"]').click();
-
-		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
-
-		const content = page.locator('[data-testid="document-content"]').first();
-
-		await expect(content.locator('h1')).toContainText('Safe Markdown Test');
+		// The leading `# Safe Markdown Test` becomes the title, shown in the header (the
+		// document view doesn't repeat it in the body).
+		await expect(page.getByTestId('document-title')).toContainText('Safe Markdown Test');
 		await expect(content.locator('h2')).toContainText('Subheading');
 		await expect(content.locator('strong')).toContainText('Bold text');
 		await expect(content.locator('em')).toContainText('italic text');
@@ -177,20 +155,10 @@ Final paragraph.`;
 <img src="x" onerror="alert('Preview Image XSS')" />
 <div onclick="alert('Preview Click XSS')">Click me</div>`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await typeIntoNewDocument(page, maliciousContent);
+		await page.getByTestId('preview-mode-button').click();
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-		// Type the content using pressSequentially for CodeMirror compatibility
-		await contentEditor.pressSequentially(maliciousContent);
-
-		await expect(page.locator('[data-testid="markdown-preview"]')).toBeVisible();
-
-		const previewContent = await page.locator('[data-testid="markdown-preview"]').innerHTML();
+		const previewContent = await renderedHtml(page, 'markdown-preview', 'Click me');
 		expect(previewContent).not.toContain('<script>');
 		expect(previewContent).not.toContain('onerror=');
 		expect(previewContent).not.toContain('onclick=');
@@ -210,37 +178,22 @@ Final paragraph.`;
 
 Normal content to verify rendering works.`;
 
-		// Create document first
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, maliciousContent);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-		// Type the content using pressSequentially for CodeMirror compatibility (content already includes title)
-		await contentEditor.pressSequentially(maliciousContent);
-		await page.locator('[data-testid="save-document-button"]').click();
+		// Share it, then open the public share page.
+		const shareUrl = await new DocumentViewPage(page).createShareLink();
+		await new SharedDocumentPage(page).navigateToShareUrl(shareUrl);
 
-		// Create a share link
-		await page.locator('[data-testid="share-document-button"]').click();
-		await page.locator('[data-testid="create-share-link"]').click();
-
-		const shareUrl = await page.locator('[data-testid="share-url"]').textContent();
-
-		if (shareUrl) {
-			// Visit shared document
-			await page.goto(shareUrl);
-
-			const content = await page.locator('[data-testid="shared-document-content"]').innerHTML();
-			expect(content).not.toContain('<script>');
-			expect(content).not.toContain('<iframe');
-			expect(content).not.toContain('<object');
-			expect(content).not.toContain('<embed');
-			expect(content).not.toContain('javascript:');
-			expect(content).toContain('Normal content to verify rendering works');
-		}
+		const content = await renderedHtml(
+			page,
+			'shared-document-content',
+			'Normal content to verify rendering works'
+		);
+		expect(content).not.toContain('<script>');
+		expect(content).not.toContain('<iframe');
+		expect(content).not.toContain('<object');
+		expect(content).not.toContain('<embed');
+		expect(content).not.toContain('javascript:');
 	});
 
 	test('should handle malicious CSS injection attempts', async ({ page }) => {
@@ -255,22 +208,9 @@ Normal content to verify rendering works.`;
 
 <p style="color: red; font-size: 16px;">Safe inline CSS</p>`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, maliciousContent);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-		// Type the content using pressSequentially for CodeMirror compatibility (content already includes title)
-		await contentEditor.pressSequentially(maliciousContent);
-
-		await page.locator('[data-testid="save-document-button"]').click();
-
-		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
-
-		const content = await page.locator('[data-testid="document-content"]').first().innerHTML();
+		const content = await renderedHtml(page, 'document-content', 'Safe inline CSS');
 		expect(content).not.toContain('<style>');
 		expect(content).not.toContain('javascript:');
 		expect(content).toContain('Safe inline CSS');
@@ -287,22 +227,9 @@ Normal content to verify rendering works.`;
 
 Regular content here.`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, maliciousContent);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-		// Type the content using pressSequentially for CodeMirror compatibility (content already includes title)
-		await contentEditor.pressSequentially(maliciousContent);
-
-		await page.locator('[data-testid="save-document-button"]').click();
-
-		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
-
-		const content = await page.locator('[data-testid="document-content"]').first().innerHTML();
+		const content = await renderedHtml(page, 'document-content', 'Regular content here');
 		// Verify malicious elements are neutralized or removed
 		expect(content).not.toContain('<iframe');
 		expect(content).not.toContain('<object');
@@ -350,25 +277,14 @@ interface User {
 > This is a blockquote
 > with multiple lines`;
 
-		await page.locator('[data-testid="create-document"]').click();
+		await createDocument(page, complexMarkdown);
 
-		// Use CodeMirror editor properly - wait for it to load and clear default content
-		const contentEditor = page.locator('.cm-editor .cm-content').first();
-		await contentEditor.click();
-		// Clear any existing content first
-		await page.keyboard.press('Control+a');
-		await page.keyboard.press('Delete');
-		// Type the content using pressSequentially for CodeMirror compatibility (content already includes title)
-		await contentEditor.pressSequentially(complexMarkdown);
-
-		await page.locator('[data-testid="save-document-button"]').click();
-
-		await expect(page.locator('[data-testid="document-view"]')).toBeVisible();
-
-		const content = page.locator('[data-testid="document-content"]').first();
+		const content = page.getByTestId('document-content');
 
 		// Verify key content exists (structure may be affected by markdown parsing issues)
-		await expect(content.locator('h1')).toContainText('Complex Markdown Test');
+		// The leading `# Complex Markdown Test` becomes the title, shown in the header (the
+		// document view doesn't repeat it in the body).
+		await expect(page.getByTestId('document-title')).toContainText('Complex Markdown Test');
 		await expect(content.locator('h2').first()).toContainText('Code Blocks');
 
 		// Check for code content (may not be in perfect pre/code structure)

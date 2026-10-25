@@ -71,7 +71,7 @@ schist-wiki/
 - File validation and error handling
 
 #### 2. Markdown Editor
-- Live preview with split-pane view
+- One pane that toggles between the rendered page and its markdown (no split view)
 - Syntax highlighting
 - Auto-save functionality
 - Keyboard shortcuts (Ctrl+S, Ctrl+B, etc.)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseError, isNotFoundError, type APIErrorResponse } from './error';
+import { parseError, isNotFoundError, getErrorMessage, type APIErrorResponse } from './error';
 
 describe('parseError', () => {
 	it('should parse API error responses correctly', () => {
@@ -163,5 +163,31 @@ describe('error type checkers', () => {
 	it('should identify not found errors', () => {
 		expect(isNotFoundError({ code: 'RESOURCE_NOT_FOUND' as const })).toBe(true);
 		expect(isNotFoundError({ code: 'VALIDATION_ERROR' as const })).toBe(false);
+	});
+});
+
+describe('getErrorMessage', () => {
+	it('returns the envelope text for API client errors instead of raw JSON', () => {
+		const error = new Error(
+			JSON.stringify({ error: 'Folder name is invalid', code: 'VALIDATION_ERROR' })
+		);
+		expect(getErrorMessage(error, 'fallback')).toBe('Folder name is invalid');
+	});
+
+	it('falls back when the envelope has an empty message', () => {
+		const error = new Error(JSON.stringify({ error: '', code: 'INTERNAL_ERROR' }));
+		expect(getErrorMessage(error, 'fallback')).toBe('fallback');
+	});
+
+	it('returns plain error messages unchanged', () => {
+		expect(getErrorMessage(new Error('Copy failed: denied'), 'fallback')).toBe(
+			'Copy failed: denied'
+		);
+		expect(getErrorMessage(new Error('{not json'), 'fallback')).toBe('{not json');
+	});
+
+	it('returns the fallback for non-Error values', () => {
+		expect(getErrorMessage('boom', 'fallback')).toBe('fallback');
+		expect(getErrorMessage(undefined, 'fallback')).toBe('fallback');
 	});
 });

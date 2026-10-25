@@ -1,76 +1,82 @@
 # CI / CD
 
 GitHub Actions workflows live in [`.github/workflows`](../.github/workflows). This
-doc covers how they run, how to switch runners, and how minute usage is kept down.
+doc covers what runs, where the image is published, and how to use your own runner.
 
 ## Workflows
 
 | Workflow | File | Triggers (paths) | Purpose |
 |----------|------|------------------|---------|
-| Build | `build.yml` | backend, frontend, Dockerfile, docker-compose, Makefile | `make build` + a Docker image build/health-check |
+| Build | `build.yml` | backend, frontend, Dockerfile, docker-compose, Makefile | `make build` |
 | Backend Tests | `test-backend.yml` | `backend/**` | `go test ./...` |
-| Frontend Tests | `test-frontend.yml` | `frontend/**` | Vitest unit tests, lint, `svelte-check` |
-| E2E Tests | `e2e.yml` | backend, frontend, `e2e/**`, Dockerfile, docker-compose | Playwright suite against the Dockerised app |
-| Secret Scan | `secret-scan.yml` | all changes | gitleaks (via `make secret-scan`) |
-| Build and Push Docker Image | `docker-publish.yml` | push to `main` touching backend/frontend/Docker | Publishes `ghcr.io/<repo>:latest` (VPS auto-pulls) |
+| Frontend Tests | `test-frontend.yml` | `frontend/**` | Vitest unit tests, lint, `svelte-check` (inside the Playwright image) |
+| E2E Tests | `e2e.yml` | backend, frontend, `e2e/**`, Dockerfile, docker-compose | Playwright suite against the Dockerised app, split into 2 shards (`e2e (1/2)`, `e2e (2/2)`), each on its own GitHub-hosted runner with its own backend. The image build reads a GitHub Actions layer cache (`scope=schist-image`) that only the Docker workflow on `main` writes (PRs can read `main`'s cache, not each other's) |
+| Secret Scan | `secret-scan.yml` | all changes | gitleaks over the full history (via `make secret-scan`) |
+| Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose | Build + smoke-test the image on PRs; on push to `main`, publish the tested image |
 
-All jobs run on `${{ vars.RUNS_ON || 'ubuntu-latest' }}` (see below).
+## Coverage (Codecov)
 
-## Switching runners (GitHub-hosted ↔ self-hosted)
+Backend Tests and Frontend Tests upload coverage to [Codecov](https://about.codecov.io/)
+with the flags `backend` (`go test -coverprofile`) and `frontend` (Vitest v8 coverage
+as lcov (`lcovonly`), copied out of the Playwright container). `codecov.yml` keeps the status
+checks **informational**, so coverage never blocks a merge, and uses carryforward
+because each side only runs when its own paths change.
 
-The runner is controlled by a single **repository variable** `RUNS_ON`
-(Settings → Secrets and variables → Actions → Variables).
+Uploads from `main` and same-repo branches use the `CODECOV_TOKEN` repository
+secret; fork PRs upload tokenless. A failed upload never fails the job.
 
-| Goal | `RUNS_ON` value |
-|------|-----------------|
-| GitHub-hosted (default) | leave the variable **unset** (falls back to `ubuntu-latest`) — or set it to `ubuntu-latest` exactly |
-| Self-hosted | set to your runner's label, e.g. `self-hosted` |
+Locally: `cd backend && go test -cover ./...`, or
+`cd frontend && npm run test:unit -- --coverage` (report in `frontend/coverage/`).
 
-> The hosted label is `ubuntu-latest` (hyphen, not underscore). An invalid value
-> leaves jobs queued forever because no runner matches it.
+## Published image
 
-No code changes or commits are needed to switch — update the variable and the next
-run picks it up.
+On every push to `main` that changes the image, `docker.yml` pushes the exact
+image that passed the smoke test to the GitHub Container Registry:
 
-### ⚠️ Security
-Only point `RUNS_ON` at a self-hosted runner while the repository is **private**.
-On a public repo, a pull request from a fork can execute arbitrary code on a
-self-hosted runner. If you make the repo public, remove `RUNS_ON` and stay on
-GitHub-hosted (public repos get unlimited free Actions minutes).
+- `ghcr.io/morrismorrison/schist:latest`
+- `ghcr.io/morrismorrison/schist:main-<short-sha>` (pin this for reproducible deploys)
 
-### Self-hosted runner prerequisites
-Add the runner under Settings → Actions → Runners → "New self-hosted runner".
-The host must have, for all jobs to pass:
+A manual run (`workflow_dispatch`) can publish an extra tag. The job logs in with
+the built-in `GITHUB_TOKEN` (`packages: write`), so no registry secret is needed.
 
-- **Docker** (daemon running) — used by the e2e, build, and docker-publish jobs
-- **Node.js 22** and **npm**
-- **Go 1.23**
+## Runners
+
+All jobs except e2e use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. With the
+repository variable `RUNS_ON` **unset**, everything runs on GitHub-hosted
+runners, which are free for public repositories. That's the default and the
+recommended setup.
+
+### Using a self-hosted runner (private forks only)
+
+> [!WARNING]
+> Never point `RUNS_ON` at a self-hosted runner on a **public** repository. A pull
+> request from a fork can run arbitrary code on that machine.
+
+In a private fork you can set `RUNS_ON` (Settings → Secrets and variables →
+Actions → Variables) to your runner's label. The hosted label is `ubuntu-latest`
+(hyphen, not underscore); an invalid value leaves jobs queued forever.
+
+The workflows already work on a Docker-out-of-Docker runner: the Docker smoke
+test and the frontend/e2e browser jobs talk over run-unique Docker networks and
+`docker cp` code into containers instead of relying on published ports, bind
+mounts or the `container:` job key. The host needs:
+
+- **Docker** (daemon running)
+- **Go 1.25** and **Node.js 24** with npm
 - **make**, `curl`, `openssl`, `git`
 
-## Minute usage controls
+Don't run `playwright install` on a shared runner host: browser jobs run inside
+the `mcr.microsoft.com/playwright` image, whose version must match the
+`playwright` / `@playwright/test` dependencies.
 
-The repo is private, so GitHub-hosted runs draw from the monthly free minute
-allowance. Three mechanisms keep usage down:
+## Keeping runs cheap
 
-1. **Concurrency** — each workflow uses
-   `group: ${{ github.workflow }}-${{ github.ref }}` with
-   `cancel-in-progress: true`. Pushing new commits to a PR cancels its previous
-   run, and merging several PRs to `main` in quick succession cancels the
-   superseded runs so only the latest commit builds.
-2. **Path filters** — backend-only changes don't run frontend tests (and vice
-   versa); docs-only changes don't trigger build/test/e2e; `docker-publish` only
-   rebuilds the image when image inputs change.
-3. **Gated heavy jobs** — the expensive e2e and Docker jobs are scoped to the
-   paths that actually affect them.
+1. **Concurrency.** Each workflow uses `group: ${{ github.workflow }}-${{ github.ref }}`
+   with `cancel-in-progress: true`, so a new push cancels the previous run on the
+   same branch.
+2. **Path filters.** Backend-only changes don't run frontend tests (and vice
+   versa); docs-only changes don't trigger build/test/e2e/Docker.
 
 > Because heavy workflows are path-filtered, a docs-only PR won't run them. If any
-> of these are later made *required* status checks, account for the "skipped
-> required check" case (e.g. a lightweight always-runs guard job).
-
-## Alternatives if minutes run out
-
-- **Make the repo public** → unlimited free GitHub-hosted minutes.
-- **Self-hosted runner** (above) → free compute on your own hardware.
-- **Self-hosted CI** (Gitea/Forgejo Actions are largely compatible with these
-  YAMLs; Woodpecker CI is another lightweight option).
-- **Raise the spending limit** for metered minutes.
+> of these become *required* status checks, account for the "skipped required
+> check" case (e.g. a lightweight always-runs guard job).

@@ -131,6 +131,17 @@ make e2e
 cd e2e && npx playwright test document-creation
 ```
 
+**README screenshots:**
+```bash
+# Builds the frontend, runs the backend with `go run` against a throwaway demo wiki
+# (auth off) and writes docs/screenshots/<screen>-<light|dark>.png
+make screenshots
+```
+The capture lives in `e2e/readme-screenshots/` (demo content in `demo-wiki.ts`) with its own
+`e2e/playwright.screenshots.config.ts`. The **README Screenshots** workflow runs it on PRs that
+touch the frontend (the images are uploaded as an artifact) and, on `main`, force-pushes them to
+the `screenshots` branch that the README links to. Nothing is committed to `main`.
+
 **API Testing:**
 Use HTTP files in `/http` directory with VS Code REST Client:
 1. Install REST Client extension

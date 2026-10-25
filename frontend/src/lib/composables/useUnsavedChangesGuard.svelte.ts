@@ -12,9 +12,13 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions) {
 	let pendingNavigation: Navigation | null = $state(null);
 	let showModal = $state(false);
 	let isSaving = $state(false);
+	// Set while Discard navigates away: goto() runs beforeNavigate again, and the
+	// changes are still "dirty", so without this the guard would cancel it too.
+	let discarding = false;
 
 	// Set up navigation interception
 	beforeNavigate((navigation) => {
+		if (discarding) return;
 		// Only intercept if there are unsaved changes
 		if (options.isDirty()) {
 			navigation.cancel();
@@ -79,7 +83,12 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions) {
 
 		// Use goto to navigate to the target URL
 		if (pendingNavigation.to?.url) {
-			await goto(pendingNavigation.to.url);
+			discarding = true;
+			try {
+				await goto(pendingNavigation.to.url);
+			} finally {
+				discarding = false;
+			}
 		}
 		pendingNavigation = null;
 	}

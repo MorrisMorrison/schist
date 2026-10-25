@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '$lib/utils/date';
 	import { onMount } from 'svelte';
 	import { passkeyStore } from '$lib/stores/passkeys.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -19,10 +20,14 @@
 	let showSetupModal = $state(false);
 	let deletingPasskey: string | null = $state(null);
 
-	onMount(() => {
-		passkeyStore.loadStatus();
-		passkeyStore.loadPasskeys();
-	});
+	// Load failures are shown through passkeyStore.error; swallow the rethrown
+	// rejection so it doesn't surface as an unhandled promise rejection.
+	function reload() {
+		passkeyStore.loadStatus().catch(() => {});
+		passkeyStore.loadPasskeys().catch(() => {});
+	}
+
+	onMount(reload);
 
 	async function handleDeletePasskey(passkey: { id: string; name: string }) {
 		if (!confirm(`Delete passkey "${passkey.name}"? This cannot be undone.`)) {
@@ -40,21 +45,9 @@
 		}
 	}
 
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
-
 	function handleSetupSuccess() {
 		showSetupModal = false;
-
-		passkeyStore.loadStatus();
-		passkeyStore.loadPasskeys();
+		reload();
 	}
 </script>
 
@@ -105,7 +98,7 @@
 										<span class="text-sm font-medium">{passkey.name}</span>
 									</div>
 									<p class="text-muted-foreground mt-1 text-xs">
-										Created {formatDate(passkey.createdAt)}
+										Created {formatDateTime(passkey.createdAt)}
 									</p>
 								</div>
 								<Button

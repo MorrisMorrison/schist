@@ -1,249 +1,229 @@
 import { test, expect } from '../fixtures';
-import { createTestDocument } from '../utils/test-data';
 
 test.describe.serial('Search Integration with Folder Tree', () => {
-	test('should filter folder tree by text query', async ({ folderPage, page }) => {
-		// Search test data is created by the fixture
+	test('should filter folder tree by text query', async ({ folderPage, apiHelper, testId }) => {
+		// Seed documents this test asserts on (the folder-tree filter matches page titles).
+		await apiHelper.seedDocument({
+			title: `Searchable Content ${testId}`,
+			path: `/searchable-content-${testId}`,
+			tags: ['searchable']
+		});
+		await apiHelper.seedDocument({
+			title: `Nested Searchable ${testId}`,
+			path: `/nested-searchable-${testId}`,
+			tags: ['searchable']
+		});
+		await apiHelper.seedDocument({
+			title: `Different Title ${testId}`,
+			path: `/different-title-${testId}`,
+			tags: ['other']
+		});
 
 		// Navigate to root to see full tree
 		await folderPage.navigateToRoot();
 
 		// Use unified search box
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
+		await expect(searchInput).toBeVisible();
 
-		if (await searchInput.isVisible()) {
-			// Search for specific text that exists in our fixture data
-			await searchInput.fill('searchable');
-			// Wait for search results to update
-			await expect(folderTree.getByText('Searchable Content')).toBeVisible();
+		// Search for specific text that exists in our seeded data (matched against page title)
+		await searchInput.fill('searchable');
 
-			// Should show pages with "searchable" in title or content
-			await expect(folderTree.getByText('Searchable Content')).toBeVisible();
-			await expect(folderTree.getByText('Nested Searchable')).toBeVisible();
+		// Should show pages with "searchable" in the title
+		await expect(folderTree.getByText('Searchable Content')).toBeVisible();
+		await expect(folderTree.getByText('Nested Searchable')).toBeVisible();
 
-			// Should hide pages without matching text
-			const nonMatchingPage = folderTree.getByText('Different Title');
-			const isNonMatchingVisible = await nonMatchingPage.isVisible().catch(() => false);
-			expect(isNonMatchingVisible).toBe(false);
+		// Should hide pages without matching text
+		await expect(folderTree.getByText('Different Title')).toHaveCount(0);
 
-			// Clear search
-			await searchInput.clear();
-			// Wait for all content to be visible again
-			await expect(folderTree.getByText('Different Title')).toBeVisible();
+		// Clear search
+		await searchInput.clear();
 
-			// All items should be visible again
-			await expect(folderTree.getByText('Different Title')).toBeVisible();
-		}
+		// All items should be visible again
+		await expect(folderTree.getByText('Different Title')).toBeVisible();
 	});
 
-	test('should filter folder tree by tag query', async ({ folderPage, page }) => {
-		// Search test data is created by the fixture
+	test('should filter folder tree by tag query', async ({ folderPage, apiHelper, testId }) => {
+		await apiHelper.seedDocument({
+			title: `Important Document ${testId}`,
+			path: `/important-document-${testId}`,
+			tags: ['important']
+		});
+		await apiHelper.seedDocument({
+			title: `Draft Content ${testId}`,
+			path: `/draft-content-${testId}`,
+			tags: ['draft']
+		});
+		await apiHelper.seedDocument({
+			title: `Project Alpha ${testId}`,
+			path: `/project-alpha-${testId}`,
+			tags: ['project-alpha']
+		});
+		await apiHelper.seedDocument({
+			title: `Project Beta ${testId}`,
+			path: `/project-beta-${testId}`,
+			tags: ['project-beta']
+		});
 
 		await folderPage.navigateToRoot();
 
 		// Use tag search
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
+		await expect(searchInput).toBeVisible();
 
-		if (await searchInput.isVisible()) {
-			// Search for pages with specific tag
-			await searchInput.fill('tag:important');
-			// Wait for filtered results to appear
-			await expect(folderTree.getByText('Important Document')).toBeVisible();
+		// Search for pages with specific tag
+		await searchInput.fill('tag:important');
 
-			// Should show only pages with "important" tag
-			await expect(folderTree.getByText('Important Document')).toBeVisible();
+		// Should show only pages with "important" tag
+		await expect(folderTree.getByText('Important Document')).toBeVisible();
 
-			// Should hide pages without the tag
-			const nonMatchingPages = [
-				folderTree.getByText('Draft Content'),
-				folderTree.getByText('Project Alpha')
-			];
+		// Should hide pages without the tag
+		await expect(folderTree.getByText('Draft Content')).toHaveCount(0);
+		await expect(folderTree.getByText('Project Alpha')).toHaveCount(0);
 
-			for (const pageElement of nonMatchingPages) {
-				const isVisible = await pageElement.isVisible().catch(() => false);
-				expect(isVisible).toBe(false);
-			}
+		// Test project tag search (prefix match: should match both project-alpha and project-beta)
+		await searchInput.fill('tag:project');
+		await expect(folderTree.getByText('Project Alpha')).toBeVisible();
+		await expect(folderTree.getByText('Project Beta')).toBeVisible();
 
-			// Test project tag search (should match both project-alpha and project-beta)
-			await searchInput.fill('tag:project');
-			// Wait for matching pages to be visible
-			await expect(folderTree.getByText('Project Alpha')).toBeVisible();
-			await expect(folderTree.getByText('Project Beta')).toBeVisible();
-
-			// Should show both pages with project tags
-			await expect(folderTree.getByText('Project Alpha')).toBeVisible();
-			await expect(folderTree.getByText('Project Beta')).toBeVisible();
-
-			// Should hide non-project pages
-			const nonProjectPage = folderTree.getByText('Draft Content');
-			const isNonProjectVisible = await nonProjectPage.isVisible().catch(() => false);
-			expect(isNonProjectVisible).toBe(false);
-		}
+		// Should hide non-project pages
+		await expect(folderTree.getByText('Draft Content')).toHaveCount(0);
 	});
 
-	test('should support combined text and tag search', async ({ folderPage, page }) => {
-		// Search test data is created by the fixture
+	test('should support combined text and tag search', async ({ folderPage, apiHelper, testId }) => {
+		await apiHelper.seedDocument({
+			title: `Important Project ${testId}`,
+			path: `/important-project-${testId}`,
+			tags: ['project']
+		});
+		await apiHelper.seedDocument({
+			title: `Regular Content ${testId}`,
+			path: `/regular-content-${testId}`,
+			tags: ['project']
+		});
+		await apiHelper.seedDocument({
+			title: `Important Notes ${testId}`,
+			path: `/important-notes-${testId}`,
+			tags: ['notes']
+		});
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
+		await expect(searchInput).toBeVisible();
 
-		if (await searchInput.isVisible()) {
-			// Combined search: text + tag
-			await searchInput.fill('important tag:project');
-			// Wait for filtered results to appear
-			await expect(folderTree.getByText('Important Project')).toBeVisible();
+		// Combined search: text (matched in title) + tag
+		await searchInput.fill('important tag:project');
 
-			// Should show only pages that match both criteria
-			// "Important Project" has both "important" in title/content AND "project" tag
-			await expect(folderTree.getByText('Important Project')).toBeVisible();
+		// Should show only pages that match both criteria: "important" in the title AND a "project" tag
+		await expect(folderTree.getByText('Important Project')).toBeVisible();
 
-			// Should hide pages that only match one criterion
-			const partialMatches = [
-				folderTree.getByText('Regular Content'), // has project tag but no "important" text
-				folderTree.getByText('Important Notes') // has important text but no "project" tag
-			];
-
-			for (const pageElement of partialMatches) {
-				const isVisible = await pageElement.isVisible().catch(() => false);
-				expect(isVisible).toBe(false);
-			}
-		}
+		// Should hide pages that only match one criterion
+		await expect(folderTree.getByText('Regular Content')).toHaveCount(0); // project tag but no "important" title
+		await expect(folderTree.getByText('Important Notes')).toHaveCount(0); // important title but no "project" tag
 	});
 
-	test('should hide empty folders during search', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
+	test('should hide empty folders during search', async ({ folderPage, apiHelper, testId }) => {
 		// Create folders with and without matching content
 		await folderPage.navigateToRoot();
 		await folderPage.createFolder('folder-with-matches');
 		await folderPage.createFolder('empty-folder-no-matches');
 
 		// Add matching content to first folder only
-		const matchingDocument = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Unique Content ${testId}`,
 			content: '# Unique Content\n\nThis is unique searchable content.',
 			path: '/folder-with-matches/unique-page',
 			tags: ['unique']
 		});
 
-		await apiHelper.createDocument(matchingDocument);
-
 		// Add non-matching content to second folder
-		const nonMatchingPage = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Different Content ${testId}`,
 			content: '# Different Content\n\nThis content does not match.',
 			path: '/empty-folder-no-matches/different-page'
 		});
 
-		await apiHelper.createDocument(nonMatchingPage);
-
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.getByTestId('folder-tree');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
+		await expect(searchInput).toBeVisible();
 
-		if (await searchInput.isVisible()) {
-			// Search for unique content
-			await searchInput.fill('unique');
-			// Wait for matching content to appear
-			await expect(folderTree.getByText('Unique Content')).toBeVisible();
+		// Search for unique content
+		await searchInput.fill('unique');
 
-			// Should show folder with matching content
-			await expect(folderTree.getByText('folder-with-matches')).toBeVisible();
-			await expect(folderTree.getByText('Unique Content')).toBeVisible();
+		// Should show the folder that contains matching content. (The folder tree does not
+		// auto-expand matching subfolders during search, so the nested page itself is only
+		// revealed once the folder is expanded; the folder appearing at all already proves it
+		// contains a match.)
+		await expect(folderTree.getByText('folder-with-matches')).toBeVisible();
 
-			// Should hide folder without matching content
-			const emptyFolder = folderTree.getByText('empty-folder-no-matches');
-			const isEmptyFolderVisible = await emptyFolder.isVisible().catch(() => false);
-			expect(isEmptyFolderVisible).toBe(false);
-		}
+		// Should hide folder without matching content
+		await expect(folderTree.getByText('empty-folder-no-matches')).toHaveCount(0);
 	});
 
 	test('should handle search with no results gracefully', async ({ folderPage, page }) => {
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
+		const searchInput = folderPage.treeFilter;
+		await expect(searchInput).toBeVisible();
 
-		if (await searchInput.isVisible()) {
-			// Search for something that doesn't exist
-			await searchInput.fill('nonexistent-content-xyz-123');
-			// Wait for search to complete - verify search input has the value
-			await expect(searchInput).toHaveValue('nonexistent-content-xyz-123');
-			// Brief wait for search processing
-			await page.waitForLoadState('domcontentloaded');
+		// Search for something that doesn't exist
+		await searchInput.fill('nonexistent-content-xyz-123');
+		await expect(searchInput).toHaveValue('nonexistent-content-xyz-123');
 
-			// Should show empty state or message
-			const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
-			const emptyMessage = page.getByText(/no.*match|no.*found|empty/i);
+		// Should show empty state or message
+		const { folderTree } = folderPage;
+		const emptyMessage = page.getByText(/no.*match|no.*found|empty/i);
 
-			// Either empty tree or explicit message
-			const hasResults = await folderTree.locator('[role="treeitem"]').count();
-			const hasEmptyMessage = await emptyMessage.isVisible().catch(() => false);
+		// Either empty tree or explicit message
+		const hasResults = await folderTree.locator('[role="treeitem"]').count();
+		const hasEmptyMessage = await emptyMessage.isVisible().catch(() => false);
 
-			// Should either have no results or show empty message
-			expect(hasResults === 0 || hasEmptyMessage).toBe(true);
-		}
+		// Should either have no results or show empty message
+		expect(hasResults === 0 || hasEmptyMessage).toBe(true);
 	});
 
-	test('should support prefix matching for tags', async ({
-		folderPage,
-		apiHelper,
-		testId,
-		page
-	}) => {
+	test('should support prefix matching for tags', async ({ folderPage, apiHelper, testId }) => {
 		// Create pages with tags that share prefixes
-		const pages = [
-			createTestDocument({
-				title: `Prefix Test 1 ${testId}`,
-				content: '# Prefix Test\n\nTesting prefix matching.',
-				path: '/prefix-test-1',
-				tags: ['project-alpha', 'important']
-			}),
-			createTestDocument({
-				title: `Prefix Test 2 ${testId}`,
-				content: '# Another Prefix Test\n\nMore prefix testing.',
-				path: '/prefix-test-2',
-				tags: ['project-beta', 'documentation']
-			}),
-			createTestDocument({
-				title: `Non-matching ${testId}`,
-				content: '# Different Content\n\nNo matching tags.',
-				path: '/non-matching',
-				tags: ['alpha-project', 'notes'] // Should not match "tag:project"
-			})
-		];
-
-		for (const page of pages) {
-			await apiHelper.createDocument(page);
-		}
+		await apiHelper.seedDocument({
+			title: `Prefix Test 1 ${testId}`,
+			content: '# Prefix Test\n\nTesting prefix matching.',
+			path: `/prefix-test-1-${testId}`,
+			tags: ['project-alpha', 'important']
+		});
+		await apiHelper.seedDocument({
+			title: `Prefix Test 2 ${testId}`,
+			content: '# Another Prefix Test\n\nMore prefix testing.',
+			path: `/prefix-test-2-${testId}`,
+			tags: ['project-beta', 'documentation']
+		});
+		await apiHelper.seedDocument({
+			title: `Non-matching ${testId}`,
+			content: '# Different Content\n\nNo matching tags.',
+			path: `/non-matching-${testId}`,
+			tags: ['alpha-project', 'notes'] // Should not match "tag:project"
+		});
 
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
-		const folderTree = page.locator('[data-testid="folder-tree"], [role="tree"]');
+		const searchInput = folderPage.treeFilter;
+		const { folderTree } = folderPage;
+		await expect(searchInput).toBeVisible();
 
-		if (await searchInput.isVisible()) {
-			// Search for tag prefix
-			await searchInput.fill('tag:project');
-			// Wait for matching pages to appear
-			await expect(folderTree.getByText('Prefix Test 1')).toBeVisible();
+		// Search for tag prefix
+		await searchInput.fill('tag:project');
 
-			// Should match tags that START with "project"
-			await expect(folderTree.getByText('Prefix Test 1')).toBeVisible(); // has "project-alpha"
-			await expect(folderTree.getByText('Prefix Test 2')).toBeVisible(); // has "project-beta"
+		// Should match tags that START with "project"
+		await expect(folderTree.getByText('Prefix Test 1')).toBeVisible(); // has "project-alpha"
+		await expect(folderTree.getByText('Prefix Test 2')).toBeVisible(); // has "project-beta"
 
-			// Should NOT match tags where "project" appears in the middle
-			const nonMatchingPage = folderTree.getByText('Non-matching');
-			const isNonMatchingVisible = await nonMatchingPage.isVisible().catch(() => false);
-			expect(isNonMatchingVisible).toBe(false); // "alpha-project" should not match
-		}
+		// Should NOT match tags where "project" appears in the middle ("alpha-project")
+		await expect(folderTree.getByText('Non-matching')).toHaveCount(0);
 	});
 
 	test('should maintain search state during navigation', async ({
@@ -253,39 +233,35 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		page
 	}) => {
 		// Create searchable content
-		const testDocument = createTestDocument({
+		await apiHelper.seedDocument({
 			title: `Persistent Search ${testId}`,
 			content: '# Persistent Search\n\nTesting search persistence.',
-			path: '/persistent-search',
+			path: `/persistent-search-${testId}`,
 			tags: ['persistent']
 		});
-
-		await apiHelper.createDocument(testDocument);
 		await folderPage.navigateToRoot();
 
-		const searchInput = page.getByTestId('sidebar-search');
-		if (await searchInput.isVisible()) {
-			// Apply search
-			await searchInput.fill('persistent');
-			// Wait for search results to appear
-			await expect(page.getByTestId('folder-tree').getByText('Persistent Search')).toBeVisible();
+		const searchInput = folderPage.treeFilter;
+		await expect(searchInput).toBeVisible();
 
-			// Navigate to a different section and back
-			await page.goto('/');
-			await page.goto('/folders');
+		// Apply search (matched against title)
+		await searchInput.fill('persistent');
+		await expect(folderPage.folderTree.getByText('Persistent Search')).toBeVisible();
 
-			// Search should still be applied (depending on implementation)
-			const searchValue = await searchInput.inputValue();
-			const isSearchPersistent = searchValue.includes('persistent');
+		// Navigate to a different section and back
+		await page.goto('/');
+		await page.goto('/folders');
 
-			if (isSearchPersistent) {
-				// If search persists, verify filtered results
-				const folderTree = page.getByTestId('folder-tree');
-				await expect(folderTree.getByText('Persistent Search')).toBeVisible();
-			} else {
-				// If search clears, verify all content is visible
-				await expect(searchInput).toHaveValue('');
-			}
+		// Search may or may not persist depending on implementation; assert both branches are consistent
+		const searchValue = await searchInput.inputValue();
+		const isSearchPersistent = searchValue.includes('persistent');
+
+		if (isSearchPersistent) {
+			// If search persists, verify filtered results
+			await expect(folderPage.folderTree.getByText('Persistent Search')).toBeVisible();
+		} else {
+			// If search clears, verify the input is empty
+			await expect(searchInput).toHaveValue('');
 		}
 	});
 });

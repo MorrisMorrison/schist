@@ -71,8 +71,7 @@ func createMultipartFile(filename string, data []byte, contentType string) (*mul
 }
 
 func TestAssetService_UploadImage(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	assetService := services.NewAssetService(testDir)
 
@@ -192,8 +191,7 @@ func TestAssetService_UploadImage(t *testing.T) {
 }
 
 func TestAssetService_GetAssetPath(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	assetService := services.NewAssetService(testDir)
 
@@ -284,8 +282,7 @@ func TestAssetService_GetAssetPath(t *testing.T) {
 }
 
 func TestAssetService_DeleteAsset(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	assetService := services.NewAssetService(testDir)
 
@@ -327,8 +324,7 @@ func TestAssetService_DeleteAsset(t *testing.T) {
 }
 
 func TestAssetService_Integration(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	assetService := services.NewAssetService(testDir)
 
@@ -414,8 +410,7 @@ func TestAssetService_ErrorCases(t *testing.T) {
 	t.Run("read-only directory", func(t *testing.T) {
 		skipIfRoot(t)
 
-		testDir, cleanup := setupTestDir(t)
-		defer cleanup()
+		testDir := t.TempDir()
 
 		// Create assets directory first, then make it read-only
 		assetsDir := filepath.Join(testDir, "assets", "images")
@@ -443,8 +438,7 @@ func TestAssetService_ErrorCases(t *testing.T) {
 }
 
 func TestAssetService_FileExtensionValidation(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	assetService := services.NewAssetService(testDir)
 
@@ -499,8 +493,7 @@ func TestAssetService_FileExtensionValidation(t *testing.T) {
 // the actual file bytes, not just the attacker-controlled extension and
 // Content-Type header.
 func TestAssetService_ContentSniffing(t *testing.T) {
-	testDir, cleanup := setupTestDir(t)
-	defer cleanup()
+	testDir := t.TempDir()
 
 	assetService := services.NewAssetService(testDir)
 

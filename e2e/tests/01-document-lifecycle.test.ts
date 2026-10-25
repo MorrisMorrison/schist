@@ -14,11 +14,8 @@ test.describe.serial('Document Lifecycle', () => {
 			tags: ['test', 'lifecycle']
 		});
 
-		// Navigate directly to new document editor
+		// Navigate directly to new document editor (waits for it to load)
 		await editorPage.navigateToNew();
-
-		// Verify editor loaded
-		await editorPage.verifyLoaded();
 		await editorPage.expectUrl('/new');
 
 		// Fill in document details
@@ -43,14 +40,12 @@ test.describe.serial('Document Lifecycle', () => {
 		withSimpleTestDocument: originalDocument
 	}) => {
 		// Navigate to the document
-		await documentViewPage.navigateToDocument(originalDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(originalDocument.title);
+		await documentViewPage.openDocument(originalDocument);
 
-		// Click edit button
+		// Click edit button (waits for the editor to load)
 		await documentViewPage.editDocument();
 
-		// Verify editor loaded with existing content
-		await editorPage.verifyLoaded();
+		// Verify the editor shows the existing content
 		await editorPage.verifyTitle(originalDocument.title);
 		await editorPage.verifyContent(originalDocument.title); // Content should contain the dynamic title
 
@@ -62,8 +57,9 @@ test.describe.serial('Document Lifecycle', () => {
 		// Save changes
 		await editorPage.saveAndExpectNavigation();
 
-		// Verify changes are reflected
-		await documentViewPage.verifyContentContains('Updated Content');
+		// Verify changes are reflected. The new leading `# Updated Content` becomes
+		// the title, shown in the header (the body doesn't repeat it).
+		await documentViewPage.verifyDocumentLoaded('Updated Content');
 		await documentViewPage.verifyContentContains('edited via e2e test');
 	});
 
@@ -72,14 +68,13 @@ test.describe.serial('Document Lifecycle', () => {
 		withSimpleTestDocument: documentToDelete
 	}) => {
 		// Navigate to the document
-		await documentViewPage.navigateToDocument(documentToDelete.path!);
-		await documentViewPage.verifyDocumentLoaded(documentToDelete.title);
+		await documentViewPage.openDocument(documentToDelete);
 
 		// Delete the document
 		await documentViewPage.deleteDocument();
 
-		// Verify redirect and document no longer exists
-		await documentViewPage.expectUrl('/');
+		// Verify redirect home (origin root) and document no longer exists
+		await documentViewPage.expectUrl(/\/\/[^/]+\/?$/);
 
 		// Try to navigate to deleted document - should show 404
 		await documentViewPage.navigateToDocument(documentToDelete.path!);
@@ -101,12 +96,10 @@ test.describe.serial('Document Lifecycle', () => {
 		withSimpleTestDocument: testDocument
 	}) => {
 		// Navigate to document view
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Navigate to edit
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.verifyContent(testDocument.title);
 
 		// Navigate back to view without saving
@@ -122,8 +115,7 @@ test.describe.serial('Document Lifecycle', () => {
 		withComplexTestDocument: testDocument
 	}) => {
 		// Navigate to document
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify metadata is displayed
 		await documentViewPage.verifyMetadata();
@@ -135,12 +127,15 @@ test.describe.serial('Document Lifecycle', () => {
 		withComplexTestDocument: testDocument
 	}) => {
 		// Navigate to document
-		await documentViewPage.navigateToDocument(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.openDocument(testDocument);
 
 		// Verify markdown has been rendered to HTML
 		await documentViewPage.verifyMarkdownRendering();
-		await documentViewPage.verifyHeading(testDocument.title, 1);
+		// The leading `# <title>` is shown as the page title in the header (checked
+		// above) and not repeated as a heading in the body.
+		await expect(
+			documentViewPage.documentContent.locator('h1', { hasText: testDocument.title })
+		).toHaveCount(0);
 		await documentViewPage.verifyHeading('Table of Contents', 2);
 
 		// Verify we have expected number of elements

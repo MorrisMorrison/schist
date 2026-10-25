@@ -3,15 +3,13 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *APIHandler) getDocumentVersions(c *gin.Context) {
-	path := c.Query("path")
-	if path == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("path"))
+	path, ok := requiredQuery(c, "path")
+	if !ok {
 		return
 	}
 
@@ -31,15 +29,13 @@ func (h *APIHandler) getDocumentVersions(c *gin.Context) {
 }
 
 func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
-	path := c.Query("path")
-	if path == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("path"))
+	path, ok := requiredQuery(c, "path")
+	if !ok {
 		return
 	}
 
-	commitHash := c.Query("hash")
-	if commitHash == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("hash"))
+	commitHash, ok := requiredQuery(c, "hash")
+	if !ok {
 		return
 	}
 
@@ -59,21 +55,18 @@ func (h *APIHandler) getDocumentAtVersion(c *gin.Context) {
 }
 
 func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
-	path := c.Query("path")
-	if path == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("path"))
+	path, ok := requiredQuery(c, "path")
+	if !ok {
 		return
 	}
 
-	hash1 := c.Query("hash1")
-	if hash1 == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("hash1"))
+	hash1, ok := requiredQuery(c, "hash1")
+	if !ok {
 		return
 	}
 
-	hash2 := c.Query("hash2")
-	if hash2 == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("hash2"))
+	hash2, ok := requiredQuery(c, "hash2")
+	if !ok {
 		return
 	}
 
@@ -91,15 +84,13 @@ func (h *APIHandler) compareDocumentVersions(c *gin.Context) {
 }
 
 func (h *APIHandler) restoreDocumentVersion(c *gin.Context) {
-	path := c.Query("path")
-	if path == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("path"))
+	path, ok := requiredQuery(c, "path")
+	if !ok {
 		return
 	}
 
-	commitHash := c.Query("hash")
-	if commitHash == "" {
-		HandleError(c, errors.NewMissingRequiredFieldError("hash"))
+	commitHash, ok := requiredQuery(c, "hash")
+	if !ok {
 		return
 	}
 

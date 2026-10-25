@@ -6,27 +6,19 @@ import (
 	"testing"
 	"time"
 
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupUserServiceTest(t *testing.T) (string, *services.UserService, func()) {
-	testDir, err := os.MkdirTemp("", "user-service-test-*")
-	require.NoError(t, err)
-
-	userService := services.NewUserService(testDir)
-
-	cleanup := func() {
-		os.RemoveAll(testDir)
-	}
-
-	return testDir, userService, cleanup
+func setupUserServiceTest(t *testing.T) (string, *services.UserService) {
+	testDir := t.TempDir()
+	return testDir, services.NewUserService(testDir)
 }
 
 func TestUserService_NewUserService(t *testing.T) {
-	testDir, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	testDir, userService := setupUserServiceTest(t)
 
 	assert.NotNil(t, userService)
 
@@ -43,8 +35,7 @@ func TestUserService_NewUserService(t *testing.T) {
 }
 
 func TestUserService_IsFirstSetup(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	t.Run("returns true when no users exist", func(t *testing.T) {
 		isFirstSetup, err := userService.IsFirstSetup()
@@ -66,8 +57,7 @@ func TestUserService_IsFirstSetup(t *testing.T) {
 
 func TestUserService_CreateFirstUser(t *testing.T) {
 	t.Run("creates first user successfully", func(t *testing.T) {
-		_, userService, cleanup := setupUserServiceTest(t)
-		defer cleanup()
+		_, userService := setupUserServiceTest(t)
 
 		err := userService.CreateFirstUser("admin", "credential-123")
 
@@ -90,8 +80,7 @@ func TestUserService_CreateFirstUser(t *testing.T) {
 	})
 
 	t.Run("fails when users already exist", func(t *testing.T) {
-		_, userService, cleanup := setupUserServiceTest(t)
-		defer cleanup()
+		_, userService := setupUserServiceTest(t)
 
 		// Create first user
 		err := userService.CreateFirstUser("admin", "credential-123")
@@ -100,13 +89,12 @@ func TestUserService_CreateFirstUser(t *testing.T) {
 		// Try to create first user again
 		err = userService.CreateFirstUser("admin2", "credential-456")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "users already exist, cannot create first user")
+		assert.Equal(t, apierrors.ErrCodeConflict, apiErrorCode(err))
 	})
 }
 
 func TestUserService_GetUserByCredentialID(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test users
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -150,13 +138,12 @@ func TestUserService_GetUserByCredentialID(t *testing.T) {
 		_, err := userService.GetUserByCredentialID("non-existent")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found for credential ID")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
 func TestUserService_GetUserByUsername(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test users
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -189,13 +176,12 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 		_, err := userService.GetUserByUsername("non-existent")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
 func TestUserService_UpdateLastLogin(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test user
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -222,13 +208,12 @@ func TestUserService_UpdateLastLogin(t *testing.T) {
 	t.Run("returns error for non-existent user", func(t *testing.T) {
 		err := userService.UpdateLastLogin("non-existent")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
 func TestUserService_AddPasskeyToUser(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test user
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -258,13 +243,12 @@ func TestUserService_AddPasskeyToUser(t *testing.T) {
 	t.Run("returns error for non-existent user", func(t *testing.T) {
 		err := userService.AddPasskeyToUser("non-existent", "credential-789")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
 func TestUserService_CreateUser(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create first user to enable regular user creation
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -301,13 +285,12 @@ func TestUserService_CreateUser(t *testing.T) {
 		err := userService.CreateUser("admin", false, "credential-new")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user already exists")
+		assert.Equal(t, apierrors.ErrCodeAlreadyExists, apiErrorCode(err))
 	})
 }
 
 func TestUserService_DeleteUser(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create test users
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -326,7 +309,7 @@ func TestUserService_DeleteUser(t *testing.T) {
 		// Verify user is deleted
 		_, err = userService.GetUserByUsername("user1")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 
 		// Verify credential ID no longer works
 		_, err = userService.GetUserByCredentialID("credential-456")
@@ -343,13 +326,12 @@ func TestUserService_DeleteUser(t *testing.T) {
 	t.Run("returns error for non-existent user", func(t *testing.T) {
 		err := userService.DeleteUser("non-existent")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "user not found")
+		assert.Equal(t, apierrors.ErrCodeNotFound, apiErrorCode(err))
 	})
 }
 
 func TestUserService_ListUsers(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	t.Run("returns empty list when no users", func(t *testing.T) {
 		users, err := userService.ListUsers()
@@ -396,8 +378,7 @@ func TestUserService_ListUsers(t *testing.T) {
 }
 
 func TestUserService_InviteTokenSystem(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	// Create admin user
 	err := userService.CreateFirstUser("admin", "credential-123")
@@ -440,7 +421,7 @@ func TestUserService_InviteTokenSystem(t *testing.T) {
 		_, err := userService.ValidateInviteToken("invalid-token")
 
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid invite token")
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
 	})
 
 	t.Run("consumes invite token successfully", func(t *testing.T) {
@@ -458,13 +439,13 @@ func TestUserService_InviteTokenSystem(t *testing.T) {
 		// Verify token is no longer valid
 		_, err = userService.ValidateInviteToken(token)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid invite token")
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
 	})
 
 	t.Run("fails to consume invalid token", func(t *testing.T) {
 		err := userService.ConsumeInviteToken("invalid-token")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid invite token")
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
 	})
 
 	t.Run("generates unique tokens", func(t *testing.T) {
@@ -486,8 +467,7 @@ func TestUserService_InviteTokenSystem(t *testing.T) {
 }
 
 func TestUserService_Integration(t *testing.T) {
-	_, userService, cleanup := setupUserServiceTest(t)
-	defer cleanup()
+	_, userService := setupUserServiceTest(t)
 
 	t.Run("full user management workflow", func(t *testing.T) {
 		// 1. Initially should be first setup
@@ -576,12 +556,10 @@ func TestUserService_ErrorCases(t *testing.T) {
 	t.Run("read-only directory", func(t *testing.T) {
 		skipIfRoot(t)
 
-		testDir, err := os.MkdirTemp("", "user-service-readonly-*")
-		require.NoError(t, err)
-		defer os.RemoveAll(testDir)
+		testDir := t.TempDir()
 
 		// Make directory read-only after creating it
-		err = os.Chmod(testDir, 0444)
+		err := os.Chmod(testDir, 0444)
 		require.NoError(t, err)
 
 		// Restore permissions for cleanup

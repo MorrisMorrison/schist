@@ -96,23 +96,10 @@
 		}
 	];
 
-	const buttonGroups = $derived(() => {
-		const groups: Record<string, typeof toolbarButtons> = {};
-		toolbarButtons.forEach((button) => {
-			if (!groups[button.group]) {
-				groups[button.group] = [];
-			}
-			groups[button.group].push(button);
-		});
-		return groups;
-	});
-
-	const textButtons = $derived(buttonGroups().text || []);
-	const headingButtons = $derived(buttonGroups().headings || []);
-	const listButtons = $derived(buttonGroups().lists || []);
-	const insertButtons = $derived(buttonGroups().insert || []);
-
-	const themeClasses = 'bg-card border-border text-foreground';
+	// Button groups in toolbar order, with a divider between neighbours.
+	const buttonGroups = ['text', 'headings', 'lists', 'insert'].map((group) =>
+		toolbarButtons.filter((button) => button.group === group)
+	);
 
 	function handleButtonClick(type: FormattingType) {
 		if (disabled) return;
@@ -129,95 +116,42 @@
 </script>
 
 <div
-	class="editor-toolbar flex items-center gap-3 border-b p-3 {themeClasses}"
+	class="editor-toolbar text-foreground flex min-w-0 items-center gap-2 overflow-x-auto"
 	role="toolbar"
 	aria-label="Formatting toolbar"
 >
-	<div class="flex items-center gap-1">
-		{#each textButtons as button (button.type)}
-			<Button
-				variant="ghost"
-				size="sm"
-				onclick={() => handleButtonClick(button.type)}
-				title="{button.label} ({button.shortcut})"
-				aria-label={button.label}
-				{disabled}
-				class="h-8 w-8 p-0"
-			>
-				{@const IconComponent = button.icon}
-				<IconComponent class="h-4 w-4" />
-			</Button>
-		{/each}
-	</div>
-
-	<div class="bg-border h-6 w-px"></div>
-
-	<div class="flex items-center gap-1">
-		{#each headingButtons as button (button.type)}
-			<Button
-				variant="ghost"
-				size="sm"
-				onclick={() => handleButtonClick(button.type)}
-				title="{button.label} ({button.shortcut})"
-				aria-label={button.label}
-				{disabled}
-				class="h-8 w-8 p-0"
-			>
-				{@const IconComponent = button.icon}
-				<IconComponent class="h-4 w-4" />
-			</Button>
-		{/each}
-	</div>
-
-	<div class="bg-border h-6 w-px"></div>
-
-	<div class="flex items-center gap-1">
-		{#each listButtons as button (button.type)}
-			<Button
-				variant="ghost"
-				size="sm"
-				onclick={() => handleButtonClick(button.type)}
-				title="{button.label} ({button.shortcut})"
-				aria-label={button.label}
-				{disabled}
-				class="h-8 w-8 p-0"
-			>
-				{@const IconComponent = button.icon}
-				<IconComponent class="h-4 w-4" />
-			</Button>
-		{/each}
-	</div>
-
-	<div class="bg-border h-6 w-px"></div>
-
-	<div class="flex items-center gap-1">
-		{#each insertButtons as button (button.type)}
-			<Button
-				variant="ghost"
-				size="sm"
-				onclick={() => handleButtonClick(button.type)}
-				title="{button.label} ({button.shortcut})"
-				aria-label={button.label}
-				{disabled}
-				class="h-8 w-8 p-0"
-			>
-				{@const IconComponent = button.icon}
-				<IconComponent class="h-4 w-4" />
-			</Button>
-		{/each}
-	</div>
+	{#each buttonGroups as group, index (group[0].group)}
+		{#if index > 0}
+			<div class="bg-border h-6 w-px"></div>
+		{/if}
+		<div class="flex items-center gap-1">
+			{#each group as button (button.type)}
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onclick={() => handleButtonClick(button.type)}
+					title="{button.label} ({button.shortcut})"
+					aria-label={button.label}
+					{disabled}
+				>
+					{@const IconComponent = button.icon}
+					<IconComponent class="h-4 w-4" />
+				</Button>
+			{/each}
+		</div>
+	{/each}
 
 	<div class="flex-1"></div>
 
 	{#if onFullscreenToggle}
 		<Button
 			variant="ghost"
-			size="sm"
+			size="icon-sm"
 			onclick={onFullscreenToggle}
-			title={isFullscreen ? 'Exit Fullscreen (F11)' : 'Enter Fullscreen (F11)'}
-			aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+			title={isFullscreen ? 'Exit focus mode (Esc)' : 'Focus mode (F11)'}
+			aria-label={isFullscreen ? 'Exit focus mode' : 'Focus mode'}
+			aria-pressed={isFullscreen}
 			{disabled}
-			class="h-8 w-8 p-0"
 		>
 			{#if isFullscreen}
 				<Minimize class="h-4 w-4" />
@@ -226,30 +160,15 @@
 			{/if}
 		</Button>
 	{/if}
-
-	<div class="text-muted-foreground hidden text-xs sm:block">
-		Use keyboard shortcuts for faster formatting
-	</div>
 </div>
 
 <style>
 	.editor-toolbar {
-		min-height: 3.5rem;
+		scrollbar-width: none;
 	}
 
-	@media (max-width: 640px) {
-		.editor-toolbar {
-			flex-wrap: wrap;
-			gap: 0.5rem;
-			padding: 0.75rem;
-		}
-
-		.editor-toolbar .w-px {
-			display: none;
-		}
-
-		.editor-toolbar .text-xs {
-			display: none;
-		}
+	/* Narrow screens scroll the buttons sideways instead of wrapping them. */
+	.editor-toolbar > :global(*) {
+		flex-shrink: 0;
 	}
 </style>

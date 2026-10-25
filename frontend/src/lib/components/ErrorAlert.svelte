@@ -2,23 +2,22 @@
 	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { X, AlertCircle, AlertTriangle, Info } from '@lucide/svelte';
+	import { cn } from '$lib/utils.js';
 
-	export interface Props {
+	import type { HTMLAttributes } from 'svelte/elements';
+
+	export interface Props extends HTMLAttributes<HTMLDivElement> {
 		error: string;
 		variant?: 'error' | 'warning' | 'info';
 		onDismiss?: () => void;
 		class?: string;
 	}
 
-	let { error, variant = 'error', onDismiss, class: className }: Props = $props();
+	let { error, variant = 'error', onDismiss, class: className, ...restProps }: Props = $props();
 
-	const variantClasses = {
-		error:
-			'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
-		warning:
-			'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400',
-		info: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200 [&>svg]:text-blue-600 dark:[&>svg]:text-blue-400'
-	};
+	// The library's alert variant per ErrorAlert variant; errors keep their tinted border.
+	const alertVariant = { error: 'destructive', warning: 'warning', info: 'info' } as const;
+	const errorClasses = 'border-destructive/50 dark:border-destructive';
 
 	const icons = {
 		error: AlertCircle,
@@ -26,10 +25,14 @@
 		info: Info
 	};
 
-	const IconComponent = icons[variant];
+	const IconComponent = $derived(icons[variant]);
 </script>
 
-<Alert class="{variantClasses[variant]} {className}">
+<Alert
+	variant={alertVariant[variant]}
+	class={cn(variant === 'error' && errorClasses, className)}
+	{...restProps}
+>
 	<IconComponent class="h-4 w-4" />
 	<AlertDescription class="flex items-center justify-between">
 		<span>{error}</span>

@@ -8,6 +8,7 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+/coverage
 
 # OS
 .DS_Store
@@ -25,3 +26,9 @@ vite.config.ts.timestamp-*
 
 # Playwright auth artifacts
 playwright/.auth/
+
+# Vitest browser-mode failure screenshots
+__screenshots__
+
+# Vitest browser-mode failure screenshots
+.vitest-attachments/

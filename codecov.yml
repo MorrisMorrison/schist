@@ -1,0 +1,26 @@
+# Codecov: coverage is reported on PRs but never blocks a merge.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# Backend and frontend upload separately (see test-backend.yml / test-frontend.yml).
+# carryforward keeps the other side's numbers when a PR only touches one of them,
+# since the workflows are path-filtered.
+flags:
+  backend:
+    paths:
+      - backend/
+    carryforward: true
+  frontend:
+    paths:
+      - frontend/
+    carryforward: true
+
+comment:
+  layout: "condensed_header, condensed_files, condensed_footer"
+  require_changes: true

@@ -220,13 +220,35 @@
 	body {
 		@apply bg-background text-foreground;
 		font-family:
-			-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+			'Inter Variable',
+			-apple-system,
+			BlinkMacSystemFont,
+			'Segoe UI',
+			'Roboto',
+			'Oxygen',
+			'Ubuntu',
+			'Cantarell',
 			sans-serif;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+		/* Inter: contextual alternates, a flat-topped 1 (cv11) and open digits (ss01). */
 		font-feature-settings:
 			'rlig' 1,
-			'calt' 1;
+			'calt' 1,
+			'cv11' 1,
+			'ss01' 1;
+	}
+
+	h1,
+	h2,
+	h3 {
+		letter-spacing: -0.02em;
+	}
+
+	/* Document reading text: a little larger and airier than UI text. */
+	.reading {
+		font-size: 1.03rem;
+		line-height: 1.72;
 	}
 
 	p,
@@ -257,8 +279,8 @@
 	pre,
 	.font-mono {
 		font-family:
-			ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
-			'Courier New', monospace;
+			'JetBrains Mono Variable', ui-monospace, SFMono-Regular, 'SF Mono', Monaco, 'Cascadia Code',
+			'Roboto Mono', Consolas, 'Courier New', monospace;
 		font-feature-settings: 'liga' 0;
 	}
 }

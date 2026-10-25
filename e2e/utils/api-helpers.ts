@@ -1,5 +1,6 @@
 import { APIRequestContext, expect } from '@playwright/test';
-import { TestDocumentData } from './test-data';
+import { BASE_URL } from './routes';
+import { createTestDocument, TestDocumentData } from './test-data';
 
 export interface ApiResponse<T = unknown> {
 	status: number;
@@ -23,7 +24,7 @@ interface FolderListData {
 	}>;
 }
 
-const DEFAULT_API_URL = `${process.env?.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'}/api`;
+const DEFAULT_API_URL = `${BASE_URL}/api`;
 
 export class ApiHelper {
 	private apiContext: APIRequestContext;
@@ -163,6 +164,18 @@ export class ApiHelper {
 	}
 
 	/**
+	 * Seed a document for a test: fills any field not given from
+	 * `createTestDocument`, creates it, asserts the 201 and returns what was
+	 * stored. Use this for test setup; call `createDocument` to test the API.
+	 */
+	async seedDocument(overrides: Partial<TestDocumentData> = {}): Promise<TestDocumentData> {
+		const document = createTestDocument(overrides);
+		const result = await this.createDocument(document);
+		expect(result.status, `seed ${document.path}: ${result.error ?? ''}`).toBe(201);
+		return document;
+	}
+
+	/**
 	 * Poll until a freshly created document is retrievable (GET returns 200),
 	 * so callers can navigate to it without racing the backend's write.
 	 */
@@ -238,15 +251,5 @@ export class ApiHelper {
 		} catch (error) {
 			console.warn('[ApiHelper] Cleanup failed:', error);
 		}
-	}
-}
-
-export async function createTestDocuments(
-	apiHelper: ApiHelper,
-	documents: TestDocumentData[]
-): Promise<void> {
-	for (const documentData of documents) {
-		const result = await apiHelper.createDocument(documentData);
-		expect(result.status).toBe(201);
 	}
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	stderrors "errors"
 	"fmt"
 	"log"
 	"os"
@@ -15,9 +16,30 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/serializer"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 const maxRepairAttempts = 3
+
+// VersionNotFoundError reports that a requested version does not exist: either
+// the commit is unknown or the document is absent from that commit's tree.
+// Callers classify it with errors.As instead of matching error text.
+type VersionNotFoundError struct {
+	Hash string
+}
+
+func (e *VersionNotFoundError) Error() string {
+	return fmt.Sprintf("version not found: %s", e.Hash)
+}
+
+// classifyVersionLookupError turns go-git's "object/file not found" errors into
+// a *VersionNotFoundError and wraps anything else with context.
+func classifyVersionLookupError(hash, what string, err error) error {
+	if stderrors.Is(err, plumbing.ErrObjectNotFound) || stderrors.Is(err, object.ErrFileNotFound) {
+		return fmt.Errorf("%s: %w", what, &VersionNotFoundError{Hash: hash})
+	}
+	return fmt.Errorf("%s: %w", what, err)
+}
 
 type GitService struct {
 	dataDir    string
@@ -92,6 +114,9 @@ func (gs *GitService) initializeRepository() error {
 		}
 		gs.repository = repo
 		log.Printf("[GitService] Successfully opened existing repository")
+		if err := gs.untrackAppState(); err != nil {
+			return fmt.Errorf("failed to untrack %s: %w", appStateDir, err)
+		}
 		return nil
 	}
 
@@ -116,14 +141,15 @@ func (gs *GitService) initializeRepository() error {
 }
 
 func (gs *GitService) createInitialCommit() error {
-	worktree, err := gs.repository.Worktree()
+	worktree, err := gs.worktree()
 	if err != nil {
-		return fmt.Errorf("failed to get worktree: %w", err)
+		return err
 	}
 
 	gitignorePath := filepath.Join(gs.dataDir, ".gitignore")
 	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
 		gitignoreContent := `# Schist auto-generated files
+` + appStateIgnoreRule + `
 *.tmp
 *.bak
 .DS_Store
@@ -138,20 +164,193 @@ Thumbs.db
 		return fmt.Errorf("failed to add .gitignore: %w", err)
 	}
 
-	signature := &object.Signature{
-		Name:  "Schist System",
-		Email: "system@schist.local",
-		When:  time.Now(),
-	}
-
-	_, err = worktree.Commit("Initial commit - Schist git integration", &git.CommitOptions{
-		Author: signature,
-	})
-	if err != nil {
+	if err := commitAs(worktree, "Initial commit - Schist git integration", systemAuthor); err != nil {
 		return fmt.Errorf("failed to create initial commit: %w", err)
 	}
 
 	return nil
+}
+
+// Commit authors: Schist's own housekeeping, the pre-sync commit of pending
+// changes, and document saves.
+var (
+	systemAuthor = object.Signature{Name: "Schist System", Email: "system@schist.local"}
+	syncAuthor   = object.Signature{Name: "Schist Sync", Email: "sync@schist.local"}
+	userAuthor   = object.Signature{Name: "Schist User", Email: "user@schist.local"}
+)
+
+// commitAs commits the staged changes with author, timestamped now.
+func commitAs(worktree *git.Worktree, message string, author object.Signature) error {
+	author.When = time.Now()
+	_, err := worktree.Commit(message, &git.CommitOptions{Author: &author})
+	return err
+}
+
+// worktree returns the repository's worktree.
+func (gs *GitService) worktree() (*git.Worktree, error) {
+	worktree, err := gs.repository.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree: %w", err)
+	}
+	return worktree, nil
+}
+
+// appStateDir holds Schist's own state (users, passkeys and their key seeds,
+// share tokens, settings incl. the GitHub token). It lives in the data dir but
+// must never be committed: the repository is pushed to GitHub on sync.
+const appStateDir = ".schist"
+
+const appStateIgnoreRule = appStateDir + "/"
+
+// UserService keeps its store and pending invite tokens in the data dir root
+// rather than in appStateDir. They are app state all the same: an invite
+// token pushed to the backup repository is a working sign-up link.
+const (
+	userStoreFile  = "users.json"
+	userInvitesDir = "invites/"
+)
+
+func isAppStatePath(p string) bool {
+	return p == appStateDir || strings.HasPrefix(p, appStateIgnoreRule) ||
+		p == userStoreFile || strings.HasPrefix(p, userInvitesDir)
+}
+
+// untrackAppState makes sure an existing repository ignores and no longer
+// tracks the app state directory. Data dirs created before this rule existed
+// may have committed it via GitHub sync. The files stay on disk; only the git
+// index and .gitignore change, in a single commit. A no-op when already clean.
+func (gs *GitService) untrackAppState() error {
+	gitignoreChanged, err := gs.ensureAppStateIgnored()
+	if err != nil {
+		return err
+	}
+	removed, err := gs.removeAppStateFromIndex()
+	if err != nil {
+		return err
+	}
+	if !gitignoreChanged && removed == 0 {
+		return nil
+	}
+
+	worktree, err := gs.worktree()
+	if err != nil {
+		return err
+	}
+	if _, err := worktree.Add(".gitignore"); err != nil {
+		return fmt.Errorf("failed to add .gitignore: %w", err)
+	}
+	if err := commitAs(worktree, "Stop tracking .schist/ app state", systemAuthor); err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+	log.Printf("[GitService] Untracked %d %s file(s) and added %s to .gitignore", removed, appStateDir, appStateIgnoreRule)
+	return nil
+}
+
+// ensureAppStateIgnored appends the app state rule to .gitignore (creating
+// the file if needed) and reports whether it changed anything.
+func (gs *GitService) ensureAppStateIgnored() (bool, error) {
+	path := filepath.Join(gs.dataDir, ".gitignore")
+	content, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return false, fmt.Errorf("failed to read .gitignore: %w", err)
+	}
+	for _, line := range strings.Split(string(content), "\n") {
+		switch strings.TrimSpace(line) {
+		case appStateDir, appStateIgnoreRule, "/" + appStateDir, "/" + appStateIgnoreRule:
+			return false, nil
+		}
+	}
+	if len(content) > 0 && !strings.HasSuffix(string(content), "\n") {
+		content = append(content, '\n')
+	}
+	content = append(content, []byte(appStateIgnoreRule+"\n")...)
+	if err := os.WriteFile(path, content, 0644); err != nil {
+		return false, fmt.Errorf("failed to write .gitignore: %w", err)
+	}
+	return true, nil
+}
+
+// removeAppStateFromIndex drops app state entries from the git index only,
+// leaving the files on disk, and returns how many it removed.
+func (gs *GitService) removeAppStateFromIndex() (int, error) {
+	idx, err := gs.repository.Storer.Index()
+	if err != nil {
+		return 0, fmt.Errorf("failed to read git index: %w", err)
+	}
+	kept := idx.Entries[:0]
+	removed := 0
+	for _, e := range idx.Entries {
+		if isAppStatePath(e.Name) {
+			removed++
+			continue
+		}
+		kept = append(kept, e)
+	}
+	if removed == 0 {
+		return 0, nil
+	}
+	idx.Entries = kept
+	if err := gs.repository.Storer.SetIndex(idx); err != nil {
+		return 0, fmt.Errorf("failed to write git index: %w", err)
+	}
+	return removed, nil
+}
+
+// CommitPendingChanges stages every changed, added or deleted file except the
+// app state directory and commits them. Files are staged one by one rather
+// than with AddGlob(".") so app state stays out even if the user's .gitignore
+// loses the rule. It reports whether a commit was made.
+func (gs *GitService) CommitPendingChanges(message string) (bool, error) {
+	if gs.repository == nil {
+		return false, fmt.Errorf("git repository not initialized")
+	}
+	worktree, err := gs.worktree()
+	if err != nil {
+		return false, err
+	}
+	status, err := worktree.Status()
+	if err != nil {
+		return false, fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	for path, fs := range status {
+		if isAppStatePath(path) || fs.Worktree == git.Unmodified {
+			continue
+		}
+		if fs.Worktree == git.Deleted {
+			if _, err := worktree.Remove(path); err != nil {
+				return false, fmt.Errorf("failed to stage deletion of %s: %w", path, err)
+			}
+			continue
+		}
+		if _, err := worktree.Add(path); err != nil {
+			return false, fmt.Errorf("failed to stage %s: %w", path, err)
+		}
+	}
+	// Belt and braces: never let app state into a commit, whatever was staged.
+	if _, err := gs.removeAppStateFromIndex(); err != nil {
+		return false, err
+	}
+
+	status, err = worktree.Status()
+	if err != nil {
+		return false, fmt.Errorf("failed to get worktree status: %w", err)
+	}
+	staged := false
+	for path, fs := range status {
+		if !isAppStatePath(path) && fs.Staging != git.Unmodified && fs.Staging != git.Untracked {
+			staged = true
+			break
+		}
+	}
+	if !staged {
+		return false, nil
+	}
+
+	if err := commitAs(worktree, message, syncAuthor); err != nil {
+		return false, fmt.Errorf("failed to commit changes: %w", err)
+	}
+	return true, nil
 }
 
 func (gs *GitService) HealthCheck() error {
@@ -165,91 +364,51 @@ func (gs *GitService) HealthCheckWithRepair(autoRepair bool) error {
 func (gs *GitService) healthCheckWithRepairAttempts(autoRepair bool, repairAttempts int) error {
 	log.Printf("[GitService] Running health check (autoRepair: %v, repairAttempts: %d)...", autoRepair, repairAttempts)
 
+	// fail reports a failed check: err without autoRepair, otherwise the result
+	// of repairing the repository and checking it once more.
+	fail := func(problem string, err error) error {
+		if !autoRepair {
+			return err
+		}
+		if repairAttempts >= maxRepairAttempts {
+			return fmt.Errorf("%s and maximum repair attempts (%d) reached", problem, maxRepairAttempts)
+		}
+		log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
+		if err := gs.RepairRepository(); err != nil {
+			return fmt.Errorf("%s and repair failed: %w", problem, err)
+		}
+		return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
+	}
+
 	if gs.repository == nil {
 		log.Printf("[GitService] ERROR: Repository is nil")
-		if autoRepair {
-			if repairAttempts >= maxRepairAttempts {
-				return fmt.Errorf("git repository not initialized and maximum repair attempts (%d) reached", maxRepairAttempts)
-			}
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
-			if err := gs.RepairRepository(); err != nil {
-				return fmt.Errorf("git repository not initialized and repair failed: %w", err)
-			}
-			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
-		}
-		return fmt.Errorf("git repository not initialized")
+		return fail("git repository not initialized", fmt.Errorf("git repository not initialized"))
 	}
 
 	gitDir := filepath.Join(gs.dataDir, ".git")
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		log.Printf("[GitService] ERROR: .git directory does not exist at: %s", gitDir)
-		if autoRepair {
-			if repairAttempts >= maxRepairAttempts {
-				return fmt.Errorf(".git directory not found and maximum repair attempts (%d) reached", maxRepairAttempts)
-			}
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
-			if err := gs.RepairRepository(); err != nil {
-				return fmt.Errorf(".git directory not found and repair failed: %w", err)
-			}
-			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
-		}
-		return fmt.Errorf(".git directory not found at %s", gitDir)
+		return fail(".git directory not found", fmt.Errorf(".git directory not found at %s", gitDir))
 	}
 
-	_, err := gs.repository.Config()
-	if err != nil {
+	if _, err := gs.repository.Config(); err != nil {
 		log.Printf("[GitService] ERROR: Failed to get repository config: %v", err)
-		if autoRepair {
-			if repairAttempts >= maxRepairAttempts {
-				return fmt.Errorf("repository config is invalid and maximum repair attempts (%d) reached", maxRepairAttempts)
-			}
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
-			if err := gs.RepairRepository(); err != nil {
-				return fmt.Errorf("repository config is invalid and repair failed: %w", err)
-			}
-			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
-		}
-		return fmt.Errorf("repository config is invalid: %w", err)
+		return fail("repository config is invalid", fmt.Errorf("repository config is invalid: %w", err))
 	}
 
 	worktree, err := gs.repository.Worktree()
 	if err != nil {
 		log.Printf("[GitService] ERROR: Failed to get worktree: %v", err)
-		if autoRepair {
-			if repairAttempts >= maxRepairAttempts {
-				return fmt.Errorf("repository worktree is invalid and maximum repair attempts (%d) reached", maxRepairAttempts)
-			}
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
-			if err := gs.RepairRepository(); err != nil {
-				return fmt.Errorf("repository worktree is invalid and repair failed: %w", err)
-			}
-			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
-		}
-		return fmt.Errorf("repository worktree is invalid: %w", err)
+		return fail("repository worktree is invalid", fmt.Errorf("repository worktree is invalid: %w", err))
 	}
 
-	_, err = worktree.Status()
-	if err != nil {
+	if _, err := worktree.Status(); err != nil {
 		log.Printf("[GitService] ERROR: Failed to get worktree status: %v", err)
-		if autoRepair {
-			if repairAttempts >= maxRepairAttempts {
-				return fmt.Errorf("repository status check failed and maximum repair attempts (%d) reached", maxRepairAttempts)
-			}
-			log.Printf("[GitService] Auto-repair enabled, attempting to repair repository (attempt %d)...", repairAttempts+1)
-			if err := gs.RepairRepository(); err != nil {
-				return fmt.Errorf("repository status check failed and repair failed: %w", err)
-			}
-			return gs.healthCheckWithRepairAttempts(false, repairAttempts+1)
-		}
-		return fmt.Errorf("repository status check failed: %w", err)
+		return fail("repository status check failed", fmt.Errorf("repository status check failed: %w", err))
 	}
 
 	log.Printf("[GitService] Health check passed successfully")
 	return nil
-}
-
-func (gs *GitService) IsRepositoryInitialized() bool {
-	return gs.repository != nil && gs.HealthCheck() == nil
 }
 
 func (gs *GitService) RepairRepository() error {
@@ -257,24 +416,13 @@ func (gs *GitService) RepairRepository() error {
 
 	if gs.repository == nil {
 		log.Printf("[GitService] Repository is nil, attempting to reinitialize...")
-		if err := gs.initializeRepository(); err != nil {
-			log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
-			return fmt.Errorf("failed to reinitialize repository: %w", err)
-		}
-		log.Printf("[GitService] Repository reinitialized successfully")
-		return nil
+		return gs.reinitialize("")
 	}
 
 	gitDir := filepath.Join(gs.dataDir, ".git")
 	if _, err := os.Stat(gitDir); os.IsNotExist(err) {
 		log.Printf("[GitService] .git directory missing, reinitializing repository...")
-		gs.repository = nil
-		if err := gs.initializeRepository(); err != nil {
-			log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
-			return fmt.Errorf("failed to reinitialize repository after .git directory loss: %w", err)
-		}
-		log.Printf("[GitService] Repository reinitialized after .git directory loss")
-		return nil
+		return gs.reinitialize(" after .git directory loss")
 	}
 
 	worktree, err := gs.repository.Worktree()
@@ -283,13 +431,7 @@ func (gs *GitService) RepairRepository() error {
 		repo, err := git.PlainOpen(gs.dataDir)
 		if err != nil {
 			log.Printf("[GitService] Failed to reopen repository: %v, reinitializing...", err)
-			gs.repository = nil
-			if err := gs.initializeRepository(); err != nil {
-				log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
-				return fmt.Errorf("failed to reinitialize repository: %w", err)
-			}
-			log.Printf("[GitService] Repository reinitialized after worktree corruption")
-			return nil
+			return gs.reinitialize("")
 		}
 		gs.repository = repo
 		log.Printf("[GitService] Repository reopened successfully")
@@ -300,52 +442,60 @@ func (gs *GitService) RepairRepository() error {
 		}
 	}
 
-	_, err = worktree.Status()
-	if err != nil {
+	if _, err := worktree.Status(); err != nil {
 		log.Printf("[GitService] Repository status check failed: %v, attempting recovery...", err)
-		gs.repository = nil
-		if err := gs.initializeRepository(); err != nil {
-			log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
-			return fmt.Errorf("failed to reinitialize repository after status failure: %w", err)
-		}
-		log.Printf("[GitService] Repository reinitialized after status check failure")
-		return nil
+		return gs.reinitialize(" after status failure")
 	}
 
 	log.Printf("[GitService] Repository repair completed successfully")
 	return nil
 }
 
+// reinitialize drops the repository handle and opens or initializes the
+// repository again. reason is appended to the error message.
+func (gs *GitService) reinitialize(reason string) error {
+	gs.repository = nil
+	if err := gs.initializeRepository(); err != nil {
+		log.Printf("[GitService] ERROR: Failed to reinitialize repository: %v", err)
+		return fmt.Errorf("failed to reinitialize repository%s: %w", reason, err)
+	}
+	log.Printf("[GitService] Repository reinitialized%s", reason)
+	return nil
+}
+
 func (gs *GitService) CommitDocument(documentPath string, message string) error {
+	return gs.CommitDocuments(message, documentPath)
+}
+
+// CommitDocuments stages the given documents (including their removal, if the
+// file no longer exists on disk) and records them in a single commit. A move
+// passes both the old and the new path so the old file's deletion is not left
+// unstaged.
+func (gs *GitService) CommitDocuments(message string, documentPaths ...string) error {
 	if gs.repository == nil {
 		return fmt.Errorf("git repository not initialized")
 	}
+	if len(documentPaths) == 0 {
+		return fmt.Errorf("no documents to commit")
+	}
 
-	worktree, err := gs.repository.Worktree()
+	worktree, err := gs.worktree()
 	if err != nil {
-		return fmt.Errorf("failed to get worktree: %w", err)
+		return err
 	}
 
-	filePath := gs.getRelativeFilePath(documentPath)
-
-	if _, err := worktree.Add(filePath); err != nil {
-		return fmt.Errorf("failed to add file to staging: %w", err)
-	}
-
-	signature := &object.Signature{
-		Name:  "Schist User",
-		Email: "user@schist.local",
-		When:  time.Now(),
+	for _, documentPath := range documentPaths {
+		filePath := gs.getRelativeFilePath(documentPath)
+		if _, err := worktree.Add(filePath); err != nil {
+			return fmt.Errorf("failed to add file to staging (%s): %w", filePath, err)
+		}
 	}
 
 	if message == "" {
-		message = fmt.Sprintf("Update document: %s", documentPath)
+		message = fmt.Sprintf("Update document: %s", documentPaths[0])
 	}
 
-	_, err = worktree.Commit(message, &git.CommitOptions{
-		Author: signature,
-	})
-	if err != nil {
+	if err := commitAs(worktree, message, userAuthor); err != nil {
 		return fmt.Errorf("failed to commit changes: %w", err)
 	}
 
@@ -413,27 +563,9 @@ func (gs *GitService) GetDocumentAtVersion(documentPath string, commitHash strin
 		return nil, fmt.Errorf("git repository not initialized")
 	}
 
-	hash := plumbing.NewHash(commitHash)
-	commit, err := gs.repository.CommitObject(hash)
+	content, err := gs.getDocumentContent(documentPath, commitHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get commit object: %w", err)
-	}
-
-	tree, err := commit.Tree()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit tree: %w", err)
-	}
-
-	filePath := gs.getRelativeFilePath(documentPath)
-
-	file, err := tree.File(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get file from tree: %w", err)
-	}
-
-	content, err := file.Contents()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file content: %w", err)
+		return nil, err
 	}
 
 	document, err := serializer.DeserializeDocument([]byte(content))
@@ -459,11 +591,11 @@ func (gs *GitService) CompareVersions(documentPath, hash1, hash2 string) (*DiffR
 	}
 
 	// Validate that both commit hashes exist before attempting comparison
-	if err := gs.validateCommitHashEsists(hash1); err != nil {
-		return nil, fmt.Errorf("invalid hash1 %s: %w", hash1, err)
+	if err := gs.validateCommitHashExists(hash1); err != nil {
+		return nil, err
 	}
-	if err := gs.validateCommitHashEsists(hash2); err != nil {
-		return nil, fmt.Errorf("invalid hash2 %s: %w", hash2, err)
+	if err := gs.validateCommitHashExists(hash2); err != nil {
+		return nil, err
 	}
 
 	content1, err := gs.getDocumentContent(documentPath, hash1)
@@ -484,7 +616,7 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	hash := plumbing.NewHash(commitHash)
 	commit, err := gs.repository.CommitObject(hash)
 	if err != nil {
-		return "", fmt.Errorf("failed to get commit object: %w", err)
+		return "", classifyVersionLookupError(commitHash, "failed to get commit object", err)
 	}
 
 	tree, err := commit.Tree()
@@ -495,7 +627,7 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	filePath := gs.getRelativeFilePath(documentPath)
 	file, err := tree.File(filePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to get file from tree: %w", err)
+		return "", classifyVersionLookupError(commitHash, "failed to get file from tree", err)
 	}
 
 	content, err := file.Contents()
@@ -506,11 +638,10 @@ func (gs *GitService) getDocumentContent(documentPath, commitHash string) (strin
 	return content, nil
 }
 
-func (gs *GitService) validateCommitHashEsists(commitHash string) error {
+func (gs *GitService) validateCommitHashExists(commitHash string) error {
 	hash := plumbing.NewHash(commitHash)
-	_, err := gs.repository.CommitObject(hash)
-	if err != nil {
-		return fmt.Errorf("commit does not exist in repository")
+	if _, err := gs.repository.CommitObject(hash); err != nil {
+		return classifyVersionLookupError(commitHash, "failed to get commit object", err)
 	}
 	return nil
 }
@@ -533,52 +664,37 @@ func (gs *GitService) computeDiff(documentPath, hash1, hash2, content1, content2
 			diffLines = diffLines[:len(diffLines)-1] // Remove empty line at end
 		}
 
+		// Deleted lines exist only in the old version, inserted lines only in
+		// the new one, equal lines in both.
+		lineType, inOld, inNew := ChangeTypeContext, true, true
 		switch diff.Type {
 		case diffmatchpatch.DiffDelete:
-			for i, line := range diffLines {
-				if i == len(diffLines)-1 && line == "" {
-					continue
-				}
-				lines = append(lines, DiffLine{
-					Type:       ChangeTypeDeletion,
-					LineNumber: lineNum,
-					Content:    line,
-					OldLine:    oldLineNum,
-				})
-				oldLineNum++
-				lineNum++
-				summary.Deletions++
-			}
+			lineType, inNew = ChangeTypeDeletion, false
 		case diffmatchpatch.DiffInsert:
-			for i, line := range diffLines {
-				if i == len(diffLines)-1 && line == "" {
-					continue
-				}
-				lines = append(lines, DiffLine{
-					Type:       ChangeTypeAddition,
-					LineNumber: lineNum,
-					Content:    line,
-					NewLine:    newLineNum,
-				})
-				newLineNum++
-				lineNum++
-				summary.Additions++
+			lineType, inOld = ChangeTypeAddition, false
+		}
+
+		for i, line := range diffLines {
+			if i == len(diffLines)-1 && line == "" {
+				continue
 			}
-		case diffmatchpatch.DiffEqual:
-			for i, line := range diffLines {
-				if i == len(diffLines)-1 && line == "" {
-					continue
-				}
-				lines = append(lines, DiffLine{
-					Type:       ChangeTypeContext,
-					LineNumber: lineNum,
-					Content:    line,
-					OldLine:    oldLineNum,
-					NewLine:    newLineNum,
-				})
+			diffLine := DiffLine{Type: lineType, LineNumber: lineNum, Content: line}
+			if inOld {
+				diffLine.OldLine = oldLineNum
 				oldLineNum++
+			}
+			if inNew {
+				diffLine.NewLine = newLineNum
 				newLineNum++
-				lineNum++
+			}
+			lines = append(lines, diffLine)
+			lineNum++
+
+			switch lineType {
+			case ChangeTypeDeletion:
+				summary.Deletions++
+			case ChangeTypeAddition:
+				summary.Additions++
 			}
 		}
 	}
@@ -616,7 +732,7 @@ func (gs *GitService) RestoreDocument(documentPath, commitHash string) error {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+	if err := utils.WriteFileAtomic(fullPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write restored content: %w", err)
 	}
 

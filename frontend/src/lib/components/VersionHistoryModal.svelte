@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '$lib/utils/date';
 	import {
 		History,
 		GitCompare,
@@ -18,6 +19,7 @@
 		DialogFooter
 	} from '$lib/components/ui/dialog';
 	import DiffViewer from './DiffViewer.svelte';
+	import ErrorAlert from './ErrorAlert.svelte';
 	import type { DocumentVersion, DiffResult } from '$lib/api/types';
 	import { apiClient } from '$lib/api/client';
 	import { getErrorMessage } from '$lib/utils/error';
@@ -42,17 +44,6 @@
 	let restoreVersion = $state<DocumentVersion | null>(null);
 	let showRestoreConfirm = $state(false);
 	let diffError = $state<string | null>(null);
-
-	function formatDate(dateString: string): string {
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
-	}
 
 	function formatHash(hash: string): string {
 		return hash.substring(0, 8);
@@ -180,7 +171,8 @@
 				<div class="bg-muted rounded-lg p-4">
 					<div class="mb-2 flex items-center gap-2">
 						<Badge variant="outline">{formatHash(restoreVersion.hash)}</Badge>
-						<span class="text-muted-foreground text-sm">{formatDate(restoreVersion.timestamp)}</span
+						<span class="text-muted-foreground text-sm"
+							>{formatDateTime(restoreVersion.timestamp)}</span
 						>
 					</div>
 					{#if restoreVersion.author}
@@ -254,7 +246,7 @@
 										</Badge>
 										<div class="text-muted-foreground flex items-center gap-2 text-sm">
 											<Calendar class="h-4 w-4" />
-											<span>{formatDate(version.timestamp)}</span>
+											<span>{formatDateTime(version.timestamp)}</span>
 										</div>
 									</div>
 									<div class="flex gap-2">
@@ -298,9 +290,7 @@
 			</div>
 
 			{#if diffError}
-				<div class="bg-destructive/10 border-destructive/20 rounded-lg border p-3">
-					<p class="text-destructive text-sm">{diffError}</p>
-				</div>
+				<ErrorAlert error={diffError} />
 			{/if}
 
 			<DialogFooter>

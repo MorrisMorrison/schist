@@ -29,12 +29,16 @@ concurrency:
 
 jobs:
   e2e:
-    # Runs on GitHub-hosted runners: each run gets its own isolated VM, so two
-    # e2e runs can't starve each other's RAM the way they do on the shared
-    # self-hosted host. That removes the need for the repo-wide serialization
-    # lane -- e2e can run in parallel here. The self-hosted (VPS) variant is kept
-    # alongside as e2e-selfhosted.yml.disabled; to switch back, swap the two
-    # files' .yml/.disabled extensions.
+    name: e2e (${{ matrix.shard }}/2)
+    # Two shards, each on its own runner with its own backend, so they can't
+    # share data or auth state (the suite assumes one worker per backend).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    # Always GitHub-hosted: each run gets its own isolated VM, so two e2e runs
+    # (a full Docker app stack + Chromium each) can't starve each other's RAM
+    # the way they would on a shared self-hosted host.
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # docker-compose.yml's prod `schist` service declares SCHIST_JWT_SECRET as a
@@ -51,20 +55,36 @@ jobs:
     # by attempt guarantees a clean backend every time.
     env:
       SCHIST_JWT_SECRET: test-jwt-secret-for-e2e-testing-32-bytes-long
-      COMPOSE_PROJECT_NAME: schist-e2e-${{ github.run_id }}-${{ github.run_attempt }}
+      COMPOSE_PROJECT_NAME: schist-e2e-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
 
     steps:
       - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Reads the layer cache the Docker workflow writes on main (same image, same
+      # scope), so the npm/go dependency layers and any unchanged stage are
+      # reused. Read-only: exporting the cache costs ~35 s per job, and a cache
+      # written from a PR isn't visible to main or other PRs anyway.
+      - name: Build app image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: schist-e2e:local
+          build-args: PUBLIC_API_URL=
+          cache-from: type=gha,scope=schist-image
 
       - name: Start E2E service
         run: |
           set -euo pipefail
           # Defensive: drop any leftovers from a previous attempt with this
           # project name (e.g. a cancelled run whose cleanup step didn't finish),
-          # then build fresh so the backend starts with an empty datastore
+          # then start fresh so the backend has an empty datastore
           # (requires_setup: true) and auth.setup runs the first-time passkey flow.
+          # The image was built (with cache) in the previous step.
           docker compose --profile e2e down -v --remove-orphans 2>/dev/null || true
-          docker compose --profile e2e up -d --build --force-recreate
+          docker compose --profile e2e up -d --no-build --force-recreate
 
           echo "Waiting for service to become healthy..."
           timeout 120 bash -c '
@@ -92,7 +112,7 @@ jobs:
             -e CI=true \
             -e PLAYWRIGHT_BASE_URL=http://localhost:8080 \
             mcr.microsoft.com/playwright:v1.61.0-noble \
-            sh -c 'npm ci && npx playwright test')"
+            sh -c 'npm ci && npx playwright test --shard=${{ matrix.shard }}/2')"
           docker cp ./e2e/. "${CID}:/e2e"
           RC=0
           docker start -a "${CID}" || RC=$?
@@ -110,7 +130,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-results
+          name: playwright-results-${{ matrix.shard }}
           path: |
             e2e/playwright-report/
             e2e/test-results/
@@ -119,4 +139,4 @@ jobs:
 
       - name: Cleanup Docker containers
         if: always()
-        run: docker compose --profile e2e down --rmi all --volumes --remove-orphans || true
+        run: docker compose --profile e2e down --volumes --remove-orphans || true

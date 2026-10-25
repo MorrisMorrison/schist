@@ -1,26 +1,8 @@
-import { error } from '@sveltejs/kit';
-import type { Document } from '$lib/api/types';
-import { apiClient } from '$lib';
+import { redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ params }) => {
-	const { path } = params;
-
-	try {
-		const document: Document = await apiClient.getDocumentByPath(path);
-		return {
-			document,
-			path
-		};
-	} catch (err) {
-		console.error('Failed to load page for editing:', err);
-
-		// Re-throw SvelteKit errors as-is
-		if (err && typeof err === 'object' && 'status' in err) {
-			throw err;
-		}
-
-		// Convert other errors to SvelteKit errors
-		throw error(500, 'Failed to load page for editing');
-	}
+// Editing happens in place on the document page; /edit/<path> stays as a deep
+// link (bookmarks, old links) that opens it in edit mode.
+export const load: PageLoad = ({ params }) => {
+	redirect(307, `/documents/${params.path}?mode=edit`);
 };

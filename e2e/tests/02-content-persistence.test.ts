@@ -32,13 +32,11 @@ test.describe('Content Persistence and Data Integrity', () => {
 		const testDocument = withSimpleTestDocument;
 
 		await editorPage.navigateToEdit(testDocument.path!);
-		await editorPage.verifyLoaded();
 
 		const page2 = await context.newPage();
 		const editorPage2 = new EditorPage(page2);
 
 		await editorPage2.navigateToEdit(testDocument.path!);
-		await editorPage2.verifyLoaded();
 
 		await editorPage.typeContent('\n\nChanges from Editor 1');
 		await editorPage.save();
@@ -66,7 +64,6 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await documentViewPage.verifyContentContains('∑ ∂ ∆');
 
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.verifyContent('🚀 🌟 ✅');
 		await editorPage.typeContent('\n\nAdditional unicode: 🔥 ⭐ 💡');
 		await editorPage.saveAndExpectNavigation();
@@ -87,7 +84,6 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await documentViewPage.verifyContentContains('Section 2');
 
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 
 		await editorPage.typeContent('\n\n## Additional Section\n\nAdded to large content.');
 		await editorPage.saveAndExpectNavigation();
@@ -161,7 +157,6 @@ End of formatting test.`;
 
 		// Edit and verify formatting is preserved in editor
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.verifyContent('**Bold text**');
 		await editorPage.verifyContent('```javascript');
 		await editorPage.verifyContent('1. First item');
@@ -210,7 +205,6 @@ End of formatting test.`;
 
 		// Edit and save to ensure line endings are preserved
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.typeContent('\n\nAdded line with standard ending.');
 		await editorPage.saveAndExpectNavigation();
 
@@ -256,7 +250,6 @@ The links should remain functional after edits.`,
 		// Go back and edit the linking document
 		await documentViewPage.openDocument(linkingDocument);
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 
 		// Add another internal link
 		await editorPage.typeContent(`\n\n[New link to target](/documents/target-${testId})`);
@@ -280,7 +273,6 @@ The links should remain functional after edits.`,
 
 		// Create the first document
 		await editorPage.navigateToNew();
-		await editorPage.verifyLoaded();
 		await editorPage.fillDocumentDetails(
 			testDocument.title,
 			testDocument.content,
@@ -293,7 +285,6 @@ The links should remain functional after edits.`,
 
 		// Try to create a second document with the same name
 		await editorPage.navigateToNew();
-		await editorPage.verifyLoaded();
 
 		// Type the same title (this should trigger the warning)
 		await editorPage.fillTitle(testDocument.title);

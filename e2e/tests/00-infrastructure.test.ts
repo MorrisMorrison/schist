@@ -30,7 +30,6 @@ test.describe('Basic App Functionality', () => {
 
 	test('editor page loads correctly', async ({ editorPage }) => {
 		await editorPage.navigateToNew();
-		await editorPage.verifyLoaded();
 
 		// Basic editor elements should be present
 		await expect(editorPage.contentEditor).toBeVisible();

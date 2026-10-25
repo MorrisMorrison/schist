@@ -14,11 +14,8 @@ test.describe.serial('Document Lifecycle', () => {
 			tags: ['test', 'lifecycle']
 		});
 
-		// Navigate directly to new document editor
+		// Navigate directly to new document editor (waits for it to load)
 		await editorPage.navigateToNew();
-
-		// Verify editor loaded
-		await editorPage.verifyLoaded();
 		await editorPage.expectUrl('/new');
 
 		// Fill in document details
@@ -45,11 +42,10 @@ test.describe.serial('Document Lifecycle', () => {
 		// Navigate to the document
 		await documentViewPage.openDocument(originalDocument);
 
-		// Click edit button
+		// Click edit button (waits for the editor to load)
 		await documentViewPage.editDocument();
 
-		// Verify editor loaded with existing content
-		await editorPage.verifyLoaded();
+		// Verify the editor shows the existing content
 		await editorPage.verifyTitle(originalDocument.title);
 		await editorPage.verifyContent(originalDocument.title); // Content should contain the dynamic title
 
@@ -104,7 +100,6 @@ test.describe.serial('Document Lifecycle', () => {
 
 		// Navigate to edit
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 		await editorPage.verifyContent(testDocument.title);
 
 		// Navigate back to view without saving

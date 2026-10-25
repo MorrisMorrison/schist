@@ -47,7 +47,6 @@ async function appendAndSave(
 	text: string
 ) {
 	await documentViewPage.editDocument();
-	await editorPage.verifyLoaded();
 	await editorPage.typeContent(text);
 	await editorPage.saveAndExpectNavigation();
 	await documentViewPage.verifyContentContains(text.trim());

@@ -45,16 +45,22 @@ export class EditorPage extends BasePage {
 		return new URL(this.page.url()).pathname.startsWith('/new');
 	}
 
+	/** Opens the new-document page and waits until the editor is ready. */
 	async navigateToNew() {
 		await this.goto('/new');
 		await this.waitForLoad();
+		await this.verifyLoaded();
 	}
 
-	/** Opens a document in edit mode through the /edit/<path> deep link. */
+	/**
+	 * Opens a document in edit mode through the /edit/<path> deep link and waits
+	 * until the editor is ready.
+	 */
 	async navigateToEdit(documentPath: string) {
 		await this.goto(`/edit${documentPath}`);
 		await this.page.waitForURL(/\/documents\/.*\?mode=edit/);
 		await this.waitForLoad();
+		await this.verifyLoaded();
 	}
 
 	async verifyLoaded() {

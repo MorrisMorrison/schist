@@ -53,7 +53,6 @@ test.describe('Navigation and Routing', () => {
 		await documentViewPage.verifyDocumentUrl(testDocument.path!);
 
 		await editorPage.navigateToEdit(testDocument.path!);
-		await editorPage.verifyLoaded();
 		// /edit/<path> is a deep link into the document page's edit mode.
 		await editorPage.expectUrl(`/documents${testDocument.path!}?mode=edit`);
 
@@ -78,7 +77,6 @@ test.describe('Navigation and Routing', () => {
 		// Switching to edit mode is a toggle on the same page, not a navigation:
 		// it replaces the history entry (?mode=edit) instead of adding one.
 		await documentViewPage.editDocument();
-		await editorPage.verifyLoaded();
 
 		// Wait for the URL to settle after each history move before asserting the
 		// DOM: page.goBack/goForward resolve on the 'load' event, but SPA history

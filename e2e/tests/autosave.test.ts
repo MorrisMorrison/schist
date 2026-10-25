@@ -16,7 +16,6 @@ test.describe('Auto-save Functionality', () => {
 	}) => {
 		// Navigate to edit page
 		await editorPage.navigateToEdit(testDocument.path!);
-		await editorPage.verifyLoaded();
 
 		// Verify initial content
 		await editorPage.verifyTitle(testDocument.title);
@@ -45,7 +44,6 @@ test.describe('Auto-save Functionality', () => {
 	}) => {
 		// Navigate to edit
 		await editorPage.navigateToEdit(testDocument.path!);
-		await editorPage.verifyLoaded();
 
 		// Simulate network failure by intercepting API calls
 		await page.route('**/api/documents/**', (route) => {
@@ -84,7 +82,6 @@ test.describe('Auto-save Functionality', () => {
 		const newPath = `/renamed-${testId.toLowerCase()}`;
 
 		await editorPage.navigateToEdit(oldPath);
-		await editorPage.verifyLoaded();
 
 		// First auto-save renames the document (its title drives the path).
 		const firstSave = waitForAutoSaveRequest(page);

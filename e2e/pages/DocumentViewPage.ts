@@ -119,12 +119,13 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Switch the document to edit mode (in place; the URL gains ?mode=edit).
+	 * Switch the document to edit mode (in place; the URL gains ?mode=edit) and
+	 * wait until the editor is ready.
 	 */
 	async editDocument() {
 		await this.editButton.click();
 		await this.page.waitForURL(/\?mode=edit/);
-		await expect(new EditorPage(this.page).contentEditor).toBeVisible();
+		await new EditorPage(this.page).verifyLoaded();
 	}
 
 	/**

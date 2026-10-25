@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Plus, File, Download, Edit, Trash2 } from '@lucide/svelte';
 	import type { Folder as FolderType } from '$lib/api/types.js';
+	import ContextMenu from '../context-menu/ContextMenu.svelte';
+	import ContextMenuItem from '../context-menu/ContextMenuItem.svelte';
 
 	interface Props {
 		folder: FolderType | null;
@@ -31,110 +33,46 @@
 	const isRootFolder = $derived(folder?.path === '/' || folder?.path === '');
 	const showExport = $derived(onFolderExport || onExportAll);
 
-	function handleCreateFolder() {
+	function select(action: (folder: FolderType) => void) {
 		if (folder) {
-			onCreateFolder(folder.path);
+			action(folder);
 		}
 		onClose();
 	}
 
-	function handleCreateDocument() {
-		if (folder) {
-			onCreateDocument(folder.path);
-		}
-		onClose();
-	}
-
-	function handleRename() {
-		if (folder) {
-			onRename(folder);
-		}
-		onClose();
-	}
-
-	function handleDelete() {
-		if (folder) {
-			onDelete(folder);
-		}
-		onClose();
-	}
-
-	function handleExport() {
-		if (folder) {
-			if (isRootFolder && onExportAll) {
-				onExportAll();
-			} else if (onFolderExport) {
-				onFolderExport(folder);
-			}
-		}
-		onClose();
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			onClose();
+	function exportFolder(folder: FolderType) {
+		if (isRootFolder && onExportAll) {
+			onExportAll();
+		} else if (onFolderExport) {
+			onFolderExport(folder);
 		}
 	}
 </script>
 
 {#if isOpen && folder}
-	<div
-		class="bg-primary border-primary fixed z-50 min-w-[180px] rounded-lg border py-1 shadow-lg"
-		style="left: {position.x}px; top: {position.y}px"
-		onclick={(e) => e.stopPropagation()}
-		onkeydown={handleKeydown}
-		role="menu"
+	<ContextMenu
+		{position}
+		{onClose}
+		class="min-w-[180px]"
 		aria-label="Folder actions"
 		data-testid="context-menu"
-		tabindex="-1"
 	>
-		<button
-			type="button"
-			class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-			onclick={handleCreateFolder}
-		>
-			<Plus class="h-4 w-4" />
-			Create Subfolder
-		</button>
-
-		<button
-			type="button"
-			class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-			onclick={handleCreateDocument}
-		>
-			<File class="h-4 w-4" />
-			Create Document
-		</button>
-
+		<ContextMenuItem
+			icon={Plus}
+			label="Create Subfolder"
+			onclick={() => select((f) => onCreateFolder(f.path))}
+		/>
+		<ContextMenuItem
+			icon={File}
+			label="Create Document"
+			onclick={() => select((f) => onCreateDocument(f.path))}
+		/>
 		{#if showExport}
-			<button
-				type="button"
-				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-				onclick={handleExport}
-			>
-				<Download class="h-4 w-4" />
-				Export
-			</button>
+			<ContextMenuItem icon={Download} label="Export" onclick={() => select(exportFolder)} />
 		{/if}
-
 		{#if !isRootFolder}
-			<button
-				type="button"
-				class="hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
-				onclick={handleRename}
-			>
-				<Edit class="h-4 w-4" />
-				Rename
-			</button>
-
-			<button
-				type="button"
-				class="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
-				onclick={handleDelete}
-			>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</button>
+			<ContextMenuItem icon={Edit} label="Rename" onclick={() => select(onRename)} />
+			<ContextMenuItem icon={Trash2} label="Delete" destructive onclick={() => select(onDelete)} />
 		{/if}
-	</div>
+	</ContextMenu>
 {/if}

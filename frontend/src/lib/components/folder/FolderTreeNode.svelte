@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { ChevronRight, ChevronDown, Folder, MoreVertical } from '@lucide/svelte';
+	import { ChevronRight, ChevronDown, Folder } from '@lucide/svelte';
 	import { cn } from '$lib/utils.js';
+	import TreeRowMenuTrigger from './TreeRowMenuTrigger.svelte';
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
 	import DocumentItem from '../document/DocumentItem.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
@@ -181,26 +182,11 @@
 
 			<!-- Context Menu Trigger - Positioned absolutely to the right -->
 			{#if enableContextMenu}
-				<span
-					class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
-					onclick={(e) => {
-						e.stopPropagation();
-						onContextMenu(e, folder);
-					}}
-					onkeydown={(e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
-							e.preventDefault();
-							e.stopPropagation();
-							onContextMenu(e, folder);
-						}
-					}}
-					role="button"
-					tabindex="0"
-					aria-label="Folder options"
-					data-testid="folder-context-menu-trigger"
-				>
-					<MoreVertical class="h-3 w-3" />
-				</span>
+				<TreeRowMenuTrigger
+					label="Folder options"
+					testId="folder-context-menu-trigger"
+					onOpen={(e) => onContextMenu(e, folder)}
+				/>
 			{/if}
 		</div>
 	{/if}

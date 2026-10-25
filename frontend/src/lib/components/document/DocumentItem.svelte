@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { File, MoreVertical } from '@lucide/svelte';
+	import { File } from '@lucide/svelte';
 	import { cn } from '$lib/utils.js';
+	import TreeRowMenuTrigger from '../folder/TreeRowMenuTrigger.svelte';
 	import type { Document } from '$lib/api/types.js';
 	import type { DragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 
@@ -80,24 +81,6 @@
 	</div>
 
 	{#if enableContextMenu}
-		<span
-			class="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded p-1 opacity-0 group-hover:opacity-100"
-			onclick={(e) => {
-				e.stopPropagation();
-				onContextMenu(e);
-			}}
-			onkeydown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					e.stopPropagation();
-					onContextMenu(e);
-				}
-			}}
-			role="button"
-			tabindex="0"
-			aria-label="Document options"
-		>
-			<MoreVertical class="h-3 w-3" />
-		</span>
+		<TreeRowMenuTrigger label="Document options" onOpen={onContextMenu} />
 	{/if}
 </div>

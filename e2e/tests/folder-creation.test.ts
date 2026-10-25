@@ -2,7 +2,6 @@ import { test, expect } from '../fixtures';
 
 test.describe.serial('Folder Creation', () => {
 	const testFolderName = 'test-folder-e2e';
-	const cleanFolderName = 'test-folder-e2e';
 
 	// Ensure clean state before each test in this describe block
 	test.beforeEach(async ({ apiHelper }) => {
@@ -15,18 +14,17 @@ test.describe.serial('Folder Creation', () => {
 
 		await folderPage.createFolder(testFolderName);
 
-		await folderPage.verifyContainsFolder(cleanFolderName);
+		await folderPage.verifyContainsFolder(testFolderName);
 
-		await folderPage.openSubFolder(cleanFolderName);
+		await folderPage.openSubFolder(testFolderName);
 		await folderPage.verifyFolderLoaded();
-		await folderPage.verifyFolderUrl(`/${cleanFolderName}`);
+		await folderPage.verifyFolderUrl(`/${testFolderName}`);
 	});
 
 	test('should show error for invalid folder names', async ({ folderPage }) => {
 		await folderPage.navigateToRoot();
 
-		await folderPage.createFolderButton.click();
-		await folderPage.waitForVisible(folderPage.createFolderModal);
+		await folderPage.openCreateFolderModal();
 
 		const invalidName = 'invalid/folder*name!';
 		await folderPage.fillInput(folderPage.folderNameInput, invalidName);
@@ -72,8 +70,7 @@ test.describe.serial('Folder Creation', () => {
 		const cancelTestFolderName = 'cancel-test-folder';
 
 		// Open folder creation modal and cancel it
-		await folderPage.createFolderButton.click();
-		await folderPage.waitForVisible(folderPage.createFolderModal);
+		await folderPage.openCreateFolderModal();
 		await folderPage.fillInput(folderPage.folderNameInput, cancelTestFolderName);
 		await folderPage.cancelCreateFolder.click();
 		await expect(folderPage.createFolderModal).toBeHidden();
@@ -90,16 +87,12 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.navigateToRoot();
 
 		await folderPage.createFolder(testFolderName);
-		await folderPage.verifyContainsFolder(cleanFolderName);
+		await folderPage.verifyContainsFolder(testFolderName);
 
-		await folderPage.createFolderButton.click();
-		await folderPage.waitForVisible(folderPage.createFolderModal);
-		await folderPage.fillInput(folderPage.folderNameInput, testFolderName);
-		await folderPage.confirmCreateFolder.click();
-		await expect(folderPage.createFolderModal).toBeHidden();
+		await folderPage.createFolder(testFolderName);
 
 		// Creating an existing folder is idempotent: still exactly one in the tree
-		await expect(folderPage.folderButton(cleanFolderName)).toHaveCount(1);
+		await expect(folderPage.folderButton(testFolderName)).toHaveCount(1);
 	});
 
 	test('should allow folder creation in empty root', async ({ folderPage }) => {

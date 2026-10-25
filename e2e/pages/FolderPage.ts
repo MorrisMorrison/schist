@@ -13,6 +13,10 @@ export class FolderPage extends BasePage {
 	readonly confirmCreateFolder: Locator;
 	readonly cancelCreateFolder: Locator;
 
+	readonly renameFolderButton: Locator;
+	readonly cancelRenameFolderButton: Locator;
+	readonly confirmDialog: Locator;
+
 	readonly folderTree: Locator;
 	readonly contextMenu: Locator;
 
@@ -32,6 +36,11 @@ export class FolderPage extends BasePage {
 		this.folderNameInput = page.getByTestId('folder-name');
 		this.confirmCreateFolder = this.createFolderModal.getByTestId('create-folder-btn');
 		this.cancelCreateFolder = this.createFolderModal.getByTestId('cancel-create-folder-btn');
+
+		// The rename modal reuses the `folder-name` input.
+		this.renameFolderButton = page.getByTestId('rename-folder-btn');
+		this.cancelRenameFolderButton = page.getByTestId('cancel-rename-folder-btn');
+		this.confirmDialog = page.getByTestId('confirm-dialog');
 
 		this.folderTree = page.getByTestId('folder-tree');
 		this.contextMenu = page.getByTestId('context-menu');
@@ -56,13 +65,27 @@ export class FolderPage extends BasePage {
 		}
 	}
 
+	/** Open the "New Folder" modal from the folder view's button. */
+	async openCreateFolderModal() {
+		await this.createFolderButton.click();
+		await this.waitForVisible(this.createFolderModal);
+	}
+
 	/**
-	 * Create a folder through the "New Folder" modal and wait for the backend to
-	 * confirm it (rather than for network idle plus a fixed sleep).
+	 * Create a folder through the folder view's "New Folder" modal and wait for
+	 * the backend to confirm it (rather than for network idle plus a fixed sleep).
 	 */
 	async createFolder(folderName: string) {
-		await this.createFolderButton.click();
+		await this.openCreateFolderModal();
+		await this.submitCreateFolder(folderName);
+	}
 
+	/**
+	 * Name the folder in an open "New Folder" modal, however it was opened (the
+	 * folder view, a tree context menu, the sidebar "+" menu), submit it and wait
+	 * for the backend to confirm it.
+	 */
+	async submitCreateFolder(folderName: string) {
 		await this.waitForVisible(this.createFolderModal);
 		await this.waitForVisible(this.folderNameInput);
 		await this.fillInput(this.folderNameInput, folderName);
@@ -118,6 +141,25 @@ export class FolderPage extends BasePage {
 		await this.folderButton(folderName).click({ button: 'right' });
 		await expect(this.contextMenu).toBeVisible();
 		return this.contextMenu;
+	}
+
+	/**
+	 * Choose Rename in a folder's context menu; returns the modal's name input
+	 * (prefilled with the current name).
+	 */
+	async openRenameFolderModal(folderName: string) {
+		const contextMenu = await this.openContextMenu(folderName);
+		await contextMenu.getByText(/rename/i).click();
+		await expect(this.folderNameInput).toBeVisible();
+		return this.folderNameInput;
+	}
+
+	/** Choose Delete in a folder's context menu; returns the confirmation dialog. */
+	async openDeleteFolderDialog(folderName: string) {
+		const contextMenu = await this.openContextMenu(folderName);
+		await contextMenu.getByText(/delete/i).click();
+		await expect(this.confirmDialog).toBeVisible();
+		return this.confirmDialog;
 	}
 
 	async verifyContainsDocument(documentName: string) {

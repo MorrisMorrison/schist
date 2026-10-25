@@ -2,7 +2,6 @@ import { test, expect } from '../fixtures';
 
 test.describe.serial('Folder Tree Creation', () => {
 	const testFolderName = 'tree-test-folder';
-	const cleanFolderName = 'tree-test-folder';
 
 	test('should create folder via FolderTree context menu in nested folder', async ({
 		folderPage,
@@ -19,10 +18,7 @@ test.describe.serial('Folder Tree Creation', () => {
 		await createSubfolderOption.click();
 
 		const nestedFolderName = 'nested-child';
-		await folderPage.waitForVisible(folderPage.createFolderModal);
-		await folderPage.fillInput(folderPage.folderNameInput, nestedFolderName);
-		await folderPage.confirmCreateFolder.click();
-		await expect(folderPage.createFolderModal).toBeHidden();
+		await folderPage.submitCreateFolder(nestedFolderName);
 
 		// The folder exists on the backend, nested under its parent...
 		const parent = await apiHelper.getFolder('/parent-tree-folder');
@@ -38,9 +34,9 @@ test.describe.serial('Folder Tree Creation', () => {
 		await folderPage.navigateToRoot();
 
 		await folderPage.createFolder(testFolderName);
-		await folderPage.verifyContainsFolder(cleanFolderName);
+		await folderPage.verifyContainsFolder(testFolderName);
 
-		const contextMenu = await folderPage.openContextMenu(cleanFolderName);
+		const contextMenu = await folderPage.openContextMenu(testFolderName);
 
 		// A regular folder offers rename and delete
 		await expect(contextMenu.getByText(/rename/i)).toBeVisible();
@@ -65,10 +61,7 @@ test.describe.serial('Folder Tree Creation', () => {
 		await page.getByRole('menuitem', { name: 'New folder' }).click();
 
 		const folderName = 'top-level-from-menu';
-		await folderPage.waitForVisible(folderPage.createFolderModal);
-		await folderPage.fillInput(folderPage.folderNameInput, folderName);
-		await folderPage.confirmCreateFolder.click();
-		await expect(folderPage.createFolderModal).toBeHidden();
+		await folderPage.submitCreateFolder(folderName);
 
 		await folderPage.verifyContainsFolder(folderName);
 	});

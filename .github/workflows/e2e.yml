@@ -62,8 +62,10 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
-      # Same image and cache scope as the Docker workflow, so most layers (the
-      # npm and go dependency layers, any unchanged stage) come from the cache.
+      # Reads the layer cache the Docker workflow writes on main (same image, same
+      # scope), so the npm/go dependency layers and any unchanged stage are
+      # reused. Read-only: exporting the cache costs ~35 s per job, and a cache
+      # written from a PR isn't visible to main or other PRs anyway.
       - name: Build app image
         uses: docker/build-push-action@v7
         with:
@@ -72,7 +74,6 @@ jobs:
           tags: schist-e2e:local
           build-args: PUBLIC_API_URL=
           cache-from: type=gha,scope=schist-image
-          cache-to: type=gha,mode=max,scope=schist-image
 
       - name: Start E2E service
         run: |

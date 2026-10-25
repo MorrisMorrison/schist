@@ -54,7 +54,8 @@ jobs:
 
       # Layer cache shared with the e2e workflow (same image, same scope): an
       # unchanged frontend or backend stage, and the npm/go dependency layers,
-      # come from the cache instead of being rebuilt.
+      # come from the cache instead of being rebuilt. Only main writes it: PRs
+      # can read main's cache but not each other's, and the export costs ~35 s.
       - name: Build Docker image
         uses: docker/build-push-action@v7
         with:
@@ -62,7 +63,7 @@ jobs:
           load: true
           tags: schist-test:${{ github.run_id }}
           cache-from: type=gha,scope=schist-image
-          cache-to: type=gha,mode=max,scope=schist-image
+          cache-to: ${{ github.event_name != 'pull_request' && 'type=gha,mode=max,scope=schist-image' || '' }}
 
       - name: Test Docker image
         run: |

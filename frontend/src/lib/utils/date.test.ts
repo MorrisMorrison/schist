@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatDate, formatRelativeDate } from './date';
+import { formatDate, formatDateTime, formatLongDate, formatRelativeDate } from './date';
 
 const NOW = new Date('2026-06-15T12:00:00Z');
 const HOUR = 60 * 60 * 1000;
@@ -54,5 +54,20 @@ describe('formatDate', () => {
 		const iso = '2024-03-05T12:00:00Z';
 		expect(formatDate(iso)).toBe(new Date(iso).toLocaleDateString());
 		expect(formatDate()).toBe('');
+	});
+});
+
+describe('formatLongDate', () => {
+	it('spells out the month and handles a missing date', () => {
+		const iso = '2024-03-05T12:00:00';
+		expect(formatLongDate(iso)).toBe('March 5, 2024');
+		expect(formatLongDate()).toBe('');
+		expect(formatLongDate('')).toBe('');
+	});
+});
+
+describe('formatDateTime', () => {
+	it('shows the short date and the time of day', () => {
+		expect(formatDateTime('2024-03-05T14:07:00')).toBe('Mar 5, 2024, 02:07 PM');
 	});
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDateTime } from '$lib/utils/date';
 	import { onMount } from 'svelte';
 	import { passkeyStore } from '$lib/stores/passkeys.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -42,16 +43,6 @@
 		} finally {
 			deletingPasskey = null;
 		}
-	}
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
 	}
 
 	function handleSetupSuccess() {
@@ -107,7 +98,7 @@
 										<span class="text-sm font-medium">{passkey.name}</span>
 									</div>
 									<p class="text-muted-foreground mt-1 text-xs">
-										Created {formatDate(passkey.createdAt)}
+										Created {formatDateTime(passkey.createdAt)}
 									</p>
 								</div>
 								<Button

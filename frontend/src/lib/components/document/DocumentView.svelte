@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/utils/date';
 	import {
 		BookOpen,
 		Calendar,
@@ -164,16 +165,6 @@
 			return true;
 		});
 	});
-
-	function formatDate(dateString?: string): string {
-		if (!dateString) return '';
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-	}
 
 	let processedContent = $state('');
 
@@ -365,14 +356,14 @@
 				{#if documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Created {formatDate(documentCreated)}</span>
+						<span>Created {formatLongDate(documentCreated)}</span>
 					</div>
 				{/if}
 
 				{#if documentUpdated && documentUpdated !== documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Updated {formatDate(documentUpdated)}</span>
+						<span>Updated {formatLongDate(documentUpdated)}</span>
 					</div>
 				{/if}
 
@@ -562,7 +553,7 @@
 												{backlinkDocument.metaData.title}
 											</h4>
 											<span class="text-muted-foreground text-xs">
-												{formatDate(backlinkDocument.metaData.updated)}
+												{formatLongDate(backlinkDocument.metaData.updated)}
 											</span>
 										</div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/utils/date';
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -85,10 +86,6 @@
 			console.error('Failed to delete user:', err);
 			error = getErrorMessage(err, 'Failed to delete user');
 		}
-	}
-
-	function formatDate(dateStr: string) {
-		return new Date(dateStr).toLocaleDateString();
 	}
 </script>
 

@@ -231,7 +231,7 @@
 							</Button>
 						</div>
 					{:else}
-						<div class="text-muted-foreground text-center py-8">
+						<div class="text-muted-foreground py-8 text-center">
 							<Users class="mx-auto h-12 w-12 opacity-50" />
 							<p class="mt-2">No users found</p>
 						</div>

@@ -2,7 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { documentActions } from '$lib/stores/documents.svelte';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import FolderView from '$lib/components/folder/FolderView.svelte';
 	import DocumentView from '$lib/components/document/DocumentView.svelte';
 	import type { Document } from '$lib/api/types';
@@ -12,12 +12,17 @@
 	import { isNotFoundError, getErrorMessage } from '$lib/utils/error';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
+	import type { DocumentMode } from '$lib/types/editor';
+	import { settings } from '$lib/stores/settings.svelte';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);
 	let error = $state<string | null>(null);
 	let isNotFound = $state(false);
 	let isLoadingContent = $state(false);
+	// Reading or editing is page state; the URL mirrors it as ?mode=edit so a
+	// link (or /edit/<path>, which redirects here) can open the editor.
+	let mode = $state<DocumentMode>('read');
 
 	const documentLoader = useOptimizedLoading(200, 150);
 
@@ -58,6 +63,10 @@
 				if (currentDocument) {
 					addToRecentDocuments(currentDocument.metaData.path);
 				}
+				mode =
+					page.url.searchParams.get('mode') === 'edit' || settings.app.openDocumentsInEditMode
+						? 'edit'
+						: 'read';
 			} catch (documentError) {
 				if (isNotFoundError(documentError)) {
 					isNotFound = true;
@@ -75,8 +84,21 @@
 		}
 	}
 
-	function handleEditDocument() {
-		goto(`/edit/${path}`);
+	function documentUrl(document: Document, documentMode: DocumentMode): string {
+		const docPath = document.metaData.path.replace(/^\/+/, '');
+		return `/documents/${docPath}${documentMode === 'edit' ? '?mode=edit' : ''}`;
+	}
+
+	// Shallow URL updates: no load, no remount, so the editor keeps its state.
+	function handleModeChange(next: DocumentMode) {
+		if (currentDocument) replaceState(documentUrl(currentDocument, next), {});
+	}
+
+	// A save can rename the document (title from the first heading); keep the
+	// URL on its current path.
+	function handleSaved(saved: Document) {
+		currentDocument = saved;
+		replaceState(documentUrl(saved, mode), {});
 	}
 
 	async function handleDeleteDocument(path: string) {
@@ -115,7 +137,9 @@
 	{:else if currentDocument}
 		<DocumentView
 			document={currentDocument}
-			onEdit={handleEditDocument}
+			bind:mode
+			onModeChange={handleModeChange}
+			onSaved={handleSaved}
 			onDelete={handleDeleteDocument}
 		/>
 	{:else if isNotFound}

@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
-	import LazyEditor from '$lib/components/editor/LazyEditor.svelte';
+	import LazyProseEditor from '$lib/components/editor/LazyProseEditor.svelte';
+	import EditorToolbar from '$lib/components/editor/EditorToolbar.svelte';
+	import MarkdownPreview from '$lib/components/editor/MarkdownPreview.svelte';
+	import ModeToggle from '$lib/components/editor/ModeToggle.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug, normalizePath } from '$lib/utils/path';
-	import { Check, Loader2 } from '@lucide/svelte';
+	import { BookOpen, Check, Loader2, Pencil } from '@lucide/svelte';
+	import type { DocumentMode } from '$lib/types/editor';
 	import type { PageData } from './$types';
 	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
 	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
@@ -21,10 +25,14 @@
 	let { data }: { data: PageData } = $props();
 
 	const initialContent = '# New Document\n\n';
+	// "New Document" starts selected, so typing replaces it with the real title.
+	const TITLE_PLACEHOLDER = { anchor: 2, head: 14 };
 	let content = $state(initialContent);
 	let isCreating = $state(false);
 	let createError = $state('');
-	let editorRef = $state<LazyEditor>();
+	let editorRef = $state<LazyProseEditor>();
+	// A new document starts in the editor; Preview shows the rendered draft.
+	let mode = $state<DocumentMode>('edit');
 
 	const documentExistence = useDocumentExistence();
 
@@ -108,15 +116,25 @@
 		content = newContent;
 	}
 
-	async function handleSaveFromEditor(newContent: string) {
-		content = newContent;
-		await handleCreate();
+	function setMode(next: DocumentMode) {
+		mode = next;
+		if (next === 'edit') {
+			requestAnimationFrame(() => {
+				editorRef?.remeasure();
+				editorRef?.focus();
+			});
+		}
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+		const mod = event.ctrlKey || event.metaKey;
+		if (mod && event.key === 's') {
 			event.preventDefault();
 			handleCreate();
+		}
+		if (mod && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'e') {
+			event.preventDefault();
+			setMode(mode === 'edit' ? 'read' : 'edit');
 		}
 		if (event.key === 'Escape' && navigationGuard.showModal) {
 			navigationGuard.handleCancel();
@@ -161,10 +179,8 @@
 		// Update originalContent to reflect the new template as baseline
 		originalContent = templateContent;
 
-		// Force immediate preview update using the Editor's public method
-		if (editorRef) {
-			editorRef.setContentImmediate(templateContent);
-		}
+		editorRef?.setContent(templateContent);
+		setMode('edit');
 	}
 </script>
 
@@ -175,33 +191,55 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="mx-auto max-w-7xl space-y-8 p-6">
-	<!-- Header -->
-	<div class="border-primary border-b pb-6">
-		<div class="flex items-center justify-between">
-			<div>
-				<h1 class="text-primary text-2xl font-bold">{title}</h1>
-				<p class="text-secondary mt-1 text-sm">Add a new document to your wiki</p>
-			</div>
-
-			<div class="flex items-center space-x-3">
-				<Button href="/" data-testid="cancel-button" variant="outline">Cancel</Button>
-				<Button
-					data-testid="save-document-button"
-					onclick={handleCreate}
-					disabled={isCreating || !content.trim() || documentExistence.exists}
-				>
-					{#if isCreating}
-						<Loader2 class="h-4 w-4 animate-spin"></Loader2>
-						Creating...
-					{:else}
-						<Check class="h-4 w-4"></Check>
-						Save Document
-					{/if}
-				</Button>
-			</div>
+<div class="mx-auto max-w-[55rem] space-y-8 p-6">
+	<header
+		class="border-border flex flex-col gap-4 border-b pb-6 md:flex-row md:items-center md:justify-between"
+	>
+		<div>
+			<p class="text-muted-foreground text-sm">New document</p>
+			<p class="text-muted-foreground mt-1 text-xs" data-testid="new-document-path">
+				Will be saved as <span class="font-mono">{generatePath(title)}</span>
+			</p>
 		</div>
-	</div>
+
+		<div class="flex items-center gap-2">
+			<ModeToggle
+				{mode}
+				onSelect={setMode}
+				options={[
+					{
+						mode: 'edit',
+						label: 'Write',
+						title: 'Write (Ctrl+E)',
+						icon: Pencil,
+						testId: 'edit-mode-button'
+					},
+					{
+						mode: 'read',
+						label: 'Preview',
+						title: 'Preview (Ctrl+E)',
+						icon: BookOpen,
+						testId: 'preview-mode-button'
+					}
+				]}
+			/>
+			<Button href="/" data-testid="cancel-button" variant="outline" size="sm">Cancel</Button>
+			<Button
+				data-testid="save-document-button"
+				size="sm"
+				onclick={handleCreate}
+				disabled={isCreating || !content.trim() || documentExistence.exists}
+			>
+				{#if isCreating}
+					<Loader2 class="h-4 w-4 animate-spin"></Loader2>
+					Creating...
+				{:else}
+					<Check class="h-4 w-4"></Check>
+					Save Document
+				{/if}
+			</Button>
+		</div>
+	</header>
 
 	<!-- Error Message -->
 	{#if createError}
@@ -217,18 +255,28 @@
 		/>
 	{/if}
 
-	<!-- Content Editor -->
-	<div class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
-		<LazyEditor
-			bind:this={editorRef}
-			initialContent={content}
-			onContentChange={handleContentChange}
-			onSave={handleSaveFromEditor}
-			autoSave={{
-				enabled: false
-			}}
-		/>
+	<!-- The editor stays mounted while previewing, so cursor and undo survive. -->
+	<div class:hidden={mode !== 'edit'}>
+		<div
+			class="bg-background/95 border-border sticky top-0 z-10 mb-6 border-b py-1.5 backdrop-blur"
+		>
+			<EditorToolbar onFormat={(type, value) => editorRef?.formatText(type, value)} />
+		</div>
+		<div class="max-w-[70ch]">
+			<LazyProseEditor
+				bind:this={editorRef}
+				{content}
+				autofocus
+				initialSelection={TITLE_PLACEHOLDER}
+				onContentChange={handleContentChange}
+				onSave={handleCreate}
+			/>
+		</div>
 	</div>
+
+	{#if mode === 'read'}
+		<MarkdownPreview {content} />
+	{/if}
 
 	<!-- Template Suggestions -->
 	<div class="bg-content rounded-lg p-6">

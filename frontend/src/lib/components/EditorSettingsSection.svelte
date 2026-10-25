@@ -2,47 +2,39 @@
 	import { settings, settingsActions } from '$lib/stores/settings.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
-
-	function handleAlwaysHidePreviewChange(checked: boolean) {
-		settingsActions.updateAppSetting('alwaysHidePreview', checked);
-	}
-
-	function handleAlwaysOpenFullscreenChange(checked: boolean) {
-		settingsActions.updateAppSetting('alwaysOpenFullscreen', checked);
-	}
 </script>
 
 <div class="space-y-6" data-testid="editor-settings-section">
 	<div class="space-y-4">
-		<!-- Always Hide Preview Setting -->
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">
 				<div class="space-y-1">
-					<Label class="text-sm font-medium">Always hide preview</Label>
+					<Label class="text-sm font-medium">Open documents in edit mode</Label>
 					<p class="text-muted-foreground text-xs">
-						When editing documents, preview is hidden by default (can still be toggled on manually)
+						Documents open ready to edit instead of in the reading view (Ctrl+E switches either way)
 					</p>
 				</div>
 				<ToggleSlider
-					checked={settings.app.alwaysHidePreview}
-					onCheckedChange={handleAlwaysHidePreviewChange}
+					checked={settings.app.openDocumentsInEditMode}
+					onCheckedChange={(checked) =>
+						settingsActions.updateAppSetting('openDocumentsInEditMode', checked)}
 					size="sm"
 				/>
 			</div>
 		</div>
 
-		<!-- Always Open Fullscreen Setting -->
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">
 				<div class="space-y-1">
-					<Label class="text-sm font-medium">Always open editor in fullscreen mode</Label>
+					<Label class="text-sm font-medium">Always edit in focus mode</Label>
 					<p class="text-muted-foreground text-xs">
-						Automatically opens the editor in fullscreen mode when editing any document
+						Editing fills the window with just the document (F11 or Escape leaves focus mode)
 					</p>
 				</div>
 				<ToggleSlider
 					checked={settings.app.alwaysOpenFullscreen}
-					onCheckedChange={handleAlwaysOpenFullscreenChange}
+					onCheckedChange={(checked) =>
+						settingsActions.updateAppSetting('alwaysOpenFullscreen', checked)}
 					size="sm"
 				/>
 			</div>

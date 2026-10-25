@@ -10,25 +10,11 @@
 		markLockedSecretPlaceholders
 	} from '$lib/stores/secrets.svelte';
 
-	let {
-		content,
-		theme = 'light',
-		className = '',
-		container = $bindable(),
-		onScroll
-	}: PreviewProps = $props();
+	// The rendered draft on the new-document page (reading view styling, same
+	// secret and sanitising path as the document view).
+	let { content, className = '' }: PreviewProps = $props();
 
 	let containerRef: HTMLDivElement;
-
-	function handleScroll() {
-		if (onScroll) {
-			onScroll();
-		}
-	}
-
-	$effect(() => {
-		container = containerRef;
-	});
 
 	let processedContent = $state('');
 
@@ -57,23 +43,16 @@
 		};
 		updateContent();
 	});
-
-	const themeClasses = $derived(
-		theme === 'dark' ? 'bg-background text-foreground dark' : 'bg-background text-foreground'
-	);
 </script>
 
 <div
 	bind:this={containerRef}
-	class="markdown-preview h-full overflow-auto border-l {themeClasses} {className}"
+	class="markdown-preview reading max-w-[70ch] {className}"
 	role="region"
 	aria-label="Markdown preview"
-	onscroll={handleScroll}
 	data-testid="markdown-preview"
 >
-	<div class="p-4">
-		<MarkdownRenderer content={processedContent} />
-	</div>
+	<MarkdownRenderer content={processedContent} />
 </div>
 
 <ImageLightbox
@@ -84,28 +63,6 @@
 />
 
 <style>
-	.markdown-preview {
-		scrollbar-width: thin;
-		scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-	}
-
-	.markdown-preview::-webkit-scrollbar {
-		width: 6px;
-	}
-
-	.markdown-preview::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.markdown-preview::-webkit-scrollbar-thumb {
-		background-color: rgba(156, 163, 175, 0.5);
-		border-radius: 3px;
-	}
-
-	.markdown-preview::-webkit-scrollbar-thumb:hover {
-		background-color: rgba(156, 163, 175, 0.7);
-	}
-
 	:global(.markdown-preview table) {
 		display: block;
 		overflow-x: auto;

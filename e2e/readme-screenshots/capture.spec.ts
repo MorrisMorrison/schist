@@ -60,9 +60,9 @@ for (const theme of THEMES) {
 		await expect(page.getByTestId('folder-tree')).toBeVisible();
 		await shot(page, 'document', theme);
 
-		// Editor: CodeMirror with the live preview beside it.
-		await page.goto('/edit/projects/website-relaunch');
-		await expect(page.getByTestId('markdown-preview')).toContainText('Website relaunch');
+		// Editing in place: the same page in edit mode.
+		await page.goto('/documents/projects/website-relaunch?mode=edit');
+		await expect(page.locator('.cm-editor .cm-content')).toContainText('Website relaunch');
 		await shot(page, 'editor', theme);
 
 		// Quick switcher (Ctrl/Cmd + K) over the home page.

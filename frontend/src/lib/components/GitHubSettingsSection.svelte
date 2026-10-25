@@ -234,7 +234,7 @@
 						type="password"
 						bind:value={token}
 						placeholder="github_token_here"
-						required
+						required={!isConnected}
 						oninput={() => (tokenChanged = true)}
 					/>
 					<p class="text-muted-foreground text-sm">
@@ -305,6 +305,7 @@
 					<div class="space-y-2">
 						<Label for="backup-mode">Backup Mode</Label>
 						<select
+							id="backup-mode"
 							bind:value={backupMode}
 							class="border-input bg-background w-full rounded-md border px-3 py-2"
 						>

@@ -272,15 +272,14 @@ describe('keyboard-shortcuts', () => {
 		});
 
 		describe('document-specific shortcuts', () => {
-			test('navigates to edit mode on Ctrl+E when viewing document', () => {
+			test('leaves Ctrl+E to the document view (in-place read/edit toggle)', () => {
 				const page = createMockPage('/documents/test-doc');
 				const handler = createKeyboardShortcutHandler(page, handlers);
 				const event = createKeyboardEvent('e', { ctrlKey: true });
 
 				handler(event as unknown as KeyboardEvent);
 
-				expect(event.preventDefault).toHaveBeenCalled();
-				expect(goto).toHaveBeenCalledWith('/edit/test-doc');
+				expect(goto).not.toHaveBeenCalled();
 			});
 
 			test('dispatches delete event on Ctrl+Alt+D when viewing document', () => {

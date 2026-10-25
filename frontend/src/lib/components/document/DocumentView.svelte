@@ -1,5 +1,16 @@
 <script lang="ts">
-	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History, Share } from '@lucide/svelte';
+	import {
+		Edit,
+		BookOpen,
+		Pencil,
+		Trash2,
+		Calendar,
+		Tag,
+		Link2,
+		GitBranch,
+		History,
+		Share
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
@@ -29,9 +40,54 @@
 		document: Document;
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void | Promise<void>;
+		/** PROTOTYPE (#246): reading or editing, in place. */
+		mode?: 'read' | 'edit';
+		onModeChange?: (mode: 'read' | 'edit') => void;
+		onSaved?: (document: Document) => void;
 	}
 
-	let { document, onEdit = () => {}, onDelete = () => {} }: Props = $props();
+	let {
+		document,
+		onEdit = () => {},
+		onDelete = () => {},
+		mode = 'read',
+		onModeChange,
+		onSaved = () => {}
+	}: Props = $props();
+
+	// PROTOTYPE (#246): the editor is loaded on first use and then kept mounted while
+	// reading, so cursor, selection and undo history survive the toggle.
+	type InlineEditor = {
+		save: (kind?: 'manual' | 'auto') => Promise<boolean>;
+		focus: () => void;
+	};
+	let editorLoaded = $state(false);
+	let inlineEditor = $state<InlineEditor>();
+	let editorImport: Promise<typeof import('../editor/DocumentInlineEditor.svelte')> | null = null;
+	// One promise for the component's lifetime: a new one would remount the editor.
+	const loadEditor = () => (editorImport ??= import('../editor/DocumentInlineEditor.svelte'));
+	const editorModule = $derived(editorLoaded || mode === 'edit' ? loadEditor() : null);
+	$effect(() => {
+		if (mode === 'edit') editorLoaded = true;
+	});
+
+	async function setMode(next: 'read' | 'edit') {
+		if (next === mode) return;
+		if (!onModeChange) {
+			onEdit(documentSlug);
+			return;
+		}
+		if (next === 'read' && inlineEditor && !(await inlineEditor.save('manual'))) return;
+		onModeChange(next);
+		if (next === 'edit') setTimeout(() => inlineEditor?.focus(), 0);
+	}
+
+	function handleModeKeydown(event: KeyboardEvent) {
+		if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'e') {
+			event.preventDefault();
+			setMode(mode === 'edit' ? 'read' : 'edit');
+		}
+	}
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
@@ -227,19 +283,23 @@
 	<meta name="description" content={document.content?.slice(0, 160) || ''} />
 </svelte:head>
 
-<div class="mx-auto max-w-[55rem] space-y-8 p-6" data-testid="document-view">
+<svelte:window onkeydown={handleModeKeydown} />
+
+<div class="mx-auto max-w-[55rem] space-y-8 p-6" data-testid="document-view" data-mode={mode}>
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
 	>
 		<div class="flex-1">
-			<h1
-				class="text-foreground mb-4 text-4xl leading-tight font-bold tracking-tight"
-				data-testid="document-title"
-			>
-				{documentTitle}
-			</h1>
+			{#if mode === 'read'}
+				<h1
+					class="text-foreground mb-4 text-4xl leading-tight font-bold tracking-tight"
+					data-testid="document-title"
+				>
+					{documentTitle}
+				</h1>
+			{/if}
 
 			<div class="flex flex-wrap items-center gap-4">
 				{#if documentCreated}
@@ -289,16 +349,38 @@
 		</div>
 
 		<div class="flex gap-2">
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => onEdit(documentSlug)}
-				title="Edit document"
-				data-testid="edit-document-button"
+			<div
+				class="border-border bg-muted/40 inline-flex rounded-md border p-0.5"
+				role="group"
+				aria-label="View mode"
 			>
-				<Edit class="h-4 w-4" />
-				Edit
-			</Button>
+				<button
+					class="flex items-center gap-1.5 rounded px-2.5 py-1 text-sm transition-colors {mode ===
+					'read'
+						? 'bg-background text-foreground shadow-sm'
+						: 'text-muted-foreground hover:text-foreground'}"
+					aria-pressed={mode === 'read'}
+					title="Reading view (Ctrl+E)"
+					data-testid="read-mode-button"
+					onclick={() => setMode('read')}
+				>
+					<BookOpen class="h-4 w-4" />
+					Read
+				</button>
+				<button
+					class="flex items-center gap-1.5 rounded px-2.5 py-1 text-sm transition-colors {mode ===
+					'edit'
+						? 'bg-background text-foreground shadow-sm'
+						: 'text-muted-foreground hover:text-foreground'}"
+					aria-pressed={mode === 'edit'}
+					title="Edit in place (Ctrl+E)"
+					data-testid="edit-document-button"
+					onclick={() => setMode('edit')}
+				>
+					<Pencil class="h-4 w-4" />
+					Edit
+				</button>
+			</div>
 
 			<Button
 				variant="outline"
@@ -327,14 +409,23 @@
 	</header>
 
 	<main>
-		{#if document.content}
+		{#if editorModule}
+			<div class:hidden={mode !== 'edit'}>
+				{#await editorModule then { default: DocumentInlineEditor }}
+					<DocumentInlineEditor bind:this={inlineEditor} {document} {onSaved} />
+				{/await}
+			</div>
+		{/if}
+		{#if mode === 'edit'}
+			<!-- editing: the reading render is hidden -->
+		{:else if document.content}
 			<div bind:this={contentContainer} class="reading max-w-[70ch]" data-testid="document-content">
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<p class="text-muted-foreground mb-6 text-lg">This document has no content yet.</p>
-				<Button onclick={() => onEdit(documentSlug)}>
+				<Button onclick={() => setMode('edit')}>
 					<Edit class="h-4 w-4" />
 					Add Content
 				</Button>

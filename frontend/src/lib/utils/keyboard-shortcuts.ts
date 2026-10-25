@@ -62,12 +62,7 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 		if (currentPath.startsWith('/documents/')) {
 			const documentPath = currentPath.replace('/documents', '');
 
-			// Cmd/Ctrl + E: Edit current document
-			if (isCmdOrCtrl && event.key === 'e') {
-				event.preventDefault();
-				goto(`/edit${documentPath}`);
-				return;
-			}
+			// Cmd/Ctrl + E toggles reading/editing; DocumentView handles it (PROTOTYPE #246).
 
 			// Ctrl/Cmd + Alt + D: Delete current document (safe alternative)
 			if (isCmdOrCtrl && event.altKey && event.key === 'd') {

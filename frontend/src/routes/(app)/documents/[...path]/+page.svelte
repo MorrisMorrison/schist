@@ -2,7 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { documentActions } from '$lib/stores/documents.svelte';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import FolderView from '$lib/components/folder/FolderView.svelte';
 	import DocumentView from '$lib/components/document/DocumentView.svelte';
 	import type { Document } from '$lib/api/types';
@@ -18,6 +18,8 @@
 	let error = $state<string | null>(null);
 	let isNotFound = $state(false);
 	let isLoadingContent = $state(false);
+	// PROTOTYPE (#246): reading/editing is page state, mirrored in ?mode=edit.
+	let mode = $state<'read' | 'edit'>('read');
 
 	const documentLoader = useOptimizedLoading(200, 150);
 
@@ -58,6 +60,7 @@
 				if (currentDocument) {
 					addToRecentDocuments(currentDocument.metaData.path);
 				}
+				mode = page.url.searchParams.get('mode') === 'edit' ? 'edit' : 'read';
 			} catch (documentError) {
 				if (isNotFoundError(documentError)) {
 					isNotFound = true;
@@ -77,6 +80,22 @@
 
 	function handleEditDocument() {
 		goto(`/edit/${path}`);
+	}
+
+	function docUrl(document: Document | null, m: 'read' | 'edit') {
+		const p = document?.metaData.path.replace(/^\/+/, '') ?? path;
+		return `/documents/${p}${m === 'edit' ? '?mode=edit' : ''}`;
+	}
+
+	// Shallow: no load, no remount. A rename (title from the first heading) moves the URL too.
+	function handleModeChange(next: 'read' | 'edit') {
+		mode = next;
+		replaceState(docUrl(currentDocument, next), {});
+	}
+
+	function handleSaved(document: Document) {
+		currentDocument = document;
+		replaceState(docUrl(document, mode), {});
 	}
 
 	async function handleDeleteDocument(path: string) {
@@ -117,6 +136,9 @@
 			document={currentDocument}
 			onEdit={handleEditDocument}
 			onDelete={handleDeleteDocument}
+			{mode}
+			onModeChange={handleModeChange}
+			onSaved={handleSaved}
 		/>
 	{:else if isNotFound}
 		<div class="flex min-h-[60vh] flex-col items-center justify-center p-8 text-center">

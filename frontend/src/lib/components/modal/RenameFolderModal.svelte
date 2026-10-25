@@ -2,6 +2,7 @@
 	import { folderActions } from '$lib/stores/documents.svelte';
 	import FormDialog from './FormDialog.svelte';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { Edit } from '@lucide/svelte';
 	import InlineError from '$lib/components/ui/InlineError.svelte';
 	import type { Folder as FolderType } from '$lib/api/types';
@@ -71,7 +72,7 @@
 	cancelTestId="cancel-rename-folder-btn"
 >
 	<div class="space-y-2">
-		<label for="folder-name" class="text-primary text-sm font-medium">New Folder Name</label>
+		<Label for="folder-name" class="text-primary">New Folder Name</Label>
 		<Input
 			id="folder-name"
 			data-testid="folder-name"

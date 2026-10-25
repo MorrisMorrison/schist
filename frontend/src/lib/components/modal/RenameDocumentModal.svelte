@@ -2,6 +2,7 @@
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import FormDialog from './FormDialog.svelte';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { Edit } from '@lucide/svelte';
 	import InlineError from '$lib/components/ui/InlineError.svelte';
 	import type { Document } from '$lib/api/types';
@@ -103,7 +104,7 @@
 	submitTestId="rename-document-btn"
 >
 	<div class="space-y-2">
-		<label for="document-title" class="text-primary text-sm font-medium">New Document Title</label>
+		<Label for="document-title" class="text-primary">New Document Title</Label>
 		<Input
 			id="document-title"
 			type="text"

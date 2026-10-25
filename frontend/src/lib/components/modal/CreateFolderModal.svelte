@@ -2,6 +2,7 @@
 	import { folderActions } from '$lib/stores/documents.svelte';
 	import FormDialog from './FormDialog.svelte';
 	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { Folder } from '@lucide/svelte';
 	import { parseError } from '$lib/utils/error';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
@@ -72,7 +73,7 @@
 	cancelTestId="cancel-create-folder-btn"
 >
 	<div class="space-y-2">
-		<label for="folder-name" class="text-primary text-sm font-medium">Folder Name</label>
+		<Label for="folder-name" class="text-primary">Folder Name</Label>
 		<Input
 			id="folder-name"
 			data-testid="folder-name"

@@ -1,4 +1,19 @@
 import { screen, waitFor } from '@testing-library/svelte';
+import userEvent from '@testing-library/user-event';
+
+/**
+ * Presses the pointer on an open ui/dialog's overlay, below the panel. bits-ui
+ * checks the press coordinates against the panel and reacts after a short
+ * debounce, so wait for the outcome.
+ */
+export async function pressOutsideDialog() {
+	const panel = screen.getByRole('dialog').getBoundingClientRect();
+	await userEvent.pointer({
+		keys: '[MouseLeft]',
+		target: document.querySelector<HTMLElement>('[data-slot="dialog-overlay"]')!,
+		coords: { clientX: 5, clientY: Math.max(panel.bottom + 1, window.innerHeight - 5) }
+	});
+}
 
 /**
  * Waits until an open bits-ui dialog has moved focus into itself. The dialog

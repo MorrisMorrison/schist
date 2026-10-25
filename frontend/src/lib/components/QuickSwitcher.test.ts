@@ -8,6 +8,7 @@ vi.mock('$lib/api/client', () => ({
 
 import { goto } from '$app/navigation';
 import { apiClient } from '$lib/api/client';
+import { pressOutsideDialog, waitForDialogFocus } from '$lib/test/dialog';
 import QuickSwitcher from './QuickSwitcher.svelte';
 
 function doc(title: string, path: string, tags: string[] = []): Document {
@@ -154,27 +155,31 @@ describe('QuickSwitcher', () => {
 		expect(onClose).toHaveBeenCalled();
 	});
 
-	it('closes with Escape on the input and on the backdrop', async () => {
+	it('closes with Escape on the input and on the dialog', async () => {
 		const onClose = vi.fn();
 		render(QuickSwitcher, { props: { open: true, onClose } });
 
 		await fireEvent.keyDown(screen.getByTestId('quick-switcher-input'), { key: 'Escape' });
 		expect(onClose).toHaveBeenCalled();
 
+		// A fresh dialog: the parent would have closed this one.
+		cleanup();
 		onClose.mockClear();
+		render(QuickSwitcher, { props: { open: true, onClose } });
 		await fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 
-	it('closes when the backdrop (not the panel) is clicked', async () => {
+	it('closes on a press outside the panel, not on a click inside it', async () => {
 		const onClose = vi.fn();
 		render(QuickSwitcher, { props: { open: true, onClose } });
+		await waitForDialogFocus();
 
 		await fireEvent.click(screen.getByTestId('quick-switcher'));
 		expect(onClose).not.toHaveBeenCalled();
 
-		await fireEvent.click(screen.getByRole('dialog'));
-		expect(onClose).toHaveBeenCalledTimes(1);
+		await pressOutsideDialog();
+		await vi.waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 	});
 
 	it('copes with the document list failing to load', async () => {

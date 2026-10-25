@@ -15,7 +15,7 @@
 		<div class="mx-auto max-w-md">
 			{#if status === 404}
 				<svg
-					class="mx-auto h-24 w-24 text-[--muted-foreground]"
+					class="mx-auto h-24 w-24 text-(--muted-foreground)"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -28,10 +28,10 @@
 					/>
 				</svg>
 
-				<h1 class="mt-6 text-3xl font-bold text-[--foreground]">Page Not Found</h1>
+				<h1 class="mt-6 text-3xl font-bold text-(--foreground)">Page Not Found</h1>
 
 				{#if slug}
-					<p class="mt-4 text-[--muted-foreground]">
+					<p class="mt-4 text-(--muted-foreground)">
 						The page <span class="font-mono font-medium">"{slug}"</span> doesn't exist yet.
 					</p>
 
@@ -40,7 +40,7 @@
 					>
 						<a
 							href="/new?title={encodeURIComponent(slug.replace(/-/g, ' '))}"
-							class="inline-flex items-center rounded-md bg-[--primary] px-4 py-2 text-sm font-semibold text-[--primary-foreground] shadow-sm hover:bg-[--primary] hover:opacity-90 focus:bg-[--primary] focus:ring-2 focus:ring-[--ring] focus:ring-offset-2 focus:outline-none"
+							class="inline-flex items-center rounded-md bg-(--primary) px-4 py-2 text-sm font-semibold text-(--primary-foreground) shadow-sm hover:bg-(--primary) hover:opacity-90 focus:bg-(--primary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
 						>
 							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
@@ -55,7 +55,7 @@
 
 						<a
 							href="/"
-							class="inline-flex items-center rounded-md bg-[--secondary] px-4 py-2 text-sm font-medium text-[--secondary-foreground] hover:bg-[--secondary] hover:opacity-90 focus:bg-[--secondary] focus:ring-2 focus:ring-[--ring] focus:ring-offset-2 focus:outline-none"
+							class="inline-flex items-center rounded-md bg-(--secondary) px-4 py-2 text-sm font-medium text-(--secondary-foreground) hover:bg-(--secondary) hover:opacity-90 focus:bg-(--secondary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
 						>
 							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
@@ -69,14 +69,14 @@
 						</a>
 					</div>
 				{:else}
-					<p class="mt-4 text-[--muted-foreground]">
+					<p class="mt-4 text-(--muted-foreground)">
 						{message || "The page you are looking for doesn't exist."}
 					</p>
 
 					<div class="mt-8">
 						<a
 							href="/"
-							class="inline-flex items-center rounded-md bg-[--primary] px-4 py-2 text-sm font-semibold text-[--primary-foreground] shadow-sm hover:bg-[--primary] hover:opacity-90 focus:bg-[--primary] focus:ring-2 focus:ring-[--ring] focus:ring-offset-2 focus:outline-none"
+							class="inline-flex items-center rounded-md bg-(--primary) px-4 py-2 text-sm font-semibold text-(--primary-foreground) shadow-sm hover:bg-(--primary) hover:opacity-90 focus:bg-(--primary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
 						>
 							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
@@ -92,7 +92,7 @@
 				{/if}
 			{:else}
 				<svg
-					class="mx-auto h-24 w-24 text-[--destructive]"
+					class="mx-auto h-24 w-24 text-(--destructive)"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -105,18 +105,18 @@
 					/>
 				</svg>
 
-				<h1 class="mt-6 text-3xl font-bold text-[--foreground]">
+				<h1 class="mt-6 text-3xl font-bold text-(--foreground)">
 					{status} Error
 				</h1>
 
-				<p class="mt-4 text-[--muted-foreground]">
+				<p class="mt-4 text-(--muted-foreground)">
 					{message || 'Something went wrong. Please try again later.'}
 				</p>
 
 				<div class="mt-8 flex justify-center space-x-4">
 					<button
 						onclick={() => window.location.reload()}
-						class="inline-flex items-center rounded-md bg-[--primary] px-4 py-2 text-sm font-semibold text-[--primary-foreground] shadow-sm hover:bg-[--primary] hover:opacity-90 focus:bg-[--primary] focus:ring-2 focus:ring-[--ring] focus:ring-offset-2 focus:outline-none"
+						class="inline-flex items-center rounded-md bg-(--primary) px-4 py-2 text-sm font-semibold text-(--primary-foreground) shadow-sm hover:bg-(--primary) hover:opacity-90 focus:bg-(--primary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
 					>
 						<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
@@ -131,7 +131,7 @@
 
 					<a
 						href="/"
-						class="inline-flex items-center rounded-md bg-[--secondary] px-4 py-2 text-sm font-medium text-[--secondary-foreground] hover:bg-[--secondary] hover:opacity-90 focus:bg-[--secondary] focus:ring-2 focus:ring-[--ring] focus:ring-offset-2 focus:outline-none"
+						class="inline-flex items-center rounded-md bg-(--secondary) px-4 py-2 text-sm font-medium text-(--secondary-foreground) hover:bg-(--secondary) hover:opacity-90 focus:bg-(--secondary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
 					>
 						<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path

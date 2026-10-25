@@ -37,7 +37,7 @@
 	<Card>
 		<CardHeader>
 			<CardTitle class="flex items-center gap-3" data-testid="editor-settings-title">
-				<FileEdit class="h-6 w-6 text-[--muted-foreground]" />
+				<FileEdit class="h-6 w-6 text-(--muted-foreground)" />
 				Editor Settings
 			</CardTitle>
 			<CardDescription>
@@ -64,7 +64,7 @@
 	<Card>
 		<CardHeader>
 			<CardTitle class="flex items-center gap-3">
-				<Github class="h-6 w-6 text-[--muted-foreground]" />
+				<Github class="h-6 w-6 text-(--muted-foreground)" />
 				GitHub Integration
 			</CardTitle>
 			<CardDescription>
@@ -80,13 +80,13 @@
 	<!-- <Card>
 		<CardHeader>
 			<CardTitle class="flex items-center gap-3">
-				<Settings class="h-6 w-6 text-[--muted-foreground]" />
+				<Settings class="h-6 w-6 text-(--muted-foreground)" />
 				General Settings
 			</CardTitle>
 			<CardDescription>General application preferences and configurations.</CardDescription>
 		</CardHeader>
 		<CardContent>
-			<div class="py-8 text-center text-[--muted-foreground]">
+			<div class="py-8 text-center text-(--muted-foreground)">
 				<p>More settings coming soon...</p>
 			</div>
 		</CardContent>

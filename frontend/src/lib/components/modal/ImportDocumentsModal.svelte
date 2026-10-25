@@ -12,6 +12,8 @@
 	} from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import * as Select from '$lib/components/ui/select';
+	import * as RadioGroup from '$lib/components/ui/radio-group';
 	import { Upload, AlertCircle, CheckCircle } from '@lucide/svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import InlineError from '$lib/components/ui/InlineError.svelte';
@@ -28,7 +30,13 @@
 
 	let selectedFiles = $state<FileList | null>(null);
 	let targetPath = $state('/');
-	let overwriteMode = $state<'skip' | 'overwrite' | 'rename'>('rename');
+	type OverwriteMode = 'skip' | 'overwrite' | 'rename';
+	const overwriteModes: { value: OverwriteMode; label: string; class?: string }[] = [
+		{ value: 'skip', label: 'Skip' },
+		{ value: 'rename', label: 'Rename' },
+		{ value: 'overwrite', label: 'Overwrite', class: 'text-orange-600' }
+	];
+	let overwriteMode = $state<OverwriteMode>('rename');
 	let isLoading = $state(false);
 	let error = $state('');
 	let importResult = $state<ImportResult | null>(null);
@@ -162,34 +170,35 @@
 					<!-- Target Path Selection -->
 					<div class="space-y-2">
 						<Label for="target-path">Import to Folder</Label>
-						<select
-							id="target-path"
-							bind:value={targetPath}
-							class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-						>
-							{#each folderOptions as option (option.value)}
-								<option value={option.value}>{option.label}</option>
-							{/each}
-						</select>
+						<Select.Root type="single" items={folderOptions} bind:value={targetPath}>
+							<Select.Trigger id="target-path" class="w-full">
+								<Select.Value />
+							</Select.Trigger>
+							<Select.Content>
+								{#each folderOptions as option (option.value)}
+									<Select.Item {...option} />
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					</div>
 
 					<!-- Overwrite Mode -->
 					<div class="space-y-2">
-						<Label>If file already exists</Label>
-						<div class="space-y-2">
-							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="skip" />
-								<span class="text-sm">Skip</span>
-							</label>
-							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="rename" />
-								<span class="text-sm">Rename</span>
-							</label>
-							<label class="flex items-center space-x-2">
-								<input type="radio" bind:group={overwriteMode} value="overwrite" />
-								<span class="text-sm text-orange-600">Overwrite</span>
-							</label>
-						</div>
+						<Label id="overwrite-mode-label">If file already exists</Label>
+						<RadioGroup.Root
+							class="gap-2"
+							aria-labelledby="overwrite-mode-label"
+							bind:value={() => overwriteMode, (value) => (overwriteMode = value as OverwriteMode)}
+						>
+							{#each overwriteModes as mode (mode.value)}
+								<div class="flex items-center gap-2">
+									<RadioGroup.Item id="overwrite-mode-{mode.value}" value={mode.value} />
+									<Label for="overwrite-mode-{mode.value}" class="font-normal {mode.class ?? ''}"
+										>{mode.label}</Label
+									>
+								</div>
+							{/each}
+						</RadioGroup.Root>
 					</div>
 				</div>
 

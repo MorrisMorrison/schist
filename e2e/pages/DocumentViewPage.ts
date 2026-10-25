@@ -253,6 +253,27 @@ export class DocumentViewPage extends BasePage {
 		return this.shareModal;
 	}
 
+	/** The expiry select's option label for a number of days. */
+	private static readonly EXPIRY_LABELS: Record<number, string> = {
+		1: '1 day',
+		7: '1 week',
+		30: '1 month',
+		90: '3 months',
+		0: 'Never expires'
+	};
+
+	/** Pick the share expiry in the open share modal's select (a listbox, not a native select). */
+	async chooseShareExpiry(expiryDays: number) {
+		const label = DocumentViewPage.EXPIRY_LABELS[expiryDays];
+		if (!label) throw new Error(`No share expiry option for ${expiryDays} days`);
+		await this.shareModal.getByTestId('share-expiry-select').click();
+		const listbox = this.page.getByRole('listbox');
+		await expect(listbox).toBeVisible();
+		await listbox.getByRole('option', { name: label, exact: true }).click();
+		await expect(listbox).toBeHidden();
+		await expect(this.shareModal.getByTestId('share-expiry-select')).toHaveText(label);
+	}
+
 	/**
 	 * Create a share link with specific expiry
 	 */
@@ -262,8 +283,7 @@ export class DocumentViewPage extends BasePage {
 		// Count existing shares before creating a new one
 		const existingShares = await this.shareLinkInputs.count();
 
-		const expirySelect = modal.locator('select');
-		await expirySelect.selectOption(expiryDays.toString());
+		await this.chooseShareExpiry(expiryDays);
 
 		await modal.getByTestId('create-share-link').click();
 

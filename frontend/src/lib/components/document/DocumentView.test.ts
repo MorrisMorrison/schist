@@ -222,8 +222,8 @@ describe('DocumentView', () => {
 		it('starts in reading mode with Read pressed and no editor loaded', () => {
 			render(DocumentView, { props: { document: makeDoc() } });
 
-			expect(screen.getByTestId('read-mode-button')).toHaveAttribute('aria-pressed', 'true');
-			expect(screen.getByTestId('edit-document-button')).toHaveAttribute('aria-pressed', 'false');
+			expect(screen.getByTestId('read-mode-button')).toHaveAttribute('aria-checked', 'true');
+			expect(screen.getByTestId('edit-document-button')).toHaveAttribute('aria-checked', 'false');
 			expect(screen.getByTestId('document-content')).toBeInTheDocument();
 			expect(screen.queryByTestId('inline-editor-stub')).not.toBeInTheDocument();
 		});
@@ -236,7 +236,7 @@ describe('DocumentView', () => {
 
 			expect(await screen.findByTestId('inline-editor-stub')).toBeInTheDocument();
 			expect(onModeChange).toHaveBeenCalledWith('edit');
-			expect(screen.getByTestId('edit-document-button')).toHaveAttribute('aria-pressed', 'true');
+			expect(screen.getByTestId('edit-document-button')).toHaveAttribute('aria-checked', 'true');
 			expect(screen.queryByTestId('document-content')).not.toBeInTheDocument();
 			expect(screen.queryByTestId('document-title')).not.toBeInTheDocument();
 			expect(screen.getByTestId('document-view')).toHaveAttribute('data-mode', 'edit');

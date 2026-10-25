@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { Plus, File, Download, Edit, Trash2 } from '@lucide/svelte';
 	import type { Folder as FolderType } from '$lib/api/types.js';
-	import ContextMenu from '../context-menu/ContextMenu.svelte';
-	import ContextMenuItem from '../context-menu/ContextMenuItem.svelte';
+	import * as ContextMenu from '$lib/components/ui/context-menu';
 
 	interface Props {
 		folder: FolderType | null;
@@ -33,11 +32,11 @@
 	const isRootFolder = $derived(folder?.path === '/' || folder?.path === '');
 	const showExport = $derived(onFolderExport || onExportAll);
 
+	// Choosing an item also closes the menu (through onOpenChange).
 	function select(action: (folder: FolderType) => void) {
 		if (folder) {
 			action(folder);
 		}
-		onClose();
 	}
 
 	function exportFolder(folder: FolderType) {
@@ -50,29 +49,40 @@
 </script>
 
 {#if isOpen && folder}
-	<ContextMenu
-		{position}
-		{onClose}
-		class="min-w-[180px]"
-		aria-label="Folder actions"
-		data-testid="context-menu"
-	>
-		<ContextMenuItem
-			icon={Plus}
-			label="Create Subfolder"
-			onclick={() => select((f) => onCreateFolder(f.path))}
-		/>
-		<ContextMenuItem
-			icon={File}
-			label="Create Document"
-			onclick={() => select((f) => onCreateDocument(f.path))}
-		/>
-		{#if showExport}
-			<ContextMenuItem icon={Download} label="Export" onclick={() => select(exportFolder)} />
-		{/if}
-		{#if !isRootFolder}
-			<ContextMenuItem icon={Edit} label="Rename" onclick={() => select(onRename)} />
-			<ContextMenuItem icon={Trash2} label="Delete" destructive onclick={() => select(onDelete)} />
-		{/if}
-	</ContextMenu>
+	<ContextMenu.Root open onOpenChange={(open) => !open && onClose()}>
+		<!-- No scroll lock: a right-click on another row moves the menu there. -->
+		<ContextMenu.Content
+			{position}
+			preventScroll={false}
+			class="min-w-[180px]"
+			aria-label="Folder actions"
+			data-testid="context-menu"
+		>
+			<ContextMenu.Item onSelect={() => select((f) => onCreateFolder(f.path))}>
+				<Plus />
+				Create Subfolder
+			</ContextMenu.Item>
+			<ContextMenu.Item onSelect={() => select((f) => onCreateDocument(f.path))}>
+				<File />
+				Create Document
+			</ContextMenu.Item>
+			{#if showExport}
+				<ContextMenu.Item onSelect={() => select(exportFolder)}>
+					<Download />
+					Export
+				</ContextMenu.Item>
+			{/if}
+			{#if !isRootFolder}
+				<ContextMenu.Item onSelect={() => select(onRename)}>
+					<Edit />
+					Rename
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+				<ContextMenu.Item variant="destructive" onSelect={() => select(onDelete)}>
+					<Trash2 />
+					Delete
+				</ContextMenu.Item>
+			{/if}
+		</ContextMenu.Content>
+	</ContextMenu.Root>
 {/if}

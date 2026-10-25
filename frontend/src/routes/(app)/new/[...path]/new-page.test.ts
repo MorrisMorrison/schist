@@ -59,7 +59,7 @@ describe('new document page', () => {
 		expect(view.hasFocus).toBe(true);
 		const { from, to } = view.state.selection.main;
 		expect(view.state.sliceDoc(from, to)).toBe('New Document');
-		expect(screen.getByTestId('edit-mode-button')).toHaveAttribute('aria-pressed', 'true');
+		expect(screen.getByTestId('edit-mode-button')).toHaveAttribute('aria-checked', 'true');
 		expect(screen.getByTestId('new-document-path')).toHaveTextContent('/new-document');
 	});
 

@@ -6,6 +6,7 @@ import { apiClient } from '$lib/api/client';
 import { githubActions, githubStore } from '$lib/stores/github.svelte';
 import type { GitHubConnectionStatus, GitHubSettings } from '$lib/api/types';
 import GitHubSettingsSection from './GitHubSettingsSection.svelte';
+import { chooseSelectOption } from '$lib/test/select';
 
 vi.mock('$lib/api/client', () => ({
 	apiClient: {
@@ -114,6 +115,10 @@ describe('GitHubSettingsSection', () => {
 			expect(await screen.findByTestId('github-connection-test-message')).toHaveTextContent(
 				'Repository is accessible'
 			);
+			expect(screen.getByTestId('github-connection-test-result')).toHaveAttribute(
+				'data-variant',
+				'success'
+			);
 		});
 
 		it('shows a failed connection test', async () => {
@@ -126,7 +131,12 @@ describe('GitHubSettingsSection', () => {
 			expect(await screen.findByTestId('github-connection-test-message')).toHaveTextContent(
 				'Bad credentials'
 			);
-			expect(screen.getByRole('alert')).toHaveTextContent('Bad credentials');
+			// The store error and the test result are both alerts.
+			expect(screen.getAllByRole('alert')).toHaveLength(2);
+			expect(screen.getByTestId('github-connection-test-result')).toHaveAttribute(
+				'data-variant',
+				'destructive'
+			);
 		});
 
 		it('validates the branch on submit', async () => {
@@ -143,7 +153,7 @@ describe('GitHubSettingsSection', () => {
 		it('validates the sync interval in automatic mode', async () => {
 			render(GitHubSettingsSection);
 			await fillSetupForm();
-			await userEvent.selectOptions(screen.getByLabelText('Backup Mode'), 'auto');
+			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
 			const interval = screen.getByLabelText('Sync Interval (minutes)');
 			await userEvent.clear(interval);
 			await userEvent.type(interval, '2');
@@ -163,7 +173,7 @@ describe('GitHubSettingsSection', () => {
 			await fillSetupForm();
 			await userEvent.clear(input('github-branch-input'));
 			await userEvent.type(input('github-branch-input'), 'docs');
-			await userEvent.selectOptions(screen.getByLabelText('Backup Mode'), 'auto');
+			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
 			await userEvent.click(screen.getByLabelText("Create repository if it doesn't exist"));
 			expect(screen.getByLabelText('Make repository private')).toBeChecked();
 			await userEvent.click(input('github-setup-button'));
@@ -191,13 +201,25 @@ describe('GitHubSettingsSection', () => {
 			expect(console.error).toHaveBeenCalledWith('Error setting up github');
 		});
 
-		it('explains that sync needs a connection', async () => {
+		it('explains that sync needs a connection when it drops on the Sync tab', async () => {
+			await seedConnected();
 			render(GitHubSettingsSection);
-			// The tab button is disabled, so switch tabs programmatically.
-			input('github-sync-tab').removeAttribute('disabled');
 			await userEvent.click(input('github-sync-tab'));
-			expect(screen.getByText(/GitHub is not connected/)).toBeInTheDocument();
+			expect(input('github-sync-tab')).toHaveAttribute('aria-selected', 'true');
+
+			vi.mocked(apiClient.getGitHubConnectionStatus).mockResolvedValue(disconnected);
+			await githubActions.loadConnectionStatus(true);
+
+			expect(await screen.findByText(/GitHub is not connected/)).toBeInTheDocument();
 			expect(input('github-sync-now-button')).toBeDisabled();
+			expect(input('github-sync-tab')).toBeDisabled();
+		});
+
+		it('keeps the Sync tab disabled until connected', async () => {
+			render(GitHubSettingsSection);
+			expect(input('github-sync-tab')).toBeDisabled();
+			expect(input('github-setup-tab')).toHaveAttribute('aria-selected', 'true');
+			expect(screen.getByRole('tablist', { name: 'GitHub integration' })).toBeInTheDocument();
 		});
 	});
 
@@ -231,7 +253,7 @@ describe('GitHubSettingsSection', () => {
 		it('updates branch and backup mode', async () => {
 			vi.mocked(apiClient.updateGitHubSettings).mockResolvedValue(undefined as never);
 			render(GitHubSettingsSection);
-			await userEvent.selectOptions(screen.getByLabelText('Backup Mode'), 'auto');
+			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
 			expect(input('github-setup-button')).toBeEnabled();
 			await userEvent.click(input('github-setup-button'));
 			expect(apiClient.updateGitHubSettings).toHaveBeenCalledWith({
@@ -291,7 +313,7 @@ describe('GitHubSettingsSection', () => {
 			expect(await screen.findByText('Last Sync Failed')).toBeInTheDocument();
 			expect(screen.getByText('Partial sync')).toBeInTheDocument();
 			expect(screen.getByText('Files synced: 3')).toBeInTheDocument();
-			expect(screen.getByText('• a.md failed')).toBeInTheDocument();
+			expect(screen.getByRole('listitem')).toHaveTextContent('a.md failed');
 		});
 
 		it('shows a successful sync and a syncing state', async () => {

@@ -5,6 +5,7 @@ import { waitForDialogFocus } from '$lib/test/dialog';
 import { apiClient } from '$lib/api/client';
 import type { ShareToken } from '$lib/api/types';
 import ShareDocumentModal from './ShareDocumentModal.svelte';
+import { chooseSelectOption } from '$lib/test/select';
 
 vi.mock('$lib/api/client', () => ({
 	apiClient: { listShares: vi.fn(), createShare: vi.fn(), revokeShare: vi.fn() }
@@ -100,7 +101,7 @@ describe('ShareDocumentModal', () => {
 		vi.mocked(apiClient.createShare).mockResolvedValue(share('new'));
 		await renderModal();
 		await screen.findByText('No share links created yet');
-		await userEvent.selectOptions(screen.getByLabelText('Expiry'), '30');
+		await chooseSelectOption(screen.getByLabelText('Expiry'), '1 month');
 		await userEvent.click(screen.getByTestId('create-share-link'));
 
 		expect(apiClient.createShare).toHaveBeenCalledWith({

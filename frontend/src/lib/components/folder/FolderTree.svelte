@@ -301,37 +301,14 @@
 		oncollapseall?.();
 	}
 
-	// Compute a viewport-clamped position for a context menu from a pointer/keyboard event.
-	function computeMenuPosition(
-		event: MouseEvent | KeyboardEvent,
-		menuHeight: number
-	): { x: number; y: number } {
-		const target = event.currentTarget as HTMLElement;
-		const rect = target.getBoundingClientRect();
-
-		let x: number, y: number;
-
+	// Where a context menu opens: at the pointer, or below the row's "⋮" when opened from
+	// the keyboard. The menu itself flips and shifts to stay inside the viewport.
+	function menuPosition(event: MouseEvent | KeyboardEvent): { x: number; y: number } {
 		if (event instanceof MouseEvent) {
-			x = event.clientX + 5;
-			y = event.clientY - 50;
-		} else {
-			x = rect.left;
-			y = rect.bottom + 2;
+			return { x: event.clientX, y: event.clientY };
 		}
-
-		const menuWidth = 160;
-
-		if (x + menuWidth > window.innerWidth) {
-			x = window.innerWidth - menuWidth - 10;
-		}
-		if (y < 0) {
-			y = 10;
-		}
-		if (y + menuHeight > window.innerHeight) {
-			y = window.innerHeight - menuHeight - 10;
-		}
-
-		return { x, y };
+		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		return { x: rect.left, y: rect.bottom + 2 };
 	}
 
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
@@ -340,7 +317,8 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		contextMenuPosition = computeMenuPosition(event, 120);
+		contextMenuPosition = menuPosition(event);
+		pageContextMenuOpen = null;
 		contextMenuOpen = folder.path;
 	}
 
@@ -409,7 +387,8 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		pageContextMenuPosition = computeMenuPosition(event, 80);
+		pageContextMenuPosition = menuPosition(event);
+		contextMenuOpen = null;
 		pageContextMenuOpen = page.metaData?.path || '';
 	}
 
@@ -442,10 +421,6 @@
 			}
 		}
 		return null;
-	}
-
-	function handleOutsideClick() {
-		closeContextMenu();
 	}
 
 	/** The root as a folder: the top-level folders and pages that pass the filter. */
@@ -492,8 +467,6 @@
 		{getFilteredPagesForFolder}
 	/>
 {/snippet}
-
-<svelte:window onclick={handleOutsideClick} />
 
 <div class={cn('select-none', className)}>
 	{#if showActions}

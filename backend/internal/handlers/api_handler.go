@@ -196,7 +196,7 @@ func (h *APIHandler) search(c *gin.Context) {
 	query := c.Query("q")
 	documents, err := h.DocumentService.Search(query)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -209,7 +209,7 @@ func (h *APIHandler) search(c *gin.Context) {
 func (h *APIHandler) getAllTags(c *gin.Context) {
 	tagCounts, err := h.DocumentService.GetAllTags()
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -235,7 +235,7 @@ func (h *APIHandler) getAllTags(c *gin.Context) {
 func (h *APIHandler) getTemplates(c *gin.Context) {
 	templates, err := h.Services.TemplateService.GetTemplates()
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -288,7 +288,7 @@ func (h *APIHandler) getDocumentBacklinks(c *gin.Context) {
 func (h *APIHandler) getBrokenLinks(c *gin.Context) {
 	brokenLinks, err := h.LinkService.GetBrokenLinks()
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -322,7 +322,7 @@ func (h *APIHandler) importDocuments(c *gin.Context) {
 
 	result, err := h.DocumentService.ImportDocuments(files, options)
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Import failed: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -441,7 +441,7 @@ func (h *APIHandler) generateInviteToken(c *gin.Context) {
 
 	token, err := h.AuthService.GenerateInviteToken(username)
 	if err != nil {
-		HandleError(c, errors.NewInternalError("Failed to generate invite token: "+err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -526,7 +526,7 @@ func (h *APIHandler) listUsers(c *gin.Context) {
 	// Authorization is enforced by middleware.RequireAdmin on this route group.
 	users, err := h.Services.UserService.ListUsers()
 	if err != nil {
-		HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 

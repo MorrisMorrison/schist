@@ -48,6 +48,12 @@ var (
 // - Only letters, numbers, hyphens, underscores, and forward slashes
 // - Maximum depth of 10 levels
 func ValidatePath(path string) error {
+	return validatePathChars(path, validPathRegex)
+}
+
+// validatePathChars applies the shared path rules, with allowed characters
+// given by chars.
+func validatePathChars(path string, chars *regexp.Regexp) error {
 	if path == "" {
 		return ErrEmptyPath
 	}
@@ -71,7 +77,7 @@ func ValidatePath(path string) error {
 		}
 	}
 
-	if !validPathRegex.MatchString(path) {
+	if !chars.MatchString(path) {
 		return ErrPathContainsInvalidCharacters
 	}
 
@@ -183,39 +189,7 @@ func ExtractSlugFromPath(path string) string {
 // ValidateAssetPath validates asset paths, allowing dots for file extensions.
 // Uses the same base rules as ValidatePath but permits dots in filenames.
 func ValidateAssetPath(path string) error {
-	if path == "" {
-		return ErrEmptyPath
-	}
-
-	if !strings.HasPrefix(path, PathSeparator) {
-		return ErrPathMustStartWithSlash
-	}
-
-	segments := strings.Split(strings.Trim(path, PathSeparator), PathSeparator)
-
-	var cleanSegments []string
-	for _, segment := range segments {
-		if segment != "" {
-			cleanSegments = append(cleanSegments, segment)
-		}
-	}
-
-	for _, segment := range cleanSegments {
-		if segment == "." || segment == ".." {
-			return ErrPathContainsInvalidSegments
-		}
-	}
-
-	if !validAssetPathRegex.MatchString(path) {
-		return ErrPathContainsInvalidCharacters
-	}
-
-	// Check depth
-	if len(cleanSegments) > MaxPathDepth {
-		return ErrPathTooDeep
-	}
-
-	return nil
+	return validatePathChars(path, validAssetPathRegex)
 }
 
 // SafeFilePath validates a path and returns a safe file path within the given data directory.

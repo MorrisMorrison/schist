@@ -204,9 +204,7 @@ func (ps *PasskeyService) BeginRegistration(name string) (*protocol.CredentialCr
 		return nil, nil, err
 	}
 
-	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
-		credCreationOpts.CredentialExcludeList = convertCredentialsToDescriptors(user.WebAuthnCredentials())
-	}
+	registerOptions := webauthn.WithExclusions(convertCredentialsToDescriptors(user.WebAuthnCredentials()))
 
 	options, session, err := ps.webauthn.BeginRegistration(user, registerOptions)
 	if err != nil {

@@ -119,9 +119,9 @@
 					title={sidebar.isOpen ? 'Close sidebar (⌘B)' : 'Open sidebar (⌘B)'}
 				>
 					{#if sidebar.isOpen}
-						<PanelLeftClose class="h-5 w-5" />
+						<PanelLeftClose class="size-5" />
 					{:else}
-						<PanelLeftOpen class="h-5 w-5" />
+						<PanelLeftOpen class="size-5" />
 					{/if}
 				</Button>
 				<a href="/" class="flex items-center gap-1 no-underline hover:no-underline">

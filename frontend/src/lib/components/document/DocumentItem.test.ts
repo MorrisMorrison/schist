@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, user } from '$lib/test/component-utils.js';
+import { render, user, fireEvent } from '$lib/test/component-utils.js';
 import DocumentItem from './DocumentItem.svelte';
 import type { Document } from '$lib/api/types.js';
 
@@ -126,5 +126,43 @@ describe('DocumentItem', () => {
 		await user.click(contextMenuButton);
 
 		expect(onContextMenu).toHaveBeenCalledTimes(1);
+	});
+
+	it('opens the context menu from the keyboard', async () => {
+		const onContextMenu = vi.fn();
+		const { container } = render(DocumentItem, {
+			props: { ...defaultProps, onContextMenu }
+		});
+		const options = container.querySelector<HTMLElement>('[aria-label="Document options"]')!;
+
+		await fireEvent.keyDown(options, { key: 'Enter' });
+		await fireEvent.keyDown(options, { key: ' ' });
+		await fireEvent.keyDown(options, { key: 'a' });
+
+		expect(onContextMenu).toHaveBeenCalledTimes(2);
+	});
+
+	it('forwards drag events with the document', async () => {
+		const { container } = render(DocumentItem, { props: defaultProps });
+		const item = container.querySelector('[data-testid="document-item"]')!;
+
+		await fireEvent.dragStart(item);
+		await fireEvent.dragEnter(item);
+		await fireEvent.dragOver(item);
+		await fireEvent.dragLeave(item);
+		await fireEvent.drop(item);
+		await fireEvent.dragEnd(item);
+
+		expect(defaultProps.onDragStart).toHaveBeenCalledWith(
+			expect.any(Event),
+			'page',
+			'/test/document.md',
+			mockDocument
+		);
+		expect(defaultProps.onDragEnter).toHaveBeenCalled();
+		expect(defaultProps.onDragOver).toHaveBeenCalled();
+		expect(defaultProps.onDragLeave).toHaveBeenCalled();
+		expect(defaultProps.onDrop).toHaveBeenCalled();
+		expect(defaultProps.onDragEnd).toHaveBeenCalled();
 	});
 });

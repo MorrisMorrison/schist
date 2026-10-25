@@ -409,6 +409,10 @@ describe('SchistApiClient', () => {
 			fetchMock.mockResolvedValueOnce(json({ folders: [{ path: '/a' }] }));
 			await expect(client.getFolderTree()).resolves.toEqual([{ path: '/a' }]);
 
+			// The server sends null (a nil Go slice) when there are no folders.
+			fetchMock.mockResolvedValueOnce(json({ folders: null }));
+			await expect(client.getFolderTree()).resolves.toEqual([]);
+
 			fetchMock.mockResolvedValueOnce(json({ backlinks: [{ id: 'b' }], total: 1 }));
 			await expect(client.getDocumentBacklinks('x y')).resolves.toEqual([{ id: 'b' }]);
 			expect(lastCall().url).toBe('/api/links/backlinks/x%20y');

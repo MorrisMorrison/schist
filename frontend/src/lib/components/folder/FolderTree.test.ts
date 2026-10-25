@@ -121,6 +121,17 @@ describe('FolderTree', () => {
 		expect(treeItemNames()).toEqual(['notes', 'work']);
 	});
 
+	it('keeps the root node in the sidebar when there are no folders yet', async () => {
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
+		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
+		setFoldersState({ folders: [] });
+		setDocumentsState({ documents: [] });
+		renderTree({ showPages: true });
+		// The root node's context menu is how the first folder gets created.
+		expect(screen.getByRole('button', { name: 'Open folder /' })).toBeInTheDocument();
+		expect(screen.queryByText('No folders yet')).not.toBeInTheDocument();
+	});
+
 	it('shows the empty state with a create button', async () => {
 		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
 		setFoldersState({ folders: [] });
@@ -257,6 +268,26 @@ describe('FolderTree', () => {
 		renderTree();
 		currentFolder.set('/notes');
 		expect(await screen.findByRole('button', { name: 'Open folder daily' })).toBeInTheDocument();
+	});
+
+	it('finds a top-level page when no folder matches the search', async () => {
+		renderTree({ showSearch: true, showPages: true });
+		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");
+
+		await userEvent.type(search, 'readme');
+		expect(screen.getByText('Readme')).toBeInTheDocument();
+		expect(screen.queryByText('No folders match your search.')).not.toBeInTheDocument();
+	});
+
+	it('shows the no-match message when nothing matches and there are no folders', async () => {
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
+		setFoldersState({ folders: [] });
+		renderTree({ showSearch: true, showPages: true });
+		const search = screen.getByPlaceholderText("Filter folders, pages... (try 'tag:name')");
+
+		await userEvent.type(search, 'zzz-nothing');
+		expect(screen.getByText('No folders match your search.')).toBeInTheDocument();
+		expect(screen.queryByRole('treeitem')).not.toBeInTheDocument();
 	});
 
 	it('filters folders and pages by text and tag', async () => {

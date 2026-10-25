@@ -97,6 +97,19 @@
 			: foldersStore.folders || []
 	);
 
+	// Top-level pages count as results too: without this, a search that only
+	// matches a page in the root showed "No folders match" and hid the page.
+	const rootPages = $derived(showPages ? getFilteredPagesForFolder('/') : []);
+
+	// What to show instead of the tree. With pages shown (the sidebar), the root
+	// node is always there (its context menu creates the first folder), so only
+	// a search with no matches replaces it. The folder-only views show "No
+	// folders yet" when there are none.
+	const showEmptyState = $derived(
+		filteredFolders.length === 0 &&
+			(unifiedSearchQuery.trim() ? rootPages.length === 0 : !showPages)
+	);
+
 	let hasInitialized = $state(false);
 
 	$effect(() => {
@@ -518,7 +531,7 @@
 		<div class="flex items-center justify-center py-8">
 			<LoadingSpinner size="md" />
 		</div>
-	{:else if !folderLoader.loading && foldersStore.folders !== null && filteredFolders.length === 0}
+	{:else if !folderLoader.loading && foldersStore.folders !== null && showEmptyState}
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>

@@ -219,7 +219,9 @@ describe('Editor', () => {
 
 		it('auto-saves after the configured interval', async () => {
 			const onSave = vi.fn().mockResolvedValue(undefined);
-			render(Editor, { props: { initialContent: 'a', onSave, autoSave: { interval: 20 } } });
+			render(Editor, {
+				props: { initialContent: 'a', onSave, autoSave: { intervalInMillis: 20 } }
+			});
 
 			typeAtEnd('b');
 			typeAtEnd('c');

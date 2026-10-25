@@ -171,8 +171,8 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 	}
 
 	basePath := targetPath + "/" + slug
-	if err := utils.ValidatePath(basePath); err != nil {
-		return pathResult{}, errors.NewInvalidPathError(basePath).WithCause(err)
+	if err := validatePath(basePath); err != nil {
+		return pathResult{}, err
 	}
 
 	finalPath := basePath

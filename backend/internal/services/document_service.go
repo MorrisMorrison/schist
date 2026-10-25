@@ -31,6 +31,16 @@ type DocumentService struct {
 	ignoreService *IgnoreService
 }
 
+// validatePath applies the shared path rules (utils.ValidatePath) to a
+// user-supplied logical path and reports a violation as a typed InvalidPath
+// error (400).
+func validatePath(path string) error {
+	if err := utils.ValidatePath(path); err != nil {
+		return errors.NewInvalidPathError(path).WithCause(err)
+	}
+	return nil
+}
+
 func NewDocumentService(dataDir string, gitService *GitService, ignoreService *IgnoreService) *DocumentService {
 	return &DocumentService{
 		dataDir:       dataDir,
@@ -163,8 +173,8 @@ func (d *DocumentService) createDocument(document *models.Document, overwrite bo
 		document.MetaData.Path = "/" + document.MetaData.Slug
 	}
 
-	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
+	if err := validatePath(document.MetaData.Path); err != nil {
+		return err
 	}
 
 	if !overwrite {
@@ -206,8 +216,8 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 	if document.MetaData == nil {
 		return errors.NewMissingRequiredFieldError("metaData")
 	}
-	if err := utils.ValidatePath(document.MetaData.Path); err != nil {
-		return errors.NewInvalidPathError(document.MetaData.Path).WithCause(err)
+	if err := validatePath(document.MetaData.Path); err != nil {
+		return err
 	}
 
 	// Created is server-owned: keep the stored value rather than trusting the
@@ -234,8 +244,8 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 
 func (d *DocumentService) DeleteDocument(path string) error {
 	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
-	if err := utils.ValidatePath(documentPath); err != nil {
-		return errors.NewInvalidPathError(documentPath).WithCause(err)
+	if err := validatePath(documentPath); err != nil {
+		return err
 	}
 
 	filePath := d.buildFilePathFromPath(documentPath)
@@ -331,8 +341,8 @@ func (d *DocumentService) saveDocument(document *models.Document) error {
 }
 
 func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, error) {
-	if err := utils.ValidatePath(path); err != nil {
-		return nil, errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return nil, err
 	}
 
 	filePath := d.buildFilePathFromPath(path)
@@ -354,11 +364,11 @@ func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, erro
 }
 
 func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
-	if err := utils.ValidatePath(oldPath); err != nil {
-		return errors.NewInvalidPathError(oldPath).WithCause(err)
+	if err := validatePath(oldPath); err != nil {
+		return err
 	}
-	if err := utils.ValidatePath(newPath); err != nil {
-		return errors.NewInvalidPathError(newPath).WithCause(err)
+	if err := validatePath(newPath); err != nil {
+		return err
 	}
 
 	normalizedOldPath := utils.NormalizePath(oldPath)
@@ -411,8 +421,8 @@ func (d *DocumentService) MoveDocument(oldPath, newPath string) error {
 }
 
 func (d *DocumentService) GetFolder(path string) (*models.Folder, error) {
-	if err := utils.ValidatePath(path); err != nil {
-		return nil, errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return nil, err
 	}
 
 	if path == "/" {
@@ -656,8 +666,8 @@ func (d *DocumentService) GetFolderTree() ([]*models.Folder, error) {
 }
 
 func (d *DocumentService) CreateFolder(path string) error {
-	if err := utils.ValidatePath(path); err != nil {
-		return errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return err
 	}
 
 	folderPath := utils.BuildFilePath(d.dataDir, path)
@@ -671,8 +681,8 @@ func (d *DocumentService) CreateFolder(path string) error {
 }
 
 func (d *DocumentService) RenameFolder(oldPath, newName string) error {
-	if err := utils.ValidatePath(oldPath); err != nil {
-		return errors.NewInvalidPathError(oldPath).WithCause(err)
+	if err := validatePath(oldPath); err != nil {
+		return err
 	}
 	oldPath = utils.NormalizePath(oldPath)
 	if oldPath == "/" {
@@ -772,11 +782,11 @@ func (d *DocumentService) updateDocumentPath(
 }
 
 func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
-	if err := utils.ValidatePath(oldPath); err != nil {
-		return errors.NewInvalidPathError(oldPath).WithCause(err)
+	if err := validatePath(oldPath); err != nil {
+		return err
 	}
-	if err := utils.ValidatePath(newPath); err != nil {
-		return errors.NewInvalidPathError(newPath).WithCause(err)
+	if err := validatePath(newPath); err != nil {
+		return err
 	}
 	oldPath = utils.NormalizePath(oldPath)
 	newPath = utils.NormalizePath(newPath)
@@ -845,8 +855,8 @@ func (d *DocumentService) MoveFolder(oldPath, newPath string) error {
 }
 
 func (d *DocumentService) DeleteFolder(path string) error {
-	if err := utils.ValidatePath(path); err != nil {
-		return errors.NewInvalidPathError(path).WithCause(err)
+	if err := validatePath(path); err != nil {
+		return err
 	}
 
 	// Normalise first: "//" passes ValidatePath but resolves to the data dir

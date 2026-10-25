@@ -135,3 +135,6 @@ export function useDragAndDrop(showPages: boolean) {
 		handleDrop
 	};
 }
+
+/** The drag-and-drop state and handlers one folder tree shares with its rows. */
+export type DragAndDrop = ReturnType<typeof useDragAndDrop>;

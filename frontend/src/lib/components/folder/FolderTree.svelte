@@ -620,20 +620,11 @@
 					filteredPages={getFilteredPagesForFolder('/')}
 					{selectedPath}
 					{currentPath}
-					isDragging={dragAndDrop.isDragging}
-					draggedItem={dragAndDrop.draggedItem}
-					dropTarget={dragAndDrop.dropTarget}
-					dragOverTarget={dragAndDrop.dragOverTarget}
+					dnd={dragAndDrop}
 					{expandedFolders}
 					onToggleExpanded={toggleExpanded}
 					onFolderSelect={handleFolderSelect}
 					onContextMenu={handleContextMenu}
-					onDragStart={dragAndDrop.handleDragStart}
-					onDragEnd={dragAndDrop.handleDragEnd}
-					onDragOver={dragAndDrop.handleDragOver}
-					onDragEnter={dragAndDrop.handleDragEnter}
-					onDragLeave={dragAndDrop.handleDragLeave}
-					onDrop={dragAndDrop.handleDrop}
 					onDocumentSelect={ondocumentselect}
 					onDocumentContextMenu={handlePageContextMenu}
 					{getFilteredPagesForFolder}
@@ -653,20 +644,11 @@
 						filteredPages={getFilteredPagesForFolder(folder.path)}
 						{selectedPath}
 						{currentPath}
-						isDragging={dragAndDrop.isDragging}
-						draggedItem={dragAndDrop.draggedItem}
-						dropTarget={dragAndDrop.dropTarget}
-						dragOverTarget={dragAndDrop.dragOverTarget}
+						dnd={dragAndDrop}
 						{expandedFolders}
 						onToggleExpanded={toggleExpanded}
 						onFolderSelect={handleFolderSelect}
 						onContextMenu={handleContextMenu}
-						onDragStart={dragAndDrop.handleDragStart}
-						onDragEnd={dragAndDrop.handleDragEnd}
-						onDragOver={dragAndDrop.handleDragOver}
-						onDragEnter={dragAndDrop.handleDragEnter}
-						onDragLeave={dragAndDrop.handleDragLeave}
-						onDrop={dragAndDrop.handleDrop}
 						onDocumentSelect={ondocumentselect}
 						onDocumentContextMenu={handlePageContextMenu}
 						{getFilteredPagesForFolder}

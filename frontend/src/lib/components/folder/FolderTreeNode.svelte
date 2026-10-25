@@ -4,6 +4,7 @@
 	import type { Folder as FolderType, Document } from '$lib/api/types.js';
 	import DocumentItem from '../document/DocumentItem.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
+	import type { DragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 
 	interface Props {
 		folder: FolderType;
@@ -18,25 +19,11 @@
 		filteredPages: Document[];
 		selectedPath: string;
 		currentPath: string;
-		isDragging: boolean;
-		draggedItem: { type: 'folder' | 'page'; path: string; data: FolderType | Document } | null;
-		dropTarget: string | null;
-		dragOverTarget: string | null;
+		dnd: DragAndDrop;
 		expandedFolders: Set<string>;
 		onToggleExpanded: (path: string) => void;
 		onFolderSelect: (folder: FolderType) => void;
 		onContextMenu: (event: MouseEvent | KeyboardEvent, folder: FolderType) => void;
-		onDragStart: (
-			event: DragEvent,
-			type: 'folder' | 'page',
-			path: string,
-			data: FolderType | Document
-		) => void;
-		onDragEnd: () => void;
-		onDragOver: (event: DragEvent, targetPath: string) => void;
-		onDragEnter: (event: DragEvent, targetPath: string) => void;
-		onDragLeave: (event: DragEvent, targetPath: string) => void;
-		onDrop: (event: DragEvent, targetPath: string) => void;
 		onDocumentSelect?: (event: { document: Document }) => void;
 		onDocumentContextMenu?: (event: MouseEvent | KeyboardEvent, document: Document) => void;
 		getFilteredPagesForFolder: (folderPath: string) => Document[];
@@ -57,20 +44,11 @@
 		filteredPages,
 		selectedPath,
 		currentPath,
-		isDragging,
-		draggedItem,
-		dropTarget,
-		dragOverTarget,
+		dnd,
 		expandedFolders,
 		onToggleExpanded,
 		onFolderSelect,
 		onContextMenu,
-		onDragStart,
-		onDragEnd,
-		onDragOver,
-		onDragEnter,
-		onDragLeave,
-		onDrop,
 		onDocumentSelect,
 		onDocumentContextMenu,
 		getFilteredPagesForFolder,
@@ -81,9 +59,9 @@
 	const hasPages = $derived(showPages && filteredPages.length > 0);
 	const hasExpandableContent = $derived(hasSubFolders || hasPages);
 	const indentLevel = $derived(Math.min(depth, maxDepth));
-	const isBeingDragged = $derived(isDragging && draggedItem?.path === folder.path);
-	const isDropTarget = $derived(dropTarget === folder.path);
-	const isDragOver = $derived(dragOverTarget === folder.path);
+	const isBeingDragged = $derived(dnd.isDragging && dnd.draggedItem?.path === folder.path);
+	const isDropTarget = $derived(dnd.dropTarget === folder.path);
+	const isDragOver = $derived(dnd.dragOverTarget === folder.path);
 
 	function handleChevronClick(event: MouseEvent) {
 		event.preventDefault();
@@ -142,12 +120,12 @@
 				isDragOver && 'bg-primary/20'
 			)}
 			draggable="true"
-			ondragstart={(e) => onDragStart(e, 'folder', folder.path, folder)}
-			ondragend={onDragEnd}
-			ondragover={(e) => onDragOver(e, folder.path)}
-			ondragenter={(e) => onDragEnter(e, folder.path)}
-			ondragleave={(e) => onDragLeave(e, folder.path)}
-			ondrop={(e) => onDrop(e, folder.path)}
+			ondragstart={(e) => dnd.handleDragStart(e, 'folder', folder.path, folder)}
+			ondragend={dnd.handleDragEnd}
+			ondragover={(e) => dnd.handleDragOver(e, folder.path)}
+			ondragenter={(e) => dnd.handleDragEnter(e, folder.path)}
+			ondragleave={(e) => dnd.handleDragLeave(e, folder.path)}
+			ondrop={(e) => dnd.handleDrop(e, folder.path)}
 			oncontextmenu={(e) => onContextMenu(e, folder)}
 			role="treeitem"
 			aria-expanded={hasExpandableContent ? isExpanded : undefined}
@@ -245,20 +223,11 @@
 						filteredPages={getFilteredPagesForFolder(subFolder.path)}
 						{selectedPath}
 						{currentPath}
-						{isDragging}
-						{draggedItem}
-						{dropTarget}
-						{dragOverTarget}
+						{dnd}
 						{expandedFolders}
 						{onToggleExpanded}
 						{onFolderSelect}
 						{onContextMenu}
-						{onDragStart}
-						{onDragEnd}
-						{onDragOver}
-						{onDragEnter}
-						{onDragLeave}
-						{onDrop}
 						{onDocumentSelect}
 						{onDocumentContextMenu}
 						{getFilteredPagesForFolder}
@@ -272,21 +241,13 @@
 					<DocumentItem
 						document={page}
 						{depth}
-						{isDragging}
-						{draggedItem}
-						{dropTarget}
-						{dragOverTarget}
+						{dnd}
+						folderPath={folder.path}
 						isSelected={isFileAtCurrentPath(page.metaData.path)}
 						isCurrent={isFileAtCurrentPath(page.metaData.path)}
 						{enableContextMenu}
 						onSelect={() => onDocumentSelect?.({ document: page })}
 						onContextMenu={(e) => onDocumentContextMenu?.(e, page)}
-						{onDragStart}
-						{onDragEnd}
-						onDragOver={(e) => onDragOver(e, folder.path)}
-						onDragEnter={(e) => onDragEnter(e, folder.path)}
-						onDragLeave={(e) => onDragLeave(e, folder.path)}
-						onDrop={(e) => onDrop(e, folder.path)}
 					/>
 				{/each}
 			{/if}

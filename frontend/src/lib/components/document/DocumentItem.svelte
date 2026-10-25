@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { File, MoreVertical } from '@lucide/svelte';
 	import { cn } from '$lib/utils.js';
-	import type { Document, Folder as FolderType } from '$lib/api/types.js';
+	import type { Document } from '$lib/api/types.js';
+	import type { DragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 
 	interface Props {
 		document: Document;
@@ -9,18 +10,11 @@
 		isSelected: boolean;
 		isCurrent: boolean;
 		enableContextMenu: boolean;
-		isDragging: boolean;
-		draggedItem: { type: 'folder' | 'page'; path: string; data: FolderType | Document } | null;
-		dropTarget: string | null;
-		dragOverTarget: string | null;
+		dnd: DragAndDrop;
+		/** The folder the document is in: dropping on the document moves into it. */
+		folderPath: string;
 		onSelect: () => void;
 		onContextMenu: (event: MouseEvent | KeyboardEvent) => void;
-		onDragStart: (event: DragEvent, type: 'folder' | 'page', path: string, data: Document) => void;
-		onDragEnd: () => void;
-		onDragOver: (event: DragEvent) => void;
-		onDragEnter: (event: DragEvent) => void;
-		onDragLeave: (event: DragEvent) => void;
-		onDrop: (event: DragEvent) => void;
 	}
 
 	let {
@@ -29,23 +23,17 @@
 		isSelected,
 		isCurrent,
 		enableContextMenu,
-		isDragging,
-		draggedItem,
-		dropTarget,
-		dragOverTarget,
+		dnd,
+		folderPath,
 		onSelect,
-		onContextMenu,
-		onDragStart,
-		onDragEnd,
-		onDragOver,
-		onDragEnter,
-		onDragLeave,
-		onDrop
+		onContextMenu
 	}: Props = $props();
 
-	const isBeingDragged = $derived(isDragging && draggedItem?.path === document.metaData.path);
-	const isDropTarget = $derived(dropTarget === document.metaData.path);
-	const isDragOver = $derived(dragOverTarget === document.metaData.path);
+	const isBeingDragged = $derived(
+		dnd.isDragging && dnd.draggedItem?.path === document.metaData.path
+	);
+	const isDropTarget = $derived(dnd.dropTarget === document.metaData.path);
+	const isDragOver = $derived(dnd.dragOverTarget === document.metaData.path);
 </script>
 
 <div
@@ -59,12 +47,12 @@
 		isDragOver && 'bg-primary/20'
 	)}
 	draggable="true"
-	ondragstart={(e) => onDragStart(e, 'page', document.metaData.path, document)}
-	ondragend={onDragEnd}
-	ondragover={onDragOver}
-	ondragenter={onDragEnter}
-	ondragleave={onDragLeave}
-	ondrop={onDrop}
+	ondragstart={(e) => dnd.handleDragStart(e, 'page', document.metaData.path, document)}
+	ondragend={dnd.handleDragEnd}
+	ondragover={(e) => dnd.handleDragOver(e, folderPath)}
+	ondragenter={(e) => dnd.handleDragEnter(e, folderPath)}
+	ondragleave={(e) => dnd.handleDragLeave(e, folderPath)}
+	ondrop={(e) => dnd.handleDrop(e, folderPath)}
 	oncontextmenu={onContextMenu}
 	role="treeitem"
 	aria-label={`Document: ${document.metaData?.title || 'Untitled'}`}

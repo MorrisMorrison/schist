@@ -25,13 +25,14 @@ test.describe('Auto-save Functionality', () => {
 		await editorPage.expectUrl(`/edit${testDocument.path}`);
 
 		// Navigate to view page to verify auto-save worked
-		await documentViewPage.navigateToPage(testDocument.path!);
-		await documentViewPage.verifyPageLoaded(testDocument.title);
+		await documentViewPage.navigateToDocument(testDocument.path!);
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 		await documentViewPage.verifyContentContains('Additional content added for auto-save test');
 	});
 
 	test('should handle auto-save errors gracefully', async ({
 		editorPage,
+		documentViewPage,
 		withSimpleTestDocument: testDocument,
 		page
 	}) => {
@@ -58,8 +59,9 @@ test.describe('Auto-save Functionality', () => {
 		// Remove network failure simulation
 		await page.unroute('**/api/documents/**');
 
-		// Try manual save - should work now
+		// Try manual save - should work now, and persist the change
 		await editorPage.saveAndExpectNavigation();
-		await editorPage.page.waitForLoadState('networkidle');
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await documentViewPage.verifyContentContains('This change should fail to save');
 	});
 });

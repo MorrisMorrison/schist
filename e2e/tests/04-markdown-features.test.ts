@@ -106,10 +106,7 @@ test.describe('Markdown Features', () => {
 		// Check preview renders checkboxes correctly
 		const preview = page.locator('[data-testid="markdown-preview"]');
 
-		// Wait for preview to update (there's a 300ms delay in the editor)
-		await page.waitForTimeout(500);
-
-		// Wait for checkboxes to appear
+		// The preview updates after a short debounce; toHaveCount waits for it.
 		const checkboxes = preview.locator('[data-testid="checkbox"]');
 		await expect(checkboxes).toHaveCount(5); // 5 checkbox items total
 

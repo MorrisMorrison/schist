@@ -9,6 +9,7 @@
 		getRecentDocumentPaths
 	} from '$lib/utils/fuzzy-search';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { Badge } from '$lib/components/ui/badge';
 	import { Dialog, DialogContent, DialogTitle } from '$lib/components/ui/dialog';
 
 	interface Props {
@@ -202,11 +203,7 @@
 						{#if document.metaData.tags && document.metaData.tags.length > 0}
 							<div class="flex gap-1">
 								{#each document.metaData.tags.slice(0, 2) as tag (tag)}
-									<span
-										class="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-xs"
-									>
-										{tag}
-									</span>
+									<Badge variant="secondary">{tag}</Badge>
 								{/each}
 								{#if document.metaData.tags.length > 2}
 									<span class="text-muted-foreground text-xs"

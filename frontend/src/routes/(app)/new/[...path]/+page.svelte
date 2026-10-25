@@ -6,6 +6,7 @@
 	import MarkdownPreview from '$lib/components/editor/MarkdownPreview.svelte';
 	import ModeToggle from '$lib/components/editor/ModeToggle.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
 	import { documentActions } from '$lib/stores/documents.svelte';
 	import { generateSlug, normalizePath } from '$lib/utils/path';
 	import { BookOpen, Check, Loader2, Pencil } from '@lucide/svelte';
@@ -316,9 +317,7 @@
 						{#if template.tags && template.tags.length > 0}
 							<div class="mt-2 flex flex-wrap gap-1">
 								{#each template.tags.slice(0, 2) as tag (tag)}
-									<span class="bg-secondary text-secondary-foreground rounded px-2 py-0.5 text-xs"
-										>{tag}</span
-									>
+									<Badge variant="secondary">{tag}</Badge>
 								{/each}
 								{#if template.tags.length > 2}
 									<span class="text-secondary text-xs">+{template.tags.length - 2} more</span>

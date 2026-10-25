@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { documentPageWidth } from '$lib/stores/settings.svelte';
 	import { PageContainer } from '$lib/components/ui/page-container';
 	import { formatLongDate } from '$lib/utils/date';
 	import {
@@ -331,7 +332,12 @@
 
 <svelte:window onkeydown={handleModeShortcut} />
 
-<PageContainer bind:ref={viewRoot} data-testid="document-view" data-mode={mode}>
+<PageContainer
+	bind:ref={viewRoot}
+	width={documentPageWidth()}
+	data-testid="document-view"
+	data-mode={mode}
+>
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<header

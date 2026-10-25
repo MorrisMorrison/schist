@@ -15,7 +15,7 @@ describe('PageContainer', () => {
 		const { container } = render(PageContainer);
 
 		expect(page(container)).toHaveAttribute('data-width', 'reading');
-		expect(page(container)).toHaveClass('max-w-[47rem]', 'mx-auto', 'w-full', 'p-6');
+		expect(page(container)).toHaveClass('max-w-[59rem]', 'mx-auto', 'w-full', 'p-6');
 	});
 
 	it('has a wide width for browse pages', () => {
@@ -23,7 +23,14 @@ describe('PageContainer', () => {
 
 		expect(page(container)).toHaveAttribute('data-width', 'wide');
 		expect(page(container)).toHaveClass('max-w-6xl', 'mx-auto');
-		expect(page(container)).not.toHaveClass('max-w-[47rem]');
+		expect(page(container)).not.toHaveClass('max-w-[59rem]');
+	});
+
+	it('has no cap at full width', () => {
+		const { container } = render(PageContainer, { props: { width: 'full' } });
+
+		expect(page(container)).toHaveAttribute('data-width', 'full');
+		expect(page(container)).toHaveClass('max-w-none', 'mx-auto', 'p-6');
 	});
 
 	it('passes through classes and attributes', () => {
@@ -37,7 +44,7 @@ describe('PageContainer', () => {
 	it('lets a class override its spacing', () => {
 		const classes = pageContainerVariants({ class: 'pt-0 space-y-0' }).split(' ');
 
-		expect(classes).toContain('max-w-[47rem]');
+		expect(classes).toContain('max-w-[59rem]');
 		expect(classes).toContain('pt-0');
 		expect(classes).not.toContain('space-y-8');
 	});

@@ -7,7 +7,7 @@ import EditorSettingsSection from './EditorSettingsSection.svelte';
 describe('EditorSettingsSection', () => {
 	afterEach(() => {
 		cleanup();
-		settingsActions.updateAppSetting('alwaysHidePreview', false);
+		settingsActions.updateAppSetting('openDocumentsInEditMode', false);
 		settingsActions.updateAppSetting('alwaysOpenFullscreen', false);
 		localStorage.removeItem('schist_settings');
 	});
@@ -20,22 +20,24 @@ describe('EditorSettingsSection', () => {
 		settingsActions.updateAppSetting('alwaysOpenFullscreen', true);
 		render(EditorSettingsSection);
 		expect(screen.getByTestId('editor-settings-section')).toBeInTheDocument();
-		expect(screen.getByText('Always hide preview')).toBeInTheDocument();
-		expect(screen.getByText('Always open editor in fullscreen mode')).toBeInTheDocument();
-		const [hidePreview, fullscreen] = switches();
-		expect(hidePreview).toHaveAttribute('aria-checked', 'false');
+		expect(screen.getByText('Open documents in edit mode')).toBeInTheDocument();
+		expect(screen.getByText('Always edit in focus mode')).toBeInTheDocument();
+		const [editMode, fullscreen] = switches();
+		expect(editMode).toHaveAttribute('aria-checked', 'false');
 		expect(fullscreen).toHaveAttribute('aria-checked', 'true');
 	});
 
-	it('toggles "always hide preview" and persists it', async () => {
+	it('toggles "open documents in edit mode" and persists it', async () => {
 		render(EditorSettingsSection);
 		await userEvent.click(switches()[0]);
-		expect(settings.app.alwaysHidePreview).toBe(true);
+		expect(settings.app.openDocumentsInEditMode).toBe(true);
 		expect(switches()[0]).toHaveAttribute('aria-checked', 'true');
-		expect(JSON.parse(localStorage.getItem('schist_settings')!).app.alwaysHidePreview).toBe(true);
+		expect(JSON.parse(localStorage.getItem('schist_settings')!).app.openDocumentsInEditMode).toBe(
+			true
+		);
 	});
 
-	it('toggles "always open fullscreen"', async () => {
+	it('toggles "always edit in focus mode"', async () => {
 		render(EditorSettingsSection);
 		await userEvent.click(switches()[1]);
 		expect(settings.app.alwaysOpenFullscreen).toBe(true);

@@ -62,12 +62,8 @@ export function createKeyboardShortcutHandler(page: Page, handlers: KeyboardShor
 		if (currentPath.startsWith('/documents/')) {
 			const documentPath = currentPath.replace('/documents', '');
 
-			// Cmd/Ctrl + E: Edit current document
-			if (isCmdOrCtrl && event.key === 'e') {
-				event.preventDefault();
-				goto(`/edit${documentPath}`);
-				return;
-			}
+			// Cmd/Ctrl + E (read/edit toggle) is handled by DocumentView, which also
+			// sees it while the editor has focus.
 
 			// Ctrl/Cmd + Alt + D: Delete current document (safe alternative)
 			if (isCmdOrCtrl && event.altKey && event.key === 'd') {
@@ -169,7 +165,7 @@ export const KEYBOARD_SHORTCUTS = {
 		'Cmd/Ctrl + Alt + F': 'Create new folder'
 	},
 	document: {
-		'Cmd/Ctrl + E': 'Edit current document',
+		'Cmd/Ctrl + E': 'Switch between reading and editing',
 		'Cmd/Ctrl + S': 'Save document (silent save in editor)',
 		'Cmd/Ctrl + Alt + D': 'Delete current document',
 		'Cmd/Ctrl + J': 'Download current document'

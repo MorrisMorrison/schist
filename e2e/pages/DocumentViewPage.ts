@@ -100,10 +100,12 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Click edit button and navigate to editor
+	 * Switch the document to edit mode (in place; the URL gains ?mode=edit).
 	 */
 	async editDocument() {
-		await Promise.all([this.page.waitForURL(/\/edit\//), this.editButton.click()]);
+		await this.editButton.click();
+		await this.page.waitForURL(/\?mode=edit/);
+		await expect(this.page.locator('.cm-editor .cm-content').first()).toBeVisible();
 	}
 
 	/**

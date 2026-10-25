@@ -112,8 +112,6 @@
 	const listButtons = $derived(buttonGroups.lists || []);
 	const insertButtons = $derived(buttonGroups.insert || []);
 
-	const themeClasses = 'bg-card border-border text-foreground';
-
 	function handleButtonClick(type: FormattingType) {
 		if (disabled) return;
 
@@ -129,7 +127,7 @@
 </script>
 
 <div
-	class="editor-toolbar flex items-center gap-3 border-b p-3 {themeClasses}"
+	class="editor-toolbar text-foreground flex min-w-0 items-center gap-2 overflow-x-auto"
 	role="toolbar"
 	aria-label="Formatting toolbar"
 >
@@ -214,8 +212,9 @@
 			variant="ghost"
 			size="sm"
 			onclick={onFullscreenToggle}
-			title={isFullscreen ? 'Exit Fullscreen (F11)' : 'Enter Fullscreen (F11)'}
-			aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+			title={isFullscreen ? 'Exit focus mode (Esc)' : 'Focus mode (F11)'}
+			aria-label={isFullscreen ? 'Exit focus mode' : 'Focus mode'}
+			aria-pressed={isFullscreen}
 			{disabled}
 			class="h-8 w-8 p-0"
 		>
@@ -226,30 +225,15 @@
 			{/if}
 		</Button>
 	{/if}
-
-	<div class="text-muted-foreground hidden text-xs sm:block">
-		Use keyboard shortcuts for faster formatting
-	</div>
 </div>
 
 <style>
 	.editor-toolbar {
-		min-height: 3.5rem;
+		scrollbar-width: none;
 	}
 
-	@media (max-width: 640px) {
-		.editor-toolbar {
-			flex-wrap: wrap;
-			gap: 0.5rem;
-			padding: 0.75rem;
-		}
-
-		.editor-toolbar .w-px {
-			display: none;
-		}
-
-		.editor-toolbar .text-xs {
-			display: none;
-		}
+	/* Narrow screens scroll the buttons sideways instead of wrapping them. */
+	.editor-toolbar > :global(*) {
+		flex-shrink: 0;
 	}
 </style>

@@ -29,8 +29,8 @@ test.describe('Auto-save Functionality', () => {
 		// Wait for auto-save to trigger
 		await editorPage.waitForAutoSave();
 
-		// Verify we're still on the edit page (no navigation occurred)
-		await editorPage.expectUrl(`/edit${testDocument.path}`);
+		// Verify we're still editing (no navigation occurred)
+		await editorPage.expectUrl(`/documents${testDocument.path}?mode=edit`);
 
 		// Navigate to view page to verify auto-save worked
 		await documentViewPage.navigateToDocument(testDocument.path!);
@@ -93,7 +93,7 @@ test.describe('Auto-save Functionality', () => {
 		const first = await firstSave;
 		expect(new URL(first.url()).pathname).toBe(`/api/documents${oldPath}`);
 		expect((await first.response())?.status()).toBe(200);
-		await expect(page).toHaveURL(new RegExp(`/edit${newPath}$`));
+		await expect(page).toHaveURL(new RegExp(`/documents${newPath}\\?mode=edit$`));
 
 		// The next auto-save must target the renamed document, not the old path.
 		const secondSave = waitForAutoSaveRequest(page);

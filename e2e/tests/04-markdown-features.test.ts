@@ -27,6 +27,7 @@ test.describe('Markdown Features', () => {
 		await page.fill('.cm-content', wikiLinkContent);
 
 		// Check preview shows wiki link
+		await page.getByTestId('preview-mode-button').click();
 		const preview = page.locator('[data-testid="markdown-preview"]');
 		await expect(preview.locator('.wiki-link')).toBeVisible();
 
@@ -49,6 +50,7 @@ test.describe('Markdown Features', () => {
 		await page.fill('.cm-content', imageContent);
 
 		// Check preview shows image element
+		await page.getByTestId('preview-mode-button').click();
 		const preview = page.locator('[data-testid="markdown-preview"]');
 		const image = preview.locator('img[alt="Test Image"]');
 
@@ -76,6 +78,7 @@ test.describe('Markdown Features', () => {
 		await page.fill('.cm-content', malformedContent);
 
 		// Even malformed syntax should show an image
+		await page.getByTestId('preview-mode-button').click();
 		const preview = page.locator('[data-testid="markdown-preview"]');
 		const image = preview.locator('img[alt="test.png"]');
 
@@ -105,6 +108,7 @@ test.describe('Markdown Features', () => {
 		await page.fill('.cm-content', taskListContent);
 
 		// Check preview renders checkboxes correctly
+		await page.getByTestId('preview-mode-button').click();
 		const preview = page.locator('[data-testid="markdown-preview"]');
 
 		// The preview updates after a short debounce; toHaveCount waits for it.

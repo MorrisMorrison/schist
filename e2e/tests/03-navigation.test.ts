@@ -61,7 +61,8 @@ test.describe('Navigation and Routing', () => {
 
 		await editorPage.navigateToEdit(testDocument.path!);
 		await editorPage.verifyLoaded();
-		await editorPage.expectUrl(`/edit${testDocument.path!}`);
+		// /edit/<path> is a deep link into the document page's edit mode.
+		await editorPage.expectUrl(`/documents${testDocument.path!}?mode=edit`);
 
 		await editorPage.cancel();
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
@@ -82,30 +83,29 @@ test.describe('Navigation and Routing', () => {
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
+		// Switching to edit mode is a toggle on the same page, not a navigation:
+		// it replaces the history entry (?mode=edit) instead of adding one.
 		await documentViewPage.editDocument();
 		await editorPage.verifyLoaded();
 
-		// edit -> document view. Wait for the URL to settle after each history
-		// move before asserting the DOM: page.goBack/goForward resolve on the
-		// 'load' event, but SPA history navigation is client-side (popstate) and
-		// may not fire one, so the assertion can otherwise race the re-render.
+		// Wait for the URL to settle after each history move before asserting the
+		// DOM: page.goBack/goForward resolve on the 'load' event, but SPA history
+		// navigation is client-side (popstate) and may not fire one, so the
+		// assertion can otherwise race the re-render.
+		// edit -> home (origin root, nothing after the host)
 		await page.goBack();
-		await documentViewPage.verifyDocumentUrl(testDocument.path!);
-		await documentViewPage.verifyDocumentLoaded(testDocument.title);
+		await expect(page).toHaveURL(/\/\/[^/]+\/?$/);
+		await homePage.verifyLoaded();
 
-		// document view -> edit
+		// home -> the document, back in edit mode as it was left
 		await page.goForward();
-		await editorPage.expectUrl(`/edit${testDocument.path!}`);
+		await editorPage.expectUrl(`/documents${testDocument.path!}?mode=edit`);
 		await editorPage.verifyLoaded();
 
-		// edit -> document view. Settle here before the next back: two goBack()
-		// calls fired back-to-back race (the second can run before the first
-		// popstate is processed), which intermittently lands somewhere other than
-		// home on a slow runner.
-		await page.goBack();
+		// edit -> read keeps the same entry too; back goes home again
+		await editorPage.cancel();
 		await documentViewPage.verifyDocumentUrl(testDocument.path!);
-
-		// document view -> home (origin root, nothing after the host)
+		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 		await page.goBack();
 		await expect(page).toHaveURL(/\/\/[^/]+\/?$/);
 		await homePage.verifyLoaded();

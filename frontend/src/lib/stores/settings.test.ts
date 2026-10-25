@@ -18,7 +18,7 @@ describe('settings store', () => {
 	it('starts with defaults', async () => {
 		const { settings } = await loadSettings();
 
-		expect(settings.app).toEqual({ alwaysHidePreview: false, alwaysOpenFullscreen: false });
+		expect(settings.app).toEqual({ openDocumentsInEditMode: false, alwaysOpenFullscreen: false });
 	});
 
 	it('merges stored settings over the defaults', async () => {
@@ -26,7 +26,18 @@ describe('settings store', () => {
 
 		const { settings } = await loadSettings();
 
-		expect(settings.app).toEqual({ alwaysHidePreview: false, alwaysOpenFullscreen: true });
+		expect(settings.app).toEqual({ openDocumentsInEditMode: false, alwaysOpenFullscreen: true });
+	});
+
+	it('drops stored settings that no longer exist', async () => {
+		localStorage.setItem(
+			KEY,
+			JSON.stringify({ app: { alwaysHidePreview: true, alwaysOpenFullscreen: true } })
+		);
+
+		const { settings } = await loadSettings();
+
+		expect(settings.app).toEqual({ openDocumentsInEditMode: false, alwaysOpenFullscreen: true });
 	});
 
 	it('ignores corrupt stored settings', async () => {
@@ -35,18 +46,18 @@ describe('settings store', () => {
 
 		const { settings } = await loadSettings();
 
-		expect(settings.app.alwaysHidePreview).toBe(false);
+		expect(settings.app.openDocumentsInEditMode).toBe(false);
 		expect(console.warn).toHaveBeenCalled();
 	});
 
 	it('updates one setting and persists the whole object', async () => {
 		const { settings, settingsActions } = await loadSettings();
 
-		settingsActions.updateAppSetting('alwaysHidePreview', true);
+		settingsActions.updateAppSetting('openDocumentsInEditMode', true);
 
-		expect(settings.app).toEqual({ alwaysHidePreview: true, alwaysOpenFullscreen: false });
+		expect(settings.app).toEqual({ openDocumentsInEditMode: true, alwaysOpenFullscreen: false });
 		expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual({
-			app: { alwaysHidePreview: true, alwaysOpenFullscreen: false }
+			app: { openDocumentsInEditMode: true, alwaysOpenFullscreen: false }
 		});
 	});
 

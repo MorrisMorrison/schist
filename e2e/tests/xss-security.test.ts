@@ -155,6 +155,7 @@ Final paragraph.`;
 <div onclick="alert('Preview Click XSS')">Click me</div>`;
 
 		await typeIntoNewDocument(page, maliciousContent);
+		await page.getByTestId('preview-mode-button').click();
 
 		const previewContent = await renderedHtml(page, 'markdown-preview', 'Click me');
 		expect(previewContent).not.toContain('<script>');

@@ -21,9 +21,9 @@ A lightweight, self-hosted markdown wiki with Obsidian-style features in the bro
     <td align="center" width="33%">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/editor-dark.png">
-        <img alt="Markdown editor with live preview" src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/editor-light.png">
+        <img alt="A page in edit mode: the markdown in the same column and typography as the reading view" src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/editor-light.png">
       </picture>
-      <br /><sub>Editor with live preview</sub>
+      <br /><sub>Editing in place</sub>
     </td>
     <td align="center" width="33%">
       <picture>
@@ -46,7 +46,7 @@ A lightweight, self-hosted markdown wiki with Obsidian-style features in the bro
 
 - **Plain markdown on disk:** one `.md` file per page with YAML front matter, organised in folders. No database: easy to back up, easy to leave.
 - **Linked notes:** `[[wiki links]]` with backlinks, tags, full-text search and a quick switcher.
-- **Editor:** CodeMirror with live preview, a formatting toolbar, image uploads and page templates.
+- **Editor:** one page that switches between reading and editing in place (<kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd>), with the markdown shown in the reading column and typography, a formatting toolbar, a focus mode, image uploads and page templates.
 - **History:** every save is a git commit. Browse a page's versions and restore any of them, with optional backup to a GitHub repository.
 - **Sharing:** public read-only links that expire.
 - **Accounts:** passwordless login with passkeys (WebAuthn), invite links for new users, and an admin role for user management.
@@ -129,8 +129,9 @@ GitHub backup is set up in the app under **Settings → GitHub**. [docs/CONFIGUR
 | <kbd>Ctrl/Cmd</kbd> + <kbd>,</kbd> | Settings |
 | <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>N</kbd> | New page |
 | <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>F</kbd> | New folder |
-| <kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd> | Edit the current page |
+| <kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd> | Switch the current page between reading and editing |
 | <kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd> | Save (in the editor) |
+| <kbd>F11</kbd> | Focus mode (in the editor) |
 | <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd> | Delete the current page |
 | <kbd>Ctrl/Cmd</kbd> + <kbd>J</kbd> | Download the current page |
 | <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> | Toggle dark/light theme |

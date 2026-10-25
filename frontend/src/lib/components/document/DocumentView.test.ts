@@ -31,12 +31,16 @@ vi.mock('$lib/components/modal/ShareDocumentModal.svelte', async () => ({
 vi.mock('$lib/components/document/LazyDocumentGraphView.svelte', async () => ({
 	default: (await import('$lib/test/stub-component')).namedStub('GraphView')
 }));
+vi.mock('$lib/components/editor/DocumentInlineEditor.svelte', async () => ({
+	default: (await import('$lib/test/InlineEditorStub.svelte')).default
+}));
 
 import { goto } from '$app/navigation';
 import { apiClient } from '$lib/api/client';
 import { resetAllState } from '$lib/stores/documents.svelte';
 import { secretStore } from '$lib/stores/secrets.svelte';
 import { stubProps } from '$lib/test/stub-registry';
+import { inlineEditorStub } from '$lib/test/inline-editor-stub';
 import DocumentView from './DocumentView.svelte';
 
 function makeDoc(
@@ -99,6 +103,7 @@ describe('DocumentView', () => {
 		resetAllState();
 		secretStore.reset();
 		for (const key of Object.keys(stubProps)) delete stubProps[key];
+		inlineEditorStub.reset();
 		vi.clearAllMocks();
 		vi.restoreAllMocks();
 	});
@@ -211,23 +216,124 @@ describe('DocumentView', () => {
 		expect(apiClient.restoreDocumentToVersion).toHaveBeenCalledWith('/notes/plan', 'abc');
 	});
 
-	it('calls onEdit with the slug from the Edit button', async () => {
-		const onEdit = vi.fn();
-		render(DocumentView, { props: { document: makeDoc(), onEdit } });
+	describe('read/edit mode', () => {
+		const ctrlE = () => fireEvent.keyDown(window, { key: 'e', ctrlKey: true });
 
-		await fireEvent.click(screen.getByTestId('edit-document-button'));
+		it('starts in reading mode with Read pressed and no editor loaded', () => {
+			render(DocumentView, { props: { document: makeDoc() } });
 
-		expect(onEdit).toHaveBeenCalledWith('plan');
+			expect(screen.getByTestId('read-mode-button')).toHaveAttribute('aria-pressed', 'true');
+			expect(screen.getByTestId('edit-document-button')).toHaveAttribute('aria-pressed', 'false');
+			expect(screen.getByTestId('document-content')).toBeInTheDocument();
+			expect(screen.queryByTestId('inline-editor-stub')).not.toBeInTheDocument();
+		});
+
+		it('edits in place: the editor replaces the rendered content and header title', async () => {
+			const onModeChange = vi.fn();
+			render(DocumentView, { props: { document: makeDoc(), onModeChange } });
+
+			await fireEvent.click(screen.getByTestId('edit-document-button'));
+
+			expect(await screen.findByTestId('inline-editor-stub')).toBeInTheDocument();
+			expect(onModeChange).toHaveBeenCalledWith('edit');
+			expect(screen.getByTestId('edit-document-button')).toHaveAttribute('aria-pressed', 'true');
+			expect(screen.queryByTestId('document-content')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('document-title')).not.toBeInTheDocument();
+			expect(screen.getByTestId('document-view')).toHaveAttribute('data-mode', 'edit');
+			// Opened by the user, so the editor takes focus once it has loaded.
+			expect(inlineEditorStub.props?.autofocus).toBe(true);
+		});
+
+		it('toggles with Ctrl+E and saves before going back to reading', async () => {
+			const onModeChange = vi.fn();
+			render(DocumentView, { props: { document: makeDoc(), onModeChange } });
+
+			await ctrlE();
+			await screen.findByTestId('inline-editor-stub');
+			await ctrlE();
+
+			await vi.waitFor(() => expect(onModeChange).toHaveBeenLastCalledWith('read'));
+			expect(inlineEditorStub.saves).toEqual(['manual']);
+			expect(screen.getByTestId('document-content')).toBeInTheDocument();
+		});
+
+		it('stays in edit mode when the save fails', async () => {
+			inlineEditorStub.saveResult = false;
+			const onModeChange = vi.fn();
+			render(DocumentView, { props: { document: makeDoc(), mode: 'edit', onModeChange } });
+			await screen.findByTestId('inline-editor-stub');
+
+			await fireEvent.click(screen.getByTestId('read-mode-button'));
+
+			await vi.waitFor(() => expect(inlineEditorStub.saves).toEqual(['manual']));
+			expect(onModeChange).not.toHaveBeenCalled();
+			expect(screen.getByTestId('document-view')).toHaveAttribute('data-mode', 'edit');
+		});
+
+		it('keeps one editor mounted (hidden) across toggles', async () => {
+			render(DocumentView, { props: { document: makeDoc() } });
+
+			await ctrlE();
+			const editor = await screen.findByTestId('inline-editor-stub');
+			await ctrlE();
+			await vi.waitFor(() => expect(screen.getByTestId('document-content')).toBeInTheDocument());
+			expect(editor.parentElement).toHaveClass('hidden');
+			await ctrlE();
+
+			await vi.waitFor(() => expect(editor.parentElement).not.toHaveClass('hidden'));
+			expect(inlineEditorStub.mounts).toBe(1);
+			// Shown again: the kept editor gets the focus back.
+			await vi.waitFor(() => expect(inlineEditorStub.focusCalls).toBe(1));
+		});
+
+		it('opening straight into edit mode does not steal focus', async () => {
+			render(DocumentView, { props: { document: makeDoc(), mode: 'edit' } });
+
+			await screen.findByTestId('inline-editor-stub');
+			expect(inlineEditorStub.props?.autofocus).toBe(false);
+		});
+
+		it('ignores Ctrl+E while a dialog is open', async () => {
+			const onModeChange = vi.fn();
+			render(DocumentView, { props: { document: makeDoc(), onModeChange } });
+			await fireEvent.click(screen.getByTestId('share-document-button'));
+
+			await ctrlE();
+
+			expect(onModeChange).not.toHaveBeenCalled();
+		});
+
+		it('passes saved documents up', async () => {
+			const onSaved = vi.fn();
+			render(DocumentView, { props: { document: makeDoc(), mode: 'edit', onSaved } });
+			await screen.findByTestId('inline-editor-stub');
+
+			const saved = makeDoc({ title: 'Renamed', path: '/notes/renamed' });
+			(inlineEditorStub.props?.onSaved as (d: Document) => void)(saved);
+
+			expect(onSaved).toHaveBeenCalledWith(saved);
+		});
+
+		it('forgets the draft before deleting, so the unsaved-changes guard stays quiet', async () => {
+			const onDelete = vi.fn();
+			render(DocumentView, { props: { document: makeDoc(), mode: 'edit', onDelete } });
+			await screen.findByTestId('inline-editor-stub');
+
+			await clickDelete();
+			await fireEvent.click(await screen.findByTestId('confirm-delete-button'));
+
+			expect(inlineEditorStub.discards).toBe(1);
+			expect(onDelete).toHaveBeenCalledWith('/notes/plan');
+		});
 	});
 
-	it('offers Add Content for an empty document', async () => {
-		const onEdit = vi.fn();
-		render(DocumentView, { props: { document: makeDoc({}, ''), onEdit } });
+	it('offers Add Content for an empty document, which opens the editor', async () => {
+		render(DocumentView, { props: { document: makeDoc({}, '') } });
 
 		expect(screen.getByText('This document has no content yet.')).toBeInTheDocument();
 		await fireEvent.click(screen.getByRole('button', { name: 'Add Content' }));
 
-		expect(onEdit).toHaveBeenCalledWith('plan');
+		expect(await screen.findByTestId('inline-editor-stub')).toBeInTheDocument();
 	});
 
 	it('opens the share modal for this document', async () => {

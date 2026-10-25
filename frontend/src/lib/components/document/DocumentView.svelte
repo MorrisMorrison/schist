@@ -1,16 +1,19 @@
 <script lang="ts">
 	import {
-		Edit,
-		Trash2,
+		BookOpen,
 		Calendar,
-		Tag,
-		Link2,
+		Download,
+		Edit,
+		Ellipsis,
 		GitBranch,
 		History,
+		Link2,
+		Pencil,
 		Share,
-		Download,
-		Ellipsis
+		Tag,
+		Trash2
 	} from '@lucide/svelte';
+	import { tick } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
@@ -35,15 +38,47 @@
 	import { stripLeadingTitleHeading } from '$lib/utils/document-title';
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
+	import ModeToggle from '../editor/ModeToggle.svelte';
 	import { documentActions, linksStore } from '$lib/stores/documents.svelte';
+	import type { DocumentMode } from '$lib/types/editor';
+	import type DocumentInlineEditorComponent from '../editor/DocumentInlineEditor.svelte';
 
 	interface Props {
 		document: Document;
-		onEdit?: (slug: string) => void;
+		/** Reading the rendered page or editing it in place. */
+		mode?: DocumentMode;
+		/** After the mode changed (the page mirrors it in the URL). */
+		onModeChange?: (mode: DocumentMode) => void;
+		/** After every save from edit mode, with the stored document. */
+		onSaved?: (document: Document) => void;
 		onDelete?: (slug: string) => void | Promise<void>;
 	}
 
-	let { document, onEdit = () => {}, onDelete = () => {} }: Props = $props();
+	let {
+		document,
+		mode = $bindable('read'),
+		onModeChange = () => {},
+		onSaved = () => {},
+		onDelete = () => {}
+	}: Props = $props();
+
+	// The editor is loaded the first time edit mode opens and then stays mounted
+	// while reading, so cursor, selection and undo history survive the toggle.
+	let editorRequested = $state(false);
+	let inlineEditor = $state<DocumentInlineEditorComponent>();
+	let editorContainer = $state<HTMLDivElement>();
+	let editorImport: Promise<typeof import('../editor/DocumentInlineEditor.svelte')> | null = null;
+	// One promise for the component's lifetime: a new one would remount the editor.
+	const loadEditor = () => (editorImport ??= import('../editor/DocumentInlineEditor.svelte'));
+	const editorModule = $derived(editorRequested || mode === 'edit' ? loadEditor() : null);
+	// Focus the editor when it first appears because the user asked for it, not
+	// when the page opened straight into edit mode from a link.
+	let focusOnLoad = $state(false);
+	let switching = false;
+
+	$effect(() => {
+		if (mode === 'edit') editorRequested = true;
+	});
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
@@ -51,12 +86,73 @@
 
 	const documentPath = $derived(document.metaData?.path || `/${document.metaData?.slug}`);
 	const documentTitle = $derived(document.metaData?.title || 'Untitled');
-	const documentSlug = $derived(document.metaData?.slug || '');
 	const documentCreated = $derived(document.metaData?.created);
 	const documentUpdated = $derived(document.metaData?.updated);
 	const documentTags = $derived(document.metaData?.tags || []);
 
 	let contentContainer = $state<HTMLDivElement>();
+	let viewRoot = $state<HTMLDivElement>();
+
+	function scroller(): HTMLElement | null {
+		return (
+			(viewRoot?.closest('.main-content') as HTMLElement | null) ??
+			(window.document.scrollingElement as HTMLElement | null)
+		);
+	}
+
+	/** How far (0..1) the window has scrolled into `el`, or null above its top. */
+	function scrolledInto(el: HTMLElement | undefined): number | null {
+		const s = scroller();
+		if (!el || !s) return null;
+		const rect = el.getBoundingClientRect();
+		const offset = s.getBoundingClientRect().top - rect.top;
+		if (offset <= 0 || rect.height <= 0) return null;
+		return Math.min(offset / rect.height, 1);
+	}
+
+	function scrollInto(el: HTMLElement | undefined, fraction: number | null) {
+		const s = scroller();
+		if (!el || !s || fraction === null) return;
+		const rect = el.getBoundingClientRect();
+		s.scrollTop += rect.top - s.getBoundingClientRect().top + fraction * rect.height;
+	}
+
+	/**
+	 * Switches between reading and editing. Leaving edit mode saves first and
+	 * stays put if that fails, so the reading view never hides unsaved text.
+	 * The scroll position carries over proportionally (same column, same type).
+	 */
+	export async function setMode(next: DocumentMode) {
+		if (next === mode || switching) return;
+		switching = true;
+		try {
+			if (next === 'read' && inlineEditor && !(await inlineEditor.save('manual'))) return;
+			const fraction = scrolledInto(mode === 'edit' ? editorContainer : contentContainer);
+			if (next === 'edit' && !inlineEditor) focusOnLoad = true;
+			mode = next;
+			onModeChange(next);
+			await tick();
+			if (next === 'edit') inlineEditor?.focus();
+			// After the browser has laid out the newly shown view.
+			requestAnimationFrame(() =>
+				scrollInto(next === 'edit' ? editorContainer : contentContainer, fraction)
+			);
+		} finally {
+			switching = false;
+		}
+	}
+
+	function anyModalOpen() {
+		return showDeleteModal || showShareModal || showVersionHistory;
+	}
+
+	function handleModeShortcut(event: KeyboardEvent) {
+		const mod = event.ctrlKey || event.metaKey;
+		if (!mod || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'e') return;
+		if (anyModalOpen()) return;
+		event.preventDefault();
+		setMode(mode === 'edit' ? 'read' : 'edit');
+	}
 
 	// A document can link to the same page several times; list each target once
 	// (the list below is keyed by path, and duplicate keys throw).
@@ -183,6 +279,8 @@
 		isDeleting = true;
 
 		try {
+			// The document is going away; don't let the unsaved-changes guard stop that.
+			inlineEditor?.discardChanges();
 			const result = onDelete(documentPath);
 			if (result && typeof result.then === 'function') {
 				await result;
@@ -239,19 +337,29 @@
 	<meta name="description" content={document.content?.slice(0, 160) || ''} />
 </svelte:head>
 
-<div class="mx-auto max-w-[55rem] space-y-8 p-6" data-testid="document-view">
+<svelte:window onkeydown={handleModeShortcut} />
+
+<div
+	bind:this={viewRoot}
+	class="mx-auto max-w-[55rem] space-y-8 p-6"
+	data-testid="document-view"
+	data-mode={mode}
+>
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
 	>
 		<div class="flex-1">
-			<h1
-				class="text-foreground mb-4 text-4xl leading-tight font-bold tracking-tight"
-				data-testid="document-title"
-			>
-				{documentTitle}
-			</h1>
+			<!-- While editing, the first "# heading" line in the editor is the title. -->
+			{#if mode === 'read'}
+				<h1
+					class="text-foreground mb-4 text-4xl leading-tight font-bold tracking-tight"
+					data-testid="document-title"
+				>
+					{documentTitle}
+				</h1>
+			{/if}
 
 			<div class="flex flex-wrap items-center gap-4">
 				{#if documentCreated}
@@ -301,16 +409,26 @@
 		</div>
 
 		<div class="flex gap-2">
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => onEdit(documentSlug)}
-				title="Edit document"
-				data-testid="edit-document-button"
-			>
-				<Edit class="h-4 w-4" />
-				Edit
-			</Button>
+			<ModeToggle
+				{mode}
+				onSelect={setMode}
+				options={[
+					{
+						mode: 'read',
+						label: 'Read',
+						title: 'Read (Ctrl+E)',
+						icon: BookOpen,
+						testId: 'read-mode-button'
+					},
+					{
+						mode: 'edit',
+						label: 'Edit',
+						title: 'Edit (Ctrl+E)',
+						icon: Pencil,
+						testId: 'edit-document-button'
+					}
+				]}
+			/>
 
 			<Button
 				variant="outline"
@@ -364,14 +482,29 @@
 	</header>
 
 	<main>
-		{#if document.content}
+		{#if editorModule}
+			<div bind:this={editorContainer} class:hidden={mode !== 'edit'}>
+				{#await editorModule then { default: DocumentInlineEditor }}
+					<DocumentInlineEditor
+						bind:this={inlineEditor}
+						{document}
+						{onSaved}
+						autofocus={focusOnLoad}
+					/>
+				{/await}
+			</div>
+		{/if}
+
+		{#if mode === 'edit'}
+			<!-- Editing: the editor above takes the rendered content's place. -->
+		{:else if document.content}
 			<div bind:this={contentContainer} class="reading max-w-[70ch]" data-testid="document-content">
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<p class="text-muted-foreground mb-6 text-lg">This document has no content yet.</p>
-				<Button onclick={() => onEdit(documentSlug)}>
+				<Button onclick={() => setMode('edit')}>
 					<Edit class="h-4 w-4" />
 					Add Content
 				</Button>
@@ -379,7 +512,7 @@
 		{/if}
 	</main>
 
-	{#if (linksStore.backlinks?.length || 0) > 0 || validOutgoingLinks.length > 0}
+	{#if mode === 'read' && ((linksStore.backlinks?.length || 0) > 0 || validOutgoingLinks.length > 0)}
 		<section class="border-border rounded-lg border p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">

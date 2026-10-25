@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { Folder, FolderOpen, Plus } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Folder, FolderOpen, FolderPlus, FilePlus, Plus, Upload, Download } from '@lucide/svelte';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
@@ -16,6 +17,7 @@
 		folderActions
 	} from '$lib/stores/documents.svelte';
 	import { cn } from '$lib/utils.js';
+	import { isDirectChild } from '$lib/utils/path';
 	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
 	import { authService } from '$lib/auth/auth-service';
 	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
@@ -45,6 +47,7 @@
 		onfolderexport?: (event: { path: string; folder: FolderType }) => void;
 		ondocumentexport?: (event: { path: string; document: Document }) => void;
 		onexportall?: () => void;
+		onimport?: () => void;
 	}
 
 	let {
@@ -70,7 +73,8 @@
 		oncollapseall,
 		onfolderexport,
 		ondocumentexport,
-		onexportall
+		onexportall,
+		onimport
 	}: Props = $props();
 
 	let expandedFolders = $state<Set<string>>(new Set(['/']));
@@ -95,6 +99,19 @@
 					unifiedSearchQuery.toLowerCase()
 				)
 			: foldersStore.folders || []
+	);
+
+	// Top-level pages count as results too: without this, a search that only
+	// matches a page in the root showed "No folders match" and hid the page.
+	const rootPages = $derived(showPages ? getFilteredPagesForFolder('/') : []);
+
+	// What to show instead of the tree. With pages shown (the sidebar), the root
+	// node is always there (its context menu creates the first folder), so only
+	// a search with no matches replaces it. The folder-only views show "No
+	// folders yet" when there are none.
+	const showEmptyState = $derived(
+		filteredFolders.length === 0 &&
+			(unifiedSearchQuery.trim() ? rootPages.length === 0 : !showPages)
 	);
 
 	let hasInitialized = $state(false);
@@ -236,21 +253,7 @@
 	}
 
 	function getPagesForFolder(folderPath: string) {
-		return documents.filter((page) => {
-			const pagePath = page.metaData?.path || '';
-
-			if (folderPath === '' || folderPath === '/') {
-				return pagePath.split('/').length === 2;
-			}
-
-			const folderSegments = folderPath.split('/').filter(Boolean);
-			const pageSegments = pagePath.split('/').filter(Boolean);
-
-			return (
-				pageSegments.length === folderSegments.length + 1 &&
-				pageSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
-			);
-		});
+		return documents.filter((page) => isDirectChild(page.metaData?.path || '', folderPath));
 	}
 
 	function getFilteredPagesForFolder(folderPath: string) {
@@ -298,37 +301,14 @@
 		oncollapseall?.();
 	}
 
-	// Compute a viewport-clamped position for a context menu from a pointer/keyboard event.
-	function computeMenuPosition(
-		event: MouseEvent | KeyboardEvent,
-		menuHeight: number
-	): { x: number; y: number } {
-		const target = event.currentTarget as HTMLElement;
-		const rect = target.getBoundingClientRect();
-
-		let x: number, y: number;
-
+	// Where a context menu opens: at the pointer, or below the row's "⋮" when opened from
+	// the keyboard. The menu itself flips and shifts to stay inside the viewport.
+	function menuPosition(event: MouseEvent | KeyboardEvent): { x: number; y: number } {
 		if (event instanceof MouseEvent) {
-			x = event.clientX + 5;
-			y = event.clientY - 50;
-		} else {
-			x = rect.left;
-			y = rect.bottom + 2;
+			return { x: event.clientX, y: event.clientY };
 		}
-
-		const menuWidth = 160;
-
-		if (x + menuWidth > window.innerWidth) {
-			x = window.innerWidth - menuWidth - 10;
-		}
-		if (y < 0) {
-			y = 10;
-		}
-		if (y + menuHeight > window.innerHeight) {
-			y = window.innerHeight - menuHeight - 10;
-		}
-
-		return { x, y };
+		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		return { x: rect.left, y: rect.bottom + 2 };
 	}
 
 	function handleContextMenu(event: MouseEvent | KeyboardEvent, folder: FolderType) {
@@ -337,7 +317,8 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		contextMenuPosition = computeMenuPosition(event, 120);
+		contextMenuPosition = menuPosition(event);
+		pageContextMenuOpen = null;
 		contextMenuOpen = folder.path;
 	}
 
@@ -406,7 +387,8 @@
 		event.preventDefault();
 		event.stopPropagation();
 
-		pageContextMenuPosition = computeMenuPosition(event, 80);
+		pageContextMenuPosition = menuPosition(event);
+		contextMenuOpen = null;
 		pageContextMenuOpen = page.metaData?.path || '';
 	}
 
@@ -441,35 +423,60 @@
 		return null;
 	}
 
-	function handleOutsideClick() {
-		closeContextMenu();
+	/** The root as a folder: the top-level folders and pages that pass the filter. */
+	function rootFolder(): FolderType {
+		return {
+			name: '/',
+			path: '/',
+			created: new Date().toISOString(),
+			document_count: getFilteredPagesForFolder('/').length,
+			sub_folders: filteredFolders
+		};
 	}
 
 	function getCurrentFolderFromPath(path: string): FolderType | null {
 		if (path === '/') {
-			return {
-				name: '/',
-				path: '/',
-				created: new Date().toISOString(),
-				document_count: getFilteredPagesForFolder('/').length,
-				sub_folders: filteredFolders
-			};
+			return rootFolder();
 		}
 		return findFolderByPath(foldersStore.folders || [], path);
 	}
 </script>
 
-<svelte:window onclick={handleOutsideClick} />
+{#snippet treeNode(folder: FolderType, depth: number, hideRow = false)}
+	<FolderTreeNode
+		{folder}
+		{hideRow}
+		{depth}
+		{maxDepth}
+		isExpanded={expandedFolders.has(folder.path)}
+		isSelected={selectedPath === folder.path}
+		isCurrent={isCurrentPath(folder.path)}
+		{showPages}
+		{showPageCounts}
+		{enableContextMenu}
+		filteredPages={getFilteredPagesForFolder(folder.path)}
+		{selectedPath}
+		{currentPath}
+		dnd={dragAndDrop}
+		{expandedFolders}
+		onToggleExpanded={toggleExpanded}
+		onFolderSelect={handleFolderSelect}
+		onContextMenu={handleContextMenu}
+		onDocumentSelect={ondocumentselect}
+		onDocumentContextMenu={handlePageContextMenu}
+		{getFilteredPagesForFolder}
+	/>
+{/snippet}
 
 <div class={cn('select-none', className)}>
 	{#if showActions}
-		<div class="border-border flex items-center justify-between border-b p-4">
-			<h2 class="text-primary text-lg font-semibold">Pages</h2>
+		<div class="border-border flex items-center justify-between border-b px-4 py-3">
+			<h2 class="text-foreground text-sm font-semibold">Pages</h2>
 			<div class="flex items-center gap-1">
 				<Button
 					variant="ghost"
 					size="icon"
-					class="h-6 w-6"
+					class="h-7 w-7"
 					onclick={expandAll}
 					title="Expand all folders"
 				>
@@ -478,21 +485,54 @@
 				<Button
 					variant="ghost"
 					size="icon"
-					class="h-6 w-6"
+					class="h-7 w-7"
 					onclick={collapseAll}
 					title="Collapse all folders"
 				>
 					<Folder class="h-4 w-4" />
 				</Button>
-				<Button
-					variant="ghost"
-					size="icon"
-					class="h-6 w-6"
-					onclick={() => ondocumentcreate?.({ parentPath: '/' })}
-					title="Create new document"
-				>
-					<Plus class="h-4 w-4" />
-				</Button>
+				<!-- One "new" menu: replaces the root node's context menu and the Import button. -->
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger
+						class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-7 w-7')}
+						title="New page, folder or import"
+						aria-label="New"
+						data-testid="sidebar-new-menu"
+					>
+						<Plus class="h-4 w-4" />
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="end" class="w-48">
+						<DropdownMenu.Item
+							onSelect={() => ondocumentcreate?.({ parentPath: '/' })}
+							data-testid="new-page-menu-item"
+						>
+							<FilePlus />
+							New page
+						</DropdownMenu.Item>
+						<DropdownMenu.Item
+							onSelect={() => oncreate?.({ parentPath: '/' })}
+							data-testid="new-folder-menu-item"
+						>
+							<FolderPlus />
+							New folder
+						</DropdownMenu.Item>
+						{#if onimport || onexportall}
+							<DropdownMenu.Separator />
+						{/if}
+						{#if onimport}
+							<DropdownMenu.Item onSelect={onimport} data-testid="import-documents-menu-item">
+								<Upload />
+								Import documents
+							</DropdownMenu.Item>
+						{/if}
+						{#if onexportall}
+							<DropdownMenu.Item onSelect={onexportall} data-testid="export-all-menu-item">
+								<Download />
+								Export all
+							</DropdownMenu.Item>
+						{/if}
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
 			</div>
 		</div>
 	{/if}
@@ -502,7 +542,7 @@
 			<UnifiedSidebarSearch
 				dataTestId="sidebar-search"
 				value={unifiedSearchQuery}
-				placeholder="Filter folders, pages... (try 'tag:name')"
+				placeholder="Filter pages… (tag:name)"
 				onSearch={(query: string) => {
 					unifiedSearchQuery = query;
 				}}
@@ -518,7 +558,7 @@
 		<div class="flex items-center justify-center py-8">
 			<LoadingSpinner size="md" />
 		</div>
-	{:else if !folderLoader.loading && foldersStore.folders !== null && filteredFolders.length === 0}
+	{:else if !folderLoader.loading && foldersStore.folders !== null && showEmptyState}
 		<div class="flex flex-col items-center justify-center py-8 text-center">
 			{#if unifiedSearchQuery.trim()}
 				<p class="text-secondary text-sm">No folders match your search.</p>
@@ -534,12 +574,21 @@
 		</div>
 	{:else}
 		<!-- Folder Tree -->
+		<!-- With the root row hidden, blank space in the tree is the drop target
+		     for moving something to the top level. Only drops on the tree itself
+		     count: drops on a folder or page row bubble up here too. -->
 		<div
-			class="space-y-1"
+			class={cn('space-y-1', showPages && 'min-h-16 pb-6')}
 			role="tree"
 			aria-label="Folder tree"
 			data-testid="folder-tree"
 			tabindex="0"
+			ondragover={(e) => {
+				if (showPages && e.target === e.currentTarget) dragAndDrop.handleDragOver(e, '/');
+			}}
+			ondrop={(e) => {
+				if (showPages && e.target === e.currentTarget) dragAndDrop.handleDrop(e, '/');
+			}}
 			oncontextmenu={(e) => {
 				// Prevent context menu from appearing when right-clicking on empty tree space
 				// Only allow context menus on specific folder/page items
@@ -555,76 +604,10 @@
 			}}
 		>
 			{#if showPages}
-				<FolderTreeNode
-					folder={{
-						name: '/',
-						path: '/',
-						created: new Date().toISOString(),
-						document_count: getFilteredPagesForFolder('/').length,
-						sub_folders: filteredFolders
-					}}
-					depth={0}
-					{maxDepth}
-					isExpanded={expandedFolders.has('/')}
-					isSelected={selectedPath === '/'}
-					isCurrent={isCurrentPath('/')}
-					{showPages}
-					{showPageCounts}
-					{enableContextMenu}
-					filteredPages={getFilteredPagesForFolder('/')}
-					{selectedPath}
-					{currentPath}
-					isDragging={dragAndDrop.isDragging}
-					draggedItem={dragAndDrop.draggedItem}
-					dropTarget={dragAndDrop.dropTarget}
-					dragOverTarget={dragAndDrop.dragOverTarget}
-					{expandedFolders}
-					onToggleExpanded={toggleExpanded}
-					onFolderSelect={handleFolderSelect}
-					onContextMenu={handleContextMenu}
-					onDragStart={dragAndDrop.handleDragStart}
-					onDragEnd={dragAndDrop.handleDragEnd}
-					onDragOver={dragAndDrop.handleDragOver}
-					onDragEnter={dragAndDrop.handleDragEnter}
-					onDragLeave={dragAndDrop.handleDragLeave}
-					onDrop={dragAndDrop.handleDrop}
-					onDocumentSelect={ondocumentselect}
-					onDocumentContextMenu={handlePageContextMenu}
-					{getFilteredPagesForFolder}
-				/>
+				{@render treeNode(rootFolder(), -1, true)}
 			{:else}
 				{#each filteredFolders as folder (folder.path)}
-					<FolderTreeNode
-						{folder}
-						depth={0}
-						{maxDepth}
-						isExpanded={expandedFolders.has(folder.path)}
-						isSelected={selectedPath === folder.path}
-						isCurrent={isCurrentPath(folder.path)}
-						{showPages}
-						{showPageCounts}
-						{enableContextMenu}
-						filteredPages={getFilteredPagesForFolder(folder.path)}
-						{selectedPath}
-						{currentPath}
-						isDragging={dragAndDrop.isDragging}
-						draggedItem={dragAndDrop.draggedItem}
-						dropTarget={dragAndDrop.dropTarget}
-						dragOverTarget={dragAndDrop.dragOverTarget}
-						{expandedFolders}
-						onToggleExpanded={toggleExpanded}
-						onFolderSelect={handleFolderSelect}
-						onContextMenu={handleContextMenu}
-						onDragStart={dragAndDrop.handleDragStart}
-						onDragEnd={dragAndDrop.handleDragEnd}
-						onDragOver={dragAndDrop.handleDragOver}
-						onDragEnter={dragAndDrop.handleDragEnter}
-						onDragLeave={dragAndDrop.handleDragLeave}
-						onDrop={dragAndDrop.handleDrop}
-						onDocumentSelect={ondocumentselect}
-						onDocumentContextMenu={handlePageContextMenu}
-						{getFilteredPagesForFolder}
-					/>
+					{@render treeNode(folder, 0)}
 				{/each}
 			{/if}
 		</div>

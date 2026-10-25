@@ -1,28 +1,11 @@
-import { EditorView, Decoration, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import type { DecorationSet } from '@codemirror/view';
-import { EditorState, StateField, StateEffect } from '@codemirror/state';
+import { EditorView, Decoration } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
 import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { getCachedTags } from '$lib/utils/markdown-cache';
 import { HASHTAG_REGEX } from './hashtag-constants';
-
-const updateHashtagsEffect = StateEffect.define<DecorationSet>();
-const hashtagsField = StateField.define<DecorationSet>({
-	create() {
-		return Decoration.none;
-	},
-	update(decorations, tr) {
-		decorations = decorations.map(tr.changes);
-		for (const effect of tr.effects) {
-			if (effect.is(updateHashtagsEffect)) {
-				decorations = effect.value;
-			}
-		}
-		return decorations;
-	},
-	provide: (f) => EditorView.decorations.from(f)
-});
+import { asyncDecorations, autocompleteTheme } from './async-decorations';
 
 async function findHashtags(state: EditorState): Promise<Range<Decoration>[]> {
 	const decorations: Range<Decoration>[] = [];
@@ -55,49 +38,6 @@ async function findHashtags(state: EditorState): Promise<Range<Decoration>[]> {
 	return decorations;
 }
 
-// View plugin for hashtags
-const hashtagsPlugin = ViewPlugin.fromClass(
-	class {
-		private updateTimer: number | null = null;
-
-		constructor(private view: EditorView) {
-			this.scheduleUpdate();
-		}
-
-		update(update: ViewUpdate) {
-			if (update.docChanged) {
-				this.scheduleUpdate();
-			}
-		}
-
-		destroy() {
-			if (this.updateTimer !== null) {
-				clearTimeout(this.updateTimer);
-			}
-		}
-
-		private scheduleUpdate() {
-			if (this.updateTimer !== null) {
-				clearTimeout(this.updateTimer);
-			}
-
-			this.updateTimer = window.setTimeout(async () => {
-				try {
-					const decorations = await findHashtags(this.view.state);
-
-					if (this.view.state.doc) {
-						this.view.dispatch({
-							effects: updateHashtagsEffect.of(Decoration.set(decorations))
-						});
-					}
-				} catch (error) {
-					console.warn('Failed to update hashtag decorations:', error);
-				}
-			}, 750);
-		}
-	}
-);
-
 const hashtagHighlight = syntaxHighlighting(
 	HighlightStyle.define([
 		{
@@ -112,8 +52,7 @@ const hashtagHighlight = syntaxHighlighting(
 
 export function hashtagExtension() {
 	return [
-		hashtagsField,
-		hashtagsPlugin,
+		...asyncDecorations(findHashtags, 'hashtag'),
 		// Autocompletion moved to combined-autocomplete.ts
 		hashtagHighlight,
 		EditorView.theme({
@@ -132,51 +71,8 @@ export function hashtagExtension() {
 				backgroundColor: 'var(--muted)',
 				fontStyle: 'italic',
 				border: '1px dashed var(--border)'
-			},
-			// Autocomplete dropdown styling to match existing design
-			'.cm-tooltip': {
-				backgroundColor: 'var(--background)',
-				border: '1px solid var(--border)',
-				borderRadius: 'calc(var(--radius) - 2px)',
-				boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)'
-			},
-			'.cm-tooltip-autocomplete': {
-				backgroundColor: 'var(--background)',
-				border: '1px solid var(--border)'
-			},
-			'.cm-tooltip-autocomplete ul': {
-				maxHeight: '200px',
-				overflowY: 'auto'
-			},
-			'.cm-tooltip-autocomplete ul li': {
-				padding: '8px 12px',
-				cursor: 'pointer',
-				color: 'var(--foreground)',
-				borderBottom: '1px solid var(--border)'
-			},
-			'.cm-tooltip-autocomplete ul li:last-child': {
-				borderBottom: 'none'
-			},
-			'.cm-tooltip-autocomplete ul li[aria-selected]': {
-				backgroundColor: 'var(--accent)',
-				color: 'var(--accent-foreground)'
-			},
-			'.cm-completionLabel': {
-				color: 'var(--foreground)',
-				fontWeight: '500'
-			},
-			'.cm-completionDetail': {
-				color: 'var(--muted-foreground)',
-				fontSize: '0.875rem',
-				fontStyle: 'italic'
-			},
-			'.cm-completionInfo': {
-				color: 'var(--muted-foreground)',
-				padding: '8px',
-				backgroundColor: 'var(--muted)',
-				borderRadius: 'calc(var(--radius) - 4px)',
-				fontSize: '0.875rem'
 			}
-		})
+		}),
+		autocompleteTheme
 	];
 }

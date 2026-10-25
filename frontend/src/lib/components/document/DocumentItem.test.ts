@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, user } from '$lib/test/component-utils.js';
+import { render, user, fireEvent } from '$lib/test/component-utils.js';
 import DocumentItem from './DocumentItem.svelte';
 import type { Document } from '$lib/api/types.js';
 
@@ -32,18 +32,21 @@ describe('DocumentItem', () => {
 		isSelected: false,
 		isCurrent: false,
 		enableContextMenu: true,
-		isDragging: false,
-		draggedItem: null,
-		dropTarget: null,
-		dragOverTarget: null,
+		dnd: {
+			isDragging: false,
+			draggedItem: null,
+			dropTarget: null,
+			dragOverTarget: null,
+			handleDragStart: vi.fn(),
+			handleDragEnd: vi.fn(),
+			handleDragOver: vi.fn(),
+			handleDragEnter: vi.fn(),
+			handleDragLeave: vi.fn(),
+			handleDrop: vi.fn()
+		},
+		folderPath: '/test',
 		onSelect: vi.fn(),
-		onContextMenu: vi.fn(),
-		onDragStart: vi.fn(),
-		onDragEnd: vi.fn(),
-		onDragOver: vi.fn(),
-		onDragEnter: vi.fn(),
-		onDragLeave: vi.fn(),
-		onDrop: vi.fn()
+		onContextMenu: vi.fn()
 	};
 
 	beforeEach(() => {
@@ -126,5 +129,45 @@ describe('DocumentItem', () => {
 		await user.click(contextMenuButton);
 
 		expect(onContextMenu).toHaveBeenCalledTimes(1);
+	});
+
+	it('opens the context menu from the keyboard', async () => {
+		const onContextMenu = vi.fn();
+		const { container } = render(DocumentItem, {
+			props: { ...defaultProps, onContextMenu }
+		});
+		const options = container.querySelector<HTMLElement>('[aria-label="Document options"]')!;
+
+		await fireEvent.keyDown(options, { key: 'Enter' });
+		await fireEvent.keyDown(options, { key: ' ' });
+		await fireEvent.keyDown(options, { key: 'a' });
+
+		expect(onContextMenu).toHaveBeenCalledTimes(2);
+	});
+
+	it('forwards drag events with the document', async () => {
+		const { container } = render(DocumentItem, { props: defaultProps });
+		const item = container.querySelector('[data-testid="document-item"]')!;
+
+		await fireEvent.dragStart(item);
+		await fireEvent.dragEnter(item);
+		await fireEvent.dragOver(item);
+		await fireEvent.dragLeave(item);
+		await fireEvent.drop(item);
+		await fireEvent.dragEnd(item);
+
+		const { dnd } = defaultProps;
+		expect(dnd.handleDragStart).toHaveBeenCalledWith(
+			expect.any(Event),
+			'page',
+			'/test/document.md',
+			mockDocument
+		);
+		// Dropping on a document targets the folder it is in.
+		expect(dnd.handleDragEnter).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDragOver).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDragLeave).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDrop).toHaveBeenCalledWith(expect.any(Event), '/test');
+		expect(dnd.handleDragEnd).toHaveBeenCalled();
 	});
 });

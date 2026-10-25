@@ -68,7 +68,7 @@ func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		secrets, err := services.SecretManager.ListSecrets()
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -83,8 +83,7 @@ func ListSecretsHandler(services *services.Services) gin.HandlerFunc {
 func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req CreateSecretRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
@@ -95,7 +94,7 @@ func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 		err := services.SecretManager.SetSecret(req.Key, req.Value)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -105,21 +104,19 @@ func CreateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("key")
-		if key == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("key"))
+		key, ok := requiredParam(c, "key")
+		if !ok {
 			return
 		}
 
 		var req UpdateSecretRequest
-		if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-			HandleError(c, apiErr)
+		if !bindJSON(c, &req) {
 			return
 		}
 
 		err := services.SecretManager.SetSecret(key, req.Value)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -129,15 +126,14 @@ func UpdateSecretHandler(services *services.Services) gin.HandlerFunc {
 
 func DeleteSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("key")
-		if key == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("key"))
+		key, ok := requiredParam(c, "key")
+		if !ok {
 			return
 		}
 
 		err := services.SecretManager.DeleteSecret(key)
 		if err != nil {
-			HandleError(c, errors.NewInternalError(err.Error()).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 
@@ -154,15 +150,14 @@ func LockSecretsHandler(services *services.Services) gin.HandlerFunc {
 
 func GetSecretHandler(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := c.Param("key")
-		if key == "" {
-			HandleError(c, errors.NewMissingRequiredFieldError("key"))
+		key, ok := requiredParam(c, "key")
+		if !ok {
 			return
 		}
 
 		value, err := services.SecretManager.GetSecret(key)
 		if err != nil {
-			HandleError(c, errors.NewNotFoundError("secret", key).WithCause(err))
+			HandleError(c, err)
 			return
 		}
 

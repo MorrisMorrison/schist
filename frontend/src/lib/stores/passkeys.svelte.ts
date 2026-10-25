@@ -6,18 +6,11 @@ import {
 	isWebAuthnSupported
 } from '$lib/utils/webauthn';
 import { runAsync } from './resource.svelte';
+import { getErrorMessage } from '$lib/utils/error';
 
-export interface PasskeyInfo {
-	id: string;
-	name: string;
-	createdAt: string;
-}
+import type { PasskeyInfo, PasskeyStatus } from '$lib/api/types';
 
-export interface PasskeyStatus {
-	hasPasskeys: boolean;
-	isUnlocked: boolean;
-	requiresPassword: boolean;
-}
+export type { PasskeyInfo, PasskeyStatus };
 
 interface PasskeyStoreState {
 	passkeys: PasskeyInfo[];
@@ -34,6 +27,40 @@ const defaultPasskeyState: PasskeyStoreState = {
 };
 
 const passkeyState: PasskeyStoreState = $state<PasskeyStoreState>(defaultPasskeyState);
+
+const NOT_SUPPORTED_MESSAGE =
+	'WebAuthn is not supported in this browser. Please use a modern browser with passkey support.';
+
+/**
+ * Runs a WebAuthn ceremony with the store's loading/error bookkeeping. A
+ * WebAuthnError is shown with the message for its code (or its own message);
+ * anything else through getErrorMessage. The error is rethrown either way.
+ */
+async function runWebAuthn<T>(
+	fn: () => Promise<T>,
+	messages: Record<string, string>,
+	fallback: string
+): Promise<T> {
+	if (!isWebAuthnSupported()) {
+		passkeyState.error = NOT_SUPPORTED_MESSAGE;
+		throw new WebAuthnError(NOT_SUPPORTED_MESSAGE, 'NOT_SUPPORTED');
+	}
+
+	passkeyState.loading = true;
+	passkeyState.error = null;
+
+	try {
+		return await fn();
+	} catch (error) {
+		passkeyState.error =
+			error instanceof WebAuthnError
+				? (messages[error.code ?? ''] ?? error.message)
+				: getErrorMessage(error, fallback);
+		throw error;
+	} finally {
+		passkeyState.loading = false;
+	}
+}
 
 function createPasskeyStore() {
 	return {
@@ -64,52 +91,24 @@ function createPasskeyStore() {
 		},
 
 		async createPasskey(name: string): Promise<string> {
-			if (!isWebAuthnSupported()) {
-				const errorMsg =
-					'WebAuthn is not supported in this browser. Please use a modern browser with passkey support.';
-				passkeyState.error = errorMsg;
-				throw new WebAuthnError(errorMsg, 'NOT_SUPPORTED');
-			}
+			return runWebAuthn(
+				async () => {
+					const credentialId = await registerPasskey(name);
 
-			passkeyState.loading = true;
-			passkeyState.error = null;
+					await this.loadPasskeys();
+					await this.loadStatus();
 
-			try {
-				const credentialId = await registerPasskey(name);
-
-				await this.loadPasskeys();
-				await this.loadStatus();
-
-				passkeyState.loading = false;
-				return credentialId;
-			} catch (error) {
-				let errorMsg = 'Failed to create passkey';
-
-				if (error instanceof WebAuthnError) {
-					switch (error.code) {
-						case 'USER_CANCELLED':
-							errorMsg = 'Passkey creation was cancelled. Please try again.';
-							break;
-						case 'CREDENTIAL_EXISTS':
-							errorMsg = 'A passkey already exists for this device. Try using a different name.';
-							break;
-						case 'NOT_SUPPORTED':
-							errorMsg = 'WebAuthn is not supported on this device.';
-							break;
-						case 'SECURITY_ERROR':
-							errorMsg = "Security error occurred. Please ensure you're on a secure connection.";
-							break;
-						default:
-							errorMsg = error.message;
-					}
-				} else if (error instanceof Error) {
-					errorMsg = error.message;
-				}
-
-				passkeyState.error = errorMsg;
-				passkeyState.loading = false;
-				throw error;
-			}
+					return credentialId;
+				},
+				{
+					USER_CANCELLED: 'Passkey creation was cancelled. Please try again.',
+					CREDENTIAL_EXISTS:
+						'A passkey already exists for this device. Try using a different name.',
+					NOT_SUPPORTED: 'WebAuthn is not supported on this device.',
+					SECURITY_ERROR: "Security error occurred. Please ensure you're on a secure connection."
+				},
+				'Failed to create passkey'
+			);
 		},
 
 		async deletePasskey(credentialId: string): Promise<void> {
@@ -126,53 +125,24 @@ function createPasskeyStore() {
 		},
 
 		async authenticateWithPasskey(): Promise<string> {
-			if (!isWebAuthnSupported()) {
-				const errorMsg =
-					'WebAuthn is not supported in this browser. Please use a modern browser with passkey support.';
-				passkeyState.error = errorMsg;
-				throw new WebAuthnError(errorMsg, 'NOT_SUPPORTED');
-			}
+			return runWebAuthn(
+				async () => {
+					const { credentialId, authTicket } = await webAuthnAuthenticate();
 
-			passkeyState.loading = true;
-			passkeyState.error = null;
+					await apiClient.unlockWithPasskey({ authTicket });
 
-			try {
-				const { credentialId } = await webAuthnAuthenticate();
+					await this.loadStatus();
 
-				await apiClient.unlockWithPasskey({ credentialId });
-
-				await this.loadStatus();
-
-				passkeyState.loading = false;
-				return credentialId;
-			} catch (error) {
-				let errorMsg = 'Failed to authenticate with passkey';
-
-				if (error instanceof WebAuthnError) {
-					switch (error.code) {
-						case 'USER_CANCELLED':
-							errorMsg = 'Authentication was cancelled. Please try again.';
-							break;
-						case 'NO_CREDENTIALS':
-							errorMsg = 'No matching passkeys found for this device.';
-							break;
-						case 'NOT_SUPPORTED':
-							errorMsg = 'WebAuthn is not supported on this device.';
-							break;
-						case 'SECURITY_ERROR':
-							errorMsg = 'Security error occurred during authentication.';
-							break;
-						default:
-							errorMsg = error.message;
-					}
-				} else if (error instanceof Error) {
-					errorMsg = error.message;
-				}
-
-				passkeyState.error = errorMsg;
-				passkeyState.loading = false;
-				throw error;
-			}
+					return credentialId;
+				},
+				{
+					USER_CANCELLED: 'Authentication was cancelled. Please try again.',
+					NO_CREDENTIALS: 'No matching passkeys found for this device.',
+					NOT_SUPPORTED: 'WebAuthn is not supported on this device.',
+					SECURITY_ERROR: 'Security error occurred during authentication.'
+				},
+				'Failed to authenticate with passkey'
+			);
 		},
 
 		// Clear error state

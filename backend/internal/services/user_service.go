@@ -5,100 +5,106 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
+	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
 type UserService struct {
 	dataDir string
-	mu      sync.Mutex
+	users   *jsonStore[models.UserStorage]
+	// inviteMu guards the invite files under invites/.
+	inviteMu sync.Mutex
 }
 
 func NewUserService(dataDir string) *UserService {
 	return &UserService{
 		dataDir: dataDir,
+		users: &jsonStore[models.UserStorage]{
+			path:  filepath.Join(dataDir, userStoreFile),
+			perm:  0600,
+			name:  "users file",
+			empty: func() models.UserStorage { return models.UserStorage{Users: []models.User{}} },
+		},
 	}
 }
 
-// getUsersFilePath returns the path to the users.json file
-func (us *UserService) getUsersFilePath() string {
-	return filepath.Join(us.dataDir, "users.json")
+// UserService errors: lookups, duplicates, setup state and bad input return
+// typed errors from internal/errors; a users store or invite file that cannot
+// be read or written stays a plain error, which the handlers answer with a 500
+// that only logs the cause.
+
+func userNotFound(username string) error {
+	return apierrors.NewNotFoundError("user", username)
 }
 
-// loadUsers loads all users from the JSON file. Callers must hold us.mu.
-func (us *UserService) loadUsers() (*models.UserStorage, error) {
-	filePath := us.getUsersFilePath()
-
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return &models.UserStorage{Users: []models.User{}}, nil
-	}
-
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read users file: %w", err)
-	}
-
-	var storage models.UserStorage
-	if err := json.Unmarshal(data, &storage); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal users data: %w", err)
-	}
-
-	return &storage, nil
+// errCredentialUserNotFound is returned when no user owns a passkey. The
+// credential ID is deliberately not echoed back.
+func errCredentialUserNotFound() error {
+	return apierrors.NewAPIError(apierrors.ErrCodeNotFound, "User not found", http.StatusNotFound).
+		WithDetails("resource", "user")
 }
 
-// saveUsers saves all users to the JSON file atomically. Callers must hold us.mu.
-func (us *UserService) saveUsers(storage *models.UserStorage) error {
-	filePath := us.getUsersFilePath()
+func errInvalidInvite() error {
+	return apierrors.NewValidationError("Invalid invite token")
+}
 
-	// Ensure data directory exists
-	if err := os.MkdirAll(us.dataDir, 0755); err != nil {
-		return fmt.Errorf("failed to create data directory: %w", err)
+// validateNewUser rejects a user without a name or passkey.
+func validateNewUser(username, credentialId string) error {
+	if username == "" || credentialId == "" {
+		return apierrors.NewValidationError("Username and credential ID are required")
 	}
-
-	data, err := json.MarshalIndent(storage, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal users data: %w", err)
-	}
-
-	// Write to a temp file in the same directory, then rename over the target.
-	// Rename is atomic on the same filesystem, so a crash mid-write can never
-	// leave a partially-written users file behind.
-	tmp, err := os.CreateTemp(us.dataDir, ".users-*.json.tmp")
-	if err != nil {
-		return fmt.Errorf("failed to create temp users file: %w", err)
-	}
-	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // no-op if the rename succeeded
-
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return fmt.Errorf("failed to write users file: %w", err)
-	}
-	if err := tmp.Chmod(0600); err != nil {
-		tmp.Close()
-		return fmt.Errorf("failed to set users file permissions: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("failed to close temp users file: %w", err)
-	}
-
-	if err := os.Rename(tmpName, filePath); err != nil {
-		return fmt.Errorf("failed to write users file: %w", err)
-	}
-
 	return nil
+}
+
+// userIndex returns the index of username in storage, or -1.
+func userIndex(storage *models.UserStorage, username string) int {
+	return slices.IndexFunc(storage.Users, func(u models.User) bool { return u.Username == username })
+}
+
+// updateUser applies fn to the stored user and saves the store.
+func (us *UserService) updateUser(username string, fn func(*models.User)) error {
+	return us.users.update(func(storage *models.UserStorage) error {
+		i := userIndex(storage, username)
+		if i < 0 {
+			return userNotFound(username)
+		}
+		fn(&storage.Users[i])
+		return nil
+	})
+}
+
+// addUser appends a new user, after check has accepted the current store.
+func (us *UserService) addUser(username string, isAdmin bool, credentialId string, check func(*models.UserStorage) error) error {
+	if err := validateNewUser(username, credentialId); err != nil {
+		return err
+	}
+	return us.users.update(func(storage *models.UserStorage) error {
+		if err := check(storage); err != nil {
+			return err
+		}
+		now := time.Now()
+		storage.Users = append(storage.Users, models.User{
+			Username:   username,
+			PasskeyIDs: []string{credentialId},
+			IsAdmin:    isAdmin,
+			CreatedAt:  now,
+			LastLogin:  now,
+		})
+		return nil
+	})
 }
 
 // IsFirstSetup checks if this is the first time the system is being set up
 func (us *UserService) IsFirstSetup() (bool, error) {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
+	storage, err := us.users.read()
 	if err != nil {
 		return false, err
 	}
@@ -107,165 +113,78 @@ func (us *UserService) IsFirstSetup() (bool, error) {
 
 // CreateFirstUser creates the first admin user during setup
 func (us *UserService) CreateFirstUser(username, credentialId string) error {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
-	if err != nil {
-		return err
-	}
-
-	// Check if users already exist
-	if len(storage.Users) > 0 {
-		return fmt.Errorf("users already exist, cannot create first user")
-	}
-
-	user := models.User{
-		Username:   username,
-		PasskeyIDs: []string{credentialId},
-		IsAdmin:    true,
-		CreatedAt:  time.Now(),
-		LastLogin:  time.Now(),
-	}
-
-	storage.Users = append(storage.Users, user)
-	return us.saveUsers(storage)
+	return us.addUser(username, true, credentialId, func(storage *models.UserStorage) error {
+		if len(storage.Users) > 0 {
+			return apierrors.NewConflictError("Setup is already complete: users already exist")
+		}
+		return nil
+	})
 }
 
 // GetUserByCredentialID finds a user by their passkey credential ID
 func (us *UserService) GetUserByCredentialID(credentialId string) (*models.User, error) {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
+	storage, err := us.users.read()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, user := range storage.Users {
-		for _, id := range user.PasskeyIDs {
-			if id == credentialId {
-				return &user, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("user not found for credential ID")
-}
-
-// GetUserByUsername finds a user by their username
-func (us *UserService) GetUserByUsername(username string) (*models.User, error) {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, user := range storage.Users {
-		if user.Username == username {
+		if slices.Contains(user.PasskeyIDs, credentialId) {
 			return &user, nil
 		}
 	}
 
-	return nil, fmt.Errorf("user not found")
+	return nil, errCredentialUserNotFound()
+}
+
+// GetUserByUsername finds a user by their username
+func (us *UserService) GetUserByUsername(username string) (*models.User, error) {
+	storage, err := us.users.read()
+	if err != nil {
+		return nil, err
+	}
+
+	i := userIndex(&storage, username)
+	if i < 0 {
+		return nil, userNotFound(username)
+	}
+	return &storage.Users[i], nil
 }
 
 // UpdateLastLogin updates the user's last login time
 func (us *UserService) UpdateLastLogin(username string) error {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
-	if err != nil {
-		return err
-	}
-
-	for i, user := range storage.Users {
-		if user.Username == username {
-			storage.Users[i].LastLogin = time.Now()
-			return us.saveUsers(storage)
-		}
-	}
-
-	return fmt.Errorf("user not found")
+	return us.updateUser(username, func(u *models.User) { u.LastLogin = time.Now() })
 }
 
 // AddPasskeyToUser adds a new passkey credential to an existing user
 func (us *UserService) AddPasskeyToUser(username, credentialId string) error {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
-	if err != nil {
-		return err
-	}
-
-	for i, user := range storage.Users {
-		if user.Username == username {
-			storage.Users[i].PasskeyIDs = append(storage.Users[i].PasskeyIDs, credentialId)
-			return us.saveUsers(storage)
-		}
-	}
-
-	return fmt.Errorf("user not found")
+	return us.updateUser(username, func(u *models.User) { u.PasskeyIDs = append(u.PasskeyIDs, credentialId) })
 }
 
 // CreateUser creates a new user (admin only)
 func (us *UserService) CreateUser(username string, isAdmin bool, credentialId string) error {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
-	if err != nil {
-		return err
-	}
-
-	// Check if user already exists
-	for _, user := range storage.Users {
-		if user.Username == username {
-			return fmt.Errorf("user already exists")
+	return us.addUser(username, isAdmin, credentialId, func(storage *models.UserStorage) error {
+		if userIndex(storage, username) >= 0 {
+			return apierrors.NewAlreadyExistsError("user", username)
 		}
-	}
-
-	user := models.User{
-		Username:   username,
-		PasskeyIDs: []string{credentialId},
-		IsAdmin:    isAdmin,
-		CreatedAt:  time.Now(),
-		LastLogin:  time.Now(),
-	}
-
-	storage.Users = append(storage.Users, user)
-	return us.saveUsers(storage)
+		return nil
+	})
 }
 
 // DeleteUser removes a user (admin only)
 func (us *UserService) DeleteUser(username string) error {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
-	if err != nil {
-		return err
-	}
-
-	for i, user := range storage.Users {
-		if user.Username == username {
-			storage.Users = append(storage.Users[:i], storage.Users[i+1:]...)
-			return us.saveUsers(storage)
+	return us.users.update(func(storage *models.UserStorage) error {
+		i := userIndex(storage, username)
+		if i < 0 {
+			return userNotFound(username)
 		}
-	}
-
-	return fmt.Errorf("user not found")
+		storage.Users = slices.Delete(storage.Users, i, i+1)
+		return nil
+	})
 }
 
 func (us *UserService) ListUsers() ([]models.User, error) {
-	us.mu.Lock()
-	defer us.mu.Unlock()
-
-	storage, err := us.loadUsers()
+	storage, err := us.users.read()
 	if err != nil {
 		return nil, err
 	}
@@ -293,8 +212,8 @@ func (us *UserService) GenerateInviteToken(createdBy string) (string, error) {
 		CreatedAt: time.Now(),
 	}
 
-	us.mu.Lock()
-	defer us.mu.Unlock()
+	us.inviteMu.Lock()
+	defer us.inviteMu.Unlock()
 
 	if err := us.saveInvite(invite); err != nil {
 		return "", err
@@ -304,31 +223,55 @@ func (us *UserService) GenerateInviteToken(createdBy string) (string, error) {
 }
 
 func (us *UserService) ValidateInviteToken(token string) (*Invite, error) {
-	us.mu.Lock()
-	defer us.mu.Unlock()
+	us.inviteMu.Lock()
+	defer us.inviteMu.Unlock()
 
 	return us.validateInviteToken(token)
 }
 
 // validateInviteToken loads and validates an invite, deleting it if expired.
-// Callers must hold us.mu.
+// Callers must hold us.inviteMu.
 func (us *UserService) validateInviteToken(token string) (*Invite, error) {
+	// The token names a file under invites/; only accept the exact form
+	// GenerateInviteToken issues (32 random bytes, hex) so a crafted token such
+	// as "../users" can never read or delete a file outside that directory.
+	if !isWellFormedInviteToken(token) {
+		return nil, errInvalidInvite()
+	}
+
 	invite, err := us.loadInvite(token)
+	if os.IsNotExist(err) {
+		return nil, errInvalidInvite()
+	}
 	if err != nil {
-		return nil, fmt.Errorf("invalid invite token")
+		// An invite file that exists but cannot be read is a store failure,
+		// not a bad token. It is rejected either way.
+		return nil, err
 	}
 
 	if time.Now().After(invite.ExpiresAt) {
 		_ = us.deleteInvite(token)
-		return nil, fmt.Errorf("invite token expired")
+		return nil, apierrors.NewValidationError("Invite token expired")
 	}
 
 	return invite, nil
 }
 
+func isWellFormedInviteToken(token string) bool {
+	if len(token) != 64 {
+		return false
+	}
+	for _, c := range token {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
 func (us *UserService) ConsumeInviteToken(token string) error {
-	us.mu.Lock()
-	defer us.mu.Unlock()
+	us.inviteMu.Lock()
+	defer us.inviteMu.Unlock()
 
 	// Validate and delete under the same lock so a token can never be
 	// consumed twice by concurrent requests.
@@ -355,7 +298,10 @@ func (us *UserService) saveInvite(invite Invite) error {
 		return fmt.Errorf("failed to marshal invite: %w", err)
 	}
 
-	return os.WriteFile(filePath, data, 0600)
+	if err := utils.WriteFileAtomic(filePath, data, 0600); err != nil {
+		return fmt.Errorf("failed to write invite: %w", err)
+	}
+	return nil
 }
 
 func (us *UserService) loadInvite(token string) (*Invite, error) {
@@ -367,14 +313,17 @@ func (us *UserService) loadInvite(token string) (*Invite, error) {
 
 	var invite Invite
 	if err := json.Unmarshal(data, &invite); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse invite: %w", err)
 	}
 
 	return &invite, nil
 }
 
-// deleteInvite removes an invite file. Callers must hold us.mu.
+// deleteInvite removes an invite file. Callers must hold us.inviteMu.
 func (us *UserService) deleteInvite(token string) error {
 	filePath := filepath.Join(us.getInvitesDir(), token+".json")
-	return os.Remove(filePath)
+	if err := os.Remove(filePath); err != nil {
+		return fmt.Errorf("failed to delete invite: %w", err)
+	}
+	return nil
 }

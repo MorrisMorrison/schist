@@ -5,6 +5,7 @@ import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 import { goto } from '$app/navigation';
+import { replaceWikiLinks } from './wiki-link-syntax';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -189,12 +190,24 @@ async function createWikiLinkHtml(link: { target: string; displayText: string })
 		title = `Document "${resolvedLink.target}" does not exist`;
 	}
 
-	return `<span class="${linkClass}" data-wiki-target="${resolvedLink.path}" title="${title}">${link.displayText}</span>`;
+	return `<span class="${linkClass}" data-wiki-target="${escapeHtml(resolvedLink.path)}" title="${escapeHtml(title)}">${escapeHtml(link.displayText)}</span>`;
 }
 
 function createBrokenLinkHtml(link: { target: string; displayText: string }): string {
 	const slug = generateSlug(link.target);
-	return `<span class="wiki-link broken-link text-red-500 cursor-default" data-wiki-target="/${slug}" title="Failed to resolve link">${link.displayText}</span>`;
+	return `<span class="wiki-link broken-link text-red-500 cursor-default" data-wiki-target="/${escapeHtml(slug)}" title="Failed to resolve link">${escapeHtml(link.displayText)}</span>`;
+}
+
+// Wiki link text and targets come straight from the document source, so they
+// must be escaped before being spliced into the generated HTML (the rendered
+// output is sanitised as well, but escaping keeps attribute values intact).
+function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
 }
 
 function replaceWikiLinkInBlocks(
@@ -202,17 +215,26 @@ function replaceWikiLinkInBlocks(
 	linkHtml: string,
 	blocks: MarkdownBlock[]
 ): void {
-	for (let i = 0; i < blocks.length; i++) {
-		const block = blocks[i];
-		if (block.type === 'paragraph') {
-			const paragraphBlock = block as ParagraphBlock;
-			if (paragraphBlock.text.includes(placeholder)) {
-				const newText = paragraphBlock.text.split(placeholder).join(linkHtml);
-				blocks[i] = {
-					...paragraphBlock,
-					text: newText
-				};
-			}
+	const replace = (text: string) =>
+		text.includes(placeholder) ? text.split(placeholder).join(linkHtml) : text;
+
+	for (const block of blocks) {
+		switch (block.type) {
+			case 'paragraph':
+			case 'heading':
+			case 'blockquote':
+			case 'list_item':
+				block.text = replace(block.text);
+				break;
+			case 'list':
+				for (const item of block.items) {
+					item.text = replace(item.text);
+				}
+				break;
+			case 'table':
+				block.header = block.header.map(replace);
+				block.rows = block.rows.map((row) => row.map(replace));
+				break;
 		}
 	}
 }
@@ -357,8 +379,10 @@ async function convertTokenToBlock(token: Tokens.Generic): Promise<MarkdownBlock
 			return {
 				type: 'table',
 				id,
-				header: tableToken.header.map((cell) => cell.text),
-				rows: tableToken.rows.map((row) => row.map((cell) => cell.text)),
+				header: await Promise.all(tableToken.header.map((cell) => processInlineCell(cell.text))),
+				rows: await Promise.all(
+					tableToken.rows.map((row) => Promise.all(row.map((cell) => processInlineCell(cell.text))))
+				),
 				align: tableToken.align,
 				raw: tableToken.raw
 			} as TableBlock;
@@ -419,7 +443,7 @@ function preprocessWikiLinks(content: string): string {
 	const wikiLinks: Array<{ placeholder: string; target: string; displayText: string }> = [];
 	let linkIndex = 0;
 
-	const processed = content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, display) => {
+	const processed = replaceWikiLinks(content, (target, display) => {
 		const placeholder = `WIKILINK${linkIndex}PLACEHOLDER`;
 		wikiLinks.push({
 			placeholder,
@@ -540,6 +564,20 @@ async function processInlineMarkdown(text: string): Promise<string> {
 	}
 
 	return promise;
+}
+
+/**
+ * Renders the inline markdown of a single table cell. Cells only hold inline
+ * content, so this uses marked's inline parser (no paragraph/list/heading
+ * interpretation). The result is sanitised when rendered by TableBlock.
+ */
+async function processInlineCell(text: string): Promise<string> {
+	try {
+		return (await marked.parseInline(text, { async: true })).trim();
+	} catch (error) {
+		console.warn('Failed to process table cell markdown:', error);
+		return text;
+	}
 }
 
 export function initializeMarkdownInteractions(container: HTMLElement): void {

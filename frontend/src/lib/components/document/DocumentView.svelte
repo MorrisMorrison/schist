@@ -1,7 +1,23 @@
 <script lang="ts">
-	import { Edit, Trash2, Calendar, Tag, Link2, GitBranch, History, Share } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { formatLongDate } from '$lib/utils/date';
+	import {
+		BookOpen,
+		Calendar,
+		Download,
+		Edit,
+		Ellipsis,
+		GitBranch,
+		History,
+		Link2,
+		Pencil,
+		Share,
+		Tag,
+		Trash2
+	} from '@lucide/svelte';
+	import { tick } from 'svelte';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
 	import VersionHistoryModal from '../VersionHistoryModal.svelte';
@@ -17,20 +33,53 @@
 	import {
 		secretStore,
 		replaceSecretPlaceholders,
-		parseSecretPlaceholders
+		markLockedSecretPlaceholders
 	} from '$lib/stores/secrets.svelte';
 	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
+	import { stripLeadingTitleHeading } from '$lib/utils/document-title';
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
+	import ModeToggle from '../editor/ModeToggle.svelte';
 	import { documentActions, linksStore } from '$lib/stores/documents.svelte';
+	import type { DocumentMode } from '$lib/types/editor';
+	import type DocumentInlineEditorComponent from '../editor/DocumentInlineEditor.svelte';
 
 	interface Props {
 		document: Document;
-		onEdit?: (slug: string) => void;
+		/** Reading the rendered page or editing it in place. */
+		mode?: DocumentMode;
+		/** After the mode changed (the page mirrors it in the URL). */
+		onModeChange?: (mode: DocumentMode) => void;
+		/** After every save from edit mode, with the stored document. */
+		onSaved?: (document: Document) => void;
 		onDelete?: (slug: string) => void | Promise<void>;
 	}
 
-	let { document, onEdit = () => {}, onDelete = () => {} }: Props = $props();
+	let {
+		document,
+		mode = $bindable('read'),
+		onModeChange = () => {},
+		onSaved = () => {},
+		onDelete = () => {}
+	}: Props = $props();
+
+	// The editor is loaded the first time edit mode opens and then stays mounted
+	// while reading, so cursor, selection and undo history survive the toggle.
+	let editorRequested = $state(false);
+	let inlineEditor = $state<DocumentInlineEditorComponent>();
+	let editorContainer = $state<HTMLDivElement>();
+	let editorImport: Promise<typeof import('../editor/DocumentInlineEditor.svelte')> | null = null;
+	// One promise for the component's lifetime: a new one would remount the editor.
+	const loadEditor = () => (editorImport ??= import('../editor/DocumentInlineEditor.svelte'));
+	const editorModule = $derived(editorRequested || mode === 'edit' ? loadEditor() : null);
+	// Focus the editor when it first appears because the user asked for it, not
+	// when the page opened straight into edit mode from a link.
+	let focusOnLoad = $state(false);
+	let switching = false;
+
+	$effect(() => {
+		if (mode === 'edit') editorRequested = true;
+	});
 
 	let showDeleteModal = $state(false);
 	let isDeleting = $state(false);
@@ -38,22 +87,84 @@
 
 	const documentPath = $derived(document.metaData?.path || `/${document.metaData?.slug}`);
 	const documentTitle = $derived(document.metaData?.title || 'Untitled');
-	const documentSlug = $derived(document.metaData?.slug || '');
 	const documentCreated = $derived(document.metaData?.created);
 	const documentUpdated = $derived(document.metaData?.updated);
 	const documentTags = $derived(document.metaData?.tags || []);
 
 	let contentContainer = $state<HTMLDivElement>();
+	let viewRoot = $state<HTMLDivElement>();
 
-	function formatDate(dateString?: string): string {
-		if (!dateString) return '';
-		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
+	function scroller(): HTMLElement | null {
+		return (
+			(viewRoot?.closest('.main-content') as HTMLElement | null) ??
+			(window.document.scrollingElement as HTMLElement | null)
+		);
 	}
+
+	/** How far (0..1) the window has scrolled into `el`, or null above its top. */
+	function scrolledInto(el: HTMLElement | undefined): number | null {
+		const s = scroller();
+		if (!el || !s) return null;
+		const rect = el.getBoundingClientRect();
+		const offset = s.getBoundingClientRect().top - rect.top;
+		if (offset <= 0 || rect.height <= 0) return null;
+		return Math.min(offset / rect.height, 1);
+	}
+
+	function scrollInto(el: HTMLElement | undefined, fraction: number | null) {
+		const s = scroller();
+		if (!el || !s || fraction === null) return;
+		const rect = el.getBoundingClientRect();
+		s.scrollTop += rect.top - s.getBoundingClientRect().top + fraction * rect.height;
+	}
+
+	/**
+	 * Switches between reading and editing. Leaving edit mode saves first and
+	 * stays put if that fails, so the reading view never hides unsaved text.
+	 * The scroll position carries over proportionally (same column, same type).
+	 */
+	export async function setMode(next: DocumentMode) {
+		if (next === mode || switching) return;
+		switching = true;
+		try {
+			if (next === 'read' && inlineEditor && !(await inlineEditor.save('manual'))) return;
+			const fraction = scrolledInto(mode === 'edit' ? editorContainer : contentContainer);
+			if (next === 'edit' && !inlineEditor) focusOnLoad = true;
+			mode = next;
+			onModeChange(next);
+			await tick();
+			if (next === 'edit') inlineEditor?.focus();
+			// After the browser has laid out the newly shown view.
+			requestAnimationFrame(() =>
+				scrollInto(next === 'edit' ? editorContainer : contentContainer, fraction)
+			);
+		} finally {
+			switching = false;
+		}
+	}
+
+	function anyModalOpen() {
+		return showDeleteModal || showShareModal || showVersionHistory;
+	}
+
+	function handleModeShortcut(event: KeyboardEvent) {
+		const mod = event.ctrlKey || event.metaKey;
+		if (!mod || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'e') return;
+		if (anyModalOpen()) return;
+		event.preventDefault();
+		setMode(mode === 'edit' ? 'read' : 'edit');
+	}
+
+	// A document can link to the same page several times; list each target once
+	// (the list below is keyed by path, and duplicate keys throw).
+	const validOutgoingLinks = $derived.by(() => {
+		const seen = new Set<string>();
+		return (linksStore.outgoingLinks ?? []).filter((link) => {
+			if (!link.is_valid || seen.has(link.path)) return false;
+			seen.add(link.path);
+			return true;
+		});
+	});
 
 	let processedContent = $state('');
 
@@ -67,43 +178,44 @@
 	let versions = $state<DocumentVersion[]>([]);
 
 	function addSecretPlaceholderIndicators(text: string): string {
-		const placeholders = parseSecretPlaceholders(text);
-
-		let processedText = text;
-		for (const { placeholder, key } of placeholders) {
-			const indicator = `<span class="secret-placeholder bg-muted text-muted-foreground px-2 py-1 rounded-md font-mono text-sm border border-border" title="Secret '${key}' is locked. Unlock secrets to view the value.">${placeholder} 🔒</span>`;
-			processedText = processedText.replace(placeholder, indicator);
-		}
-
-		processedText = processHashtags(processedText);
-		return processedText;
+		return processHashtags(markLockedSecretPlaceholders(text));
 	}
 
 	$effect(() => {
-		async function processContent() {
-			const content = document.content;
+		// The header already shows the title; don't render it twice.
+		const content = stripLeadingTitleHeading(document.content ?? '', documentTitle);
+		const unlocked = secretStore.secretsUnlocked;
+		// Secret lookup is async: drop the result if the document or lock state
+		// changed meanwhile, so an older document never overwrites a newer one.
+		let stale = false;
 
+		async function processContent() {
 			if (!content) {
 				processedContent = '';
 				return;
 			}
 
+			let result: string;
 			try {
-				if (secretStore.secretsUnlocked) {
-					let processedText = await replaceSecretPlaceholders(content, async (key: string) => {
-						return await secretStore.getSecret(key);
-					});
-					processedContent = processHashtags(processedText);
+				if (unlocked) {
+					const processedText = await replaceSecretPlaceholders(content, (key: string) =>
+						secretStore.getSecret(key)
+					);
+					result = processHashtags(processedText);
 				} else {
-					processedContent = addSecretPlaceholderIndicators(content);
+					result = addSecretPlaceholderIndicators(content);
 				}
 			} catch (error) {
 				console.error('Failed to process document content:', error);
-				processedContent = content;
+				result = content;
 			}
+			if (!stale) processedContent = result;
 		}
 
 		processContent();
+		return () => {
+			stale = true;
+		};
 	});
 
 	$effect(() => {
@@ -158,6 +270,8 @@
 		isDeleting = true;
 
 		try {
+			// The document is going away; don't let the unsaved-changes guard stop that.
+			inlineEditor?.discardChanges();
 			const result = onDelete(documentPath);
 			if (result && typeof result.then === 'function') {
 				await result;
@@ -180,14 +294,15 @@
 
 		showVersionHistory = true;
 
-		if (versions.length === 0) {
-			try {
-				const versionsResponse = await apiClient.getDocumentVersions(documentPath);
-				versions = versionsResponse.versions || [];
-			} catch (error) {
-				console.error('Failed to load versions:', error);
-				versions = [];
-			}
+		// Always reload: the component is reused across documents and saves, so a
+		// cached list could belong to another document or be out of date.
+		const path = documentPath;
+		try {
+			const versionsResponse = await apiClient.getDocumentVersions(path);
+			if (path === documentPath) versions = versionsResponse.versions || [];
+		} catch (error) {
+			console.error('Failed to load versions:', error);
+			if (path === documentPath) versions = [];
 		}
 	}
 
@@ -213,29 +328,42 @@
 	<meta name="description" content={document.content?.slice(0, 160) || ''} />
 </svelte:head>
 
-<div class="mx-auto max-w-7xl space-y-8 p-6" data-testid="document-view">
+<svelte:window onkeydown={handleModeShortcut} />
+
+<div
+	bind:this={viewRoot}
+	class="mx-auto max-w-[55rem] space-y-8 p-6"
+	data-testid="document-view"
+	data-mode={mode}
+>
 	<Breadcrumbs path={documentPath} currentDocumentTitle={documentTitle} />
 
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
 	>
 		<div class="flex-1">
-			<h1 class="text-primary mb-4 text-4xl leading-tight font-bold" data-testid="document-title">
-				{documentTitle}
-			</h1>
+			<!-- While editing, the first "# heading" line in the editor is the title. -->
+			{#if mode === 'read'}
+				<h1
+					class="text-foreground mb-4 text-4xl leading-tight font-bold tracking-tight"
+					data-testid="document-title"
+				>
+					{documentTitle}
+				</h1>
+			{/if}
 
 			<div class="flex flex-wrap items-center gap-4">
 				{#if documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Created {formatDate(documentCreated)}</span>
+						<span>Created {formatLongDate(documentCreated)}</span>
 					</div>
 				{/if}
 
 				{#if documentUpdated && documentUpdated !== documentCreated}
 					<div class="text-muted-foreground flex items-center gap-2 text-sm">
 						<Calendar class="h-4 w-4" />
-						<span>Updated {formatDate(documentUpdated)}</span>
+						<span>Updated {formatLongDate(documentUpdated)}</span>
 					</div>
 				{/if}
 
@@ -261,7 +389,7 @@
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each documentTags as tag (tag)}
-								<Badge variant="default" class="text-xs text-white " data-testid="document-tag"
+								<Badge variant="secondary" class="text-xs font-medium" data-testid="document-tag"
 									>{tag}</Badge
 								>
 							{/each}
@@ -272,16 +400,26 @@
 		</div>
 
 		<div class="flex gap-2">
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => onEdit(documentSlug)}
-				title="Edit document"
-				data-testid="edit-document-button"
-			>
-				<Edit class="h-4 w-4" />
-				Edit
-			</Button>
+			<ModeToggle
+				{mode}
+				onSelect={setMode}
+				options={[
+					{
+						mode: 'read',
+						label: 'Read',
+						title: 'Read (Ctrl+E)',
+						icon: BookOpen,
+						testId: 'read-mode-button'
+					},
+					{
+						mode: 'edit',
+						label: 'Edit',
+						title: 'Edit (Ctrl+E)',
+						icon: Pencil,
+						testId: 'edit-document-button'
+					}
+				]}
+			/>
 
 			<Button
 				variant="outline"
@@ -294,29 +432,70 @@
 				Share
 			</Button>
 
-			<Button
-				variant="destructive"
-				size="sm"
-				onclick={handleDeleteClick}
-				disabled={isDeleting}
-				title="Delete document"
-				data-testid="delete-document-button"
-			>
-				<Trash2 class="h-4 w-4" />
-				Delete
-			</Button>
+			<!-- Less frequent actions, and Delete away from the everyday buttons. -->
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger
+					class={buttonVariants({ variant: 'outline', size: 'icon-sm' })}
+					aria-label="More actions"
+					title="More actions"
+					data-testid="document-actions-menu"
+				>
+					<Ellipsis class="h-4 w-4" />
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end" class="w-48">
+					<DropdownMenu.Item
+						onSelect={handleVersionHistoryClick}
+						data-testid="version-history-menu-item"
+					>
+						<History />
+						Version history
+					</DropdownMenu.Item>
+					<DropdownMenu.Item
+						onSelect={() => apiClient.exportDocument(documentPath)}
+						data-testid="download-document-menu-item"
+					>
+						<Download />
+						Download
+					</DropdownMenu.Item>
+					<DropdownMenu.Separator />
+					<DropdownMenu.Item
+						variant="destructive"
+						onSelect={handleDeleteClick}
+						disabled={isDeleting}
+						data-testid="delete-document-button"
+					>
+						<Trash2 />
+						Delete
+					</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
 		</div>
 	</header>
 
-	<main class="bg-content ring-border-primary rounded-lg p-8 shadow-sm ring-1">
-		{#if document.content}
-			<div bind:this={contentContainer} class="max-w-none" data-testid="document-content">
+	<main>
+		{#if editorModule}
+			<div bind:this={editorContainer} class:hidden={mode !== 'edit'}>
+				{#await editorModule then { default: DocumentInlineEditor }}
+					<DocumentInlineEditor
+						bind:this={inlineEditor}
+						{document}
+						{onSaved}
+						autofocus={focusOnLoad}
+					/>
+				{/await}
+			</div>
+		{/if}
+
+		{#if mode === 'edit'}
+			<!-- Editing: the editor above takes the rendered content's place. -->
+		{:else if document.content}
+			<div bind:this={contentContainer} class="reading max-w-[70ch]" data-testid="document-content">
 				<MarkdownRenderer content={processedContent} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
 				<p class="text-muted-foreground mb-6 text-lg">This document has no content yet.</p>
-				<Button onclick={() => onEdit(documentSlug)}>
+				<Button onclick={() => setMode('edit')}>
 					<Edit class="h-4 w-4" />
 					Add Content
 				</Button>
@@ -324,8 +503,8 @@
 		{/if}
 	</main>
 
-	{#if (linksStore.backlinks?.length || 0) > 0 || linksStore.outgoingLinks?.some((l) => l.is_valid) || false}
-		<section class="bg-content ring-border-primary rounded-lg p-6 shadow-sm ring-1">
+	{#if mode === 'read' && ((linksStore.backlinks?.length || 0) > 0 || validOutgoingLinks.length > 0)}
+		<section class="border-border rounded-lg border p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<Link2 class="text-muted-foreground h-5 w-5" />
@@ -333,8 +512,7 @@
 					<Badge variant="secondary" class="text-xs">
 						{linksStore.backlinksLoading || linksStore.outgoingLinksLoading
 							? '...'
-							: (linksStore.backlinks?.length || 0) +
-								(linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0)}
+							: (linksStore.backlinks?.length || 0) + validOutgoingLinks.length}
 					</Badge>
 				</div>
 				<DocumentGraphToggle
@@ -375,7 +553,7 @@
 												{backlinkDocument.metaData.title}
 											</h4>
 											<span class="text-muted-foreground text-xs">
-												{formatDate(backlinkDocument.metaData.updated)}
+												{formatLongDate(backlinkDocument.metaData.updated)}
 											</span>
 										</div>
 
@@ -396,13 +574,13 @@
 						</div>
 					{/if}
 
-					{#if (linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0) > 0}
+					{#if validOutgoingLinks.length > 0}
 						<div>
 							<h3 class="text-muted-foreground mb-3 text-sm font-medium">
-								Outgoing Links ({linksStore.outgoingLinks.filter((l) => l.is_valid).length})
+								Outgoing Links ({validOutgoingLinks.length})
 							</h3>
 							<div class="space-y-3">
-								{#each linksStore.outgoingLinks.filter((l) => l.is_valid) as outgoingLink (outgoingLink.path)}
+								{#each validOutgoingLinks as outgoingLink (outgoingLink.path)}
 									<button
 										class="bg-background border-border group hover:bg-muted/50 w-full cursor-pointer rounded-lg border p-4 text-left transition-colors"
 										onclick={() => goto(`/documents${outgoingLink.path}`)}
@@ -424,7 +602,7 @@
 						</div>
 					{/if}
 
-					{#if (linksStore.backlinks?.length || 0) === 0 && (linksStore.outgoingLinks?.filter((l) => l.is_valid).length || 0) === 0}
+					{#if (linksStore.backlinks?.length || 0) === 0 && validOutgoingLinks.length === 0}
 						<div class="flex flex-col items-center justify-center py-8 text-center">
 							<p class="text-muted-foreground text-sm">No links found.</p>
 							<p class="text-muted-foreground mt-1 text-xs">

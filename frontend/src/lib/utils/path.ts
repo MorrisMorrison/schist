@@ -89,3 +89,36 @@ export function getParentPath(path: string): string {
 	}
 	return '/' + segments.slice(0, -1).join('/');
 }
+
+/**
+ * Appends a name to a folder path; an empty parent or '/' means the root.
+ * For example: ("/docs", "intro") returns "/docs/intro", ("/", "intro") returns "/intro".
+ */
+export function joinPath(parentPath: string, name: string): string {
+	return parentPath && parentPath !== '/' ? `${parentPath}/${name}` : `/${name}`;
+}
+
+/** Whether `path` sits directly inside `folderPath` (not deeper); '' or '/' is the root. */
+export function isDirectChild(path: string, folderPath: string): boolean {
+	if (folderPath === '' || folderPath === '/') {
+		return path.split('/').length === 2; // ['', 'name']
+	}
+
+	const folderSegments = folderPath.split('/').filter(Boolean);
+	const segments = path.split('/').filter(Boolean);
+
+	return (
+		segments.length === folderSegments.length + 1 &&
+		segments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
+	);
+}
+
+/** Folder names: letters, digits, spaces, '-' and '_', at most 50 characters. */
+export function isValidFolderName(name: string): boolean {
+	return name.trim() !== '' && /^[a-zA-Z0-9\-_\s]+$/.test(name) && name.length <= 50;
+}
+
+/** The path segment a folder name is stored under: trimmed, lower case, spaces as '-'. */
+export function folderNameToSegment(name: string): string {
+	return name.trim().toLowerCase().replace(/\s+/g, '-');
+}

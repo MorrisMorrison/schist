@@ -3,37 +3,29 @@ import { BasePage } from './BasePage';
 
 export class FolderPage extends BasePage {
 	readonly folderTitle: Locator;
-	readonly folderPath: Locator;
-	readonly subFolders: Locator;
 	readonly documents: Locator;
 	readonly emptyFolderMessage: Locator;
 
 	readonly createFolderButton: Locator;
-	readonly folderActionsMenu: Locator;
 
 	readonly createFolderModal: Locator;
 	readonly folderNameInput: Locator;
 	readonly confirmCreateFolder: Locator;
 	readonly cancelCreateFolder: Locator;
 
+	readonly renameFolderButton: Locator;
+	readonly cancelRenameFolderButton: Locator;
+	readonly confirmDialog: Locator;
+
 	readonly folderTree: Locator;
-	readonly folderTreeItems: Locator;
-	readonly expandableNodes: Locator;
-
-	readonly itemsList: Locator;
-	readonly itemNames: Locator;
-	readonly itemDates: Locator;
-
-	readonly breadcrumbs: Locator;
-	readonly backButton: Locator;
-	readonly homeLink: Locator;
+	/** The sidebar box that filters the tree by title and `tag:` queries. */
+	readonly treeFilter: Locator;
+	readonly contextMenu: Locator;
 
 	constructor(page: Page) {
 		super(page);
 
 		this.folderTitle = page.locator('h1').first();
-		this.folderPath = page.getByTestId('folder-path');
-		this.subFolders = page.getByTestId('folder-tree');
 		this.documents = page.getByTestId('documents-section');
 		this.emptyFolderMessage = page.getByTestId('empty-folder-message');
 
@@ -41,24 +33,20 @@ export class FolderPage extends BasePage {
 			.getByTestId('create-folder-header')
 			.or(page.getByTestId('create-folder-empty'))
 			.first();
-		this.folderActionsMenu = page.getByTestId('folder-actions');
 
 		this.createFolderModal = page.getByTestId('create-folder-modal');
 		this.folderNameInput = page.getByTestId('folder-name');
 		this.confirmCreateFolder = this.createFolderModal.getByTestId('create-folder-btn');
 		this.cancelCreateFolder = this.createFolderModal.getByTestId('cancel-create-folder-btn');
 
+		// The rename modal reuses the `folder-name` input.
+		this.renameFolderButton = page.getByTestId('rename-folder-btn');
+		this.cancelRenameFolderButton = page.getByTestId('cancel-rename-folder-btn');
+		this.confirmDialog = page.getByTestId('confirm-dialog');
+
 		this.folderTree = page.getByTestId('folder-tree');
-		this.folderTreeItems = this.folderTree.locator('[role="treeitem"]');
-		this.expandableNodes = this.folderTree.locator('[aria-expanded]');
-
-		this.itemsList = page.getByTestId('items-list');
-		this.itemNames = this.itemsList.getByTestId('item-name');
-		this.itemDates = this.itemsList.getByTestId('item-date');
-
-		this.breadcrumbs = page.getByTestId('breadcrumbs');
-		this.backButton = page.getByRole('button', { name: /back/i });
-		this.homeLink = page.getByRole('link', { name: /home/i });
+		this.treeFilter = page.getByTestId('sidebar-search');
+		this.contextMenu = page.getByTestId('context-menu');
 	}
 
 	async navigateToFolder(folderPath: string = '') {
@@ -80,121 +68,121 @@ export class FolderPage extends BasePage {
 		}
 	}
 
-	async createFolder(folderName: string) {
+	/** Open the "New Folder" modal from the folder view's button. */
+	async openCreateFolderModal() {
 		await this.createFolderButton.click();
-
 		await this.waitForVisible(this.createFolderModal);
+	}
 
+	/**
+	 * Create a folder through the folder view's "New Folder" modal and wait for
+	 * the backend to confirm it (rather than for network idle plus a fixed sleep).
+	 */
+	async createFolder(folderName: string) {
+		await this.openCreateFolderModal();
+		await this.submitCreateFolder(folderName);
+	}
+
+	/**
+	 * Name the folder in an open "New Folder" modal, however it was opened (the
+	 * folder view, a tree context menu, the sidebar "+" menu), submit it and wait
+	 * for the backend to confirm it.
+	 */
+	async submitCreateFolder(folderName: string) {
+		await this.waitForVisible(this.createFolderModal);
 		await this.waitForVisible(this.folderNameInput);
-
 		await this.fillInput(this.folderNameInput, folderName);
 
+		const created = this.page.waitForResponse(
+			(response) =>
+				response.request().method() === 'POST' &&
+				new URL(response.url()).pathname.endsWith('/api/folders')
+		);
 		await this.confirmCreateFolder.click();
+		expect((await created).ok()).toBe(true);
 
 		await expect(this.createFolderModal).toBeHidden();
+	}
 
-		await this.page.waitForLoadState('networkidle');
+	/** The sidebar tree's "Open folder <name>" button for an exact folder name. */
+	folderButton(folderName: string): Locator {
+		return this.folderTree.getByRole('button', { name: `Open folder ${folderName}`, exact: true });
+	}
 
-		await this.page.waitForTimeout(200);
+	/**
+	 * The sidebar tree row for an exact folder name: the closest row around its
+	 * button. Rows nest, and a `has:` filter is resolved inside each row, so
+	 * filtering rows by the tree-rooted button never matched (and would also
+	 * match every ancestor row).
+	 */
+	treeItem(folderName: string): Locator {
+		return this.folderButton(folderName).locator(
+			'xpath=ancestor::*[@data-testid="folder-tree-item"][1]'
+		);
 	}
 
 	async openSubFolder(folderName: string) {
-		const folderButton = this.folderTree.getByRole('button', { name: `Open folder ${folderName}` });
-		await folderButton.click();
+		await this.folderButton(folderName).click();
 		await this.waitForLoad();
 	}
 
 	async verifyContainsFolder(folderName: string) {
-		const expandButtons = this.folderTree.getByRole('button').filter({ hasText: /expand folder/i });
-		const expandCount = await expandButtons.count();
-
-		for (let i = 0; i < expandCount; i++) {
-			const expandButton = expandButtons.nth(i);
-			if (await expandButton.isVisible()) {
-				await expandButton.click();
-				await this.page.waitForTimeout(300);
-			}
-		}
-
-		const folderButton = this.folderTree.getByRole('button', {
-			name: new RegExp(`Open folder ${folderName}`, 'i')
-		});
-
-		await this.page.waitForTimeout(500);
-		await expect(folderButton.first()).toBeVisible({ timeout: 10000 });
+		await expect(this.folderButton(folderName)).toBeVisible({ timeout: 10000 });
 	}
 
-	async folderExistsInSidebar(folderName: string): Promise<boolean> {
-		try {
-			const folderButton = this.folderTree.getByRole('button', {
-				name: new RegExp(`Open folder ${folderName}`, 'i')
-			});
-			return await folderButton.first().isVisible({ timeout: 2000 });
-		} catch {
-			return false;
-		}
+	async verifyFolderNotInTree(folderName: string) {
+		await expect(this.folderButton(folderName)).toHaveCount(0);
+	}
+
+	/**
+	 * Right-click a folder in the tree and wait for its context menu. Clicks the
+	 * folder's own name button (the row handles the event), so the click can't
+	 * land on an expanded child row.
+	 */
+	async openContextMenu(folderName: string) {
+		await expect(this.treeItem(folderName)).toBeVisible();
+		await this.folderButton(folderName).click({ button: 'right' });
+		await expect(this.contextMenu).toBeVisible();
+		return this.contextMenu;
+	}
+
+	/**
+	 * Choose Rename in a folder's context menu; returns the modal's name input
+	 * (prefilled with the current name).
+	 */
+	async openRenameFolderModal(folderName: string) {
+		const contextMenu = await this.openContextMenu(folderName);
+		await contextMenu.getByText(/rename/i).click();
+		await expect(this.folderNameInput).toBeVisible();
+		return this.folderNameInput;
+	}
+
+	/** Choose Delete in a folder's context menu; returns the confirmation dialog. */
+	async openDeleteFolderDialog(folderName: string) {
+		const contextMenu = await this.openContextMenu(folderName);
+		await contextMenu.getByText(/delete/i).click();
+		await expect(this.confirmDialog).toBeVisible();
+		return this.confirmDialog;
 	}
 
 	async verifyContainsDocument(documentName: string) {
-		const documentByTestId = this.documents
-			.getByTestId('document-item')
-			.filter({ hasText: documentName });
-		const documentByText = this.documents.getByText(documentName);
-
-		if (
-			await documentByTestId
-				.first()
-				.isVisible()
-				.catch(() => false)
-		) {
-			await expect(documentByTestId.first()).toBeVisible();
-		} else {
-			await expect(documentByText).toBeVisible();
-		}
+		await expect(this.documents.getByText(documentName)).toBeVisible();
 	}
 
-	async verifyEmptyFolder() {
-		await expect(this.emptyFolderMessage).toBeVisible();
-	}
-
-	async clickBreadcrumb(breadcrumbText: string) {
-		const breadcrumb = this.breadcrumbs.getByRole('link', { name: breadcrumbText });
-		await breadcrumb.click();
-		await this.waitForLoad();
-	}
-
-	async getBreadcrumbPath(): Promise<string[]> {
-		const breadcrumbLinks = this.breadcrumbs.locator('a');
-		return await breadcrumbLinks.allTextContents();
-	}
-
+	/** Expand a folder's tree row if it is collapsed (no-op if already expanded). */
 	async expandTreeNode(folderName: string) {
-		const node = this.folderTree.getByTestId('folder-tree-item').filter({ hasText: folderName });
-		const expandButton = node
-			.getByTestId('folder-expand-button')
-			.locator('[aria-expanded="false"]');
-
-		if (await expandButton.isVisible()) {
-			await expandButton.click();
+		const item = this.treeItem(folderName);
+		// aria-expanded is only rendered once the folder has expandable content.
+		await expect(item).toHaveAttribute('aria-expanded', /^(true|false)$/);
+		if ((await item.getAttribute('aria-expanded')) === 'false') {
+			await item.getByRole('button', { name: 'Expand folder' }).click();
 		}
+		await expect(item).toHaveAttribute('aria-expanded', 'true');
 	}
 
 	async getSubFolderCount(): Promise<number> {
 		const folderButtons = this.folderTree.getByRole('button', { name: /^Open folder / });
 		return await folderButtons.count();
-	}
-
-	async goBack() {
-		if (await this.backButton.isVisible()) {
-			await this.backButton.click();
-		} else {
-			const breadcrumbs = this.breadcrumbs.locator('a');
-			const parentBreadcrumb = breadcrumbs.nth(-2);
-			if (await parentBreadcrumb.isVisible()) {
-				await parentBreadcrumb.click();
-			}
-		}
-		await this.waitForLoad();
 	}
 
 	async verifyFolderUrl(expectedPath: string) {

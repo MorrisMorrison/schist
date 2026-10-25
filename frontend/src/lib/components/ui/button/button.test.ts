@@ -43,6 +43,11 @@ describe('Button', () => {
 		}
 	});
 
+	it('sizes icon buttons', () => {
+		const { container } = render(Button, { props: { size: 'icon-sm' } });
+		expect(container.querySelector('button')).toHaveClass('size-8');
+	});
+
 	it('forwards custom props', () => {
 		const { container } = render(Button, {
 			props: { class: 'custom-class', 'data-testid': 'test-button' }

@@ -3,14 +3,19 @@ package services
 import (
 	"archive/zip"
 	"bytes"
+	stderrors "errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
+	"net/http"
+	slashpath "path"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
@@ -38,7 +43,7 @@ func (d *DocumentService) ImportDocuments(
 		if err != nil {
 			result.Failed = append(result.Failed, models.ImportError{
 				OriginalName: fileHeader.Filename,
-				Error:        err.Error(),
+				Error:        importErrorMessage(fileHeader.Filename, err),
 			})
 			result.FailedCount++
 		}
@@ -50,13 +55,28 @@ func (d *DocumentService) ImportDocuments(
 	return result, nil
 }
 
+// errUnsupportedImportType is a client-facing import failure reason.
+var errUnsupportedImportType = errors.NewValidationError("only markdown files (.md) are supported")
+
+// importErrorMessage returns the per-file failure reason sent to the client.
+// Typed API errors carry a client-safe message; anything else is an internal
+// failure whose detail (file system paths etc.) is logged, never returned.
+func importErrorMessage(filename string, err error) string {
+	var apiErr *errors.APIError
+	if stderrors.As(err, &apiErr) && apiErr.HTTPStatus < http.StatusInternalServerError {
+		return apiErr.Message
+	}
+	log.Printf("ERROR: import of %q failed: %v", filename, err)
+	return "failed to import file"
+}
+
 func (d *DocumentService) importSingleFile(
 	fileHeader *multipart.FileHeader,
 	options *models.ImportOptions,
 	result *models.ImportResult,
 ) error {
 	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".md") {
-		return fmt.Errorf("only markdown files (.md) are supported")
+		return errUnsupportedImportType
 	}
 
 	file, err := fileHeader.Open()
@@ -75,7 +95,10 @@ func (d *DocumentService) importSingleFile(
 	title := d.extractTitleFromContent(processedContent, fileHeader.Filename)
 	slug := utils.GenerateSlug(title)
 
-	pathResult := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
+	pathResult, err := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
+	if err != nil {
+		return err
+	}
 
 	// Check if file should be skipped
 	if pathResult.shouldSkip {
@@ -101,9 +124,8 @@ func (d *DocumentService) importSingleFile(
 		MetaData: metadata,
 		Content:  processedContent,
 	}
-	err = d.CreateDocument(document)
-	if err != nil {
-		return fmt.Errorf("failed to create document: %w", err)
+	if err := d.createDocument(document, pathResult.overwrite); err != nil {
+		return err
 	}
 
 	result.Success = append(result.Success, models.ImportedDocument{
@@ -115,10 +137,13 @@ func (d *DocumentService) importSingleFile(
 	return nil
 }
 
+// importFrontMatterRegex matches a leading YAML front matter block (Obsidian
+// and other tools). (?s) lets the lazy body span lines; without it only a
+// single-line front matter block was ever stripped.
+var importFrontMatterRegex = regexp.MustCompile(`(?s)^---\s*\n.*?\n---\s*\n`)
+
 func (d *DocumentService) processImportedMarkdown(content string) string {
-	// Remove YAML frontmatter (Obsidian and other systems)
-	frontmatterRegex := regexp.MustCompile(`^---\s*\n.*?\n---\s*\n`)
-	content = frontmatterRegex.ReplaceAllString(content, "")
+	content = importFrontMatterRegex.ReplaceAllString(content, "")
 
 	return strings.TrimSpace(content)
 }
@@ -139,115 +164,114 @@ func (d *DocumentService) extractTitleFromContent(content, filename string) stri
 	return strings.TrimSuffix(filename, filepath.Ext(filename))
 }
 
-func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) pathResult {
-	if targetPath == "" || targetPath == "/" {
-		targetPath = ""
-	} else {
-		targetPath = strings.Trim(targetPath, "/")
-		if targetPath != "" {
-			targetPath = "/" + targetPath
-		}
+func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) (pathResult, error) {
+	targetPath = strings.Trim(targetPath, "/")
+	if targetPath != "" {
+		targetPath = "/" + targetPath
 	}
 
 	basePath := targetPath + "/" + slug
-	finalPath := basePath
-
-	counter := 1
-	for {
-		_, err := d.GetDocumentByPath(finalPath)
-		if err != nil {
-			// Document doesn't exist, we can use this path
-			break
-		}
-
-		// Document exists at this path
-		switch overwriteMode {
-		case "overwrite":
-			// Use the path as-is, will overwrite existing document
-			break
-		case "skip":
-			// Document exists and should be skipped
-			return pathResult{
-				finalPath:  finalPath,
-				shouldSkip: true,
-			}
-		default: // "rename" or empty
-			// Generate new path with counter
-			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
-			counter++
-			continue
-		}
-		break
+	if err := validatePath(basePath); err != nil {
+		return pathResult{}, err
 	}
 
-	return pathResult{
-		finalPath:  finalPath,
-		shouldSkip: false,
+	finalPath := basePath
+	for counter := 1; ; counter++ {
+		// Check the file itself rather than whether it parses: an existing note
+		// with broken front matter must never be treated as a free slot.
+		exists, err := d.documentFileExists(finalPath)
+		if err != nil {
+			return pathResult{}, err
+		}
+		if !exists {
+			return pathResult{finalPath: finalPath}, nil
+		}
+
+		switch overwriteMode {
+		case "overwrite":
+			return pathResult{finalPath: finalPath, overwrite: true}, nil
+		case "skip":
+			return pathResult{finalPath: finalPath, shouldSkip: true}, nil
+		default: // "rename" or empty
+			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
+		}
 	}
 }
 
 func (d *DocumentService) ExportDocument(path string) ([]byte, string, error) {
 	document, err := d.GetDocumentByPath(path)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get document: %w", err)
+		return nil, "", err
 	}
 
-	content := fmt.Sprintf("# %s\n\n%s", document.MetaData.Title, document.Content)
-
-	filename := filepath.Base(path)
+	filename := slashpath.Base(path)
 	if !strings.HasSuffix(filename, ".md") {
 		filename += ".md"
 	}
 
-	return []byte(content), filename, nil
+	return exportMarkdown(document), filename, nil
+}
+
+// exportMarkdown is a document as exported: its title as a heading, then the
+// content.
+func exportMarkdown(document *models.Document) []byte {
+	return []byte(fmt.Sprintf("# %s\n\n%s", document.MetaData.Title, document.Content))
 }
 
 func (d *DocumentService) ExportFolder(folderPath string) ([]byte, string, error) {
-	normalizedPath := folderPath
-	if !strings.HasPrefix(normalizedPath, "/") {
-		normalizedPath = "/" + normalizedPath
+	normalizedPath := utils.NormalizePath(folderPath)
+	if err := utils.ValidatePath(normalizedPath); err != nil {
+		return nil, "", errors.NewInvalidPathError(folderPath).WithCause(err)
 	}
 
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
-
-	err := d.addFolderToZip(zipWriter, normalizedPath, "")
+	content, err := d.zipFolder(normalizedPath)
 	if err != nil {
-		zipWriter.Close()
-		return nil, "", fmt.Errorf("failed to create zip: %w", err)
+		return nil, "", err
 	}
 
-	err = zipWriter.Close()
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to close zip: %w", err)
-	}
-
-	folderName := filepath.Base(folderPath)
+	folderName := slashpath.Base(normalizedPath)
 	if folderName == "/" || folderName == "." {
 		folderName = "documents"
 	}
 	filename := fmt.Sprintf("%s.zip", folderName)
 
-	return buf.Bytes(), filename, nil
+	return content, filename, nil
 }
 
 func (d *DocumentService) ExportAll() ([]byte, string, error) {
+	content, err := d.zipFolder("/")
+	if err != nil {
+		return nil, "", err
+	}
+	return content, "all-documents.zip", nil
+}
+
+// zipFolder builds a zip of the documents in folderPath and its subfolders.
+func (d *DocumentService) zipFolder(folderPath string) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 
-	err := d.addFolderToZip(zipWriter, "/", "")
-	if err != nil {
+	if err := d.addFolderToZip(zipWriter, folderPath, ""); err != nil {
 		zipWriter.Close()
-		return nil, "", fmt.Errorf("failed to create zip: %w", err)
+		return nil, fmt.Errorf("failed to create zip: %w", err)
 	}
 
-	err = zipWriter.Close()
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to close zip: %w", err)
+	if err := zipWriter.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close zip: %w", err)
 	}
 
-	filename := "all-documents.zip"
-	return buf.Bytes(), filename, nil
+	return buf.Bytes(), nil
+}
+
+// zipSafeName turns a document title into a single, non-traversing zip entry
+// name component.
+func zipSafeName(title string) string {
+	name := strings.NewReplacer("/", "-", "\\", "-").Replace(title)
+	name = strings.Trim(strings.ReplaceAll(name, "..", ""), " .-")
+	if name == "" {
+		return "untitled"
+	}
+	return name
 }
 
 func (d *DocumentService) addFolderToZip(
@@ -261,17 +285,18 @@ func (d *DocumentService) addFolderToZip(
 	}
 
 	for _, doc := range allDocuments {
-		docFolder := filepath.Dir(doc.MetaData.Path)
+		docFolder := slashpath.Dir(doc.MetaData.Path)
 		if docFolder == folderPath {
-			zipPath := filepath.Join(zipPrefix, doc.MetaData.Title+".md")
+			// Zip entry names always use forward slashes, and the title is
+			// user-controlled, so it must not introduce path segments.
+			zipPath := slashpath.Join(zipPrefix, zipSafeName(doc.MetaData.Title)+".md")
 
 			fileWriter, err := zipWriter.Create(zipPath)
 			if err != nil {
 				return fmt.Errorf("failed to create file in zip: %w", err)
 			}
 
-			content := fmt.Sprintf("# %s\n\n%s", doc.MetaData.Title, doc.Content)
-			_, err = fileWriter.Write([]byte(content))
+			_, err = fileWriter.Write(exportMarkdown(doc))
 			if err != nil {
 				return fmt.Errorf("failed to write file content: %w", err)
 			}
@@ -284,7 +309,7 @@ func (d *DocumentService) addFolderToZip(
 	}
 
 	for _, subfolder := range folder.SubFolders {
-		subZipPrefix := filepath.Join(zipPrefix, subfolder.Name)
+		subZipPrefix := slashpath.Join(zipPrefix, subfolder.Name)
 		err := d.addFolderToZip(zipWriter, subfolder.Path, subZipPrefix)
 		if err != nil {
 			return err

@@ -1,14 +1,28 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
+/**
+ * The markdown editor, in both places it appears: the new-document page (with
+ * Save Document / Cancel buttons) and edit mode on a document page (in place,
+ * saved with Ctrl/Cmd+S, by auto-save, or by switching back to Read).
+ */
 export class EditorPage extends BasePage {
 	readonly contentEditor: Locator;
+	/** New-document page only. */
 	readonly saveButton: Locator;
+	/** New-document page only. */
 	readonly cancelButton: Locator;
-	readonly deleteButton: Locator;
-	readonly confirmDeleteButton: Locator;
+	/** Document page: switches back to the reading view (saving first). */
+	readonly readButton: Locator;
 
+	/** The first `# heading` line, which is the title while editing. */
 	readonly documentTitle: Locator;
+
+	/** Shown while there are changes auto-save has not written yet. */
+	readonly unsavedIndicator: Locator;
+	/** New-document page: switches the editor to its rendered preview. */
+	readonly previewButton: Locator;
+	readonly preview: Locator;
 
 	constructor(page: Page) {
 		super(page);
@@ -17,25 +31,41 @@ export class EditorPage extends BasePage {
 
 		this.saveButton = page.getByTestId('save-document-button');
 		this.cancelButton = page.getByTestId('cancel-button');
-		this.deleteButton = page.getByTestId('delete-document-button');
-		this.confirmDeleteButton = page.getByTestId('confirm-delete-button');
+		this.readButton = page.getByTestId('read-mode-button');
 
-		this.documentTitle = page.locator('h1').first();
+		this.documentTitle = page.locator('.cm-editor .cm-prose-title').first();
+
+		this.unsavedIndicator = page.getByTestId('unsaved-indicator');
+		this.previewButton = page.getByTestId('preview-mode-button');
+		this.preview = page.getByTestId('markdown-preview');
 	}
 
+	/** True on the new-document page, false in a document's edit mode. */
+	private async isNewDocumentPage(): Promise<boolean> {
+		return new URL(this.page.url()).pathname.startsWith('/new');
+	}
+
+	/** Opens the new-document page and waits until the editor is ready. */
 	async navigateToNew() {
 		await this.goto('/new');
 		await this.waitForLoad();
+		await this.verifyLoaded();
 	}
 
+	/**
+	 * Opens a document in edit mode through the /edit/<path> deep link and waits
+	 * until the editor is ready.
+	 */
 	async navigateToEdit(documentPath: string) {
 		await this.goto(`/edit${documentPath}`);
+		await this.page.waitForURL(/\/documents\/.*\?mode=edit/);
 		await this.waitForLoad();
+		await this.verifyLoaded();
 	}
 
 	async verifyLoaded() {
 		await this.waitForContentReady(this.contentEditor);
-		await this.waitForVisible(this.saveButton);
+		await this.waitForVisible(this.saveButton.or(this.readButton).first());
 	}
 
 	async fillDocumentDetails(title: string, content: string, tags: string[] = []) {
@@ -54,27 +84,55 @@ export class EditorPage extends BasePage {
 		await this.typeContent(content);
 	}
 
+	/** Saves and stays in the editor (Ctrl+S in edit mode). */
 	async save() {
-		await this.saveButton.click();
-		await this.page.waitForLoadState('networkidle');
+		if (await this.isNewDocumentPage()) {
+			await this.saveButton.click();
+			await this.page.waitForLoadState('networkidle');
+			return;
+		}
+		const saved = this.page.waitForResponse(
+			(res) => res.request().method() === 'PUT' && res.url().includes('/api/documents/'),
+			{ timeout: 15000 }
+		);
+		await this.contentEditor.press('Control+s');
+		expect((await saved).ok()).toBeTruthy();
 	}
 
+	/**
+	 * Saves and ends up on the document's reading view: Save Document on the
+	 * new-document page, the Read toggle (which saves first) in edit mode.
+	 */
 	async saveAndExpectNavigation() {
-		await Promise.all([
-			this.page.waitForURL(/\/documents\//, { timeout: 5000 }),
-			this.saveButton.click()
-		]);
+		// 15s like the other page-load waits: a 5s budget was tight for large
+		// documents on a slow runner.
+		if (await this.isNewDocumentPage()) {
+			await Promise.all([
+				this.page.waitForURL(/\/documents\//, { timeout: 15000 }),
+				this.saveButton.click()
+			]);
+			return;
+		}
+		await this.readButton.click();
+		await expect(this.page.getByTestId('document-view')).toHaveAttribute('data-mode', 'read', {
+			timeout: 15000
+		});
+		await expect(this.page).not.toHaveURL(/mode=edit/);
 	}
 
+	/** Leaves the editor: Cancel on the new-document page, Read in edit mode. */
 	async cancel() {
-		await this.cancelButton.click();
+		if (await this.isNewDocumentPage()) {
+			await this.cancelButton.click();
+			return;
+		}
+		await this.readButton.click();
 	}
 
-	async deleteDocument() {
-		await this.deleteButton.click();
-		await this.waitForVisible(this.confirmDeleteButton);
-		await this.confirmDeleteButton.click();
-		await this.page.waitForLoadState('networkidle');
+	/** Switch to the rendered preview and return it. */
+	async showPreview() {
+		await this.previewButton.click();
+		return this.preview;
 	}
 
 	async typeContent(content: string) {
@@ -96,7 +154,7 @@ export class EditorPage extends BasePage {
 
 	async waitForAutoSave(timeoutMs: number = 15000) {
 		try {
-			await this.page.getByTestId('unsaved-indicator').waitFor({
+			await this.unsavedIndicator.waitFor({
 				state: 'visible',
 				timeout: 2000
 			});
@@ -122,26 +180,8 @@ export class EditorPage extends BasePage {
 		await expect(this.documentTitle).toContainText(expectedTitle);
 	}
 
-	async verifyHashtags(expectedTags: string[]) {
-		for (const tag of expectedTags) {
-			await expect(this.contentEditor).toContainText(`#${tag}`);
-		}
-	}
-
-	async getContent(): Promise<string> {
-		return (await this.contentEditor.textContent()) || '';
-	}
-
-	async fillPageDetails(title: string, content: string, tags: string[] = []) {
-		return this.fillDocumentDetails(title, content, tags);
-	}
-
 	async fillTitle(title: string) {
 		await this.clearContent();
 		await this.typeContent(`# ${title}\n\n`);
-	}
-
-	async fillContent(content: string) {
-		await this.appendContent(content);
 	}
 }

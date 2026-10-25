@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +22,7 @@ func (h *APIHandler) getFolder(c *gin.Context) {
 func (h *APIHandler) getFolderTree(c *gin.Context) {
 	folders, err := h.DocumentService.GetFolderTree()
 	if err != nil {
-		HandleError(c, errors.NewDatabaseError("get folder tree", err))
+		HandleError(c, err)
 		return
 	}
 
@@ -39,8 +38,7 @@ func (h *APIHandler) createFolder(c *gin.Context) {
 	}
 
 	var req CreateFolderRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -66,8 +64,7 @@ func (h *APIHandler) renameFolder(c *gin.Context) {
 	}
 
 	var req RenameRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 
@@ -106,8 +103,7 @@ func (h *APIHandler) moveFolder(c *gin.Context) {
 	}
 
 	var req MoveFolderRequest
-	if apiErr := ValidateJSONBody(c, &req); apiErr != nil {
-		HandleError(c, apiErr)
+	if !bindJSON(c, &req) {
 		return
 	}
 

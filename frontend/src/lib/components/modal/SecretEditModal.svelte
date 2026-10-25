@@ -4,7 +4,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import { Info } from '@lucide/svelte';
 	import {
 		Dialog,
 		DialogContent,
@@ -143,29 +144,13 @@
 				</p>
 			</div>
 
-			<div class="border-border bg-muted rounded-lg border p-3">
-				<div class="flex">
-					<svg
-						class="text-muted-foreground mt-0.5 mr-2 h-4 w-4 flex-shrink-0"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-					<div>
-						<p class="text-foreground text-sm font-medium">Usage Example</p>
-						<p class="text-muted-foreground mt-1 font-mono text-xs">
-							In your documents: My API key is {'{{secret:' + (key || 'your_key') + '}}'}
-						</p>
-					</div>
-				</div>
-			</div>
+			<Alert variant="muted" role="note">
+				<Info />
+				<AlertTitle>Usage Example</AlertTitle>
+				<AlertDescription class="font-mono text-xs">
+					In your documents: My API key is {'{{secret:' + (key || 'your_key') + '}}'}
+				</AlertDescription>
+			</Alert>
 		</div>
 
 		<DialogFooter>

@@ -1,23 +1,26 @@
 import { type Page, type Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { EditorPage } from './EditorPage';
 
 /**
- * Page object for viewing individual documents (/documents/[...path])
+ * Page object for viewing individual documents (/documents/[...path]),
+ * including the Share modal opened from the document header.
  */
 export class DocumentViewPage extends BasePage {
+	/** The document page; its `data-mode` is `read` or `edit`. */
+	readonly documentView: Locator;
+
 	// Document content
 	readonly documentTitle: Locator;
 	readonly documentContent: Locator;
 	readonly documentTags: Locator;
-	readonly documentMetadata: Locator;
-	readonly createdDate: Locator;
-	readonly updatedDate: Locator;
+	readonly documentHeader: Locator;
 
 	// Action buttons
 	readonly editButton: Locator;
 	readonly shareButton: Locator;
 	readonly deleteButton: Locator;
-	readonly moveButton: Locator;
+	readonly actionsMenuButton: Locator;
 
 	// Navigation
 	readonly breadcrumbs: Locator;
@@ -26,30 +29,33 @@ export class DocumentViewPage extends BasePage {
 	// Content elements
 	readonly headings: Locator;
 	readonly links: Locator;
-	readonly images: Locator;
-	readonly codeBlocks: Locator;
 
 	// Error states
 	readonly notFoundMessage: Locator;
 	readonly notFoundHeading: Locator;
-	readonly errorMessage: Locator;
+
+	// Share modal
+	readonly shareModal: Locator;
+	readonly shareLinkInputs: Locator;
 
 	constructor(page: Page) {
 		super(page);
 
-		// Document content
-		this.documentTitle = page.getByTestId('document-title').or(page.locator('h1').first());
-		this.documentContent = page.getByTestId('document-content').or(page.locator('.prose').first());
+		this.documentView = page.getByTestId('document-view');
+
+		// Document content. Test ids only: an `h1` fallback would also match the
+		// "Document Not Found" / "Error" headings and mask a failed load.
+		this.documentTitle = page.getByTestId('document-title');
+		this.documentContent = page.getByTestId('document-content');
 		this.documentTags = page.getByTestId('document-tag');
-		this.documentMetadata = page.getByTestId('document-metadata');
-		this.createdDate = page.getByTestId('created-date');
-		this.updatedDate = page.getByTestId('updated-date');
+		this.documentHeader = this.documentView.locator('header');
 
 		// Action buttons
 		this.editButton = page.getByTestId('edit-document-button');
 		this.shareButton = page.getByTestId('share-document-button');
 		this.deleteButton = page.getByTestId('delete-document-button');
-		this.moveButton = page.getByTestId('move-document-button');
+		// Delete, download and history live in the "More actions" menu.
+		this.actionsMenuButton = page.getByTestId('document-actions-menu');
 
 		// Navigation
 		this.breadcrumbs = page.getByTestId('breadcrumbs');
@@ -58,17 +64,14 @@ export class DocumentViewPage extends BasePage {
 		// Content elements
 		this.headings = this.documentContent.locator('h1, h2, h3, h4, h5, h6');
 		this.links = this.documentContent.locator('a');
-		this.images = this.documentContent.locator('img');
-		this.codeBlocks = this.documentContent.locator('pre, code');
 
-		// Error states (using actual UI text)
-		this.notFoundMessage = page
-			.getByTestId('not-found-message')
-			.or(page.getByText("404 - The document you're looking for doesn't exist."));
-		this.notFoundHeading = page
-			.getByTestId('not-found-heading')
-			.or(page.getByRole('heading', { name: 'Document Not Found' }));
-		this.errorMessage = page.getByTestId('error-message');
+		// Error states
+		this.notFoundMessage = page.getByTestId('not-found-message');
+		this.notFoundHeading = page.getByTestId('not-found-heading');
+
+		// Share modal
+		this.shareModal = page.getByRole('dialog').filter({ hasText: 'Share' });
+		this.shareLinkInputs = this.shareModal.getByTestId('share-url');
 	}
 
 	/**
@@ -77,6 +80,19 @@ export class DocumentViewPage extends BasePage {
 	async navigateToDocument(documentPath: string) {
 		await this.goto(`/documents${documentPath}`);
 		await this.waitForLoad();
+	}
+
+	/**
+	 * Open a seeded document by its path and wait until it has loaded with its
+	 * title. The usual way into a document; use navigateToDocument for a path
+	 * that is not expected to load (a 404, say).
+	 */
+	async openDocument(document: { path?: string; title: string }) {
+		if (!document.path) {
+			throw new Error(`openDocument: "${document.title}" has no path`);
+		}
+		await this.navigateToDocument(document.path);
+		await this.verifyDocumentLoaded(document.title);
 	}
 
 	/**
@@ -103,35 +119,35 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Click edit button and navigate to editor
+	 * Switch the document to edit mode (in place; the URL gains ?mode=edit) and
+	 * wait until the editor is ready.
 	 */
 	async editDocument() {
-		await Promise.all([this.page.waitForURL(/\/edit\//), this.editButton.click()]);
+		await this.editButton.click();
+		await this.page.waitForURL(/\?mode=edit/);
+		await new EditorPage(this.page).verifyLoaded();
 	}
 
 	/**
-	 * Click delete button (with confirmation)
+	 * Delete the document through the confirmation dialog, and wait for the
+	 * backend to confirm the delete before returning. (Waiting for network idle
+	 * instead let a caller navigate back to the document while the DELETE was
+	 * still in flight, and find it still there.)
 	 */
 	async deleteDocument() {
+		await this.actionsMenuButton.click();
 		await this.deleteButton.click();
 
-		// Wait for confirmation dialog and confirm
 		const confirmButton = this.page.getByTestId('confirm-delete-button');
 		await this.waitForVisible(confirmButton);
+
+		const deleted = this.page.waitForResponse(
+			(response) =>
+				response.request().method() === 'DELETE' &&
+				new URL(response.url()).pathname.includes('/api/documents/')
+		);
 		await confirmButton.click();
-
-		await this.page.waitForLoadState('networkidle');
-	}
-
-	/**
-	 * Click move button and open move modal
-	 */
-	async moveDocument() {
-		await this.moveButton.click();
-
-		// Wait for move modal to appear
-		const moveModal = this.page.getByTestId('move-modal');
-		await this.waitForVisible(moveModal);
+		expect((await deleted).ok()).toBe(true);
 	}
 
 	/**
@@ -161,13 +177,8 @@ export class DocumentViewPage extends BasePage {
 	 * Verify content contains specific heading
 	 */
 	async verifyHeading(headingText: string, level?: number) {
-		if (level) {
-			const heading = this.documentContent.locator(`h${level}`).getByText(headingText);
-			await expect(heading).toBeVisible();
-		} else {
-			const heading = this.headings.getByText(headingText);
-			await expect(heading).toBeVisible();
-		}
+		const headings = level ? this.documentContent.locator(`h${level}`) : this.headings;
+		await expect(headings.getByText(headingText)).toBeVisible();
 	}
 
 	/**
@@ -180,26 +191,11 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Verify image is displayed
-	 */
-	async verifyImageDisplayed(imageSrc: string) {
-		const image = this.images.filter({ has: this.page.locator(`[src*="${imageSrc}"]`) });
-		await expect(image).toBeVisible();
-	}
-
-	/**
-	 * Verify document metadata is displayed
+	 * Verify the header shows the document's creation date. ("Updated" is only
+	 * shown once it differs from "Created", so it is not asserted.)
 	 */
 	async verifyMetadata() {
-		// Check if created date is shown
-		if (await this.createdDate.isVisible()) {
-			await expect(this.createdDate).toBeVisible();
-		}
-
-		// Check if updated date is shown
-		if (await this.updatedDate.isVisible()) {
-			await expect(this.updatedDate).toBeVisible();
-		}
+		await expect(this.documentHeader.getByText(/^Created /)).toBeVisible();
 	}
 
 	/**
@@ -213,24 +209,11 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Check if document displays 404 error
+	 * Verify the route rendered its 404 state
 	 */
 	async verifyDocumentNotFound() {
-		// Try to find either the heading or the message
-		try {
-			await this.waitForVisible(this.notFoundHeading);
-		} catch {
-			// If heading not found, try the message
-			await this.waitForVisible(this.notFoundMessage);
-		}
-
-		// Verify at least one of them is visible
-		const headingVisible = await this.notFoundHeading.isVisible();
-		const messageVisible = await this.notFoundMessage.isVisible();
-
-		if (!headingVisible && !messageVisible) {
-			throw new Error('404 document elements not found');
-		}
+		await this.waitForContentReady(this.notFoundHeading);
+		await expect(this.notFoundMessage).toBeVisible();
 	}
 
 	/**
@@ -248,24 +231,10 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Verify markdown rendering
+	 * Verify the markdown was rendered to HTML (headings exist), not shown raw
 	 */
 	async verifyMarkdownRendering() {
-		// Verify HTML elements are present (more reliable than checking absence of markdown)
-		const headingCount = await this.headings.count();
-		if (headingCount > 0) {
-			await expect(this.headings.first()).toBeVisible();
-		}
-
-		// Check for some basic HTML structure that should exist if markdown is rendered
-		const hasHeaders = headingCount > 0;
-		const hasContent = (await this.documentContent.textContent()) !== '';
-
-		// At least verify the content container has content and structure
-		await expect(this.documentContent).toBeVisible();
-		if (!hasHeaders && !hasContent) {
-			throw new Error('No rendered content or HTML structure found');
-		}
+		await expect(this.headings.first()).toBeVisible();
 	}
 
 	/**
@@ -276,34 +245,33 @@ export class DocumentViewPage extends BasePage {
 	}
 
 	/**
-	 * Legacy aliases for backwards compatibility
-	 */
-	async navigateToPage(pagePath: string) {
-		return this.navigateToDocument(pagePath);
-	}
-
-	async verifyPageLoaded(expectedTitle?: string) {
-		return this.verifyDocumentLoaded(expectedTitle);
-	}
-
-	async editPage() {
-		return this.editDocument();
-	}
-
-	async verifyPageUrl(expectedPath: string) {
-		return this.verifyDocumentUrl(expectedPath);
-	}
-
-	/**
 	 * Click the share button to open the share modal
 	 */
 	async openShareModal() {
 		await this.shareButton.click();
+		await expect(this.shareModal).toBeVisible();
+		return this.shareModal;
+	}
 
-		// Wait for share modal to appear
-		const shareModal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
-		await expect(shareModal).toBeVisible();
-		return shareModal;
+	/** The expiry select's option label for a number of days. */
+	private static readonly EXPIRY_LABELS: Record<number, string> = {
+		1: '1 day',
+		7: '1 week',
+		30: '1 month',
+		90: '3 months',
+		0: 'Never expires'
+	};
+
+	/** Pick the share expiry in the open share modal's select (a listbox, not a native select). */
+	async chooseShareExpiry(expiryDays: number) {
+		const label = DocumentViewPage.EXPIRY_LABELS[expiryDays];
+		if (!label) throw new Error(`No share expiry option for ${expiryDays} days`);
+		await this.shareModal.getByTestId('share-expiry-select').click();
+		const listbox = this.page.getByRole('listbox');
+		await expect(listbox).toBeVisible();
+		await listbox.getByRole('option', { name: label, exact: true }).click();
+		await expect(listbox).toBeHidden();
+		await expect(this.shareModal.getByTestId('share-expiry-select')).toHaveText(label);
 	}
 
 	/**
@@ -313,23 +281,20 @@ export class DocumentViewPage extends BasePage {
 		const modal = await this.openShareModal();
 
 		// Count existing shares before creating a new one
-		const existingShares = await modal.locator('input[readonly]').count();
+		const existingShares = await this.shareLinkInputs.count();
 
-		const expirySelect = modal.locator('select');
-		await expirySelect.selectOption(expiryDays.toString());
+		await this.chooseShareExpiry(expiryDays);
 
-		const createButton = modal.getByRole('button', { name: /create share link/i });
-		await createButton.click();
+		await modal.getByTestId('create-share-link').click();
 
-		// Wait for the new share to be created by waiting for one more input field
-		await expect(modal.locator('input[readonly]')).toHaveCount(existingShares + 1);
+		// Wait for the new share to be created by waiting for one more link
+		await expect(this.shareLinkInputs).toHaveCount(existingShares + 1);
 
 		// Wait for success message to confirm creation completed
 		await expect(modal.getByText(/share link created successfully/i)).toBeVisible();
 
 		// Get the newly created share (last one in the list)
-		const shareInputs = modal.locator('input[readonly]');
-		const newShareInput = shareInputs.last();
+		const newShareInput = this.shareLinkInputs.last();
 		await expect(newShareInput).toBeVisible();
 
 		return await newShareInput.inputValue();
@@ -339,42 +304,33 @@ export class DocumentViewPage extends BasePage {
 	 * Revoke a share link
 	 */
 	async revokeShareLink(shareIndex = 0): Promise<void> {
-		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
-		const revokeButtons = modal.getByTestId('revoke-share-btn');
+		const revokeButtons = this.shareModal.getByTestId('revoke-share-btn');
 		await revokeButtons.nth(shareIndex).click();
 
 		// Wait for success message
-		await expect(modal.getByText(/revoked successfully/i)).toBeVisible();
+		await expect(this.shareModal.getByText(/revoked successfully/i)).toBeVisible();
 	}
 
 	/**
 	 * Close the share modal
 	 */
 	async closeShareModal(): Promise<void> {
-		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
 		await this.page.keyboard.press('Escape');
-		await expect(modal).not.toBeVisible();
+		await expect(this.shareModal).not.toBeVisible();
 	}
 
 	/**
 	 * Get all active share links from the modal
 	 */
 	async getActiveShareLinks(): Promise<string[]> {
-		const modal = this.page.locator('[role="dialog"]').filter({ hasText: 'Share' });
-		const shareInputs = modal.locator('input[readonly]');
-		const count = await shareInputs.count();
+		const count = await this.shareLinkInputs.count();
 		const links: string[] = [];
 
 		for (let i = 0; i < count; i++) {
-			const value = await shareInputs.nth(i).inputValue();
+			const value = await this.shareLinkInputs.nth(i).inputValue();
 			if (value) links.push(value);
 		}
 
 		return links;
-	}
-
-	// Legacy property aliases
-	get pageTitle() {
-		return this.documentTitle;
 	}
 }

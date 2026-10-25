@@ -25,10 +25,16 @@ export abstract class BasePage {
 	}
 
 	/**
-	 * Check if current URL matches expected path
+	 * Check that the current URL contains `expectedPath` (matched literally, so
+	 * a `.` or `?` in a path is not treated as a regex metacharacter). Note that
+	 * '/' matches every URL; assert the home page with an explicit RegExp.
 	 */
-	async expectUrl(expectedPath: string) {
-		await expect(this.page).toHaveURL(new RegExp(expectedPath));
+	async expectUrl(expectedPath: string | RegExp) {
+		const matcher =
+			typeof expectedPath === 'string'
+				? new RegExp(expectedPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+				: expectedPath;
+		await expect(this.page).toHaveURL(matcher);
 	}
 
 	/**
@@ -65,31 +71,10 @@ export abstract class BasePage {
 	}
 
 	/**
-	 * Wait for page to be stable (no pending network requests or DOM changes)
-	 */
-	async waitForPageStable() {
-		// Wait for any pending navigation
-		await this.page.waitForLoadState('networkidle');
-
-		// Wait for any dynamic content to load
-		await this.page.waitForTimeout(500);
-
-		// Ensure DOM is stable
-		await this.page.waitForLoadState('domcontentloaded');
-	}
-
-	/**
 	 * Fill input field and verify value
 	 */
 	async fillInput(locator: Locator, value: string) {
 		await locator.fill(value);
 		await expect(locator).toHaveValue(value);
-	}
-
-	/**
-	 * Check if element exists (without throwing if not found)
-	 */
-	async elementExists(selector: string): Promise<boolean> {
-		return (await this.page.$(selector)) !== null;
 	}
 }

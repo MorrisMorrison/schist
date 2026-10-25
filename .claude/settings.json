@@ -1,22 +1,28 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit\\|MultiEdit\\|Write",
-        "hooks": [{ "type": "command", "command": ".claude/hooks.sh --fast" }]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "SessionStart",
-        "hooks": [{ "type": "command", "command": "echo 'Please read and follow the instructions in .claude/START_PROMPT.md'" }]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "PreCompact",
-        "hooks": [{ "type": "command", "command": "echo 'About to compact conversation context'" }]
-      }
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)",
+      "Bash(gofmt -l:*)",
+      "Bash(make test:*)",
+      "Bash(make test-backend)",
+      "Bash(make test-frontend)",
+      "Bash(make check)",
+      "Bash(make lint:*)",
+      "Bash(npm run check)",
+      "Bash(npm run lint)",
+      "Bash(npm run test:unit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)"
     ]
   }
 }

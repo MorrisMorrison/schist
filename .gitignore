@@ -38,11 +38,15 @@ backend/data
 data/
 backend/schist
 .claude/settings.local.json
+.claude/worktrees/
 wiki-data/
 # E2E test artifacts  
 e2e/playwright-report
 e2e/test-results
 e2e/screenshots
+# README screenshots (published to the `screenshots` branch by CI)
+docs/screenshots/
+.screenshots-bin/
 e2e/node_modules
 backend/cmd/schist/schist
 project/

@@ -1,32 +1,37 @@
-import { test, expect } from '../fixtures';
+import { test, expect, type EditorPage } from '../fixtures';
+
+/**
+ * Open a new document, fill the editor with `content` in one go (not
+ * keystroke by keystroke like EditorPage.setContent) and switch to the
+ * preview. Returns the preview pane.
+ */
+async function previewNewDocument(editorPage: EditorPage, content: string) {
+	await editorPage.navigateToNew();
+	await editorPage.contentEditor.fill(content);
+	return editorPage.showPreview();
+}
 
 test.describe('Markdown Features', () => {
-	test('sidebar plus button creates new document', async ({ page }) => {
+	test('sidebar plus menu creates new document', async ({ page, editorPage }) => {
 		await page.goto('/');
 
-		// Find and click the plus button in the sidebar
-		const plusButton = page.locator('[title="Create new document"]');
+		// The sidebar's "+" opens a menu; "New page" starts a document.
+		const plusButton = page.getByTestId('sidebar-new-menu');
 		await expect(plusButton).toBeVisible();
 
 		await plusButton.click();
+		await page.getByRole('menuitem', { name: 'New page' }).click();
 
 		// Should navigate to /new
 		await expect(page).toHaveURL(/\/new$/);
 
 		// Should show the editor
-		await expect(page.locator('.cm-editor')).toBeVisible();
+		await expect(editorPage.contentEditor).toBeVisible();
 	});
 
-	test('wiki links work in preview', async ({ page }) => {
-		// Navigate to editor
-		await page.goto('/new');
-
-		// Add wiki link content
-		const wikiLinkContent = '# Test Wiki Links\n\n[[Test Document]]';
-		await page.fill('.cm-content', wikiLinkContent);
-
+	test('wiki links work in preview', async ({ editorPage }) => {
 		// Check preview shows wiki link
-		const preview = page.locator('[data-testid="markdown-preview"]');
+		const preview = await previewNewDocument(editorPage, '# Test Wiki Links\n\n[[Test Document]]');
 		await expect(preview.locator('.wiki-link')).toBeVisible();
 
 		// Wiki link should be red (broken link) initially
@@ -38,17 +43,12 @@ test.describe('Markdown Features', () => {
 		await expect(wikiLink).toHaveClass(/cursor-default/);
 	});
 
-	test('image rendering works in preview', async ({ page }) => {
-		// Navigate to editor
-		await page.goto('/new');
-
-		// Add image content with proper syntax
-		const imageContent =
-			'# Test Images\n\n![Test Image](https://via.placeholder.com/300x200 "Test Image|medium")';
-		await page.fill('.cm-content', imageContent);
-
-		// Check preview shows image element
-		const preview = page.locator('[data-testid="markdown-preview"]');
+	test('image rendering works in preview', async ({ editorPage }) => {
+		// Image content with proper syntax; the preview shows an image element
+		const preview = await previewNewDocument(
+			editorPage,
+			'# Test Images\n\n![Test Image](https://via.placeholder.com/300x200 "Test Image|medium")'
+		);
 		const image = preview.locator('img[alt="Test Image"]');
 
 		// Wait for the image element to be present in DOM
@@ -65,17 +65,12 @@ test.describe('Markdown Features', () => {
 		await expect(image).toHaveClass(/cursor-pointer/);
 	});
 
-	test('malformed image syntax still renders image', async ({ page }) => {
-		// Navigate to editor
-		await page.goto('/new');
-
-		// Add malformed image content (like in the bug report)
-		const malformedContent =
-			'# Test\n\n![test.png](https://via.placeholder.com/200x150) !="malformed|large"]';
-		await page.fill('.cm-content', malformedContent);
-
-		// Even malformed syntax should show an image
-		const preview = page.locator('[data-testid="markdown-preview"]');
+	test('malformed image syntax still renders image', async ({ editorPage }) => {
+		// Malformed image content (like in the bug report) should still show an image
+		const preview = await previewNewDocument(
+			editorPage,
+			'# Test\n\n![test.png](https://via.placeholder.com/200x150) !="malformed|large"]'
+		);
 		const image = preview.locator('img[alt="test.png"]');
 
 		// Wait for the image element to be present in DOM
@@ -85,11 +80,8 @@ test.describe('Markdown Features', () => {
 		await expect(image).toHaveAttribute('src', 'https://via.placeholder.com/200x150');
 	});
 
-	test('task lists render as checkboxes in preview', async ({ page }) => {
-		// Navigate to editor
-		await page.goto('/new');
-
-		// Add task list content with both checked and unchecked items
+	test('task lists render as checkboxes in preview', async ({ editorPage }) => {
+		// Task list content with both checked and unchecked items
 		const taskListContent =
 			'# Task List Test\n\n' +
 			'## My Tasks\n\n' +
@@ -101,15 +93,10 @@ test.describe('Markdown Features', () => {
 			'- [ ] Task with **bold** text\n' +
 			'- [x] Task with *italic* text';
 
-		await page.fill('.cm-content', taskListContent);
-
 		// Check preview renders checkboxes correctly
-		const preview = page.locator('[data-testid="markdown-preview"]');
+		const preview = await previewNewDocument(editorPage, taskListContent);
 
-		// Wait for preview to update (there's a 300ms delay in the editor)
-		await page.waitForTimeout(500);
-
-		// Wait for checkboxes to appear
+		// The preview updates after a short debounce; toHaveCount waits for it.
 		const checkboxes = preview.locator('[data-testid="checkbox"]');
 		await expect(checkboxes).toHaveCount(5); // 5 checkbox items total
 

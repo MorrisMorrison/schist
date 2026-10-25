@@ -9,6 +9,8 @@
 		getRecentDocumentPaths
 	} from '$lib/utils/fuzzy-search';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Dialog, DialogContent, DialogTitle } from '$lib/components/ui/dialog';
 
 	interface Props {
 		open: boolean;
@@ -93,10 +95,6 @@
 
 	function handleKeydown(event: KeyboardEvent) {
 		switch (event.key) {
-			case 'Escape':
-				event.preventDefault();
-				onClose();
-				break;
 			case 'ArrowDown':
 				event.preventDefault();
 				selectedIndex = Math.min(selectedIndex + 1, displayResults.length - 1);
@@ -128,118 +126,102 @@
 	}
 </script>
 
-{#if open}
-	<div
-		class="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-[10vh]"
-		onclick={(e) => {
-			if (e.target === e.currentTarget) onClose();
-		}}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') onClose();
-		}}
-		role="dialog"
-		aria-modal="true"
-		aria-label="Quick document switcher"
-		tabindex="-1"
+<!-- Escape and clicks outside the panel close it (handled by the dialog). -->
+<Dialog {open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+	<DialogContent
+		class="bg-card top-[10vh] translate-y-0 gap-0 p-0 shadow-2xl sm:max-w-2xl"
+		showCloseButton={false}
+		data-testid="quick-switcher"
 	>
-		<div
-			class="bg-card border-border w-full max-w-2xl rounded-lg border shadow-2xl"
-			role="document"
-			data-testid="quick-switcher"
-		>
-			<div class="flex items-center gap-3 border-b p-4">
-				<Search class="text-muted-foreground h-5 w-5" />
-				<input
-					bind:this={inputElement}
-					bind:value={query}
-					onkeydown={handleKeydown}
-					placeholder="Search documents... (type to search, use arrows to navigate)"
-					class="placeholder:text-muted-foreground flex-1 bg-transparent text-lg outline-none"
-					autocomplete="off"
-					spellcheck="false"
-					data-testid="quick-switcher-input"
-				/>
-				{#if isSearching}
-					<LoadingSpinner size="sm" />
-				{/if}
-			</div>
+		<DialogTitle class="sr-only">Quick document switcher</DialogTitle>
+		<div class="flex items-center gap-3 border-b p-4">
+			<Search class="text-muted-foreground h-5 w-5" />
+			<input
+				bind:this={inputElement}
+				bind:value={query}
+				onkeydown={handleKeydown}
+				placeholder="Search documents... (type to search, use arrows to navigate)"
+				class="placeholder:text-muted-foreground flex-1 bg-transparent text-lg outline-none"
+				autocomplete="off"
+				spellcheck="false"
+				data-testid="quick-switcher-input"
+			/>
+			{#if isSearching}
+				<LoadingSpinner size="sm" />
+			{/if}
+		</div>
 
-			<div class="max-h-96 overflow-y-auto">
-				{#if displayResults.length === 0}
-					<div
-						class="text-muted-foreground flex flex-col items-center justify-center py-8 text-center"
-					>
-						{#if query.trim() === ''}
-							<Clock class="mb-2 h-8 w-8" />
-							<p>No recent documents</p>
-							<p class="text-sm">Start typing to search all documents</p>
-						{:else}
-							<FileText class="mb-2 h-8 w-8" />
-							<p>No documents found</p>
-							<p class="text-sm">Try different search terms</p>
-						{/if}
-					</div>
-				{:else}
-					{#if query.trim() === '' && recentDocuments.length > 0}
-						<div
-							class="text-muted-foreground border-border border-b px-4 py-2 text-xs font-medium tracking-wider uppercase"
-						>
-							Recent Documents
-						</div>
+		<div class="max-h-96 overflow-y-auto">
+			{#if displayResults.length === 0}
+				<div
+					class="text-muted-foreground flex flex-col items-center justify-center py-8 text-center"
+				>
+					{#if query.trim() === ''}
+						<Clock class="mb-2 h-8 w-8" />
+						<p>No recent documents</p>
+						<p class="text-sm">Start typing to search all documents</p>
+					{:else}
+						<FileText class="mb-2 h-8 w-8" />
+						<p>No documents found</p>
+						<p class="text-sm">Try different search terms</p>
 					{/if}
-
-					{#each displayResults as document, index (document.metaData.path)}
-						<button
-							type="button"
-							class="hover:bg-accent focus:bg-accent flex w-full items-center gap-3 px-4 py-3 text-left transition-colors {selectedIndex ===
-							index
-								? 'bg-accent'
-								: ''}"
-							onclick={() => selectDocument(document)}
-							onmouseenter={() => (selectedIndex = index)}
-							data-testid="quick-switcher-result"
-						>
-							<div class="bg-primary/10 text-primary flex-shrink-0 rounded p-1.5">
-								<FileText class="h-4 w-4" />
-							</div>
-
-							<div class="min-w-0 flex-1">
-								<div class="text-foreground truncate font-medium">
-									{document.metaData.title}
-								</div>
-								<div class="text-muted-foreground flex items-center gap-1 text-sm">
-									<Folder class="h-3 w-3" />
-									<span class="truncate">{getParentPath(document.metaData.path)}</span>
-								</div>
-							</div>
-
-							{#if document.metaData.tags && document.metaData.tags.length > 0}
-								<div class="flex gap-1">
-									{#each document.metaData.tags.slice(0, 2) as tag (tag)}
-										<span
-											class="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-xs"
-										>
-											{tag}
-										</span>
-									{/each}
-									{#if document.metaData.tags.length > 2}
-										<span class="text-muted-foreground text-xs"
-											>+{document.metaData.tags.length - 2}</span
-										>
-									{/if}
-								</div>
-							{/if}
-						</button>
-					{/each}
-				{/if}
-			</div>
-
-			<div class="text-muted-foreground border-t px-4 py-2 text-xs">
-				<div class="flex items-center justify-between">
-					<span>Use ↑↓ to navigate, Enter to select, Esc to close</span>
-					<span class="font-mono">⌘K</span>
 				</div>
+			{:else}
+				{#if query.trim() === '' && recentDocuments.length > 0}
+					<div
+						class="text-muted-foreground border-border border-b px-4 py-2 text-xs font-medium tracking-wider uppercase"
+					>
+						Recent Documents
+					</div>
+				{/if}
+
+				{#each displayResults as document, index (document.metaData.path)}
+					<button
+						type="button"
+						class="hover:bg-accent focus:bg-accent flex w-full items-center gap-3 px-4 py-3 text-left transition-colors {selectedIndex ===
+						index
+							? 'bg-accent'
+							: ''}"
+						onclick={() => selectDocument(document)}
+						onmouseenter={() => (selectedIndex = index)}
+						data-testid="quick-switcher-result"
+					>
+						<div class="bg-primary/10 text-primary flex-shrink-0 rounded p-1.5">
+							<FileText class="h-4 w-4" />
+						</div>
+
+						<div class="min-w-0 flex-1">
+							<div class="text-foreground truncate font-medium">
+								{document.metaData.title}
+							</div>
+							<div class="text-muted-foreground flex items-center gap-1 text-sm">
+								<Folder class="h-3 w-3" />
+								<span class="truncate">{getParentPath(document.metaData.path)}</span>
+							</div>
+						</div>
+
+						{#if document.metaData.tags && document.metaData.tags.length > 0}
+							<div class="flex gap-1">
+								{#each document.metaData.tags.slice(0, 2) as tag (tag)}
+									<Badge variant="secondary">{tag}</Badge>
+								{/each}
+								{#if document.metaData.tags.length > 2}
+									<span class="text-muted-foreground text-xs"
+										>+{document.metaData.tags.length - 2}</span
+									>
+								{/if}
+							</div>
+						{/if}
+					</button>
+				{/each}
+			{/if}
+		</div>
+
+		<div class="text-muted-foreground border-t px-4 py-2 text-xs">
+			<div class="flex items-center justify-between">
+				<span>Use ↑↓ to navigate, Enter to select, Esc to close</span>
+				<span class="font-mono">⌘K</span>
 			</div>
 		</div>
-	</div>
-{/if}
+	</DialogContent>
+</Dialog>

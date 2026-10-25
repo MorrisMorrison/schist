@@ -159,37 +159,54 @@ export const secretStore = {
 };
 
 // Helper function to process secret placeholders in text
+const SECRET_PLACEHOLDER_REGEX = /\{\{secret:([^}]+)\}\}/g;
+
 export function parseSecretPlaceholders(text: string): { placeholder: string; key: string }[] {
-	const placeholderRegex = /\{\{secret:([^}]+)\}\}/g;
-	const placeholders: { placeholder: string; key: string }[] = [];
-	let match;
-
-	while ((match = placeholderRegex.exec(text)) !== null) {
-		placeholders.push({
-			placeholder: match[0],
-			key: match[1].trim()
-		});
-	}
-
-	return placeholders;
+	return Array.from(text.matchAll(SECRET_PLACEHOLDER_REGEX), (match) => ({
+		placeholder: match[0],
+		key: match[1].trim()
+	}));
 }
 
-// Helper function to replace secret placeholders with actual values
+// Replaces secret placeholders with their values. Values are inserted
+// literally (a function replacer, so `$&` and friends are not expanded), and
+// each distinct key is fetched once. Placeholders whose value cannot be loaded
+// are left as they are.
 export async function replaceSecretPlaceholders(
 	text: string,
 	getSecretValue: (key: string) => Promise<string>
 ): Promise<string> {
-	const placeholders = parseSecretPlaceholders(text);
-
-	let processedText = text;
-	for (const { placeholder, key } of placeholders) {
+	const values = new Map<string, string>();
+	for (const { placeholder, key } of parseSecretPlaceholders(text)) {
+		if (values.has(key)) continue;
 		try {
-			const value = await getSecretValue(key);
-			processedText = processedText.replace(placeholder, value);
+			values.set(key, await getSecretValue(key));
 		} catch (error) {
 			console.warn(`Failed to replace secret placeholder ${placeholder}:`, error);
 		}
 	}
 
-	return processedText;
+	return text.replace(SECRET_PLACEHOLDER_REGEX, (placeholder, rawKey: string) => {
+		const value = values.get(rawKey.trim());
+		return value === undefined ? placeholder : value;
+	});
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+// Wraps each secret placeholder in a "locked" indicator for display while
+// secrets are locked. The key comes from the document text and may contain
+// quotes or markup, so it is escaped before it is spliced into HTML.
+export function markLockedSecretPlaceholders(text: string): string {
+	return text.replace(SECRET_PLACEHOLDER_REGEX, (placeholder, rawKey: string) => {
+		const key = escapeHtml(rawKey.trim());
+		return `<span class="secret-placeholder bg-muted text-muted-foreground px-2 py-1 rounded-md font-mono text-sm border border-border" title="Secret '${key}' is locked. Unlock secrets to view the value.">${escapeHtml(placeholder)} 🔒</span>`;
+	});
 }

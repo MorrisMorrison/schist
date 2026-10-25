@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePath, encodePath, buildApiEndpoint, generateSlug, getParentPath } from './path';
+import {
+	normalizePath,
+	encodePath,
+	buildApiEndpoint,
+	generateSlug,
+	getParentPath,
+	joinPath,
+	isDirectChild,
+	isValidFolderName,
+	folderNameToSegment
+} from './path';
 
 describe('normalizePath', () => {
 	it('should return "/" for empty string', () => {
@@ -148,5 +158,49 @@ describe('path handling consistency', () => {
 			expect(encoded.startsWith('/')).toBe(true);
 			expect(encoded.includes('//')).toBe(false);
 		});
+	});
+});
+
+describe('joinPath', () => {
+	it('appends to a folder and treats an empty parent or / as the root', () => {
+		expect(joinPath('/docs', 'intro')).toBe('/docs/intro');
+		expect(joinPath('/', 'intro')).toBe('/intro');
+		expect(joinPath('', 'intro')).toBe('/intro');
+	});
+});
+
+describe('isDirectChild', () => {
+	it('matches only items directly inside the folder', () => {
+		expect(isDirectChild('/docs/intro', '/docs')).toBe(true);
+		expect(isDirectChild('/docs/deep/intro', '/docs')).toBe(false);
+		expect(isDirectChild('/other/intro', '/docs')).toBe(false);
+		expect(isDirectChild('/docs', '/docs')).toBe(false);
+	});
+
+	it('treats an empty folder path or / as the root', () => {
+		expect(isDirectChild('/intro', '/')).toBe(true);
+		expect(isDirectChild('/intro', '')).toBe(true);
+		expect(isDirectChild('/docs/intro', '/')).toBe(false);
+	});
+});
+
+describe('isValidFolderName', () => {
+	it('accepts letters, digits, spaces, dashes and underscores', () => {
+		expect(isValidFolderName('My Folder_2-b')).toBe(true);
+		expect(isValidFolderName('a'.repeat(50))).toBe(true);
+	});
+
+	it('rejects blank, too long and special-character names', () => {
+		expect(isValidFolderName('')).toBe(false);
+		expect(isValidFolderName('   ')).toBe(false);
+		expect(isValidFolderName('a'.repeat(51))).toBe(false);
+		expect(isValidFolderName('a/b')).toBe(false);
+		expect(isValidFolderName('a.b')).toBe(false);
+	});
+});
+
+describe('folderNameToSegment', () => {
+	it('trims, lower-cases and dashes spaces', () => {
+		expect(folderNameToSegment('  My  New Folder ')).toBe('my-new-folder');
 	});
 });

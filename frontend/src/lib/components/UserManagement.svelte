@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/utils/date';
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import {
@@ -14,6 +15,7 @@
 	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from '@lucide/svelte';
 	import { apiClient } from '$lib/api/client';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import { getErrorMessage } from '$lib/utils/error';
 	import type { UserInfo } from '$lib/api/types';
 
@@ -86,10 +88,6 @@
 			error = getErrorMessage(err, 'Failed to delete user');
 		}
 	}
-
-	function formatDate(dateStr: string) {
-		return new Date(dateStr).toLocaleDateString();
-	}
 </script>
 
 <Card>
@@ -106,11 +104,7 @@
 
 	<CardContent class="space-y-6">
 		{#if error}
-			<div
-				class="border-destructive/20 bg-destructive/10 text-destructive rounded-md border p-3 text-sm"
-			>
-				{error}
-			</div>
+			<ErrorAlert {error} />
 		{/if}
 
 		{#if loading}
@@ -231,7 +225,7 @@
 							</Button>
 						</div>
 					{:else}
-						<div class="text-muted-foreground text-center py-8">
+						<div class="text-muted-foreground py-8 text-center">
 							<Users class="mx-auto h-12 w-12 opacity-50" />
 							<p class="mt-2">No users found</p>
 						</div>

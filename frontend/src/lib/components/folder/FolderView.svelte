@@ -6,10 +6,13 @@
 	import CreateFolderModal from '../modal/CreateFolderModal.svelte';
 	import { Plus, FolderPlus, File } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Label } from '$lib/components/ui/label';
+	import * as Select from '$lib/components/ui/select';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import type { Document, Folder as FolderType } from '$lib/api/types';
+	import { isDirectChild } from '$lib/utils/path';
 
 	interface Props {
 		path?: string;
@@ -32,32 +35,27 @@
 	let showCreateFolderModal = $state(false);
 	let isLoadingFolderData = $state(false);
 	let multiSelectMode = $state(false);
-	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name');
+	type SortKey = 'name' | 'created' | 'modified';
+	const sortItems: { value: SortKey; label: string }[] = [
+		{ value: 'name', label: 'Name' },
+		{ value: 'created', label: 'Created' },
+		{ value: 'modified', label: 'Modified' }
+	];
+	let sortBy = $state<SortKey>(mode === 'recent' ? 'modified' : 'name');
 	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc');
 
-	const currentFolderDocuments = $derived(() => {
+	const currentFolderDocuments = $derived.by(() => {
 		let filteredDocuments;
 
 		if (mode === 'recent') {
 			filteredDocuments = (documentsStore.documents || []).slice(0, recentLimit);
 		} else if (mode === 'all') {
-			filteredDocuments = documentsStore.documents || [];
+			// Copy: the sort below is in place and must not mutate store state.
+			filteredDocuments = [...(documentsStore.documents || [])];
 		} else {
-			filteredDocuments = (documentsStore.documents || []).filter((document) => {
-				const documentPath = document.metaData?.path || '';
-				const isRoot = path === '' || path === '/';
-				if (isRoot) {
-					return documentPath.split('/').length === 2; // ['', 'filename']
-				}
-
-				const folderSegments = path.split('/').filter(Boolean);
-				const documentSegments = documentPath.split('/').filter(Boolean);
-
-				return (
-					documentSegments.length === folderSegments.length + 1 &&
-					documentSegments.slice(0, folderSegments.length).join('/') === folderSegments.join('/')
-				);
-			});
+			filteredDocuments = (documentsStore.documents || []).filter((document) =>
+				isDirectChild(document.metaData?.path || '', path)
+			);
 		}
 
 		return filteredDocuments.sort((a, b) => {
@@ -138,19 +136,19 @@
 			<div class="text-secondary flex items-center gap-2 text-sm">
 				{#if mode === 'recent'}
 					<span class="font-medium">
-						{currentFolderDocuments().length > 0
-							? `Showing ${currentFolderDocuments().length} of ${documentsStore.documents.length} documents, sorted by most recent activity`
+						{currentFolderDocuments.length > 0
+							? `Showing ${currentFolderDocuments.length} of ${documentsStore.documents.length} documents, sorted by most recent activity`
 							: 'No documents found'}
 					</span>
 				{:else if mode === 'all'}
 					<span class="font-medium">
-						{currentFolderDocuments().length}
-						{currentFolderDocuments().length === 1 ? 'document' : 'documents'} total
+						{currentFolderDocuments.length}
+						{currentFolderDocuments.length === 1 ? 'document' : 'documents'} total
 					</span>
 				{:else}
 					<span class="font-medium">
-						{currentFolderDocuments().length}
-						{currentFolderDocuments().length === 1 ? 'document' : 'documents'}
+						{currentFolderDocuments.length}
+						{currentFolderDocuments.length === 1 ? 'document' : 'documents'}
 					</span>
 				{/if}
 			</div>
@@ -169,16 +167,21 @@
 			<div
 				class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2"
 			>
-				<label class="text-secondary text-sm font-medium" for="sort-select">Sort by:</label>
-				<select
-					bind:value={sortBy}
-					class="bg-primary text-primary cursor-pointer rounded border px-2 py-1 text-sm"
-					id="sort-select"
+				<Label for="sort-select" class="text-secondary">Sort by:</Label>
+				<Select.Root
+					type="single"
+					items={sortItems}
+					bind:value={() => sortBy, (value) => (sortBy = value as SortKey)}
 				>
-					<option value="name">Name</option>
-					<option value="created">Created</option>
-					<option value="modified">Modified</option>
-				</select>
+					<Select.Trigger id="sort-select" size="sm" class="min-w-28">
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content>
+						{#each sortItems as item (item.value)}
+							<Select.Item {...item} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
 				<Button
 					variant="outline"
 					size="sm"
@@ -214,7 +217,7 @@
 
 	<Card class="border-border bg-card shadow-sm">
 		<CardContent class="pt-4 pr-8 pb-6 pl-8">
-			{#if currentFolderDocuments().length > 0}
+			{#if currentFolderDocuments.length > 0}
 				<section class="space-y-6" data-testid="documents-section">
 					<div class="flex items-center justify-between">
 						<h2 class="text-foreground text-xl font-semibold">Documents</h2>
@@ -228,7 +231,7 @@
 						</div>
 					</div>
 					<DocumentGrid
-						documents={currentFolderDocuments()}
+						documents={currentFolderDocuments}
 						showPath={mode !== 'folder'}
 						{multiSelectMode}
 						onMultiSelectModeChange={(enabled: boolean) => (multiSelectMode = enabled)}
@@ -241,7 +244,7 @@
 				</section>
 			{/if}
 
-			{#if currentFolderDocuments().length === 0}
+			{#if currentFolderDocuments.length === 0}
 				<div
 					class="flex flex-col items-center justify-center py-12 text-center"
 					data-testid="empty-folder-message"

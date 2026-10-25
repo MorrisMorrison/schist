@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 
 	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
@@ -19,6 +18,7 @@ import (
 // to the right HTTP status:
 //   - a missing document/path or an unknown commit hash -> NotFound (404)
 //   - a malformed/empty commit hash -> Validation (400)
+//   - a path that breaks the shared path rules -> InvalidPath (400)
 //   - genuine git/IO failures -> plain error (500)
 
 // fullCommitHashPattern matches a 40-character lowercase SHA-1 commit hash, the
@@ -41,34 +41,33 @@ func validateCommitHash(field, commitHash string) *errors.APIError {
 	return nil
 }
 
-// isGitNotFound reports whether a git error from the version-retrieval helpers
-// indicates a missing commit or a file that is absent from a commit's tree
-// (i.e. an unknown version), as opposed to a genuine internal failure.
-func isGitNotFound(err error) bool {
-	if err == nil {
-		return false
+// versionError maps a git version lookup failure: an unknown commit (or a
+// document absent from that commit) is a typed NotFound, anything else an
+// internal error wrapped with context.
+func versionError(err error, context string) error {
+	var notFound *VersionNotFoundError
+	if stderrors.As(err, &notFound) {
+		return errors.NewNotFoundError("version", notFound.Hash).WithCause(err)
 	}
-	// go-git surfaces these as plumbing.ErrObjectNotFound / ErrFileNotFound, but
-	// git_service.go wraps them in fmt.Errorf with stable messages. Match on the
-	// wrap messages so we stay decoupled from git_service internals while still
-	// classifying the "unknown version" cases correctly.
-	msg := err.Error()
-	for _, marker := range []string{
-		"failed to get commit object",
-		"failed to get file from tree",
-		"failed to get document content from commit",
-		"commit does not exist",
-	} {
-		if strings.Contains(msg, marker) {
-			return true
-		}
+	return fmt.Errorf("%s: %w", context, err)
+}
+
+// requireHistory applies the shared path rules to a version-endpoint path, so
+// a crafted path can never reach the git tree lookup or the restore write
+// outside the data directory, and checks that version history is available.
+func (d *DocumentService) requireHistory(documentPath string) error {
+	if err := validatePath(documentPath); err != nil {
+		return err
 	}
-	return false
+	if d.gitService == nil {
+		return fmt.Errorf("git service not available")
+	}
+	return nil
 }
 
 func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentVersion, error) {
-	if d.gitService == nil {
-		return nil, fmt.Errorf("git service not available")
+	if err := d.requireHistory(documentPath); err != nil {
+		return nil, err
 	}
 
 	versions, err := d.gitService.GetDocumentVersions(documentPath)
@@ -93,8 +92,8 @@ func (d *DocumentService) GetDocumentVersions(documentPath string) ([]*DocumentV
 }
 
 func (d *DocumentService) GetDocumentAtVersion(documentPath string, commitHash string) (*models.Document, error) {
-	if d.gitService == nil {
-		return nil, fmt.Errorf("git service not available")
+	if err := d.requireHistory(documentPath); err != nil {
+		return nil, err
 	}
 
 	if apiErr := validateCommitHash("hash", commitHash); apiErr != nil {
@@ -103,10 +102,7 @@ func (d *DocumentService) GetDocumentAtVersion(documentPath string, commitHash s
 
 	document, err := d.gitService.GetDocumentAtVersion(documentPath, commitHash)
 	if err != nil {
-		if isGitNotFound(err) {
-			return nil, errors.NewNotFoundError("version", commitHash)
-		}
-		return nil, fmt.Errorf("failed to get document at version: %w", err)
+		return nil, versionError(err, "failed to get document at version")
 	}
 
 	return document, nil
@@ -123,22 +119,22 @@ var ErrCommitFailed = stderrors.New("document saved but version commit failed")
 // can distinguish a successful disk write with lost history from a clean
 // success. When no git service is configured, versioning is disabled and nil is
 // returned.
-func (d *DocumentService) commitDocumentChange(documentPath string, message string) error {
+func (d *DocumentService) commitDocumentChange(message string, documentPaths ...string) error {
 	if d.gitService == nil {
 		return nil
 	}
 
-	if err := d.gitService.CommitDocument(documentPath, message); err != nil {
-		log.Printf("Warning: Failed to commit document change for %s: %v", documentPath, err)
-		return fmt.Errorf("%w for %s: %v", ErrCommitFailed, documentPath, err)
+	if err := d.gitService.CommitDocuments(message, documentPaths...); err != nil {
+		log.Printf("Warning: Failed to commit document change for %v: %v", documentPaths, err)
+		return fmt.Errorf("%w for %v: %v", ErrCommitFailed, documentPaths, err)
 	}
 
 	return nil
 }
 
 func (d *DocumentService) CompareDocumentVersions(documentPath, hash1, hash2 string) (*DiffResult, error) {
-	if d.gitService == nil {
-		return nil, fmt.Errorf("git service not available")
+	if err := d.requireHistory(documentPath); err != nil {
+		return nil, err
 	}
 
 	if apiErr := validateCommitHash("hash1", hash1); apiErr != nil {
@@ -150,23 +146,15 @@ func (d *DocumentService) CompareDocumentVersions(documentPath, hash1, hash2 str
 
 	diff, err := d.gitService.CompareVersions(documentPath, hash1, hash2)
 	if err != nil {
-		if isGitNotFound(err) {
-			// Report whichever well-formed hash git could not resolve.
-			missing := hash1
-			if strings.Contains(err.Error(), hash2) {
-				missing = hash2
-			}
-			return nil, errors.NewNotFoundError("version", missing)
-		}
-		return nil, fmt.Errorf("failed to compare document versions: %w", err)
+		return nil, versionError(err, "failed to compare document versions")
 	}
 
 	return diff, nil
 }
 
 func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) error {
-	if d.gitService == nil {
-		return fmt.Errorf("git service not available")
+	if err := d.requireHistory(path); err != nil {
+		return err
 	}
 
 	if apiErr := validateCommitHash("hash", commitHash); apiErr != nil {
@@ -174,10 +162,7 @@ func (d *DocumentService) RestoreDocumentToVersion(path, commitHash string) erro
 	}
 
 	if err := d.gitService.RestoreDocument(path, commitHash); err != nil {
-		if isGitNotFound(err) {
-			return errors.NewNotFoundError("version", commitHash)
-		}
-		return fmt.Errorf("failed to restore document: %w", err)
+		return versionError(err, "failed to restore document")
 	}
 
 	return nil

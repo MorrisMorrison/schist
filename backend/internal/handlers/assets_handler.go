@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/gin-gonic/gin"
@@ -17,7 +16,7 @@ func (h *APIHandler) uploadAsset(c *gin.Context) {
 
 	asset, err := h.AssetService.UploadImage(file)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(err.Error()).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -27,14 +26,16 @@ func (h *APIHandler) uploadAsset(c *gin.Context) {
 	})
 }
 
+// assetPathParam maps the catch-all route parameter of /api/assets/*path
+// (e.g. "/images/x.png") to the logical asset path "/assets/images/x.png".
+func assetPathParam(c *gin.Context) string {
+	return "/assets" + pathParam(c)
+}
+
 func (h *APIHandler) serveAsset(c *gin.Context) {
-	path := pathParam(c)
-
-	assetPath := "/assets" + path
-
-	fullPath, err := h.AssetService.GetAssetPath(assetPath)
+	fullPath, err := h.AssetService.GetAssetPath(assetPathParam(c))
 	if err != nil {
-		HandleError(c, errors.NewNotFoundError("asset", assetPath).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -43,16 +44,15 @@ func (h *APIHandler) serveAsset(c *gin.Context) {
 
 func (h *APIHandler) deleteAsset(c *gin.Context) {
 	path := pathParam(c)
-
-	assetPath := strings.TrimPrefix(path, "/assets")
-	if assetPath == "" {
+	if path == "/" {
 		HandleError(c, errors.NewValidationError("Invalid asset path"))
 		return
 	}
 
-	err := h.AssetService.DeleteAsset("assets" + assetPath)
-	if err != nil {
-		HandleError(c, errors.NewFileSystemError("delete asset", err))
+	// Previously this built "assets/..." without a leading slash, which the
+	// path validation always rejected, so every delete failed with a 500.
+	if err := h.AssetService.DeleteAsset(assetPathParam(c)); err != nil {
+		HandleError(c, err)
 		return
 	}
 

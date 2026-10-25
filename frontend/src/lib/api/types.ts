@@ -384,7 +384,8 @@ export interface PasskeyCreateResponse {
 }
 
 export interface PasskeyUnlockRequest {
-	credentialId: string;
+	// Single-use ticket from a verified assertion (authenticate/finish).
+	authTicket: string;
 }
 
 export interface PasskeyListResponse {

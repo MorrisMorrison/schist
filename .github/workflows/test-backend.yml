@@ -20,15 +20,34 @@ concurrency:
 jobs:
   backend-tests:
     name: Backend Tests
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # self-hosted VPS (e2e is the GitHub-hosted job)
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # repo variable, see docs/CI.md
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '1.25'
           cache-dependency-path: backend/go.sum
 
       - name: Run backend tests
-        run: make run-backend-test
+        working-directory: backend
+        run: go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      # The SecretManager/Settings hammer tests (#253) only fail intermittently
+      # without the race detector; with it, any unsynchronised access fails the
+      # run. Scoped to those tests to keep the job fast.
+      - name: Run concurrency tests with the race detector
+        working-directory: backend
+        run: go test -race -count=1 -run 'TestSecretManager_Concurrent|TestSettings_Concurrent|TestGitHubService_Concurrent' ./internal/services/ ./internal/config/
+
+      # Fork PRs have no secrets; Codecov accepts tokenless uploads from forks of
+      # public repos. An upload problem never fails the job.
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/coverage.out
+          flags: backend
+          fail_ci_if_error: false

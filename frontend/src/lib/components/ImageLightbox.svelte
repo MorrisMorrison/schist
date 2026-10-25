@@ -74,6 +74,7 @@
 				variant="ghost"
 				size="sm"
 				onclick={zoomOut}
+				aria-label="Zoom out"
 				class="text-white hover:bg-white/20"
 				disabled={zoom <= 0.25}
 			>
@@ -83,18 +84,26 @@
 				variant="ghost"
 				size="sm"
 				onclick={zoomIn}
+				aria-label="Zoom in"
 				class="text-white hover:bg-white/20"
 				disabled={zoom >= 4}
 			>
 				<ZoomIn class="h-4 w-4" />
 			</Button>
-			<Button variant="ghost" size="sm" onclick={rotate} class="text-white hover:bg-white/20">
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={rotate}
+				aria-label="Rotate"
+				class="text-white hover:bg-white/20"
+			>
 				<RotateCw class="h-4 w-4" />
 			</Button>
 			<Button
 				variant="ghost"
 				size="sm"
 				onclick={resetTransform}
+				aria-label="Reset zoom and rotation"
 				class="text-white hover:bg-white/20"
 			>
 				Reset
@@ -103,14 +112,27 @@
 				variant="ghost"
 				size="sm"
 				onclick={downloadImage}
+				aria-label="Download image"
 				class="text-white hover:bg-white/20"
 			>
 				<Download class="h-4 w-4" />
 			</Button>
-			<Button variant="ghost" size="sm" onclick={openInNewTab} class="text-white hover:bg-white/20">
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={openInNewTab}
+				aria-label="Open image in new tab"
+				class="text-white hover:bg-white/20"
+			>
 				<ExternalLink class="h-4 w-4" />
 			</Button>
-			<Button variant="ghost" size="sm" onclick={onClose} class="text-white hover:bg-white/20">
+			<Button
+				variant="ghost"
+				size="sm"
+				onclick={onClose}
+				aria-label="Close image viewer"
+				class="text-white hover:bg-white/20"
+			>
 				<X class="h-4 w-4" />
 			</Button>
 		</div>

@@ -59,6 +59,15 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 
 		// Check if this is a public endpoint
 		if ja.isPublicEndpoint(c.Request.URL.Path) {
+			// No token is required here, but a caller who sends a valid one is
+			// still identified: e.g. passkey registration lets a signed-in user
+			// add a passkey to their own account. A missing or invalid token
+			// is ignored, exactly as before.
+			if ja.config.AuthEnabled {
+				if username, ok := ja.authenticate(c); ok {
+					c.Set("authenticated_user", username)
+				}
+			}
 			c.Next()
 			return
 		}
@@ -77,20 +86,8 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 			}
 		}
 
-		auth := c.GetHeader("Authorization")
-		if auth == "" {
-			ja.unauthorized(c)
-			return
-		}
-
-		token := ja.extractToken(auth)
-		if token == "" {
-			ja.unauthorized(c)
-			return
-		}
-
-		username, err := ja.authService.ValidateToken(token)
-		if err != nil {
+		username, ok := ja.authenticate(c)
+		if !ok {
 			ja.unauthorized(c)
 			return
 		}
@@ -98,6 +95,20 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 		c.Set("authenticated_user", username)
 		c.Next()
 	}
+}
+
+// authenticate validates the request's bearer token and returns its username.
+func (ja *JWTAuth) authenticate(c *gin.Context) (string, bool) {
+	token := ja.extractToken(c.GetHeader("Authorization"))
+	if token == "" {
+		return "", false
+	}
+
+	username, err := ja.authService.ValidateToken(token)
+	if err != nil {
+		return "", false
+	}
+	return username, true
 }
 
 func (ja *JWTAuth) extractToken(auth string) string {

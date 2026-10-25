@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
@@ -19,7 +20,12 @@ type WikiLink struct {
 type LinkService struct {
 	documentService *DocumentService
 	ignoreService   *IgnoreService
-	backlinks       map[string][]string // map[targetPath][]sourcePaths
+
+	// mu guards backlinks: handlers update and rebuild the index from
+	// concurrent requests, and an unguarded map write is a fatal runtime
+	// error that takes down the whole server.
+	mu        sync.Mutex
+	backlinks map[string][]string // map[targetPath][]sourcePaths
 }
 
 func NewLinkService(documentService *DocumentService, ignoreService *IgnoreService) *LinkService {
@@ -110,9 +116,14 @@ func (l *LinkService) GetBacklinks(targetPath string) ([]string, error) {
 		return nil, fmt.Errorf("invalid target path: %w", err)
 	}
 
-	if err := l.rebuildBacklinksIndex(); err != nil {
+	index, err := l.buildBacklinksIndex()
+	if err != nil {
 		return nil, fmt.Errorf("failed to rebuild backlinks index: %w", err)
 	}
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.backlinks = index
 
 	backlinks := l.backlinks[targetPath]
 	if backlinks == nil {
@@ -129,22 +140,27 @@ func (l *LinkService) UpdateBacklinks(pagePath string) error {
 		return fmt.Errorf("invalid page path: %w", err)
 	}
 
-	l.removeBacklinksFromSource(pagePath)
-
 	links, err := l.GetOutgoingLinks(pagePath)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.removeBacklinksFromSource(pagePath)
 	if err != nil {
 		return fmt.Errorf("failed to get outgoing links: %w", err)
 	}
 
 	for _, link := range links {
 		if link.IsValid {
-			l.addBacklink(link.Path, pagePath)
+			addBacklink(l.backlinks, link.Path, pagePath)
 		}
 	}
 
 	return nil
 }
 
+// removeBacklinksFromSource drops every backlink contributed by sourcePath.
+// Callers must hold l.mu.
 func (l *LinkService) removeBacklinksFromSource(sourcePath string) {
 	for targetPath, sources := range l.backlinks {
 		var newSources []string
@@ -162,24 +178,21 @@ func (l *LinkService) removeBacklinksFromSource(sourcePath string) {
 	}
 }
 
-func (l *LinkService) addBacklink(targetPath, sourcePath string) {
-	if l.backlinks[targetPath] == nil {
-		l.backlinks[targetPath] = []string{}
-	}
-
-	if slices.Contains(l.backlinks[targetPath], sourcePath) {
+func addBacklink(index map[string][]string, targetPath, sourcePath string) {
+	if slices.Contains(index[targetPath], sourcePath) {
 		return
 	}
-
-	l.backlinks[targetPath] = append(l.backlinks[targetPath], sourcePath)
+	index[targetPath] = append(index[targetPath], sourcePath)
 }
 
-func (l *LinkService) rebuildBacklinksIndex() error {
-	l.backlinks = make(map[string][]string)
+// buildBacklinksIndex computes a fresh backlinks index from all documents.
+// It does not touch l.backlinks, so it runs without holding l.mu.
+func (l *LinkService) buildBacklinksIndex() (map[string][]string, error) {
+	index := make(map[string][]string)
 
 	documents, err := l.documentService.ListDocuments()
 	if err != nil {
-		return fmt.Errorf("failed to list documents: %w", err)
+		return nil, fmt.Errorf("failed to list documents: %w", err)
 	}
 
 	for _, document := range documents {
@@ -190,12 +203,12 @@ func (l *LinkService) rebuildBacklinksIndex() error {
 		links := l.ParseWikiLinks(document.Content)
 		for _, link := range links {
 			if link.IsValid {
-				l.addBacklink(link.Path, document.MetaData.Path)
+				addBacklink(index, link.Path, document.MetaData.Path)
 			}
 		}
 	}
 
-	return nil
+	return index, nil
 }
 
 func (l *LinkService) GetBrokenLinks() (map[string][]*WikiLink, error) {

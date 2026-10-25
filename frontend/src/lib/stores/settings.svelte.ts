@@ -1,5 +1,7 @@
 interface AppSettings {
-	alwaysHidePreview: boolean;
+	/** Open documents in edit mode instead of the reading view. */
+	openDocumentsInEditMode: boolean;
+	/** Start editing in focus mode (the editor alone, full window). */
 	alwaysOpenFullscreen: boolean;
 }
 
@@ -9,7 +11,7 @@ interface Settings {
 
 const defaultSettings: Settings = {
 	app: {
-		alwaysHidePreview: false,
+		openDocumentsInEditMode: false,
 		alwaysOpenFullscreen: false
 	}
 };
@@ -21,9 +23,12 @@ function loadSettings(): Settings {
 		const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
 		if (stored) {
 			const parsed = JSON.parse(stored);
-			return {
-				app: { ...defaultSettings.app, ...parsed.app }
-			};
+			// Keep only settings that still exist (older versions stored others).
+			const app = { ...defaultSettings.app };
+			for (const key of Object.keys(app) as (keyof AppSettings)[]) {
+				if (typeof parsed.app?.[key] === 'boolean') app[key] = parsed.app[key];
+			}
+			return { app };
 		}
 	} catch (error) {
 		console.warn('Failed to load settings from localStorage:', error);

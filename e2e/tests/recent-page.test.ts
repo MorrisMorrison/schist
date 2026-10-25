@@ -5,22 +5,14 @@ test.describe('Recent Page', () => {
 		await page.goto('/');
 	});
 
-	test('should navigate to recent page from navbar', async ({ page }) => {
-		await page.click('[data-testid="nav-recent"]');
-
-		await expect(page).toHaveURL('/recent');
-
-		await expect(page.locator('h1')).toContainText('Recent Documents');
-	});
-
-	test('should handle empty state gracefully', async ({ page }) => {
-		await page.click('[data-testid="nav-recent"]');
+	test('should navigate to recent page from navbar and show the empty state', async ({ page }) => {
+		await page.getByTestId('nav-recent').click();
 
 		await expect(page).toHaveURL('/recent');
 		await expect(page.locator('h1')).toContainText('Recent Documents');
 
-		await expect(page.locator('text=No recent activity')).toBeVisible();
-		await expect(page.locator('text=Loading...')).not.toBeVisible();
+		await expect(page.getByText('No recent activity')).toBeVisible();
+		await expect(page.getByText('Loading...')).not.toBeVisible();
 	});
 
 	test('should display error state when API fails', async ({ page }) => {
@@ -44,7 +36,7 @@ test.describe('Recent Page', () => {
 		// Now go to recent page
 		await page.goto('/recent');
 
-		await expect(page.locator('text=Error loading documents')).toBeVisible();
+		await expect(page.getByText('Error loading documents')).toBeVisible();
 	});
 });
 
@@ -58,14 +50,14 @@ test.describe('Recent Page with Data', () => {
 		withMultipleDocuments: _withMultipleDocuments
 	}) => {
 		// Test data is automatically available via the withMultipleDocuments fixture
-		await page.click('[data-testid="nav-recent"]');
+		await page.getByTestId('nav-recent').click();
 
 		await expect(page.locator('h1')).toContainText('Recent Documents');
 
-		await expect(page.locator('[data-testid="document-card"]').first()).toBeVisible();
+		await expect(page.getByTestId('document-card').first()).toBeVisible();
 
-		await expect(page.locator('text=No recent activity')).not.toBeVisible();
-		await expect(page.locator('text=Loading...')).not.toBeVisible();
+		await expect(page.getByText('No recent activity')).not.toBeVisible();
+		await expect(page.getByText('Loading...')).not.toBeVisible();
 	});
 
 	test('should display multiple documents in recent view', async ({
@@ -75,8 +67,6 @@ test.describe('Recent Page with Data', () => {
 		await page.goto('/recent');
 
 		await expect(page.locator('h1')).toContainText('Recent Documents');
-		await expect(page.locator('[data-testid="document-card"]')).toHaveCount(
-			withMultipleDocuments.length
-		);
+		await expect(page.getByTestId('document-card')).toHaveCount(withMultipleDocuments.length);
 	});
 });

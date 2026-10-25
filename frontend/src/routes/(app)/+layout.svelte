@@ -4,7 +4,6 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
 	import KeyboardShortcutsModal from '$lib/components/modal/KeyboardShortcutsModal.svelte';
-	import WorkspaceIndicator from '$lib/components/WorkspaceIndicator.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import {
@@ -52,6 +51,19 @@
 		quickSwitcherOpen = true;
 	}
 
+	function handleOpenKeyboardShortcuts() {
+		keyboardShortcutsOpen = true;
+	}
+
+	// "?" opens the keyboard shortcuts, unless the user is typing.
+	function handleHelpKey(event: KeyboardEvent) {
+		if (event.key !== '?' || event.ctrlKey || event.metaKey || event.altKey) return;
+		const target = event.target as HTMLElement | null;
+		if (target?.closest('input, textarea, select, [contenteditable="true"], .cm-editor')) return;
+		event.preventDefault();
+		keyboardShortcutsOpen = true;
+	}
+
 	function handleCreateFolder() {
 		window.dispatchEvent(new CustomEvent('openCreateFolderModal'));
 	}
@@ -80,14 +92,18 @@
 		authService.initialize();
 
 		document.addEventListener('keydown', handleGlobalKeydown);
+		document.addEventListener('keydown', handleHelpKey);
 		window.addEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
+		window.addEventListener('openKeyboardShortcuts', handleOpenKeyboardShortcuts);
 		window.addEventListener('createFolder', handleCreateFolder);
 		window.addEventListener('deleteDocument', handleDeleteDocument);
 		window.addEventListener('downloadDocument', handleDownloadDocument);
 
 		return () => {
 			document.removeEventListener('keydown', handleGlobalKeydown);
+			document.removeEventListener('keydown', handleHelpKey);
 			window.removeEventListener('openQuickSwitcher', handleOpenQuickSwitcher);
+			window.removeEventListener('openKeyboardShortcuts', handleOpenKeyboardShortcuts);
 			window.removeEventListener('createFolder', handleCreateFolder);
 			window.removeEventListener('deleteDocument', handleDeleteDocument);
 			window.removeEventListener('downloadDocument', handleDownloadDocument);
@@ -141,28 +157,6 @@
 			{@render children()}
 		</main>
 	</div>
-
-	<!-- Footer -->
-	<footer class="border-border bg-background sticky bottom-0 z-40 border-t px-4 py-3">
-		<div class="flex items-center justify-between">
-			<!-- Left: Workspace Indicator -->
-			<div class="flex-1">
-				<WorkspaceIndicator />
-			</div>
-
-			<!-- Center: Keyboard Shortcuts -->
-			<button
-				type="button"
-				onclick={() => (keyboardShortcutsOpen = true)}
-				class="text-muted-foreground hover:text-foreground text-sm underline-offset-4 transition-colors hover:underline"
-			>
-				⌨️ Keyboard Shortcuts
-			</button>
-
-			<!-- Right: Empty space for balance -->
-			<div class="flex-1"></div>
-		</div>
-	</footer>
 </div>
 
 <QuickSwitcher open={quickSwitcherOpen} onClose={() => (quickSwitcherOpen = false)} />
@@ -174,13 +168,13 @@
 <style>
 	.app-container {
 		display: flex;
-		min-height: calc(100vh - 4rem - 4rem); /* Viewport height minus nav (4rem) and footer (4rem) */
+		min-height: calc(100vh - 4rem); /* Viewport height minus the nav */
 		position: relative;
 	}
 
 	.sidebar-container {
 		width: 280px; /* w-70 = 17.5rem = 280px */
-		height: calc(100vh - 4rem - 4rem); /* Full viewport height minus navigation and footer */
+		height: calc(100vh - 4rem); /* Full viewport height minus the navigation */
 		position: sticky;
 		top: 4rem; /* Height of navigation */
 		transition: transform 0.3s ease-in-out;
@@ -226,7 +220,7 @@
 			position: fixed;
 			top: 4rem; /* Navigation height */
 			left: 0;
-			height: calc(100vh - 4rem - 4rem); /* Full viewport height minus navigation and footer */
+			height: calc(100vh - 4rem); /* Full viewport height minus the navigation */
 			background: var(--color-primary);
 			border-right: 1px solid var(--color-border);
 			box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);

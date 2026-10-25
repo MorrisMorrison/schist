@@ -5,31 +5,23 @@
 import { test as base } from './test-setup';
 import {
 	createTestDocument,
-	createTestFolder,
 	createComplexTestDocument,
 	createSimpleTestDocument,
-	TestDocumentData,
-	TestFolderData
+	TestDocumentData
 } from '../utils/test-data';
-import { createTestDocuments } from '../utils/api-helpers';
 
 // Extend test with data fixtures
 export const test = base.extend<{
 	// Pre-created test data (not created in backend)
 	testDocument: TestDocumentData;
-	testFolder: TestFolderData;
 
 	// Setup fixtures that create data in the backend
 	withTestDocument: TestDocumentData;
 	withSimpleTestDocument: TestDocumentData;
 	withComplexTestDocument: TestDocumentData;
 	withMultipleDocuments: TestDocumentData[];
-	withSpecialContentTypes: {
-		unicodeDocument: TestDocumentData;
-		largeDocument: TestDocumentData;
-		formattedDocument: TestDocumentData;
-		mixedLineEndingDocument: TestDocumentData;
-	};
+	withUnicodeDocument: TestDocumentData;
+	withLargeDocument: TestDocumentData;
 }>({
 	// Basic test data (not created in backend)
 	testDocument: async ({ testId }, use) => {
@@ -40,54 +32,26 @@ export const test = base.extend<{
 		await use(document);
 	},
 
-	testFolder: async ({ testId }, use) => {
-		const folder = createTestFolder({
-			name: `test-folder-${testId}`,
-			path: `/test-folder-${testId}`
-		});
-		await use(folder);
-	},
-
-	// Data fixtures that actually create content in the backend
+	// Data fixtures that actually create content in the backend. Cleanup is
+	// handled by the apiHelper fixture.
 	withTestDocument: async ({ apiHelper, testDocument }, use) => {
-		const result = await apiHelper.createDocument(testDocument);
-		if (result.status !== 201) {
-			throw new Error(`Failed to create test document: ${result.error}`);
-		}
-
-		await use(testDocument);
-
-		// Cleanup is handled by apiHelper fixture
+		await use(await apiHelper.seedDocument(testDocument));
 	},
 
 	withSimpleTestDocument: async ({ apiHelper, testId }, use) => {
-		const simpleTestDocument = createSimpleTestDocument({
-			title: `Simple ${testId}`,
-			path: `/simple-${testId}`
-		});
-		const result = await apiHelper.createDocument(simpleTestDocument);
-		if (result.status !== 201) {
-			throw new Error(`Failed to create simple test document: ${result.error}`);
-		}
-
-		await use(simpleTestDocument);
-
-		// Cleanup is handled by apiHelper fixture
+		await use(
+			await apiHelper.seedDocument(
+				createSimpleTestDocument({ title: `Simple ${testId}`, path: `/simple-${testId}` })
+			)
+		);
 	},
 
 	withComplexTestDocument: async ({ apiHelper, testId }, use) => {
-		const complexTestDocument = createComplexTestDocument({
-			title: `Complex ${testId}`,
-			path: `/complex-${testId}`
-		});
-		const result = await apiHelper.createDocument(complexTestDocument);
-		if (result.status !== 201) {
-			throw new Error(`Failed to create complex test document: ${result.error}`);
-		}
-
-		await use(complexTestDocument);
-
-		// Cleanup is handled by apiHelper fixture
+		await use(
+			await apiHelper.seedDocument(
+				createComplexTestDocument({ title: `Complex ${testId}`, path: `/complex-${testId}` })
+			)
+		);
 	},
 
 	withMultipleDocuments: async ({ apiHelper, testId }, use) => {
@@ -110,22 +74,26 @@ export const test = base.extend<{
 			})
 		];
 
-		await createTestDocuments(apiHelper, documents);
+		for (const document of documents) {
+			await apiHelper.seedDocument(document);
+		}
 		await use(documents);
-
-		// Cleanup is handled by apiHelper fixture
 	},
 
-	withSpecialContentTypes: async ({ apiHelper, testId }, use) => {
-		// Create documents with special content types for persistence testing
-		const unicodeDocument = createTestDocument({
+	// One document per fixture: seeding unrelated documents alongside it (as a
+	// combined fixture used to) only adds backend writes before the test runs.
+	withUnicodeDocument: async ({ apiHelper, testId }, use) => {
+		const unicodeDocument = await apiHelper.seedDocument({
 			title: `Unicode Test ${testId}`,
 			content: `# Unicode Content Test\n\n## Emojis and Symbols\n🚀 🌟 ✅ ❌ 🔥 💡\n\n## Special Characters\nÄÖÜß çñ אב 中文 日本語 한국어\n\n## Math Symbols\n∑ ∂ ∆ π ∞ ≠ ≤ ≥\n\n## Currency\n$ € £ ¥ ₹ ₿`,
 			path: `/unicode-${testId}`,
 			tags: ['unicode', 'special-chars']
 		});
+		await use(unicodeDocument);
+	},
 
-		const largeDocument = createTestDocument({
+	withLargeDocument: async ({ apiHelper, testId }, use) => {
+		const largeDocument = await apiHelper.seedDocument({
 			title: `Large Content ${testId}`,
 			content:
 				`# Large Content Test\n\n` +
@@ -135,59 +103,7 @@ export const test = base.extend<{
 			path: `/large-content-${testId}`,
 			tags: ['large', 'performance']
 		});
-
-		const formattedDocument = createTestDocument({
-			title: `Formatted Content ${testId}`,
-			content: `# Formatted Document Test
-
-## Headers
-### Level 3
-#### Level 4
-
-## Lists
-1. Ordered list item 1
-2. Ordered list item 2
-   - Nested unordered
-   - Another nested item
-
-## Code Blocks
-\`\`\`javascript
-function test() {
-  return "formatted content";
-}
-\`\`\`
-
-## Tables
-| Column 1 | Column 2 | Column 3 |
-|----------|----------|----------|
-| Data 1   | Data 2   | Data 3   |
-
-## Links and Images
-[Link](https://example.com)
-![Alt text](image.png)
-
-**Bold** and *italic* text.`,
-			path: `/formatted-${testId}`,
-			tags: ['formatted', 'markdown']
-		});
-
-		const mixedLineEndingContent = `# Mixed Line Endings${testId}\r\n\r\nThis line uses CRLF\r\n\nThis line uses LF\n\rThis line uses CR\r\n\r\nMixed content should be preserved.`;
-		const mixedLineEndingDocument = createTestDocument({
-			title: `Line Endings ${testId}`,
-			content: mixedLineEndingContent,
-			path: `/line-endings-${testId}`,
-			tags: ['line-endings', 'encoding']
-		});
-
-		const documents = [unicodeDocument, largeDocument, formattedDocument, mixedLineEndingDocument];
-		await createTestDocuments(apiHelper, documents);
-
-		await use({
-			unicodeDocument,
-			largeDocument,
-			formattedDocument,
-			mixedLineEndingDocument
-		});
+		await use(largeDocument);
 	}
 });
 

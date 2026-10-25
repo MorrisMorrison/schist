@@ -18,26 +18,43 @@ describe('settings store', () => {
 	it('starts with defaults', async () => {
 		const { settings } = await loadSettings();
 
-		expect(settings.app).toEqual({ openDocumentsInEditMode: false, alwaysOpenFullscreen: false });
+		expect(settings.app).toEqual({
+			openDocumentsInEditMode: false,
+			alwaysOpenFullscreen: false,
+			fullWidthDocuments: false
+		});
 	});
 
 	it('merges stored settings over the defaults', async () => {
-		localStorage.setItem(KEY, JSON.stringify({ app: { alwaysOpenFullscreen: true } }));
+		localStorage.setItem(
+			KEY,
+			JSON.stringify({ app: { alwaysOpenFullscreen: true, fullWidthDocuments: false } })
+		);
 
 		const { settings } = await loadSettings();
 
-		expect(settings.app).toEqual({ openDocumentsInEditMode: false, alwaysOpenFullscreen: true });
+		expect(settings.app).toEqual({
+			openDocumentsInEditMode: false,
+			alwaysOpenFullscreen: true,
+			fullWidthDocuments: false
+		});
 	});
 
 	it('drops stored settings that no longer exist', async () => {
 		localStorage.setItem(
 			KEY,
-			JSON.stringify({ app: { alwaysHidePreview: true, alwaysOpenFullscreen: true } })
+			JSON.stringify({
+				app: { alwaysHidePreview: true, alwaysOpenFullscreen: true, fullWidthDocuments: false }
+			})
 		);
 
 		const { settings } = await loadSettings();
 
-		expect(settings.app).toEqual({ openDocumentsInEditMode: false, alwaysOpenFullscreen: true });
+		expect(settings.app).toEqual({
+			openDocumentsInEditMode: false,
+			alwaysOpenFullscreen: true,
+			fullWidthDocuments: false
+		});
 	});
 
 	it('ignores corrupt stored settings', async () => {
@@ -55,9 +72,13 @@ describe('settings store', () => {
 
 		settingsActions.updateAppSetting('openDocumentsInEditMode', true);
 
-		expect(settings.app).toEqual({ openDocumentsInEditMode: true, alwaysOpenFullscreen: false });
+		expect(settings.app).toEqual({
+			openDocumentsInEditMode: true,
+			alwaysOpenFullscreen: false,
+			fullWidthDocuments: false
+		});
 		expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual({
-			app: { openDocumentsInEditMode: true, alwaysOpenFullscreen: false }
+			app: { openDocumentsInEditMode: true, alwaysOpenFullscreen: false, fullWidthDocuments: false }
 		});
 	});
 

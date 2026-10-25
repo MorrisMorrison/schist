@@ -203,7 +203,7 @@ func newGitHubFixture(t *testing.T, gh *appconfig.GitHubSettings) *githubFixture
 	api := newFakeGitHub()
 	gs := NewGitHubService(&appconfig.Config{DataDir: dataDir}, gitService, settings, sm)
 	gs.ctx = fakeAPIContext(t, api)
-	gs.client = nil // rebuilt lazily on the fake-API context
+	gs.setClient(nil) // rebuilt lazily on the fake-API context
 	return &githubFixture{gs: gs, dataDir: dataDir, settings: settings, secrets: sm, api: api}
 }
 
@@ -241,7 +241,7 @@ func TestGitHubService_NewInitializesClientOnlyWithUsableToken(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, settings.UpdateGitHubSettings(dataDir, tt.gh))
 			gs := NewGitHubService(&appconfig.Config{DataDir: dataDir}, nil, settings, NewSecretManager(settings, dataDir, nil))
-			assert.Equal(t, tt.wantClient, gs.client != nil)
+			assert.Equal(t, tt.wantClient, gs.currentClient() != nil)
 		})
 	}
 }
@@ -381,7 +381,7 @@ func TestGitHubService_SetupRepository(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotContains(t, string(onDisk), testToken)
 
-		assert.NotNil(t, f.gs.client)
+		assert.NotNil(t, f.gs.currentClient())
 		cfg, err := f.gs.gitService.repository.Config()
 		require.NoError(t, err)
 		assert.Equal(t, []string{"https://github.com/octo/notes.git"}, cfg.Remotes["origin"].URLs)
@@ -458,7 +458,7 @@ func TestGitHubService_UpdateConfiguration(t *testing.T) {
 
 	t.Run("toggles flags and switches to an existing branch", func(t *testing.T) {
 		f := newGitHubFixture(t, enabledSettings())
-		require.NoError(t, f.gs.ensureClient())
+		requireClient(t, f.gs)
 
 		err := f.gs.UpdateConfiguration(&GitHubConfigRequest{
 			AutoSync: boolPtr(true), SyncOnSave: boolPtr(true), Branch: strPtr("trunk"),
@@ -478,7 +478,7 @@ func TestGitHubService_UpdateConfiguration(t *testing.T) {
 
 	t.Run("unknown branch is rejected and nothing changes", func(t *testing.T) {
 		f := newGitHubFixture(t, enabledSettings())
-		require.NoError(t, f.gs.ensureClient())
+		requireClient(t, f.gs)
 
 		err := f.gs.UpdateConfiguration(&GitHubConfigRequest{AutoSync: boolPtr(true), Branch: strPtr("gone")})
 		assert.ErrorContains(t, err, "branch gone not found")
@@ -686,9 +686,9 @@ func TestGitHubService_PushWithoutTokenFails(t *testing.T) {
 
 func TestGitHubService_DisconnectClearsClientAndToken(t *testing.T) {
 	f := newGitHubFixture(t, enabledSettings())
-	require.NoError(t, f.gs.ensureClient())
+	requireClient(t, f.gs)
 	require.NoError(t, f.gs.Disconnect())
-	assert.Nil(t, f.gs.client)
+	assert.Nil(t, f.gs.currentClient())
 	assert.Nil(t, f.settings.GitHub.Token)
 	assert.False(t, f.gs.IsEnabled())
 

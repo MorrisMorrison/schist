@@ -3,6 +3,8 @@ interface AppSettings {
 	openDocumentsInEditMode: boolean;
 	/** Start editing in focus mode (the editor alone, full window). */
 	alwaysOpenFullscreen: boolean;
+	/** Documents and the editor use the whole content area instead of a reading column. */
+	fullWidthDocuments: boolean;
 }
 
 interface Settings {
@@ -12,7 +14,8 @@ interface Settings {
 const defaultSettings: Settings = {
 	app: {
 		openDocumentsInEditMode: false,
-		alwaysOpenFullscreen: false
+		alwaysOpenFullscreen: false,
+		fullWidthDocuments: false
 	}
 };
 
@@ -59,6 +62,11 @@ export const settings = {
 		return settingsState.app;
 	}
 };
+
+/** The PageContainer width for document pages (view, edit, new, focus mode). */
+export function documentPageWidth(): 'reading' | 'full' {
+	return settingsState.app.fullWidthDocuments ? 'full' : 'reading';
+}
 
 export const settingsActions = {
 	updateAppSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]) {

@@ -9,6 +9,7 @@ describe('EditorSettingsSection', () => {
 		cleanup();
 		settingsActions.updateAppSetting('openDocumentsInEditMode', false);
 		settingsActions.updateAppSetting('alwaysOpenFullscreen', false);
+		settingsActions.updateAppSetting('fullWidthDocuments', false);
 		localStorage.removeItem('schist_settings');
 	});
 
@@ -16,15 +17,17 @@ describe('EditorSettingsSection', () => {
 		return screen.getAllByRole('switch');
 	}
 
-	it('renders both settings reflecting the store', () => {
+	it('renders every setting reflecting the store', () => {
 		settingsActions.updateAppSetting('alwaysOpenFullscreen', true);
 		render(EditorSettingsSection);
 		expect(screen.getByTestId('editor-settings-section')).toBeInTheDocument();
 		expect(screen.getByText('Open documents in edit mode')).toBeInTheDocument();
 		expect(screen.getByText('Always edit in focus mode')).toBeInTheDocument();
-		const [editMode, fullscreen] = switches();
+		expect(screen.getByText('Full-width documents')).toBeInTheDocument();
+		const [editMode, fullscreen, fullWidth] = switches();
 		expect(editMode).toHaveAttribute('aria-checked', 'false');
 		expect(fullscreen).toHaveAttribute('aria-checked', 'true');
+		expect(fullWidth).toHaveAttribute('aria-checked', 'false');
 	});
 
 	it('toggles "open documents in edit mode" and persists it', async () => {
@@ -43,5 +46,12 @@ describe('EditorSettingsSection', () => {
 		expect(settings.app.alwaysOpenFullscreen).toBe(true);
 		await userEvent.click(switches()[1]);
 		expect(settings.app.alwaysOpenFullscreen).toBe(false);
+	});
+
+	it('toggles "full-width documents"', async () => {
+		render(EditorSettingsSection);
+		await userEvent.click(switches()[2]);
+		expect(settings.app.fullWidthDocuments).toBe(true);
+		expect(JSON.parse(localStorage.getItem('schist_settings')!).app.fullWidthDocuments).toBe(true);
 	});
 });

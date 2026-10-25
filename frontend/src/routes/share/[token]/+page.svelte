@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PageContainer, pageContainerVariants } from '$lib/components/ui/page-container';
 	import { formatLongDate } from '$lib/utils/date';
 	import { Calendar, Tag, Eye } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
@@ -45,7 +46,7 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="mx-auto w-full max-w-5xl flex-1 space-y-8 p-12">
+<PageContainer class="flex-1">
 	<!-- Page Header -->
 	<header
 		class="border-border flex flex-col gap-6 border-b pb-6 md:flex-row md:items-start md:justify-between"
@@ -118,11 +119,11 @@
 			>
 		</div>
 	{/if}
-</div>
+</PageContainer>
 
 <!-- Powered by Footer -->
 <footer class="bg-background mt-auto border-t py-6">
-	<div class="mx-auto flex max-w-7xl items-center justify-between px-12">
+	<div class={pageContainerVariants({ class: 'flex items-center justify-between space-y-0 py-0' })}>
 		<div class="flex items-center gap-2">
 			<span class="text-muted-foreground text-sm">Powered by</span>
 			<a

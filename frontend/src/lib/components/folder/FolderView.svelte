@@ -7,6 +7,7 @@
 	import { Plus, FolderPlus, File } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Label } from '$lib/components/ui/label';
+	import * as Select from '$lib/components/ui/select';
 	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
@@ -34,7 +35,13 @@
 	let showCreateFolderModal = $state(false);
 	let isLoadingFolderData = $state(false);
 	let multiSelectMode = $state(false);
-	let sortBy = $state<'name' | 'created' | 'modified'>(mode === 'recent' ? 'modified' : 'name');
+	type SortKey = 'name' | 'created' | 'modified';
+	const sortItems: { value: SortKey; label: string }[] = [
+		{ value: 'name', label: 'Name' },
+		{ value: 'created', label: 'Created' },
+		{ value: 'modified', label: 'Modified' }
+	];
+	let sortBy = $state<SortKey>(mode === 'recent' ? 'modified' : 'name');
 	let sortOrder = $state<'asc' | 'desc'>(mode === 'recent' ? 'desc' : 'asc');
 
 	const currentFolderDocuments = $derived.by(() => {
@@ -161,15 +168,20 @@
 				class="bg-secondary flex flex-wrap items-center gap-1 rounded-lg border p-2 md:flex-nowrap md:gap-2"
 			>
 				<Label for="sort-select" class="text-secondary">Sort by:</Label>
-				<select
-					bind:value={sortBy}
-					class="bg-primary text-primary cursor-pointer rounded border px-2 py-1 text-sm"
-					id="sort-select"
+				<Select.Root
+					type="single"
+					items={sortItems}
+					bind:value={() => sortBy, (value) => (sortBy = value as SortKey)}
 				>
-					<option value="name">Name</option>
-					<option value="created">Created</option>
-					<option value="modified">Modified</option>
-				</select>
+					<Select.Trigger id="sort-select" size="sm" class="min-w-28">
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content>
+						{#each sortItems as item (item.value)}
+							<Select.Item {...item} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
 				<Button
 					variant="outline"
 					size="sm"

@@ -6,6 +6,7 @@ import { apiClient } from '$lib/api/client';
 import { githubActions, githubStore } from '$lib/stores/github.svelte';
 import type { GitHubConnectionStatus, GitHubSettings } from '$lib/api/types';
 import GitHubSettingsSection from './GitHubSettingsSection.svelte';
+import { chooseSelectOption } from '$lib/test/select';
 
 vi.mock('$lib/api/client', () => ({
 	apiClient: {
@@ -152,7 +153,7 @@ describe('GitHubSettingsSection', () => {
 		it('validates the sync interval in automatic mode', async () => {
 			render(GitHubSettingsSection);
 			await fillSetupForm();
-			await userEvent.selectOptions(screen.getByLabelText('Backup Mode'), 'auto');
+			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
 			const interval = screen.getByLabelText('Sync Interval (minutes)');
 			await userEvent.clear(interval);
 			await userEvent.type(interval, '2');
@@ -172,7 +173,7 @@ describe('GitHubSettingsSection', () => {
 			await fillSetupForm();
 			await userEvent.clear(input('github-branch-input'));
 			await userEvent.type(input('github-branch-input'), 'docs');
-			await userEvent.selectOptions(screen.getByLabelText('Backup Mode'), 'auto');
+			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
 			await userEvent.click(screen.getByLabelText("Create repository if it doesn't exist"));
 			expect(screen.getByLabelText('Make repository private')).toBeChecked();
 			await userEvent.click(input('github-setup-button'));
@@ -240,7 +241,7 @@ describe('GitHubSettingsSection', () => {
 		it('updates branch and backup mode', async () => {
 			vi.mocked(apiClient.updateGitHubSettings).mockResolvedValue(undefined as never);
 			render(GitHubSettingsSection);
-			await userEvent.selectOptions(screen.getByLabelText('Backup Mode'), 'auto');
+			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
 			expect(input('github-setup-button')).toBeEnabled();
 			await userEvent.click(input('github-setup-button'));
 			expect(apiClient.updateGitHubSettings).toHaveBeenCalledWith({

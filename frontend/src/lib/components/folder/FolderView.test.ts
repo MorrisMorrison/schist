@@ -7,6 +7,7 @@ import { resetAllState, documentsStore } from '$lib/stores/documents.svelte';
 import type { Document } from '$lib/api/types';
 import { waitForDialogFocus } from '$lib/test/dialog';
 import FolderView from './FolderView.svelte';
+import { chooseSelectOption } from '$lib/test/select';
 
 vi.mock('$lib/api/client', () => ({
 	apiClient: {
@@ -69,10 +70,10 @@ describe('FolderView', () => {
 		expect(cardTitles()).toEqual(['Gamma', 'Beta', 'Alpha']);
 		await userEvent.click(screen.getByTitle('Sort ascending'));
 
-		await userEvent.selectOptions(screen.getByLabelText('Sort by:'), 'created');
+		await chooseSelectOption(screen.getByLabelText('Sort by:'), 'Created');
 		expect(cardTitles()).toEqual(['Gamma', 'Beta', 'Alpha']);
 
-		await userEvent.selectOptions(screen.getByLabelText('Sort by:'), 'modified');
+		await chooseSelectOption(screen.getByLabelText('Sort by:'), 'Modified');
 		expect(cardTitles()).toEqual(['Alpha', 'Gamma', 'Beta']);
 	});
 

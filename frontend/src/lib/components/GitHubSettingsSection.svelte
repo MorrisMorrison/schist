@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import * as Select from '$lib/components/ui/select';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
@@ -17,7 +18,12 @@
 	let branch = $state('main');
 	let createRepository = $state(false);
 	let private_repo = $state(true);
-	let backupMode = $state<'manual' | 'auto'>('manual');
+	type BackupMode = 'manual' | 'auto';
+	const backupModeItems: { value: BackupMode; label: string }[] = [
+		{ value: 'manual', label: 'Manual' },
+		{ value: 'auto', label: 'Automatic' }
+	];
+	let backupMode = $state<BackupMode>('manual');
 	let syncInterval = $state(60);
 	let formError = $state('');
 	let tokenChanged = $state(false);
@@ -315,14 +321,20 @@
 
 					<div class="space-y-2">
 						<Label for="backup-mode">Backup Mode</Label>
-						<select
-							id="backup-mode"
-							bind:value={backupMode}
-							class="border-input bg-background w-full rounded-md border px-3 py-2"
+						<Select.Root
+							type="single"
+							items={backupModeItems}
+							bind:value={() => backupMode, (value) => (backupMode = value as BackupMode)}
 						>
-							<option value="manual">Manual</option>
-							<option value="auto">Automatic</option>
-						</select>
+							<Select.Trigger id="backup-mode" class="w-full">
+								<Select.Value />
+							</Select.Trigger>
+							<Select.Content>
+								{#each backupModeItems as item (item.value)}
+									<Select.Item {...item} />
+								{/each}
+							</Select.Content>
+						</Select.Root>
 					</div>
 
 					{#if backupMode === 'auto'}

@@ -1,6 +1,9 @@
 package services_test
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -44,6 +47,21 @@ func TestShareService_NewShareService(t *testing.T) {
 	_, shareService, _ := setupShareServiceTest(t)
 
 	assert.NotNil(t, shareService)
+}
+
+// shares.json holds share tokens, so like users.json and passkeys.json it is
+// readable by the owner only.
+func TestShareService_SharesFileIsOwnerOnly(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX file modes are not enforced on Windows")
+	}
+	dir, shareService, _ := setupShareServiceTest(t)
+	_, err := shareService.CreateShare("/test-share-doc", "admin", 0)
+	require.NoError(t, err)
+
+	info, err := os.Stat(filepath.Join(dir, ".schist", "shares.json"))
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
 }
 
 func TestShareService_CreateShare(t *testing.T) {

@@ -135,7 +135,7 @@
 				Schist
 			</a>
 		</div>
-		<ThemeToggle size="sm" />
+		<ThemeToggle />
 	</div>
 </footer>
 

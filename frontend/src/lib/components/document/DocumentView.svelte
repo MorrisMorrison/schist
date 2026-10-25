@@ -15,7 +15,7 @@
 		Trash2
 	} from '@lucide/svelte';
 	import { tick } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
@@ -435,7 +435,7 @@
 			<!-- Less frequent actions, and Delete away from the everyday buttons. -->
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger
-					class="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors"
+					class={buttonVariants({ variant: 'outline', size: 'icon-sm' })}
 					aria-label="More actions"
 					title="More actions"
 					data-testid="document-actions-menu"

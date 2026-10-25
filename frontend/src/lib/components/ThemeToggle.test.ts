@@ -31,10 +31,4 @@ describe('ThemeToggle', () => {
 		expect(themeStore.current).toBe('light');
 		expect(document.documentElement).not.toHaveClass('dark');
 	});
-
-	it('applies the size classes', () => {
-		render(ThemeToggle, { props: { size: 'lg' } });
-
-		expect(screen.getByTestId('theme-toggle')).toHaveClass('p-3');
-	});
 });

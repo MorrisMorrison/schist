@@ -128,12 +128,11 @@
 			{#each group as button (button.type)}
 				<Button
 					variant="ghost"
-					size="sm"
+					size="icon-sm"
 					onclick={() => handleButtonClick(button.type)}
 					title="{button.label} ({button.shortcut})"
 					aria-label={button.label}
 					{disabled}
-					class="h-8 w-8 p-0"
 				>
 					{@const IconComponent = button.icon}
 					<IconComponent class="h-4 w-4" />
@@ -147,13 +146,12 @@
 	{#if onFullscreenToggle}
 		<Button
 			variant="ghost"
-			size="sm"
+			size="icon-sm"
 			onclick={onFullscreenToggle}
 			title={isFullscreen ? 'Exit focus mode (Esc)' : 'Focus mode (F11)'}
 			aria-label={isFullscreen ? 'Exit focus mode' : 'Focus mode'}
 			aria-pressed={isFullscreen}
 			{disabled}
-			class="h-8 w-8 p-0"
 		>
 			{#if isFullscreen}
 				<Minimize class="h-4 w-4" />

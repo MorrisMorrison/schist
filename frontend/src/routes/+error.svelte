@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { House, Plus, RefreshCw } from '@lucide/svelte';
+	import { Button } from '$lib/components/ui/button';
 
 	const status = $derived(page.status);
 	const message = $derived(page.error?.message);
@@ -38,35 +40,15 @@
 					<div
 						class="mt-8 flex flex-col items-center space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4"
 					>
-						<a
-							href="/new?title={encodeURIComponent(slug.replace(/-/g, ' '))}"
-							class="inline-flex items-center rounded-md bg-(--primary) px-4 py-2 text-sm font-semibold text-(--primary-foreground) shadow-sm hover:bg-(--primary) hover:opacity-90 focus:bg-(--primary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
-						>
-							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 4v16m8-8H4"
-								/>
-							</svg>
+						<Button href="/new?title={encodeURIComponent(slug.replace(/-/g, ' '))}">
+							<Plus />
 							Create This Page
-						</a>
+						</Button>
 
-						<a
-							href="/"
-							class="inline-flex items-center rounded-md bg-(--secondary) px-4 py-2 text-sm font-medium text-(--secondary-foreground) hover:bg-(--secondary) hover:opacity-90 focus:bg-(--secondary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
-						>
-							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-								/>
-							</svg>
+						<Button href="/" variant="secondary">
+							<House />
 							Go Home
-						</a>
+						</Button>
 					</div>
 				{:else}
 					<p class="mt-4 text-(--muted-foreground)">
@@ -74,20 +56,10 @@
 					</p>
 
 					<div class="mt-8">
-						<a
-							href="/"
-							class="inline-flex items-center rounded-md bg-(--primary) px-4 py-2 text-sm font-semibold text-(--primary-foreground) shadow-sm hover:bg-(--primary) hover:opacity-90 focus:bg-(--primary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
-						>
-							<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-								/>
-							</svg>
+						<Button href="/">
+							<House />
 							Go Home
-						</a>
+						</Button>
 					</div>
 				{/if}
 			{:else}
@@ -114,35 +86,15 @@
 				</p>
 
 				<div class="mt-8 flex justify-center space-x-4">
-					<button
-						onclick={() => window.location.reload()}
-						class="inline-flex items-center rounded-md bg-(--primary) px-4 py-2 text-sm font-semibold text-(--primary-foreground) shadow-sm hover:bg-(--primary) hover:opacity-90 focus:bg-(--primary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
-					>
-						<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-							/>
-						</svg>
+					<Button onclick={() => window.location.reload()}>
+						<RefreshCw />
 						Try Again
-					</button>
+					</Button>
 
-					<a
-						href="/"
-						class="inline-flex items-center rounded-md bg-(--secondary) px-4 py-2 text-sm font-medium text-(--secondary-foreground) hover:bg-(--secondary) hover:opacity-90 focus:bg-(--secondary) focus:ring-2 focus:ring-(--ring) focus:ring-offset-2 focus:outline-none"
-					>
-						<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-							/>
-						</svg>
+					<Button href="/" variant="secondary">
+						<House />
 						Go Home
-					</a>
+					</Button>
 				</div>
 			{/if}
 		</div>

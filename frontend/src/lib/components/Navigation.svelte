@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import ThemeToggle from './ThemeToggle.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
 	import {
 		Settings,
@@ -90,10 +91,11 @@
 				class="flex shrink-0 items-center gap-1 px-3 transition-[width] duration-300 ease-in-out"
 				class:md:w-[280px]={isSidebarOpen}
 			>
-				<button
-					type="button"
+				<Button
+					variant="ghost"
+					size="icon"
 					onclick={sidebarActions.toggle}
-					class="text-muted-foreground hover:bg-accent hover:text-foreground inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md transition-colors"
+					class="text-muted-foreground hover:text-foreground"
 					aria-label={sidebar.isOpen ? 'Close sidebar' : 'Open sidebar'}
 					aria-expanded={sidebar.isOpen}
 					title={sidebar.isOpen ? 'Close sidebar (⌘B)' : 'Open sidebar (⌘B)'}
@@ -103,7 +105,7 @@
 					{:else}
 						<PanelLeftOpen class="h-5 w-5" />
 					{/if}
-				</button>
+				</Button>
 				<a href="/" class="flex items-center gap-1 no-underline hover:no-underline">
 					<img src="/icon-128x128.png" alt="Schist Logo" class="h-8 w-8 object-contain" />
 					<span class="text-foreground text-lg font-semibold tracking-tight">Schist</span>
@@ -162,16 +164,17 @@
 					<ThemeToggle />
 
 					<!-- Keyboard shortcuts (also on "?") -->
-					<button
-						type="button"
+					<Button
+						variant="outline"
+						size="icon"
 						onclick={openKeyboardShortcuts}
-						class="border-secondary bg-primary text-primary hover:bg-gray-hover hidden cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none md:inline-flex"
+						class="hidden md:inline-flex"
 						title="Keyboard shortcuts (?)"
 						aria-label="Keyboard shortcuts"
 						data-testid="keyboard-shortcuts-button"
 					>
 						<Keyboard class="h-4 w-4" />
-					</button>
+					</Button>
 
 					<!-- 3. Secret Lock Toggle Button -->
 					{#if authStore.user && !secretStore.secretsUnlocked}
@@ -202,13 +205,9 @@
 					{/if}
 
 					<!-- 4. Settings Button -->
-					<a
-						href="/settings"
-						class="border-secondary bg-primary text-primary hover:bg-gray-hover cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-						title="Settings"
-					>
+					<Button href="/settings" variant="outline" size="icon" title="Settings">
 						<Settings class="h-4 w-4" />
-					</a>
+					</Button>
 
 					<!-- 5. Username + Logout Button (Last) -->
 					{#if authStore.user}
@@ -220,16 +219,17 @@
 								<User class="h-4 w-4" />
 								{authStore.user.username}
 							</span>
-							<button
-								type="button"
+							<Button
+								variant="outline"
+								size="icon"
 								onclick={handleLogout}
-								class="border-secondary bg-primary text-primary hover:bg-destructive hover:text-destructive-foreground cursor-pointer rounded-md border p-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+								class="hover:bg-destructive hover:text-white"
 								title="Logout"
 								aria-label="Sign out of your account"
 								data-testid="logout-button"
 							>
 								<LogOut class="h-4 w-4" />
-							</button>
+							</Button>
 						</div>
 					{/if}
 

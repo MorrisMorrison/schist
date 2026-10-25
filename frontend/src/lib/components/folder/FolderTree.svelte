@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Folder, FolderOpen, FolderPlus, FilePlus, Plus, Upload, Download } from '@lucide/svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
@@ -521,7 +521,7 @@
 				<!-- One "new" menu: replaces the root node's context menu and the Import button. -->
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger
-						class="hover:bg-accent hover:text-accent-foreground inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors"
+						class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-7 w-7')}
 						title="New page, folder or import"
 						aria-label="New"
 						data-testid="sidebar-new-menu"

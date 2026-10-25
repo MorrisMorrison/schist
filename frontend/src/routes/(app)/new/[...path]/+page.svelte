@@ -290,12 +290,14 @@
 		{:else if templatesStore.error}
 			<div class="py-8 text-center">
 				<p class="text-red-600">Error: {templatesStore.error}</p>
-				<button
+				<Button
+					variant="link"
+					size="sm"
+					class="mt-2"
 					onclick={() => templateActions.loadTemplates(true)}
-					class="mt-2 text-sm text-blue-600 hover:text-blue-800"
 				>
 					Retry
-				</button>
+				</Button>
 			</div>
 		{:else if templatesStore.templates.length === 0}
 			<div class="py-8 text-center">

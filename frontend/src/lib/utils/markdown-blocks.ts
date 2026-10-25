@@ -5,6 +5,7 @@ import { highlightCode } from './markdown-config';
 import { apiClient } from '$lib/api/client';
 import { generateSlug } from '$lib/utils/path';
 import { goto } from '$app/navigation';
+import { replaceWikiLinks } from './wiki-link-syntax';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -442,7 +443,7 @@ function preprocessWikiLinks(content: string): string {
 	const wikiLinks: Array<{ placeholder: string; target: string; displayText: string }> = [];
 	let linkIndex = 0;
 
-	const processed = content.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, display) => {
+	const processed = replaceWikiLinks(content, (target, display) => {
 		const placeholder = `WIKILINK${linkIndex}PLACEHOLDER`;
 		wikiLinks.push({
 			placeholder,

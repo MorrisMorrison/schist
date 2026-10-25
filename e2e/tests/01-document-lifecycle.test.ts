@@ -62,8 +62,9 @@ test.describe.serial('Document Lifecycle', () => {
 		// Save changes
 		await editorPage.saveAndExpectNavigation();
 
-		// Verify changes are reflected
-		await documentViewPage.verifyContentContains('Updated Content');
+		// Verify changes are reflected. The new leading `# Updated Content` becomes
+		// the title, shown in the header (the body doesn't repeat it).
+		await documentViewPage.verifyDocumentLoaded('Updated Content');
 		await documentViewPage.verifyContentContains('edited via e2e test');
 	});
 

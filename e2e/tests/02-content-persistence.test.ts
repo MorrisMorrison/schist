@@ -50,8 +50,9 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await documentViewPage.navigateToDocument(testDocument.path!);
 		await documentViewPage.verifyDocumentLoaded(testDocument.title);
 
+		// Last save wins: the second editor's change is what's stored.
 		const content = await documentViewPage.getDocumentContent();
-		expect(content).toContain(testDocument.title);
+		expect(content).toContain('Changes from Editor 2');
 
 		await page2.close();
 	});

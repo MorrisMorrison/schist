@@ -21,7 +21,7 @@
 		"test": "npm run test:unit"
 	},
 	"devDependencies": {
-		"@eslint/compat": "^1.2.5",
+		"@eslint/compat": "^2.1.1",
 		"@eslint/js": "^9.39.5",
 		"@internationalized/date": "^3.12.4",
 		"@sveltejs/adapter-static": "^4.0.0",

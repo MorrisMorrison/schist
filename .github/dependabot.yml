@@ -47,6 +47,11 @@ updates:
       # Lift once those icons are replaced.
       - dependency-name: "@lucide/svelte"
         update-types: ["version-update:semver-major"]
+      # Hold @sveltejs/adapter-static MAJOR: v4 peers on @sveltejs/kit ^3 (still a
+      # prerelease) and breaks `npm ci` against kit 2. Lift together with the
+      # SvelteKit 3 upgrade.
+      - dependency-name: "@sveltejs/adapter-static"
+        update-types: ["version-update:semver-major"]
 
   # E2E (Playwright) npm dependencies
   - package-ecosystem: npm

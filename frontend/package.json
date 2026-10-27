@@ -28,7 +28,7 @@
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/svelte": "^5.4.2",
 		"@testing-library/user-event": "^14.6.8",
-		"@types/node": "^24.2.1",
+		"@types/node": "^26.6.5",
 		"@vitest/browser-playwright": "^5.0.5",
 		"@vitest/coverage-v8": "^5.0.5",
 		"bits-ui": "^2.20.2",

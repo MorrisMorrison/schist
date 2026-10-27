@@ -1,4 +1,4 @@
-import { authService } from '$lib/auth/auth-service';
+import { authService } from '#lib/auth/auth-service.ts';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 

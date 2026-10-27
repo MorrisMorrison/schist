@@ -1,6 +1,11 @@
 <script lang="ts">
-	import { KEYBOARD_SHORTCUTS } from '$lib/utils/keyboard-shortcuts';
-	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
+	import { KEYBOARD_SHORTCUTS } from '#lib/utils/keyboard-shortcuts.ts';
+	import {
+		Dialog,
+		DialogContent,
+		DialogHeader,
+		DialogTitle
+	} from '#lib/components/ui/dialog/index.ts';
 
 	interface Props {
 		open: boolean;

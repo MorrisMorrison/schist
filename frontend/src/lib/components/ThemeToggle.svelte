@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { themeStore, themeActions } from '$lib/stores/theme.svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { themeStore, themeActions } from '#lib/stores/theme.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Moon, Sun } from '@lucide/svelte';
 
 	function handleToggle() {

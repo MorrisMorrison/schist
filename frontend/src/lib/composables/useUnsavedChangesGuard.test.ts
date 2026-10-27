@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { BeforeNavigate } from '@sveltejs/kit';
+import type { BeforeNavigate } from '$app/navigation';
 import { beforeNavigate, goto } from '$app/navigation';
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard.svelte';
 

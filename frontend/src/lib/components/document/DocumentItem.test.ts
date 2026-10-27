@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, user, fireEvent } from '$lib/test/component-utils.js';
+import { render, user, fireEvent } from '#lib/test/component-utils.ts';
 import DocumentItem from './DocumentItem.svelte';
-import type { Document } from '$lib/api/types.js';
+import type { Document } from '#lib/api/types.ts';
 
 // Mock Lucide icons
 vi.mock('@lucide/svelte', () => {
@@ -12,7 +12,7 @@ vi.mock('@lucide/svelte', () => {
 });
 
 // Mock cn utility
-vi.mock('$lib/utils.js', () => ({
+vi.mock('#lib/utils.ts', () => ({
 	cn: (...classes: (string | undefined | boolean)[]) => classes.filter(Boolean).join(' ')
 }));
 

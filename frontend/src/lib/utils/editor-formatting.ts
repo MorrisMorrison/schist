@@ -1,5 +1,5 @@
 import type { EditorView } from '@codemirror/view';
-import type { FormattingType } from '$lib/types/editor';
+import type { FormattingType } from '#lib/types/editor.ts';
 
 interface Formatted {
 	text: string;

@@ -1,8 +1,8 @@
 <script lang="ts">
 	// Segmented Read/Edit switch used by the document and new-document pages.
 	import type { Component } from 'svelte';
-	import type { DocumentMode } from '$lib/types/editor';
-	import * as ToggleGroup from '$lib/components/ui/toggle-group';
+	import type { DocumentMode } from '#lib/types/editor.ts';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
 
 	interface ModeOption {
 		mode: DocumentMode;

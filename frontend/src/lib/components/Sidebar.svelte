@@ -8,9 +8,9 @@
 	import RenameDocumentModal from './modal/RenameDocumentModal.svelte';
 	import DeleteConfirmModal from './modal/DeleteConfirmModal.svelte';
 	import ImportDocumentsModal from './modal/ImportDocumentsModal.svelte';
-	import type { Folder as FolderType, Document } from '$lib/api/types';
-	import { folderActions, documentActions, foldersStore } from '$lib/stores/documents.svelte';
-	import { apiClient } from '$lib/api/client';
+	import type { Folder as FolderType, Document } from '#lib/api/types.ts';
+	import { folderActions, documentActions, foldersStore } from '#lib/stores/documents.svelte.ts';
+	import { apiClient } from '#lib/api/client.ts';
 	import { onMount } from 'svelte';
 
 	let showCreateFolderModal = $state(false);

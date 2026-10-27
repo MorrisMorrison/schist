@@ -1,29 +1,32 @@
 <script lang="ts">
-	import { documentPageWidth } from '$lib/stores/settings.svelte';
-	import { PageContainer } from '$lib/components/ui/page-container';
+	import { documentPageWidth } from '#lib/stores/settings.svelte.ts';
+	import { PageContainer } from '#lib/components/ui/page-container/index.ts';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
-	import LazyProseEditor from '$lib/components/editor/LazyProseEditor.svelte';
-	import EditorToolbar from '$lib/components/editor/EditorToolbar.svelte';
-	import MarkdownPreview from '$lib/components/editor/MarkdownPreview.svelte';
-	import ModeToggle from '$lib/components/editor/ModeToggle.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Badge } from '$lib/components/ui/badge';
-	import { documentActions } from '$lib/stores/documents.svelte';
-	import { generateSlug, normalizePath } from '$lib/utils/path';
+	import LazyProseEditor from '#lib/components/editor/LazyProseEditor.svelte';
+	import EditorToolbar from '#lib/components/editor/EditorToolbar.svelte';
+	import MarkdownPreview from '#lib/components/editor/MarkdownPreview.svelte';
+	import ModeToggle from '#lib/components/editor/ModeToggle.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import { documentActions } from '#lib/stores/documents.svelte.ts';
+	import { generateSlug, normalizePath } from '#lib/utils/path.ts';
 	import { BookOpen, Check, Loader2, Pencil } from '@lucide/svelte';
-	import type { DocumentMode } from '$lib/types/editor';
+	import type { DocumentMode } from '#lib/types/editor.ts';
 	import type { PageData } from './$types';
-	import MarkdownInfoHelp from '$lib/components/editor/MarkdownInfoHelp.svelte';
-	import { extractTitleFromContent, extractHashtagsFromContent } from '$lib/utils/content-parser';
-	import { templatesStore, templateActions } from '$lib/stores/templates.svelte';
-	import type { Template } from '$lib/api/types';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
-	import UnsavedChangesModal from '$lib/components/modal/UnsavedChangesModal.svelte';
-	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
-	import { getErrorMessage } from '$lib/utils/error';
+	import MarkdownInfoHelp from '#lib/components/editor/MarkdownInfoHelp.svelte';
+	import {
+		extractTitleFromContent,
+		extractHashtagsFromContent
+	} from '#lib/utils/content-parser.ts';
+	import { templatesStore, templateActions } from '#lib/stores/templates.svelte.ts';
+	import type { Template } from '#lib/api/types.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
+	import { useDocumentExistence } from '#lib/composables/useDocumentExistence.svelte.ts';
+	import UnsavedChangesModal from '#lib/components/modal/UnsavedChangesModal.svelte';
+	import { useUnsavedChangesGuard } from '#lib/composables/useUnsavedChangesGuard.svelte.ts';
+	import { getErrorMessage } from '#lib/utils/error.ts';
 
 	let { data }: { data: PageData } = $props();
 

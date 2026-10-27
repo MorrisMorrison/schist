@@ -2,9 +2,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
-vi.mock('$lib/utils/markdown-cache', () => ({ getCachedTags: vi.fn() }));
+vi.mock('#lib/utils/markdown-cache.ts', () => ({ getCachedTags: vi.fn() }));
 
-import { getCachedTags } from '$lib/utils/markdown-cache';
+import { getCachedTags } from '#lib/utils/markdown-cache.ts';
 import { hashtagExtension } from './hashtag-extension';
 import { processHashtags } from './hashtag-renderer';
 

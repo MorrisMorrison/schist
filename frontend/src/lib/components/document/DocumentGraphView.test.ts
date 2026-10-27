@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
-import type { Document, WikiLink } from '$lib/api/types';
+import type { Document, WikiLink } from '#lib/api/types.ts';
 import { goto } from '$app/navigation';
 import DocumentGraphView from './DocumentGraphView.svelte';
 import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';

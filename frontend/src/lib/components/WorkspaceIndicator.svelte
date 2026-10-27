@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Users } from '@lucide/svelte';
-	import { workspaceStore } from '$lib/stores/workspace.svelte';
-	import { authStore } from '$lib/stores/auth.svelte';
+	import { workspaceStore } from '#lib/stores/workspace.svelte.ts';
+	import { authStore } from '#lib/stores/auth.svelte.ts';
 
 	// Load workspace info on mount and whenever the auth state changes
 	$effect(() => {

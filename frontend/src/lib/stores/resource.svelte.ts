@@ -1,4 +1,4 @@
-import { getErrorMessage } from '$lib/utils/error';
+import { getErrorMessage } from '#lib/utils/error.ts';
 
 /**
  * Runs an async operation against a resource-style state object, managing the

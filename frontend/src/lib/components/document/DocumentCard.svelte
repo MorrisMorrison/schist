@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { Card } from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
+	import { Card } from '#lib/components/ui/card/index.ts';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Edit, Trash2, Move, FileText, Clock, Folder } from '@lucide/svelte';
-	import type { Document } from '$lib/api/types';
-	import { getParentPath } from '$lib/utils/path';
-	import { formatRelativeDate } from '$lib/utils/date';
-	import { getDocumentColor } from '$lib/utils/document-color';
+	import type { Document } from '#lib/api/types.ts';
+	import { getParentPath } from '#lib/utils/path.ts';
+	import { formatRelativeDate } from '#lib/utils/date.ts';
+	import { getDocumentColor } from '#lib/utils/document-color.ts';
 
 	interface Props {
 		document: Document;

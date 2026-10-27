@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { MarkdownBlock } from '$lib/utils/markdown-blocks';
-	import { parseMarkdownToBlocks } from '$lib/utils/markdown-blocks';
+	import type { MarkdownBlock } from '#lib/utils/markdown-blocks.ts';
+	import { parseMarkdownToBlocks } from '#lib/utils/markdown-blocks.ts';
 	import { goto } from '$app/navigation';
 
 	import HeadingBlock from './HeadingBlock.svelte';

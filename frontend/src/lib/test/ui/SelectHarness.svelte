@@ -1,7 +1,7 @@
 <script lang="ts">
 	// A labelled ui/select for the library's component tests.
-	import * as Select from '$lib/components/ui/select';
-	import { Label } from '$lib/components/ui/label';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 
 	interface Props {
 		items: { value: string; label: string; disabled?: boolean }[];

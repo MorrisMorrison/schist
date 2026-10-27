@@ -3,7 +3,7 @@ import { EditorState } from '@codemirror/state';
 import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
-import { getCachedTags } from '$lib/utils/markdown-cache';
+import { getCachedTags } from '#lib/utils/markdown-cache.ts';
 import { HASHTAG_REGEX } from './hashtag-constants';
 import { asyncDecorations, autocompleteTheme } from './async-decorations';
 

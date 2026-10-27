@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { AppConfig, User } from '$lib/api/types';
+import type { AppConfig, User } from '#lib/api/types.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		setAuthToken: vi.fn(),
 		getConfig: vi.fn(),
@@ -11,8 +11,8 @@ vi.mock('$lib/api/client', () => ({
 }));
 
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { authActions, authStore } from '$lib/stores/auth.svelte';
+import { apiClient } from '#lib/api/client.ts';
+import { authActions, authStore } from '#lib/stores/auth.svelte.ts';
 import { authService } from './auth-service';
 
 const user = { username: 'alice', created_at: '', last_login: '' } as User;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
 const pageState = vi.hoisted(() => ({
 	params: { path: 'notes/plan' } as Record<string, string>,
@@ -8,7 +8,7 @@ const pageState = vi.hoisted(() => ({
 }));
 vi.mock('$app/state', () => ({ page: pageState }));
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getDocumentByPath: vi.fn(),
 		getDocumentVersions: vi.fn().mockResolvedValue({ versions: [], total: 0 }),
@@ -20,18 +20,18 @@ vi.mock('$lib/api/client', () => ({
 		getSecret: vi.fn()
 	}
 }));
-vi.mock('$lib/components/editor/DocumentInlineEditor.svelte', async () => ({
-	default: (await import('$lib/test/InlineEditorStub.svelte')).default
+vi.mock('#lib/components/editor/DocumentInlineEditor.svelte', async () => ({
+	default: (await import('#lib/test/InlineEditorStub.svelte')).default
 }));
-vi.mock('$lib/components/document/LazyDocumentGraphView.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('GraphView')
+vi.mock('#lib/components/document/LazyDocumentGraphView.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('GraphView')
 }));
 
 import { replaceState } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { resetAllState } from '$lib/stores/documents.svelte';
-import { settingsActions } from '$lib/stores/settings.svelte';
-import { inlineEditorStub } from '$lib/test/inline-editor-stub';
+import { apiClient } from '#lib/api/client.ts';
+import { resetAllState } from '#lib/stores/documents.svelte.ts';
+import { settingsActions } from '#lib/stores/settings.svelte.ts';
+import { inlineEditorStub } from '#lib/test/inline-editor-stub.ts';
 import Page from './+page.svelte';
 
 const doc: Document = {

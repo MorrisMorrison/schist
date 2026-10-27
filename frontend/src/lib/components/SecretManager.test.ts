@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { apiClient } from '$lib/api/client';
-import { authenticateWithPasskey } from '$lib/utils/webauthn';
-import { authActions } from '$lib/stores/auth.svelte';
-import { secretStore } from '$lib/stores/secrets.svelte';
-import { passkeyStore } from '$lib/stores/passkeys.svelte';
-import { waitForDialogFocus } from '$lib/test/dialog';
-import type { SecretsStatus } from '$lib/api/types';
+import { apiClient } from '#lib/api/client.ts';
+import { authenticateWithPasskey } from '#lib/utils/webauthn.ts';
+import { authActions } from '#lib/stores/auth.svelte.ts';
+import { secretStore } from '#lib/stores/secrets.svelte.ts';
+import { passkeyStore } from '#lib/stores/passkeys.svelte.ts';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
+import type { SecretsStatus } from '#lib/api/types.ts';
 import SecretManager from './SecretManager.svelte';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		setAuthToken: vi.fn(),
 		getSecretsStatus: vi.fn(),
@@ -24,8 +24,8 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-vi.mock('$lib/utils/webauthn', async (importOriginal) =>
-	(await import('$lib/test/webauthn-mock')).mockWebAuthn(importOriginal)
+vi.mock('#lib/utils/webauthn.ts', async (importOriginal) =>
+	(await import('#lib/test/webauthn-mock.ts')).mockWebAuthn(importOriginal)
 );
 
 function status(overrides: Partial<SecretsStatus> = {}): SecretsStatus {

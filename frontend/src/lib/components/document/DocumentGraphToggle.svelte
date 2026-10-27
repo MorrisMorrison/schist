@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { List, Network } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 
 	interface Props {
 		currentView: 'list' | 'graph';

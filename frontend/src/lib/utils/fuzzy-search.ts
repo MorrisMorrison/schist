@@ -1,4 +1,4 @@
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
 interface SearchResult {
 	document: Document;

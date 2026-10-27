@@ -1,5 +1,5 @@
 import { beforeNavigate, goto } from '$app/navigation';
-import type { Navigation } from '@sveltejs/kit';
+import type { Navigation } from '$app/navigation';
 
 interface UnsavedChangesGuardOptions {
 	isDirty: () => boolean;

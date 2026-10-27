@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render } from '@testing-library/svelte';
 import { goto } from '$app/navigation';
-import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
-import type { ParagraphBlock as Block } from '$lib/utils/markdown-blocks';
+import { imageLightbox, imageLightboxActions } from '#lib/stores/image-lightbox.svelte.ts';
+import type { ParagraphBlock as Block } from '#lib/utils/markdown-blocks.ts';
 import ParagraphBlock from './ParagraphBlock.svelte';
 
 const PIXEL =

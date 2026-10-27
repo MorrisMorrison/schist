@@ -36,7 +36,7 @@
 </script>
 
 <script lang="ts">
-	import { cn, type WithElementRef } from '$lib/utils.js';
+	import { cn, type WithElementRef } from '#lib/utils.ts';
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
 
 	type ButtonProps = WithElementRef<HTMLButtonAttributes> &

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { UploadStatusProps } from '$lib/types/editor';
+	import type { UploadStatusProps } from '#lib/types/editor.ts';
 
 	let {
 		isUploading = false,

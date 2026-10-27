@@ -1,14 +1,14 @@
 <script lang="ts">
-	import type { PreviewProps } from '$lib/types/editor';
+	import type { PreviewProps } from '#lib/types/editor.ts';
 	import MarkdownRenderer from '../markdown/MarkdownRenderer.svelte';
 	import ImageLightbox from '../ImageLightbox.svelte';
-	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
-	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
+	import { imageLightbox, imageLightboxActions } from '#lib/stores/image-lightbox.svelte.ts';
+	import { initializeMarkdownInteractions } from '#lib/utils/markdown-blocks.ts';
 	import {
 		secretStore,
 		replaceSecretPlaceholders,
 		markLockedSecretPlaceholders
-	} from '$lib/stores/secrets.svelte';
+	} from '#lib/stores/secrets.svelte.ts';
 
 	// The rendered draft on the new-document page (reading view styling, same
 	// secret and sanitising path as the document view).

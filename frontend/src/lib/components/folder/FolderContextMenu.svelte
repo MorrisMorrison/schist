@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Plus, File, Download, Edit, Trash2 } from '@lucide/svelte';
-	import type { Folder as FolderType } from '$lib/api/types.js';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import type { Folder as FolderType } from '#lib/api/types.ts';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
 
 	interface Props {
 		folder: FolderType | null;

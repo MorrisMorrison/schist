@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { pressOutsideDialog, waitForDialogFocus } from '$lib/test/dialog';
+import { pressOutsideDialog, waitForDialogFocus } from '#lib/test/dialog.ts';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal.svelte';
 
 describe('KeyboardShortcutsModal', () => {

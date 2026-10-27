@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { pageContainerVariants } from '$lib/components/ui/page-container';
+	import { pageContainerVariants } from '#lib/components/ui/page-container/index.ts';
 	// Edit mode of the document page: the markdown in the reading column, with a
 	// slim toolbar and save status above it. DocumentView keeps this mounted
 	// (hidden) while reading, so cursor, selection and undo survive the toggle.
@@ -7,13 +7,13 @@
 	import LazyProseEditor from './LazyProseEditor.svelte';
 	import EditorToolbar from './EditorToolbar.svelte';
 	import UploadStatus from './UploadStatus.svelte';
-	import UnsavedChangesModal from '$lib/components/modal/UnsavedChangesModal.svelte';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-	import { useUnsavedChangesGuard } from '$lib/composables/useUnsavedChangesGuard.svelte.js';
-	import { useDocumentDraft, type SaveKind } from '$lib/composables/useDocumentDraft.svelte';
-	import { useDocumentExistence } from '$lib/composables/useDocumentExistence.svelte';
-	import { documentPageWidth, settings } from '$lib/stores/settings.svelte';
-	import type { Asset, Document } from '$lib/api/types';
+	import UnsavedChangesModal from '#lib/components/modal/UnsavedChangesModal.svelte';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
+	import { useUnsavedChangesGuard } from '#lib/composables/useUnsavedChangesGuard.svelte.ts';
+	import { useDocumentDraft, type SaveKind } from '#lib/composables/useDocumentDraft.svelte.ts';
+	import { useDocumentExistence } from '#lib/composables/useDocumentExistence.svelte.ts';
+	import { documentPageWidth, settings } from '#lib/stores/settings.svelte.ts';
+	import type { Asset, Document } from '#lib/api/types.ts';
 
 	interface Props {
 		document: Document;

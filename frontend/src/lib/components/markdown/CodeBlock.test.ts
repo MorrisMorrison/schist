@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render } from '$lib/test/component-utils';
+import { render } from '#lib/test/component-utils.ts';
 import CodeBlock from './CodeBlock.svelte';
-import type { CodeBlock as CodeBlockType } from '$lib/utils/markdown-blocks';
+import type { CodeBlock as CodeBlockType } from '#lib/utils/markdown-blocks.ts';
 
 // Mock the CopyButton component
-vi.mock('$lib/components/CopyButton.svelte', () => {
+vi.mock('#lib/components/CopyButton.svelte', () => {
 	return {
 		default: () => ({
 			$$: { fragment: null }

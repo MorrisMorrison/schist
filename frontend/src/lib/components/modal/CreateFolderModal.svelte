@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { folderActions } from '$lib/stores/documents.svelte';
+	import { folderActions } from '#lib/stores/documents.svelte.ts';
 	import FormDialog from './FormDialog.svelte';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import { Folder } from '@lucide/svelte';
-	import { parseError } from '$lib/utils/error';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-	import { folderNameToSegment, isValidFolderName, joinPath } from '$lib/utils/path';
+	import { parseError } from '#lib/utils/error.ts';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
+	import { folderNameToSegment, isValidFolderName, joinPath } from '#lib/utils/path.ts';
 
 	interface Props {
 		parentPath?: string;

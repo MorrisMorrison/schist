@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { passkeyStore } from '$lib/stores/passkeys.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { passkeyStore } from '#lib/stores/passkeys.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Alert, AlertDescription } from '#lib/components/ui/alert/index.ts';
 	import {
 		Dialog,
 		DialogContent,
@@ -9,9 +9,9 @@
 		DialogFooter,
 		DialogHeader,
 		DialogTitle
-	} from '$lib/components/ui/dialog';
-	import { isWebAuthnSupported, isPlatformAuthenticatorAvailable } from '$lib/utils/webauthn';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	} from '#lib/components/ui/dialog/index.ts';
+	import { isWebAuthnSupported, isPlatformAuthenticatorAvailable } from '#lib/utils/webauthn.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		open?: boolean;

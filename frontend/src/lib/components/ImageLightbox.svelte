@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Dialog, DialogContent } from '$lib/components/ui/dialog';
-	import { Button } from '$lib/components/ui/button';
+	import { Dialog, DialogContent } from '#lib/components/ui/dialog/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { X, ZoomIn, ZoomOut, RotateCw, ExternalLink, Download } from '@lucide/svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		src: string;

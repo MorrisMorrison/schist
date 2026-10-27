@@ -1,4 +1,4 @@
-import { LoadingStateOptimizer } from '$lib/utils/loading-optimizer';
+import { LoadingStateOptimizer } from '#lib/utils/loading-optimizer.ts';
 
 export function useOptimizedLoading(delayMs = 200, minDisplayMs = 150) {
 	let loading = $state(false);

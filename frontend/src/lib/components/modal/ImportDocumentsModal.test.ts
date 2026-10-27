@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { waitForDialogFocus, selectFiles } from '$lib/test/dialog';
-import { apiClient } from '$lib/api/client';
-import { folderActions, documentActions } from '$lib/stores/documents.svelte';
-import type { Folder, ImportResult } from '$lib/api/types';
+import { waitForDialogFocus, selectFiles } from '#lib/test/dialog.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { folderActions, documentActions } from '#lib/stores/documents.svelte.ts';
+import type { Folder, ImportResult } from '#lib/api/types.ts';
 import ImportDocumentsModal from './ImportDocumentsModal.svelte';
-import { chooseSelectOption, selectOptionLabels } from '$lib/test/select';
+import { chooseSelectOption, selectOptionLabels } from '#lib/test/select.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { importDocuments: vi.fn() }
 }));
 
-vi.mock('$lib/stores/documents.svelte', () => ({
+vi.mock('#lib/stores/documents.svelte.ts', () => ({
 	folderActions: { loadFolderTree: vi.fn() },
 	documentActions: { loadDocuments: vi.fn() }
 }));

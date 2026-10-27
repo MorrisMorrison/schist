@@ -3,7 +3,7 @@
 	import '@fontsource-variable/inter';
 	import '@fontsource-variable/jetbrains-mono';
 	import '../app.css';
-	import '$lib/stores/theme.svelte';
+	import '#lib/stores/theme.svelte.ts';
 
 	let { children } = $props();
 </script>

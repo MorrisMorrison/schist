@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
 
-vi.mock('$lib/api/client', () => ({ apiClient: {} }));
+vi.mock('#lib/api/client.ts', () => ({ apiClient: {} }));
 
-vi.mock('$lib/utils/markdown-blocks', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/markdown-blocks')>()),
+vi.mock('#lib/utils/markdown-blocks.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/markdown-blocks.ts')>()),
 	parseMarkdownToBlocks: vi.fn()
 }));
 
 import { goto } from '$app/navigation';
-import { parseMarkdownToBlocks, type MarkdownBlock } from '$lib/utils/markdown-blocks';
+import { parseMarkdownToBlocks, type MarkdownBlock } from '#lib/utils/markdown-blocks.ts';
 import MarkdownRenderer from './MarkdownRenderer.svelte';
 
 function deferred<T>() {

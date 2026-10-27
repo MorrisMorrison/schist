@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '$lib/test/component-utils.js';
+import { render } from '#lib/test/component-utils.ts';
 import PageContainer from './page-container.svelte';
 import { pageContainerVariants } from './index.js';
 

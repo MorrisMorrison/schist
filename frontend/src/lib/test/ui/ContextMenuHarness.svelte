@@ -1,7 +1,7 @@
 <script lang="ts">
 	// ui/context-menu for the library's component tests: a right-click area, or a
 	// menu opened in code at a given position.
-	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
 
 	interface Props {
 		position?: { x: number; y: number };

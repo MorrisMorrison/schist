@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, within, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { apiClient } from '$lib/api/client';
-import { waitForDialogFocus } from '$lib/test/dialog';
-import type { DiffResult, DocumentVersion } from '$lib/api/types';
+import { apiClient } from '#lib/api/client.ts';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
+import type { DiffResult, DocumentVersion } from '#lib/api/types.ts';
 import VersionHistoryModal from './VersionHistoryModal.svelte';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { compareDocumentVersions: vi.fn() }
 }));
 

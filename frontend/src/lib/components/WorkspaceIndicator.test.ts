@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { listUsers: vi.fn(), setAuthToken: vi.fn() }
 }));
 
-import { apiClient } from '$lib/api/client';
-import type { UserInfo } from '$lib/api/types';
-import { authActions } from '$lib/stores/auth.svelte';
-import { workspaceStore } from '$lib/stores/workspace.svelte';
+import { apiClient } from '#lib/api/client.ts';
+import type { UserInfo } from '#lib/api/types.ts';
+import { authActions } from '#lib/stores/auth.svelte.ts';
+import { workspaceStore } from '#lib/stores/workspace.svelte.ts';
 import WorkspaceIndicator from './WorkspaceIndicator.svelte';
 
 const user = { username: 'ada', created_at: '', last_login: '' };

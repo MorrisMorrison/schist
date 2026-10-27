@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, user } from '$lib/test/component-utils';
+import { render, user } from '#lib/test/component-utils.ts';
 import Button from './button.svelte';
 
 describe('Button', () => {

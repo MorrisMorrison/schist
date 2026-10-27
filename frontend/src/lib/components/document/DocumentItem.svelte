@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { File } from '@lucide/svelte';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.ts';
 	import TreeRowMenuTrigger from '../folder/TreeRowMenuTrigger.svelte';
-	import type { Document } from '$lib/api/types.js';
-	import type { DragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
+	import type { Document } from '#lib/api/types.ts';
+	import type { DragAndDrop } from '#lib/composables/useDragAndDrop.svelte.ts';
 
 	interface Props {
 		document: Document;

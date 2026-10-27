@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Loader2 } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import {
 		Dialog,
 		DialogContent,
@@ -8,7 +8,7 @@
 		DialogTitle,
 		DialogFooter,
 		DialogDescription
-	} from '$lib/components/ui/dialog';
+	} from '#lib/components/ui/dialog/index.ts';
 
 	interface Props {
 		open: boolean;

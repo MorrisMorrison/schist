@@ -1,4 +1,4 @@
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import type { PageLoad } from './$types';
 
 // Auth is handled by the (app) group layout (see (app)/+layout.ts).

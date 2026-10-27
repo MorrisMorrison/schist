@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Download, Edit, Trash2 } from '@lucide/svelte';
-	import type { Document } from '$lib/api/types.js';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import type { Document } from '#lib/api/types.ts';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
 
 	interface Props {
 		document: Document | null;

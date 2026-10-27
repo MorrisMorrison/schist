@@ -1,6 +1,6 @@
-import { apiClient } from '$lib/api/client';
-import type { Template } from '$lib/api/types';
-import { getErrorMessage } from '$lib/utils/error';
+import { apiClient } from '#lib/api/client.ts';
+import type { Template } from '#lib/api/types.ts';
+import { getErrorMessage } from '#lib/utils/error.ts';
 
 export interface TemplatesState {
 	templates: Template[];

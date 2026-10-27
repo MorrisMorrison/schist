@@ -1,42 +1,42 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
-import type { Document, Folder } from '$lib/api/types';
+import type { Document, Folder } from '#lib/api/types.ts';
 
 const pageState = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
 vi.mock('$app/state', () => ({ page: pageState }));
 
-vi.mock('$lib/components/folder/FolderTree.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('FolderTree')
+vi.mock('#lib/components/folder/FolderTree.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('FolderTree')
 }));
-vi.mock('$lib/components/modal/CreateFolderModal.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('CreateFolderModal')
+vi.mock('#lib/components/modal/CreateFolderModal.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('CreateFolderModal')
 }));
-vi.mock('$lib/components/modal/RenameFolderModal.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('RenameFolderModal')
+vi.mock('#lib/components/modal/RenameFolderModal.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('RenameFolderModal')
 }));
-vi.mock('$lib/components/modal/RenameDocumentModal.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('RenameDocumentModal')
+vi.mock('#lib/components/modal/RenameDocumentModal.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('RenameDocumentModal')
 }));
-vi.mock('$lib/components/modal/ImportDocumentsModal.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('ImportDocumentsModal')
+vi.mock('#lib/components/modal/ImportDocumentsModal.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('ImportDocumentsModal')
 }));
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { exportFolder: vi.fn(), exportDocument: vi.fn(), exportAll: vi.fn() }
 }));
 
-vi.mock('$lib/stores/documents.svelte', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/stores/documents.svelte')>()),
+vi.mock('#lib/stores/documents.svelte.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/stores/documents.svelte.ts')>()),
 	folderActions: { loadFolderTree: vi.fn(), deleteFolder: vi.fn() },
 	documentActions: { deleteDocumentByPath: vi.fn(), loadDocuments: vi.fn() },
 	foldersStore: { folders: [] }
 }));
 
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { documentActions, folderActions } from '$lib/stores/documents.svelte';
-import { stubProps } from '$lib/test/stub-registry';
+import { apiClient } from '#lib/api/client.ts';
+import { documentActions, folderActions } from '#lib/stores/documents.svelte.ts';
+import { stubProps } from '#lib/test/stub-registry.ts';
 import Sidebar from './Sidebar.svelte';
 
 const folder = {

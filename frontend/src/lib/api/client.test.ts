@@ -1,17 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { requestDeduplicator } from '$lib/utils/request-deduplication';
+import { requestDeduplicator } from '#lib/utils/request-deduplication.ts';
 
-const publicEnv = vi.hoisted(() => ({}) as Record<string, string | undefined>);
-vi.mock('$env/dynamic/public', () => ({ env: publicEnv }));
+// PUBLIC_API_URL unset; the "set" case is in client.api-url.test.ts.
+vi.mock('$app/env/public', () => ({ PUBLIC_API_URL: undefined }));
 
-vi.mock('$lib/stores/auth.svelte', () => ({ authActions: { clearAuth: vi.fn() } }));
-vi.mock('$lib/auth/auth-service', () => ({
+vi.mock('#lib/stores/auth.svelte.ts', () => ({ authActions: { clearAuth: vi.fn() } }));
+vi.mock('#lib/auth/auth-service.ts', () => ({
 	authService: { handleSessionExpired: vi.fn().mockResolvedValue(undefined) }
 }));
 
 import { SchistApiClient } from './client';
-import { authActions } from '$lib/stores/auth.svelte';
-import { authService } from '$lib/auth/auth-service';
+import { authActions } from '#lib/stores/auth.svelte.ts';
+import { authService } from '#lib/auth/auth-service.ts';
 
 const TOKEN_KEY = 'schist_auth_token';
 
@@ -55,7 +55,6 @@ describe('SchistApiClient', () => {
 		vi.spyOn(console, 'debug').mockImplementation(() => {});
 		localStorage.clear();
 		requestDeduplicator.clearAll();
-		delete publicEnv.PUBLIC_API_URL;
 		fetchMock = vi.fn(async () => json({}));
 		vi.stubGlobal('fetch', fetchMock);
 		client = new SchistApiClient();
@@ -80,16 +79,6 @@ describe('SchistApiClient', () => {
 			expect(headers['Content-Type']).toBe('application/json');
 			expect(headers.Accept).toBe('application/json');
 			expect(headers.Authorization).toBeUndefined();
-		});
-
-		it('uses PUBLIC_API_URL when set', async () => {
-			publicEnv.PUBLIC_API_URL = 'https://wiki.example/api';
-			const remote = new SchistApiClient();
-
-			await remote.getCurrentUser();
-
-			expect(lastCall().url).toBe('https://wiki.example/api/auth/me');
-			expect(remote.getAssetUrl('/assets/a.png')).toBe('https://wiki.example/uploads/a.png');
 		});
 
 		it('caches the app config after the first fetch', async () => {

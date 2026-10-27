@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
-import type { DiffLine, DiffResult } from '$lib/api/types';
+import type { DiffLine, DiffResult } from '#lib/api/types.ts';
 import DiffViewer from './DiffViewer.svelte';
 
 function context(n: number, start = 1): DiffLine[] {

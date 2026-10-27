@@ -2,7 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import * as d3 from 'd3';
 	import { Network } from '@lucide/svelte';
-	import type { Document, WikiLink, GraphData, GraphNode, GraphLink } from '$lib/api/types';
+	import type { Document, WikiLink, GraphData, GraphNode, GraphLink } from '#lib/api/types.ts';
 	import { goto } from '$app/navigation';
 
 	interface Props {

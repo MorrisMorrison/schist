@@ -354,7 +354,7 @@ schist/
 │   │   └── app.html
 │   ├── static/
 │   ├── package.json
-│   ├── svelte.config.js
+│   ├── sveltekit.config.js
 │   ├── tailwind.config.js
 │   └── Dockerfile
 ├── docker-compose.yml

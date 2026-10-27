@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
-vi.mock('$lib/stores/documents.svelte', () => ({
+vi.mock('#lib/stores/documents.svelte.ts', () => ({
 	documentActions: {
 		updateDocumentByPath: vi.fn(),
 		checkDocumentExists: vi.fn()
 	}
 }));
 
-import { documentActions } from '$lib/stores/documents.svelte';
+import { documentActions } from '#lib/stores/documents.svelte.ts';
 import { replaceLastPathSegment, useDocumentDraft } from './useDocumentDraft.svelte';
 
 function makeDoc(content = '# Plan\n\nHello', path = '/notes/plan'): Document {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Search, X } from '@lucide/svelte';
-	import { Input } from '$lib/components/ui/input';
+	import { Input } from '#lib/components/ui/input/index.ts';
 
 	interface Props {
 		value?: string;

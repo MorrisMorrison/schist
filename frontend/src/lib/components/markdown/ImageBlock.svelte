@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { ImageBlock } from '$lib/utils/markdown-blocks';
-	import { sanitizeHtml } from '$lib/utils/sanitizer';
-	import { imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
-	import { apiClient } from '$lib/api/client';
+	import type { ImageBlock } from '#lib/utils/markdown-blocks.ts';
+	import { sanitizeHtml } from '#lib/utils/sanitizer.ts';
+	import { imageLightboxActions } from '#lib/stores/image-lightbox.svelte.ts';
+	import { apiClient } from '#lib/api/client.ts';
 
 	let { block }: { block: ImageBlock } = $props();
 

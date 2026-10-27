@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ListBlock } from '$lib/utils/markdown-blocks';
+	import type { ListBlock } from '#lib/utils/markdown-blocks.ts';
 	import ListItemBlock from './ListItemBlock.svelte';
 
 	let { block }: { block: ListBlock } = $props();

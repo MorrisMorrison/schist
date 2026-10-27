@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { PageContainer } from '$lib/components/ui/page-container';
+	import { PageContainer } from '#lib/components/ui/page-container/index.ts';
 	import {
 		Card,
 		CardContent,
 		CardDescription,
 		CardHeader,
 		CardTitle
-	} from '$lib/components/ui/card';
+	} from '#lib/components/ui/card/index.ts';
 	import { Github, FileEdit } from '@lucide/svelte';
-	import EditorSettingsSection from '$lib/components/EditorSettingsSection.svelte';
-	import GitHubSettingsSection from '$lib/components/GitHubSettingsSection.svelte';
-	import SecretManager from '$lib/components/SecretManager.svelte';
-	import PasskeyManager from '$lib/components/PasskeyManager.svelte';
-	import UserManagement from '$lib/components/UserManagement.svelte';
-	import { authService } from '$lib/auth/auth-service';
+	import EditorSettingsSection from '#lib/components/EditorSettingsSection.svelte';
+	import GitHubSettingsSection from '#lib/components/GitHubSettingsSection.svelte';
+	import SecretManager from '#lib/components/SecretManager.svelte';
+	import PasskeyManager from '#lib/components/PasskeyManager.svelte';
+	import UserManagement from '#lib/components/UserManagement.svelte';
+	import { authService } from '#lib/auth/auth-service.ts';
 
 	// Passkeys, secrets and user management are only meaningful when authentication is
 	// enabled (no auth => no user, no passkeys). Hide these sections otherwise so a no-auth

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getPasskeyStatus: vi.fn(),
 		listPasskeys: vi.fn(),
@@ -9,8 +9,8 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-vi.mock('$lib/utils/webauthn', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('$lib/utils/webauthn')>();
+vi.mock('#lib/utils/webauthn.ts', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('#lib/utils/webauthn.ts')>();
 	return {
 		WebAuthnError: actual.WebAuthnError,
 		registerPasskey: vi.fn(),
@@ -19,13 +19,13 @@ vi.mock('$lib/utils/webauthn', async (importOriginal) => {
 	};
 });
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import {
 	WebAuthnError,
 	authenticateWithPasskey,
 	isWebAuthnSupported,
 	registerPasskey
-} from '$lib/utils/webauthn';
+} from '#lib/utils/webauthn.ts';
 import { passkeyStore } from './passkeys.svelte';
 
 const api = vi.mocked(apiClient);

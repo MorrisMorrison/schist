@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import {
 		Card,
 		CardContent,
 		CardDescription,
 		CardHeader,
 		CardTitle
-	} from '$lib/components/ui/card';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	} from '#lib/components/ui/card/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import { Fingerprint, CheckCircle } from '@lucide/svelte';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-	import { apiClient } from '$lib/api/client';
-	import { registerPasskey } from '$lib/utils/webauthn';
-	import { getErrorMessage } from '$lib/utils/error';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
+	import { apiClient } from '#lib/api/client.ts';
+	import { registerPasskey } from '#lib/utils/webauthn.ts';
+	import { getErrorMessage } from '#lib/utils/error.ts';
 
 	let username = $state('');
 	let isLoading = $state(false);

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render } from '$lib/test/component-utils';
+import { render } from '#lib/test/component-utils.ts';
 import ImageBlock from './ImageBlock.svelte';
-import type { ImageBlock as ImageBlockType } from '$lib/utils/markdown-blocks';
+import type { ImageBlock as ImageBlockType } from '#lib/utils/markdown-blocks.ts';
 
 // Mock the image lightbox store
-vi.mock('$lib/stores/image-lightbox.svelte', () => {
+vi.mock('#lib/stores/image-lightbox.svelte.ts', () => {
 	return {
 		imageLightboxActions: {
 			open: () => {}
@@ -13,14 +13,14 @@ vi.mock('$lib/stores/image-lightbox.svelte', () => {
 });
 
 // Mock the sanitizer utility
-vi.mock('$lib/utils/sanitizer', () => {
+vi.mock('#lib/utils/sanitizer.ts', () => {
 	return {
 		sanitizeHtml: (text: string) => text
 	};
 });
 
 // Mock the API client
-vi.mock('$lib/api/client', () => {
+vi.mock('#lib/api/client.ts', () => {
 	return {
 		apiClient: {
 			getAssetUrl: (url: string) => `http://localhost:3000${url}`

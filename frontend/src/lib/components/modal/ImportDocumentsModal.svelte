@@ -1,23 +1,23 @@
 <script lang="ts">
-	import { apiClient } from '$lib/api/client';
-	import type { ImportOptions, ImportResult, Folder } from '$lib/api/types';
-	import { folderActions, documentActions } from '$lib/stores/documents.svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { apiClient } from '#lib/api/client.ts';
+	import type { ImportOptions, ImportResult, Folder } from '#lib/api/types.ts';
+	import { folderActions, documentActions } from '#lib/stores/documents.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import {
 		Dialog,
 		DialogContent,
 		DialogHeader,
 		DialogTitle,
 		DialogFooter
-	} from '$lib/components/ui/dialog';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
-	import * as RadioGroup from '$lib/components/ui/radio-group';
+	} from '#lib/components/ui/dialog/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import * as RadioGroup from '#lib/components/ui/radio-group/index.ts';
 	import { Upload, AlertCircle, CheckCircle } from '@lucide/svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import InlineError from '$lib/components/ui/InlineError.svelte';
-	import { getErrorMessage } from '$lib/utils/error';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import InlineError from '#lib/components/ui/InlineError.svelte';
+	import { getErrorMessage } from '#lib/utils/error.ts';
 
 	interface Props {
 		open?: boolean;

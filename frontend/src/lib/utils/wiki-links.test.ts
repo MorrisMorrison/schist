@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
-vi.mock('$lib/utils/markdown-cache', () => ({ getCachedDocuments: vi.fn() }));
+vi.mock('#lib/utils/markdown-cache.ts', () => ({ getCachedDocuments: vi.fn() }));
 
 import { goto } from '$app/navigation';
-import { getCachedDocuments } from '$lib/utils/markdown-cache';
+import { getCachedDocuments } from '#lib/utils/markdown-cache.ts';
 import { wikiLinksExtension } from './wiki-links';
 
 let view: EditorView;

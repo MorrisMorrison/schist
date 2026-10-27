@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { AlertCircle } from '@lucide/svelte';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.ts';
 
 	interface Props {
 		message: string;

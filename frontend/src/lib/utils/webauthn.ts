@@ -1,10 +1,10 @@
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import type {
 	WebAuthnFinishRegistrationRequest,
 	WebAuthnFinishAuthenticationRequest,
 	RegistrationResponseJSON,
 	AuthenticationResponseJSON
-} from '$lib/api/types';
+} from '#lib/api/types.ts';
 
 /**
  * WebAuthn utility functions for handling passkey registration and authentication

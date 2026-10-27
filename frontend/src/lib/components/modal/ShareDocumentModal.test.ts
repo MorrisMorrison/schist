@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { waitForDialogFocus } from '$lib/test/dialog';
-import { apiClient } from '$lib/api/client';
-import type { ShareToken } from '$lib/api/types';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
+import { apiClient } from '#lib/api/client.ts';
+import type { ShareToken } from '#lib/api/types.ts';
 import ShareDocumentModal from './ShareDocumentModal.svelte';
-import { chooseSelectOption } from '$lib/test/select';
+import { chooseSelectOption } from '#lib/test/select.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { listShares: vi.fn(), createShare: vi.fn(), revokeShare: vi.fn() }
 }));
 

@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { documentActions } from '$lib/stores/documents.svelte';
+	import { documentActions } from '#lib/stores/documents.svelte.ts';
 	import FormDialog from './FormDialog.svelte';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import { Edit } from '@lucide/svelte';
-	import InlineError from '$lib/components/ui/InlineError.svelte';
-	import type { Document } from '$lib/api/types';
-	import { generateSlug } from '$lib/utils/path';
-	import { getErrorMessage } from '$lib/utils/error';
+	import InlineError from '#lib/components/ui/InlineError.svelte';
+	import type { Document } from '#lib/api/types.ts';
+	import { generateSlug } from '#lib/utils/path.ts';
+	import { getErrorMessage } from '#lib/utils/error.ts';
 
 	interface Props {
 		document?: Document;

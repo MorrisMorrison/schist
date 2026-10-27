@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { formatDateTime } from '$lib/utils/date';
+	import { formatDateTime } from '#lib/utils/date.ts';
 	import { onMount } from 'svelte';
-	import { passkeyStore } from '$lib/stores/passkeys.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import { passkeyStore } from '#lib/stores/passkeys.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
 	import {
 		Card,
 		CardContent,
 		CardDescription,
 		CardHeader,
 		CardTitle
-	} from '$lib/components/ui/card';
+	} from '#lib/components/ui/card/index.ts';
 	import PasskeySetupModal from './modal/PasskeySetupModal.svelte';
 	import { Shield, Key, Plus, Trash2, Loader2, Info } from '@lucide/svelte';
-	import LoadingRow from '$lib/components/LoadingRow.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingRow from '#lib/components/LoadingRow.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 
 	let showSetupModal = $state(false);
 	let deletingPasskey: string | null = $state(null);

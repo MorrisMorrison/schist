@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { settings, settingsActions, type AppSettings } from '$lib/stores/settings.svelte';
-	import { Label } from '$lib/components/ui/label';
-	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
+	import { settings, settingsActions, type AppSettings } from '#lib/stores/settings.svelte.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import ToggleSlider from '#lib/components/ui/toggle-slider/ToggleSlider.svelte';
 
 	const options: { key: keyof AppSettings; label: string; description: string }[] = [
 		{

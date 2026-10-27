@@ -1,23 +1,23 @@
 <script lang="ts">
-	import { formatDate } from '$lib/utils/date';
+	import { formatDate } from '#lib/utils/date.ts';
 	import { onMount } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import {
 		Card,
 		CardContent,
 		CardDescription,
 		CardHeader,
 		CardTitle
-	} from '$lib/components/ui/card';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { Badge } from '$lib/components/ui/badge';
+	} from '#lib/components/ui/card/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import { Users, Plus, Trash2, Shield, User, Copy, ExternalLink } from '@lucide/svelte';
-	import { apiClient } from '$lib/api/client';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-	import { getErrorMessage } from '$lib/utils/error';
-	import type { UserInfo } from '$lib/api/types';
+	import { apiClient } from '#lib/api/client.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
+	import { getErrorMessage } from '#lib/utils/error.ts';
+	import type { UserInfo } from '#lib/api/types.ts';
 
 	let users: UserInfo[] = $state([]);
 	let loading = $state(true);

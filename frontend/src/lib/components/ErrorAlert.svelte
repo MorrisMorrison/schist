@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Alert, AlertDescription } from '$lib/components/ui/alert/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Alert, AlertDescription } from '#lib/components/ui/alert/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { X, AlertCircle, AlertTriangle, Info } from '@lucide/svelte';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.ts';
 
 	import type { HTMLAttributes } from 'svelte/elements';
 

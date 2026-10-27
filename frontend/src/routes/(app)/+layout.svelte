@@ -1,21 +1,21 @@
 <script lang="ts">
 	import '../../app.css';
-	import Navigation from '$lib/components/Navigation.svelte';
-	import Sidebar from '$lib/components/Sidebar.svelte';
-	import QuickSwitcher from '$lib/components/QuickSwitcher.svelte';
-	import KeyboardShortcutsModal from '$lib/components/modal/KeyboardShortcutsModal.svelte';
+	import Navigation from '#lib/components/Navigation.svelte';
+	import Sidebar from '#lib/components/Sidebar.svelte';
+	import QuickSwitcher from '#lib/components/QuickSwitcher.svelte';
+	import KeyboardShortcutsModal from '#lib/components/modal/KeyboardShortcutsModal.svelte';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import {
 		createKeyboardShortcutHandler,
 		type KeyboardShortcutHandlers
-	} from '$lib/utils/keyboard-shortcuts';
+	} from '#lib/utils/keyboard-shortcuts.ts';
 
-	import '$lib/stores/theme.svelte';
-	import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
-	import { authService } from '$lib/auth/auth-service';
-	import { authStore } from '$lib/stores/auth.svelte';
-	import { apiClient } from '$lib/api/client';
+	import '#lib/stores/theme.svelte.ts';
+	import { sidebar, sidebarActions } from '#lib/stores/sidebar.svelte.ts';
+	import { authService } from '#lib/auth/auth-service.ts';
+	import { authStore } from '#lib/stores/auth.svelte.ts';
+	import { apiClient } from '#lib/api/client.ts';
 	import { goto } from '$app/navigation';
 
 	let { children } = $props();

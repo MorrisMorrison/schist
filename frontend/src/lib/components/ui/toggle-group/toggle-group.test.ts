@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import ToggleGroupHarness from '$lib/test/ui/ToggleGroupHarness.svelte';
+import ToggleGroupHarness from '#lib/test/ui/ToggleGroupHarness.svelte';
 
 describe('ToggleGroup', () => {
 	afterEach(() => cleanup());

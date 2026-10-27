@@ -1,4 +1,4 @@
-import type { Asset } from '$lib/api/types';
+import type { Asset } from '#lib/api/types.ts';
 
 export type EditorTheme = 'light' | 'dark';
 

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import ThemeToggle from './ThemeToggle.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { sidebar, sidebarActions } from '#lib/stores/sidebar.svelte.ts';
 	import {
 		Settings,
 		Search,
@@ -14,11 +14,11 @@
 		PanelLeftOpen,
 		Keyboard
 	} from '@lucide/svelte';
-	import { authStore } from '$lib/stores/auth.svelte';
-	import { authService } from '$lib/auth/auth-service';
-	import { secretStore } from '$lib/stores/secrets.svelte';
-	import { passkeyStore } from '$lib/stores/passkeys.svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { authStore } from '#lib/stores/auth.svelte.ts';
+	import { authService } from '#lib/auth/auth-service.ts';
+	import { secretStore } from '#lib/stores/secrets.svelte.ts';
+	import { passkeyStore } from '#lib/stores/passkeys.svelte.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 
 	let { isSidebarOpen }: { isSidebarOpen?: boolean } = $props();
 

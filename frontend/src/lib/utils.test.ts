@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cn } from '$lib/utils';
+import { cn } from '#lib/utils.ts';
 
 describe('cn', () => {
 	it('joins conditional classes and lets later tailwind classes win', () => {

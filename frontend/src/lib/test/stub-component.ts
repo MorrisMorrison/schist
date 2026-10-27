@@ -4,7 +4,7 @@ import PropsStub from './PropsStub.svelte';
  * A component that renders `PropsStub` under `name`, for use in a `vi.mock` factory:
  *
  *   vi.mock('./folder/FolderTree.svelte', async () => ({
- *     default: (await import('$lib/test/stub-component')).namedStub('FolderTree')
+ *     default: (await import('#lib/test/stub-component.ts')).namedStub('FolderTree')
  *   }));
  *
  * The stub's live props are then available as `stubProps.FolderTree` (from `stub-registry`).

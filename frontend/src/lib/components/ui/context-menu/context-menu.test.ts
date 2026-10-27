@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import ContextMenuHarness from '$lib/test/ui/ContextMenuHarness.svelte';
-import { waitForPointerEvents } from '$lib/test/dialog';
+import ContextMenuHarness from '#lib/test/ui/ContextMenuHarness.svelte';
+import { waitForPointerEvents } from '#lib/test/dialog.ts';
 
 const menu = () => screen.getByRole('menu', { name: 'Actions' });
 

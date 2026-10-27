@@ -1,7 +1,7 @@
 <script lang="ts">
 	// A ui/tabs set for the library's component tests.
-	import * as Tabs from '$lib/components/ui/tabs';
-	import type { TabsVariant } from '$lib/components/ui/tabs';
+	import * as Tabs from '#lib/components/ui/tabs/index.ts';
+	import type { TabsVariant } from '#lib/components/ui/tabs/index.ts';
 
 	interface Props {
 		value?: string;

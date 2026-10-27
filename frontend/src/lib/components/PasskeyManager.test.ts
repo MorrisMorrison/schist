@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { apiClient } from '$lib/api/client';
-import { registerPasskey } from '$lib/utils/webauthn';
-import { passkeyStore } from '$lib/stores/passkeys.svelte';
-import { waitForDialogFocus } from '$lib/test/dialog';
+import { apiClient } from '#lib/api/client.ts';
+import { registerPasskey } from '#lib/utils/webauthn.ts';
+import { passkeyStore } from '#lib/stores/passkeys.svelte.ts';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
 import PasskeyManager from './PasskeyManager.svelte';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { getPasskeyStatus: vi.fn(), listPasskeys: vi.fn(), deletePasskey: vi.fn() }
 }));
 
-vi.mock('$lib/utils/webauthn', async (importOriginal) =>
-	(await import('$lib/test/webauthn-mock')).mockWebAuthn(importOriginal)
+vi.mock('#lib/utils/webauthn.ts', async (importOriginal) =>
+	(await import('#lib/test/webauthn-mock.ts')).mockWebAuthn(importOriginal)
 );
 
 const passkeys = [

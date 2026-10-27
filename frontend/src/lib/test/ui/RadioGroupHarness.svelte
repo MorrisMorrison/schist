@@ -1,7 +1,7 @@
 <script lang="ts">
 	// A labelled ui/radio-group for the library's component tests.
-	import * as RadioGroup from '$lib/components/ui/radio-group';
-	import { Label } from '$lib/components/ui/label';
+	import * as RadioGroup from '#lib/components/ui/radio-group/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 
 	interface Props {
 		value?: string;

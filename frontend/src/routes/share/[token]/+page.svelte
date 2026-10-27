@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { PageContainer, pageContainerVariants } from '$lib/components/ui/page-container';
-	import { formatLongDate } from '$lib/utils/date';
+	import { PageContainer, pageContainerVariants } from '#lib/components/ui/page-container/index.ts';
+	import { formatLongDate } from '#lib/utils/date.ts';
 	import { Calendar, Tag, Eye } from '@lucide/svelte';
-	import { Badge } from '$lib/components/ui/badge';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
-	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
-	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
-	import ImageLightbox from '$lib/components/ImageLightbox.svelte';
-	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import { initializeMarkdownInteractions } from '#lib/utils/markdown-blocks.ts';
+	import MarkdownRenderer from '#lib/components/markdown/MarkdownRenderer.svelte';
+	import ImageLightbox from '#lib/components/ImageLightbox.svelte';
+	import { imageLightbox, imageLightboxActions } from '#lib/stores/image-lightbox.svelte.ts';
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 

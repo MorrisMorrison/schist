@@ -1,13 +1,18 @@
 <script lang="ts">
-	import { folderActions } from '$lib/stores/documents.svelte';
+	import { folderActions } from '#lib/stores/documents.svelte.ts';
 	import FormDialog from './FormDialog.svelte';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import { Edit } from '@lucide/svelte';
-	import InlineError from '$lib/components/ui/InlineError.svelte';
-	import type { Folder as FolderType } from '$lib/api/types';
-	import { getErrorMessage } from '$lib/utils/error';
-	import { folderNameToSegment, getParentPath, isValidFolderName, joinPath } from '$lib/utils/path';
+	import InlineError from '#lib/components/ui/InlineError.svelte';
+	import type { Folder as FolderType } from '#lib/api/types.ts';
+	import { getErrorMessage } from '#lib/utils/error.ts';
+	import {
+		folderNameToSegment,
+		getParentPath,
+		isValidFolderName,
+		joinPath
+	} from '#lib/utils/path.ts';
 
 	interface Props {
 		folder?: FolderType;

@@ -1,13 +1,13 @@
 import { vi } from 'vitest';
-import type * as WebAuthn from '$lib/utils/webauthn';
+import type * as WebAuthn from '#lib/utils/webauthn.ts';
 
 /**
- * vi.mock factory for $lib/utils/webauthn in component tests. The browser
+ * vi.mock factory for #lib/utils/webauthn.ts in component tests. The browser
  * ceremonies become mocks and the browser reports WebAuthn support without a
  * platform authenticator; everything else (WebAuthnError, helpers) is real:
  *
- *   vi.mock('$lib/utils/webauthn', async (importOriginal) =>
- *     (await import('$lib/test/webauthn-mock')).mockWebAuthn(importOriginal)
+ *   vi.mock('#lib/utils/webauthn.ts', async (importOriginal) =>
+ *     (await import('#lib/test/webauthn-mock.ts')).mockWebAuthn(importOriginal)
  *   );
  */
 export async function mockWebAuthn(importOriginal: <T>() => Promise<T>) {

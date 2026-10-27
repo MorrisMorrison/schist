@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import type { Document } from '$lib/api/types';
-import { waitForPointerEvents } from '$lib/test/dialog';
+import type { Document } from '#lib/api/types.ts';
+import { waitForPointerEvents } from '#lib/test/dialog.ts';
 import DocumentContextMenu from './DocumentContextMenu.svelte';
 
 const doc: Document = { metaData: { title: 'Plan', path: '/plan', slug: 'plan' }, content: '' };

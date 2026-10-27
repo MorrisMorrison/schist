@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { ChevronRight, ChevronDown, Folder } from '@lucide/svelte';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.ts';
 	import TreeRowMenuTrigger from './TreeRowMenuTrigger.svelte';
-	import type { Folder as FolderType, Document } from '$lib/api/types.js';
+	import type { Folder as FolderType, Document } from '#lib/api/types.ts';
 	import DocumentItem from '../document/DocumentItem.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
-	import type { DragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
+	import type { DragAndDrop } from '#lib/composables/useDragAndDrop.svelte.ts';
 
 	interface Props {
 		folder: FolderType;

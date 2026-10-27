@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import SelectHarness from '$lib/test/ui/SelectHarness.svelte';
-import { waitForPointerEvents } from '$lib/test/dialog';
+import SelectHarness from '#lib/test/ui/SelectHarness.svelte';
+import { waitForPointerEvents } from '#lib/test/dialog.ts';
 import { selectTriggerVariants } from './index.js';
 
 const items = [

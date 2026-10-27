@@ -1,4 +1,4 @@
-import { badgeVariants } from '$lib/components/ui/badge/badge.svelte';
+import { badgeVariants } from '#lib/components/ui/badge/badge.svelte';
 import { HASHTAG_REGEX } from './hashtag-constants';
 
 export function processHashtags(text: string): string {

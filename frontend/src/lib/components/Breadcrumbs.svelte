@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { ChevronRight, Home } from '@lucide/svelte';
 
 	let { path = '', currentDocumentTitle = '' }: { path?: string; currentDocumentTitle?: string } =

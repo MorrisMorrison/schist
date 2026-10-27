@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, within, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { apiClient } from '$lib/api/client';
-import { authService } from '$lib/auth/auth-service';
+import { apiClient } from '#lib/api/client.ts';
+import { authService } from '#lib/auth/auth-service.ts';
 import {
 	resetAllState,
 	setFoldersState,
 	setDocumentsState,
 	currentFolder
-} from '$lib/stores/documents.svelte';
-import type { Document, Folder } from '$lib/api/types';
-import { waitForPointerEvents } from '$lib/test/dialog';
+} from '#lib/stores/documents.svelte.ts';
+import type { Document, Folder } from '#lib/api/types.ts';
+import { waitForPointerEvents } from '#lib/test/dialog.ts';
 import FolderTree from './FolderTree.svelte';
 
 /** The open tree context menu, once it has taken focus (and so listens for outside presses). */
@@ -25,7 +25,7 @@ async function menuClosed() {
 	await waitForPointerEvents();
 }
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getFolderTree: vi.fn(),
 		getDocuments: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-vi.mock('$lib/auth/auth-service', () => ({
+vi.mock('#lib/auth/auth-service.ts', () => ({
 	authService: {
 		initialize: vi.fn(),
 		isAuthEnabled: vi.fn(() => false),

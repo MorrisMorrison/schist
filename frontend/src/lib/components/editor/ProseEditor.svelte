@@ -11,13 +11,13 @@
 	import { indentOnInput } from '@codemirror/language';
 	import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 	import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
-	import { imagePasteExtension } from '$lib/utils/image-paste.js';
-	import { wikiLinksExtension } from '$lib/utils/wiki-links.js';
-	import { hashtagExtension } from '$lib/utils/hashtag-extension.js';
-	import { combinedAutocompletionExtension } from '$lib/utils/combined-autocomplete.js';
-	import { proseMarkdown } from '$lib/utils/prose-markdown';
-	import { applyFormatting } from '$lib/utils/editor-formatting';
-	import type { FormattingType, ProseEditorProps } from '$lib/types/editor';
+	import { imagePasteExtension } from '#lib/utils/image-paste.ts';
+	import { wikiLinksExtension } from '#lib/utils/wiki-links.ts';
+	import { hashtagExtension } from '#lib/utils/hashtag-extension.ts';
+	import { combinedAutocompletionExtension } from '#lib/utils/combined-autocomplete.ts';
+	import { proseMarkdown } from '#lib/utils/prose-markdown.ts';
+	import { applyFormatting } from '#lib/utils/editor-formatting.ts';
+	import type { FormattingType, ProseEditorProps } from '#lib/types/editor.ts';
 
 	let {
 		content = '',

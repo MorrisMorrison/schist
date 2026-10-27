@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/stores/documents.svelte', () => ({
+vi.mock('#lib/stores/documents.svelte.ts', () => ({
 	documentActions: {
 		checkDocumentExists: vi.fn(),
 		moveDocumentPath: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('$lib/stores/documents.svelte', () => ({
 	}
 }));
 
-import { documentActions, folderActions } from '$lib/stores/documents.svelte';
+import { documentActions, folderActions } from '#lib/stores/documents.svelte.ts';
 import { useDragAndDrop } from './useDragAndDrop.svelte';
 
 beforeEach(() => {

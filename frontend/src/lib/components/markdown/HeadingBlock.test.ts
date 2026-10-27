@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '$lib/test/component-utils';
+import { render } from '#lib/test/component-utils.ts';
 import HeadingBlock from './HeadingBlock.svelte';
-import type { HeadingBlock as HeadingBlockType } from '$lib/utils/markdown-blocks';
+import type { HeadingBlock as HeadingBlockType } from '#lib/utils/markdown-blocks.ts';
 
 describe('HeadingBlock', () => {
 	beforeEach(() => {

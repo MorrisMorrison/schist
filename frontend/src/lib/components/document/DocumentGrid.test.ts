@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
-vi.mock('$lib/api/client', () => ({ apiClient: {} }));
+vi.mock('#lib/api/client.ts', () => ({ apiClient: {} }));
 
-vi.mock('$lib/stores/documents.svelte', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/stores/documents.svelte')>()),
+vi.mock('#lib/stores/documents.svelte.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/stores/documents.svelte.ts')>()),
 	documentActions: { deleteDocument: vi.fn(), clearError: vi.fn() }
 }));
 
 import { goto } from '$app/navigation';
-import { documentActions } from '$lib/stores/documents.svelte';
+import { documentActions } from '#lib/stores/documents.svelte.ts';
 import DocumentGrid from './DocumentGrid.svelte';
 
 function doc(title: string, path: string): Document {

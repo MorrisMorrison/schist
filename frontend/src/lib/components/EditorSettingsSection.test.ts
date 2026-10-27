@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { settings, settingsActions } from '$lib/stores/settings.svelte';
+import { settings, settingsActions } from '#lib/stores/settings.svelte.ts';
 import EditorSettingsSection from './EditorSettingsSection.svelte';
 
 describe('EditorSettingsSection', () => {

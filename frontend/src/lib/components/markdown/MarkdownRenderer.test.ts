@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { waitFor } from '@testing-library/svelte';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getDocuments: vi.fn(),
 		getDocumentByPath: vi.fn(),
@@ -11,8 +11,8 @@ vi.mock('$lib/api/client', () => ({
 }));
 
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { render } from '$lib/test/component-utils';
+import { apiClient } from '#lib/api/client.ts';
+import { render } from '#lib/test/component-utils.ts';
 import MarkdownRenderer from './MarkdownRenderer.svelte';
 
 const doc = {

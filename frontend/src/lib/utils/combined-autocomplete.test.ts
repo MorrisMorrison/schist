@@ -3,12 +3,12 @@ import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { currentCompletions, startCompletion, completionStatus } from '@codemirror/autocomplete';
 
-vi.mock('$lib/utils/markdown-cache', () => ({
+vi.mock('#lib/utils/markdown-cache.ts', () => ({
 	getCachedDocuments: vi.fn(),
 	getCachedTags: vi.fn()
 }));
 
-import { getCachedDocuments, getCachedTags } from '$lib/utils/markdown-cache';
+import { getCachedDocuments, getCachedTags } from '#lib/utils/markdown-cache.ts';
 import { combinedAutocompletionExtension } from './combined-autocomplete';
 
 let view: EditorView | undefined;

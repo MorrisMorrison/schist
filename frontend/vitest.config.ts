@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
+import sveltekitConfig from './sveltekit.config.js';
 import tailwindcss from '@tailwindcss/vite';
 import { playwright } from '@vitest/browser-playwright';
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [tailwindcss(), sveltekit(sveltekitConfig)],
 	// Pre-bundle the dependencies that test files only reach lazily. Otherwise
 	// Vite discovers them mid-run, re-optimizes and reloads the page while a
 	// test file is running; the reloaded bits-ui chunk then talks to a second

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import type { Document, WikiLink } from '$lib/api/types';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import type { Document, WikiLink } from '#lib/api/types.ts';
 
 	interface Props {
 		currentDocument: Document;

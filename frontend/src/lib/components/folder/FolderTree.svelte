@@ -1,26 +1,26 @@
 <script lang="ts">
 	import { Folder, FolderOpen, FolderPlus, FilePlus, Plus, Upload, Download } from '@lucide/svelte';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.ts';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import ErrorAlert from '../ErrorAlert.svelte';
 	import UnifiedSidebarSearch from '../UnifiedSidebarSearch.svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
 	import FolderContextMenu from './FolderContextMenu.svelte';
 	import DocumentContextMenu from '../document/DocumentContextMenu.svelte';
-	import type { Folder as FolderType, Document } from '$lib/api/types.js';
+	import type { Folder as FolderType, Document } from '#lib/api/types.ts';
 	import {
 		foldersStore,
 		documentsStore,
 		documentActions,
 		currentFolder,
 		folderActions
-	} from '$lib/stores/documents.svelte';
-	import { cn } from '$lib/utils.js';
-	import { isDirectChild } from '$lib/utils/path';
-	import { useDragAndDrop } from '$lib/composables/useDragAndDrop.svelte.js';
-	import { authService } from '$lib/auth/auth-service';
-	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
+	} from '#lib/stores/documents.svelte.ts';
+	import { cn } from '#lib/utils.ts';
+	import { isDirectChild } from '#lib/utils/path.ts';
+	import { useDragAndDrop } from '#lib/composables/useDragAndDrop.svelte.ts';
+	import { authService } from '#lib/auth/auth-service.ts';
+	import { useOptimizedLoading } from '#lib/composables/useOptimizedLoading.svelte.ts';
 	import { onDestroy } from 'svelte';
 
 	interface Props {

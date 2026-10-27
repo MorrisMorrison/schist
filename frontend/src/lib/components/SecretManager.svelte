@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { secretStore } from '$lib/stores/secrets.svelte';
-	import { authStore } from '$lib/stores/auth.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import { secretStore } from '#lib/stores/secrets.svelte.ts';
+	import { authStore } from '#lib/stores/auth.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
 	import {
 		Card,
 		CardContent,
 		CardDescription,
 		CardHeader,
 		CardTitle
-	} from '$lib/components/ui/card';
+	} from '#lib/components/ui/card/index.ts';
 	import PasskeyUnlockModal from './modal/PasskeyUnlockModal.svelte';
 	import SecretEditModal from './modal/SecretEditModal.svelte';
-	import ToggleSlider from '$lib/components/ui/toggle-slider/ToggleSlider.svelte';
+	import ToggleSlider from '#lib/components/ui/toggle-slider/ToggleSlider.svelte';
 	import { Key, Lock, Copy, Edit, Trash2, Loader2, Plus, Info } from '@lucide/svelte';
-	import LoadingRow from '$lib/components/LoadingRow.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingRow from '#lib/components/LoadingRow.svelte';
+	import EmptyState from '#lib/components/EmptyState.svelte';
 
 	let showUnlockModal = $state(false);
 	let showCreateModal = $state(false);

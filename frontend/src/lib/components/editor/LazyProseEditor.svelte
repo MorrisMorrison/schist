@@ -2,9 +2,9 @@
 	// Loads ProseEditor (and with it CodeMirror) on first use, so reading a
 	// document never downloads the editor.
 	import { onMount } from 'svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import type { FormattingType, ProseEditorProps } from '$lib/types/editor';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import type { FormattingType, ProseEditorProps } from '#lib/types/editor.ts';
 	import type ProseEditorComponent from './ProseEditor.svelte';
 
 	const props: ProseEditorProps = $props();

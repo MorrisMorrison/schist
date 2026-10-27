@@ -1,9 +1,10 @@
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
+import sveltekitConfig from './sveltekit.config.js';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [tailwindcss(), sveltekit(sveltekitConfig)],
 	build: {
 		rolldownOptions: {
 			output: {

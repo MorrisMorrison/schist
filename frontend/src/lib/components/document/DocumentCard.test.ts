@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, user } from '$lib/test/component-utils.js';
+import { render, user } from '#lib/test/component-utils.ts';
 import DocumentCard from './DocumentCard.svelte';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
 describe('DocumentCard', () => {
 	const mockDocument: Document = {

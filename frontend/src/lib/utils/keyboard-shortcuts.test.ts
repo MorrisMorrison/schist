@@ -5,13 +5,13 @@ vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
 
-vi.mock('$lib/stores/theme.svelte', () => ({
+vi.mock('#lib/stores/theme.svelte.ts', () => ({
 	themeActions: {
 		toggleTheme: vi.fn()
 	}
 }));
 
-vi.mock('$lib/stores/sidebar.svelte', () => ({
+vi.mock('#lib/stores/sidebar.svelte.ts', () => ({
 	sidebarActions: {
 		toggle: vi.fn()
 	}
@@ -20,10 +20,10 @@ vi.mock('$lib/stores/sidebar.svelte', () => ({
 // Import after mocking
 import { createKeyboardShortcutHandler, KEYBOARD_SHORTCUTS } from './keyboard-shortcuts';
 import type { KeyboardShortcutHandlers } from './keyboard-shortcuts';
-import type { Page } from '@sveltejs/kit';
+import type { Page } from '$app/state';
 import { goto } from '$app/navigation';
-import { themeActions } from '$lib/stores/theme.svelte';
-import { sidebarActions } from '$lib/stores/sidebar.svelte';
+import { themeActions } from '#lib/stores/theme.svelte.ts';
+import { sidebarActions } from '#lib/stores/sidebar.svelte.ts';
 
 // Mock page object matching SvelteKit's Page interface
 // Bare `Page` (matching the consumer's signature) defaults to the app's typed

@@ -7,12 +7,12 @@ import {
 	resetAllState,
 	setDocumentsState
 } from './documents.svelte';
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import type { CreateDocumentRequest, UpdateDocumentRequest } from '../api/types';
 import { testData } from '../test/utils';
 
 // Mock the API client
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getDocuments: vi.fn(),
 		getDocument: vi.fn(),

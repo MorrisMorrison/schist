@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render } from '@testing-library/svelte';
 import { EditorView } from '@codemirror/view';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		uploadImage: vi.fn(),
 		getDocuments: vi.fn().mockResolvedValue([]),
@@ -12,7 +12,7 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import ProseEditor from './ProseEditor.svelte';
 import LazyProseEditor from './LazyProseEditor.svelte';
 

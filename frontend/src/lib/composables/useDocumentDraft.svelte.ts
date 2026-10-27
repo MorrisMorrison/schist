@@ -1,8 +1,8 @@
-import type { Document } from '$lib/api/types';
-import { documentActions } from '$lib/stores/documents.svelte';
-import { extractHashtagsFromContent, extractTitleFromContent } from '$lib/utils/content-parser';
-import { getErrorMessage } from '$lib/utils/error';
-import { generateSlug } from '$lib/utils/path';
+import type { Document } from '#lib/api/types.ts';
+import { documentActions } from '#lib/stores/documents.svelte.ts';
+import { extractHashtagsFromContent, extractTitleFromContent } from '#lib/utils/content-parser.ts';
+import { getErrorMessage } from '#lib/utils/error.ts';
+import { generateSlug } from '#lib/utils/path.ts';
 
 export const AUTO_SAVE_DELAY_MS = 10_000;
 

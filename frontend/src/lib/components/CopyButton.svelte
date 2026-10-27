@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Copy, Check, AlertCircle } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { copyToClipboard, isClipboardSupported } from '$lib/utils/clipboard';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import { getErrorMessage } from '$lib/utils/error';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { copyToClipboard, isClipboardSupported } from '#lib/utils/clipboard.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import { getErrorMessage } from '#lib/utils/error.ts';
 
 	interface Props {
 		text: string;

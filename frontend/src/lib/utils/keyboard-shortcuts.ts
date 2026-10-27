@@ -1,7 +1,7 @@
 import { goto } from '$app/navigation';
-import type { Page } from '@sveltejs/kit';
-import { themeActions } from '$lib/stores/theme.svelte';
-import { sidebarActions } from '$lib/stores/sidebar.svelte';
+import type { Page } from '$app/state';
+import { themeActions } from '#lib/stores/theme.svelte.ts';
+import { sidebarActions } from '#lib/stores/sidebar.svelte.ts';
 
 export interface KeyboardShortcutHandlers {
 	openQuickSwitcher: () => void;

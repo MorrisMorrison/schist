@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getSecretsStatus: vi.fn(),
 		listSecrets: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import {
 	markLockedSecretPlaceholders,
 	parseSecretPlaceholders,

@@ -2,8 +2,8 @@ import { marked } from 'marked';
 import type { Tokens } from 'marked';
 import { configuredMarked } from './markdown';
 import { highlightCode } from './markdown-config';
-import { apiClient } from '$lib/api/client';
-import { generateSlug } from '$lib/utils/path';
+import { apiClient } from '#lib/api/client.ts';
+import { generateSlug } from '#lib/utils/path.ts';
 import { goto } from '$app/navigation';
 import { replaceWikiLinks } from './wiki-link-syntax';
 export interface BaseBlock {

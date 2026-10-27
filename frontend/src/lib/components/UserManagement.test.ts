@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { apiClient } from '$lib/api/client';
-import type { UserInfo } from '$lib/api/types';
+import { apiClient } from '#lib/api/client.ts';
+import type { UserInfo } from '#lib/api/types.ts';
 import UserManagement from './UserManagement.svelte';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { listUsers: vi.fn(), generateInviteToken: vi.fn(), deleteUser: vi.fn() }
 }));
 

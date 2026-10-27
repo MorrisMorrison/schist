@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { documentPageWidth } from '$lib/stores/settings.svelte';
-	import { PageContainer } from '$lib/components/ui/page-container';
-	import { formatLongDate } from '$lib/utils/date';
+	import { documentPageWidth } from '#lib/stores/settings.svelte.ts';
+	import { PageContainer } from '#lib/components/ui/page-container/index.ts';
+	import { formatLongDate } from '#lib/utils/date.ts';
 	import {
 		BookOpen,
 		Calendar,
@@ -17,33 +17,33 @@
 		Trash2
 	} from '@lucide/svelte';
 	import { tick } from 'svelte';
-	import { Button, buttonVariants } from '$lib/components/ui/button';
-	import { Badge } from '$lib/components/ui/badge';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.ts';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
 	import VersionHistoryModal from '../VersionHistoryModal.svelte';
 	import ShareDocumentModal from '../modal/ShareDocumentModal.svelte';
-	import { initializeMarkdownInteractions } from '$lib/utils/markdown-blocks';
-	import MarkdownRenderer from '$lib/components/markdown/MarkdownRenderer.svelte';
-	import type { Document, DocumentVersion } from '$lib/api/types';
+	import { initializeMarkdownInteractions } from '#lib/utils/markdown-blocks.ts';
+	import MarkdownRenderer from '#lib/components/markdown/MarkdownRenderer.svelte';
+	import type { Document, DocumentVersion } from '#lib/api/types.ts';
 	import ImageLightbox from '../ImageLightbox.svelte';
-	import { imageLightbox, imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
-	import { apiClient } from '$lib/api/client';
+	import { imageLightbox, imageLightboxActions } from '#lib/stores/image-lightbox.svelte.ts';
+	import { apiClient } from '#lib/api/client.ts';
 	import { goto } from '$app/navigation';
-	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
+	import { useOptimizedLoading } from '#lib/composables/useOptimizedLoading.svelte.ts';
 	import {
 		secretStore,
 		replaceSecretPlaceholders,
 		markLockedSecretPlaceholders
-	} from '$lib/stores/secrets.svelte';
-	import { processHashtags } from '$lib/utils/hashtag-renderer.js';
-	import { stripLeadingTitleHeading } from '$lib/utils/document-title';
+	} from '#lib/stores/secrets.svelte.ts';
+	import { processHashtags } from '#lib/utils/hashtag-renderer.ts';
+	import { stripLeadingTitleHeading } from '#lib/utils/document-title.ts';
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
 	import ModeToggle from '../editor/ModeToggle.svelte';
-	import { documentActions, linksStore } from '$lib/stores/documents.svelte';
-	import type { DocumentMode } from '$lib/types/editor';
+	import { documentActions, linksStore } from '#lib/stores/documents.svelte.ts';
+	import type { DocumentMode } from '#lib/types/editor.ts';
 	import type DocumentInlineEditorComponent from '../editor/DocumentInlineEditor.svelte';
 
 	interface Props {

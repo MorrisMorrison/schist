@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
-import { themeStore, type Theme } from '$lib/stores/theme.svelte';
+import { themeStore, type Theme } from '#lib/stores/theme.svelte.ts';
 import ThemeToggle from './ThemeToggle.svelte';
 
 describe('ThemeToggle', () => {

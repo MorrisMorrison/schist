@@ -1,5 +1,5 @@
-import { apiClient } from '$lib/api/client';
-import type { SecretsStatus, CreateSecretRequest, UpdateSecretRequest } from '$lib/api/types';
+import { apiClient } from '#lib/api/client.ts';
+import type { SecretsStatus, CreateSecretRequest, UpdateSecretRequest } from '#lib/api/types.ts';
 import { runAsync } from './resource.svelte';
 
 export interface SecretInfo {

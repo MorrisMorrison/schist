@@ -1,4 +1,4 @@
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import type {
 	Document,
 	CreateDocumentRequest,
@@ -6,10 +6,10 @@ import type {
 	Folder,
 	MoveDocumentRequest,
 	WikiLink
-} from '$lib/api/types';
-import { getParentPath } from '$lib/utils/path';
-import { getErrorMessage } from '$lib/utils/error';
-import { runAsync } from '$lib/stores/resource.svelte';
+} from '#lib/api/types.ts';
+import { getParentPath } from '#lib/utils/path.ts';
+import { getErrorMessage } from '#lib/utils/error.ts';
+import { runAsync } from '#lib/stores/resource.svelte.ts';
 
 interface DocumentsState {
 	documents: Document[];

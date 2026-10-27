@@ -1,14 +1,14 @@
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import {
 	registerPasskey,
 	authenticateWithPasskey as webAuthnAuthenticate,
 	WebAuthnError,
 	isWebAuthnSupported
-} from '$lib/utils/webauthn';
+} from '#lib/utils/webauthn.ts';
 import { runAsync } from './resource.svelte';
-import { getErrorMessage } from '$lib/utils/error';
+import { getErrorMessage } from '#lib/utils/error.ts';
 
-import type { PasskeyInfo, PasskeyStatus } from '$lib/api/types';
+import type { PasskeyInfo, PasskeyStatus } from '#lib/api/types.ts';
 
 export type { PasskeyInfo, PasskeyStatus };
 

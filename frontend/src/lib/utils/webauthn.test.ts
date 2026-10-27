@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		beginPasskeyRegistration: vi.fn(),
 		finishPasskeyRegistration: vi.fn(),
@@ -9,7 +9,7 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import {
 	WebAuthnError,
 	authenticateWithPasskey,

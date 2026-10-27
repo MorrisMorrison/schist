@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import type { FormattingType } from '$lib/types/editor';
+import type { FormattingType } from '#lib/types/editor.ts';
 import { applyFormatting, formatMarkdown } from './editor-formatting';
 
 describe('formatMarkdown', () => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { HrBlock } from '$lib/utils/markdown-blocks';
+	import type { HrBlock } from '#lib/utils/markdown-blocks.ts';
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let { block }: { block: HrBlock } = $props();

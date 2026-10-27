@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatDateTime } from '$lib/utils/date';
+	import { formatDateTime } from '#lib/utils/date.ts';
 	import {
 		History,
 		GitCompare,
@@ -9,20 +9,20 @@
 		MessageSquare,
 		Loader2
 	} from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Badge } from '$lib/components/ui/badge';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import {
 		Dialog,
 		DialogContent,
 		DialogHeader,
 		DialogTitle,
 		DialogFooter
-	} from '$lib/components/ui/dialog';
+	} from '#lib/components/ui/dialog/index.ts';
 	import DiffViewer from './DiffViewer.svelte';
 	import ErrorAlert from './ErrorAlert.svelte';
-	import type { DocumentVersion, DiffResult } from '$lib/api/types';
-	import { apiClient } from '$lib/api/client';
-	import { getErrorMessage } from '$lib/utils/error';
+	import type { DocumentVersion, DiffResult } from '#lib/api/types.ts';
+	import { apiClient } from '#lib/api/client.ts';
+	import { getErrorMessage } from '#lib/utils/error.ts';
 
 	interface Props {
 		open: boolean;

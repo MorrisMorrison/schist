@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { PageContainer } from '$lib/components/ui/page-container';
+	import { PageContainer } from '#lib/components/ui/page-container/index.ts';
 	import { goto } from '$app/navigation';
-	import { documentsStore, folderActions, documentActions } from '$lib/stores/documents.svelte';
+	import { documentsStore, folderActions, documentActions } from '#lib/stores/documents.svelte.ts';
 	import DocumentGrid from '../document/DocumentGrid.svelte';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import CreateFolderModal from '../modal/CreateFolderModal.svelte';
 	import { Plus, FolderPlus, File } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
-	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
-	import { Card, CardContent } from '$lib/components/ui/card';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import type { Document, Folder as FolderType } from '$lib/api/types';
-	import { isDirectChild } from '$lib/utils/path';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import { ToggleSlider } from '#lib/components/ui/toggle-slider/index.ts';
+	import { Card, CardContent } from '#lib/components/ui/card/index.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import type { Document, Folder as FolderType } from '#lib/api/types.ts';
+	import { isDirectChild } from '#lib/utils/path.ts';
 
 	interface Props {
 		path?: string;

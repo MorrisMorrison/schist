@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { passkeyStore } from '$lib/stores/passkeys.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { Alert, AlertDescription } from '$lib/components/ui/alert';
+	import { passkeyStore } from '#lib/stores/passkeys.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import { Alert, AlertDescription } from '#lib/components/ui/alert/index.ts';
 	import {
 		Dialog,
 		DialogContent,
@@ -11,8 +11,8 @@
 		DialogFooter,
 		DialogHeader,
 		DialogTitle
-	} from '$lib/components/ui/dialog';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	} from '#lib/components/ui/dialog/index.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 
 	interface Props {
 		open?: boolean;

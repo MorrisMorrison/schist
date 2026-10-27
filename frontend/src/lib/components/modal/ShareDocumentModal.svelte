@@ -1,15 +1,20 @@
 <script lang="ts">
-	import { formatDateTime } from '$lib/utils/date';
+	import { formatDateTime } from '#lib/utils/date.ts';
 	import { Copy, Share, RefreshCw, Trash2, Clock, ExternalLink } from '@lucide/svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
-	import { Dialog, DialogContent, DialogHeader, DialogTitle } from '$lib/components/ui/dialog';
-	import { apiClient } from '$lib/api/client';
-	import type { ShareToken } from '$lib/api/types';
-	import { isUnauthorizedError } from '$lib/utils/error';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import {
+		Dialog,
+		DialogContent,
+		DialogHeader,
+		DialogTitle
+	} from '#lib/components/ui/dialog/index.ts';
+	import { apiClient } from '#lib/api/client.ts';
+	import type { ShareToken } from '#lib/api/types.ts';
+	import { isUnauthorizedError } from '#lib/utils/error.ts';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
 
 	interface Props {
 		open: boolean;

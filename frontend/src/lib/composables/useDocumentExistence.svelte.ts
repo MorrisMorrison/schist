@@ -1,4 +1,4 @@
-import { documentActions } from '$lib/stores/documents.svelte';
+import { documentActions } from '#lib/stores/documents.svelte.ts';
 
 export interface DocumentExistenceState {
 	exists: boolean;

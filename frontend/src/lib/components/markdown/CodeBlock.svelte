@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { CodeBlock } from '$lib/utils/markdown-blocks';
-	import CopyButton from '$lib/components/CopyButton.svelte';
+	import type { CodeBlock } from '#lib/utils/markdown-blocks.ts';
+	import CopyButton from '#lib/components/CopyButton.svelte';
 
 	let { block }: { block: CodeBlock } = $props();
 </script>

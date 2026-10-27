@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { getDocuments: vi.fn() }
 }));
 
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { pressOutsideDialog, waitForDialogFocus } from '$lib/test/dialog';
+import { apiClient } from '#lib/api/client.ts';
+import { pressOutsideDialog, waitForDialogFocus } from '#lib/test/dialog.ts';
 import QuickSwitcher from './QuickSwitcher.svelte';
 
 function doc(title: string, path: string, tags: string[] = []): Document {

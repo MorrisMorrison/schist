@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '$lib/test/component-utils';
+import { render } from '#lib/test/component-utils.ts';
 import ListBlock from './ListBlock.svelte';
-import type { ListBlock as ListBlockType, ListItemBlock } from '$lib/utils/markdown-blocks';
+import type { ListBlock as ListBlockType, ListItemBlock } from '#lib/utils/markdown-blocks.ts';
 
 describe('ListBlock', () => {
 	beforeEach(() => {

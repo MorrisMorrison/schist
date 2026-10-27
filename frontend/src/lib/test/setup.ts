@@ -38,15 +38,8 @@ vi.mock('$app/navigation', () => ({
 	afterNavigate: vi.fn()
 }));
 
-// Mock SvelteKit stores
-vi.mock('$app/stores', () => ({
-	page: { subscribe: vi.fn() },
-	navigating: { subscribe: vi.fn() },
-	updated: { subscribe: vi.fn() }
-}));
-
 // Mock SvelteKit environment
-vi.mock('$app/environment', () => ({
+vi.mock('$app/env', () => ({
 	browser: true,
 	dev: true,
 	building: false,

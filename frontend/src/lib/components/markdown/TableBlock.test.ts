@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '$lib/test/component-utils';
+import { render } from '#lib/test/component-utils.ts';
 import TableBlock from './TableBlock.svelte';
-import type { TableBlock as TableBlockType } from '$lib/utils/markdown-blocks';
+import type { TableBlock as TableBlockType } from '#lib/utils/markdown-blocks.ts';
 
 describe('TableBlock', () => {
 	beforeEach(() => {

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { waitForDialogFocus } from '$lib/test/dialog';
-import { apiClient } from '$lib/api/client';
-import { secretStore } from '$lib/stores/secrets.svelte';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
+import { apiClient } from '#lib/api/client.ts';
+import { secretStore } from '#lib/stores/secrets.svelte.ts';
 import SecretEditModal from './SecretEditModal.svelte';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		createSecret: vi.fn(),
 		updateSecret: vi.fn(),

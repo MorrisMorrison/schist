@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/api/client', () => ({ apiClient: { setAuthToken: vi.fn() } }));
+vi.mock('#lib/api/client.ts', () => ({ apiClient: { setAuthToken: vi.fn() } }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 
 const KEY = 'schist_auth_token';
 const user = { username: 'alice', created_at: '', last_login: '' };

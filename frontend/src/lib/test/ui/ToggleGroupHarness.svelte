@@ -1,7 +1,10 @@
 <script lang="ts">
 	// ui/toggle-group sets (single and multiple) for the library's component tests.
-	import * as ToggleGroup from '$lib/components/ui/toggle-group';
-	import type { ToggleGroupSize, ToggleGroupVariant } from '$lib/components/ui/toggle-group';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
+	import type {
+		ToggleGroupSize,
+		ToggleGroupVariant
+	} from '#lib/components/ui/toggle-group/index.ts';
 
 	interface Props {
 		type?: 'single' | 'multiple';

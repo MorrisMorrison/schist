@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { tick } from 'svelte';
-import { apiClient } from '$lib/api/client';
-import { githubActions, githubStore } from '$lib/stores/github.svelte';
-import type { GitHubConnectionStatus, GitHubSettings } from '$lib/api/types';
+import { apiClient } from '#lib/api/client.ts';
+import { githubActions, githubStore } from '#lib/stores/github.svelte.ts';
+import type { GitHubConnectionStatus, GitHubSettings } from '#lib/api/types.ts';
 import GitHubSettingsSection from './GitHubSettingsSection.svelte';
-import { chooseSelectOption } from '$lib/test/select';
+import { chooseSelectOption } from '#lib/test/select.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getGitHubSettings: vi.fn(),
 		getGitHubConnectionStatus: vi.fn(),

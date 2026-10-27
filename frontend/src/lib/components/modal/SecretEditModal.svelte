@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { secretStore } from '$lib/stores/secrets.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
-	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import { secretStore } from '#lib/stores/secrets.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import Textarea from '#lib/components/ui/textarea/textarea.svelte';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
 	import { Info } from '@lucide/svelte';
 	import {
 		Dialog,
@@ -13,7 +13,7 @@
 		DialogFooter,
 		DialogHeader,
 		DialogTitle
-	} from '$lib/components/ui/dialog';
+	} from '#lib/components/ui/dialog/index.ts';
 
 	interface Props {
 		open?: boolean;

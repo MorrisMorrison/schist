@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import type { Folder } from '$lib/api/types';
-import { waitForPointerEvents } from '$lib/test/dialog';
+import type { Folder } from '#lib/api/types.ts';
+import { waitForPointerEvents } from '#lib/test/dialog.ts';
 import FolderContextMenu from './FolderContextMenu.svelte';
 
 const folder: Folder = {

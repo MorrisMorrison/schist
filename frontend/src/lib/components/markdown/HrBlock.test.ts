@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '$lib/test/component-utils';
+import { render } from '#lib/test/component-utils.ts';
 import HrBlock from './HrBlock.svelte';
-import type { HrBlock as HrBlockType } from '$lib/utils/markdown-blocks';
+import type { HrBlock as HrBlockType } from '#lib/utils/markdown-blocks.ts';
 
 describe('HrBlock', () => {
 	beforeEach(() => {

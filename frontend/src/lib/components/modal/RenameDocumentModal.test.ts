@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { waitForDialogFocus } from '$lib/test/dialog';
-import { documentActions } from '$lib/stores/documents.svelte';
-import type { Document, UpdateDocumentRequest } from '$lib/api/types';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
+import { documentActions } from '#lib/stores/documents.svelte.ts';
+import type { Document, UpdateDocumentRequest } from '#lib/api/types.ts';
 import RenameDocumentModal from './RenameDocumentModal.svelte';
 
-vi.mock('$lib/stores/documents.svelte', () => ({
+vi.mock('#lib/stores/documents.svelte.ts', () => ({
 	documentActions: { checkDocumentExists: vi.fn(), updateDocumentByPath: vi.fn() }
 }));
 

@@ -2,21 +2,21 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import {
 		Card,
 		CardContent,
 		CardDescription,
 		CardHeader,
 		CardTitle
-	} from '$lib/components/ui/card';
+	} from '#lib/components/ui/card/index.ts';
 	import { Fingerprint } from '@lucide/svelte';
-	import { apiClient } from '$lib/api/client';
-	import { authenticateWithPasskey } from '$lib/utils/webauthn';
-	import { authService } from '$lib/auth/auth-service';
-	import { getErrorMessage } from '$lib/utils/error';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
+	import { apiClient } from '#lib/api/client.ts';
+	import { authenticateWithPasskey } from '#lib/utils/webauthn.ts';
+	import { authService } from '#lib/auth/auth-service.ts';
+	import { getErrorMessage } from '#lib/utils/error.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
 
 	let isLoading = $state(false);
 	let error = $state('');

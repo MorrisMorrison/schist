@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Plus, Minus, RotateCcw } from '@lucide/svelte';
-	import { Badge } from '$lib/components/ui/badge';
-	import type { DiffResult, DiffLine } from '$lib/api/types';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import type { DiffResult, DiffLine } from '#lib/api/types.ts';
 
 	interface Props {
 		diffResult: DiffResult;

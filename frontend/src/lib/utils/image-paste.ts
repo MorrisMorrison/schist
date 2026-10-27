@@ -1,6 +1,6 @@
 import { EditorView } from '@codemirror/view';
-import type { Asset } from '$lib/api/types';
-import { apiClient } from '$lib/api/client';
+import type { Asset } from '#lib/api/types.ts';
+import { apiClient } from '#lib/api/client.ts';
 import { getErrorMessage } from './error';
 
 export interface ImagePasteOptions {

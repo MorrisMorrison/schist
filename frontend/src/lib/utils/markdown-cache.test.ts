@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { getDocuments: vi.fn(), getAllTags: vi.fn() }
 }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 
 import { getCachedDocuments, getCachedTags } from './markdown-cache';
 

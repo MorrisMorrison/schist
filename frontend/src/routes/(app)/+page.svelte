@@ -1,5 +1,5 @@
 <script lang="ts">
-	import FolderView from '$lib/components/folder/FolderView.svelte';
+	import FolderView from '#lib/components/folder/FolderView.svelte';
 </script>
 
 <svelte:head>

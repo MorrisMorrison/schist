@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { ParagraphBlock } from '$lib/utils/markdown-blocks';
-	import { sanitizeHtml } from '$lib/utils/sanitizer';
+	import type { ParagraphBlock } from '#lib/utils/markdown-blocks.ts';
+	import { sanitizeHtml } from '#lib/utils/sanitizer.ts';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { imageLightboxActions } from '$lib/stores/image-lightbox.svelte';
+	import { imageLightboxActions } from '#lib/stores/image-lightbox.svelte.ts';
 
 	let { block }: { block: ParagraphBlock } = $props();
 	let container: HTMLElement;

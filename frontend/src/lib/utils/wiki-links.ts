@@ -4,9 +4,9 @@ import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { goto } from '$app/navigation';
-import { generateSlug } from '$lib/utils/path';
-import { getCachedDocuments } from '$lib/utils/markdown-cache';
-import { findWikiLinkMatches } from '$lib/utils/wiki-link-syntax';
+import { generateSlug } from '#lib/utils/path.ts';
+import { getCachedDocuments } from '#lib/utils/markdown-cache.ts';
+import { findWikiLinkMatches } from '#lib/utils/wiki-link-syntax.ts';
 import { asyncDecorations, autocompleteTheme } from './async-decorations';
 
 const existsCache = new Map<string, { exists: boolean; time: number }>();

@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import { error } from '@sveltejs/kit';
-import type { Folder, Document } from '$lib/api/types';
+import type { Folder, Document } from '#lib/api/types.ts';
 
 export const load: PageLoad = async ({ params }) => {
 	const pathSegments = params.path.split('/').filter(Boolean);
@@ -58,14 +58,10 @@ export const load: PageLoad = async ({ params }) => {
 			};
 		} catch {
 			// Neither folder nor document found
-			throw error(404, {
-				message: 'Folder or document not found'
-			});
+			throw error(404, 'Folder or document not found');
 		}
 	} catch (err) {
 		console.error('Error loading folder/document:', err);
-		throw error(500, {
-			message: 'Failed to load content'
-		});
+		throw error(500, 'Failed to load content');
 	}
 };

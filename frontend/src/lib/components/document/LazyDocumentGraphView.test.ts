@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
 // Reading the module's default export throws, so the lazy load fails.
-vi.mock('$lib/components/document/DocumentGraphView.svelte', () => ({
+vi.mock('#lib/components/document/DocumentGraphView.svelte', () => ({
 	get default() {
 		throw new Error('chunk failed to load');
 	}

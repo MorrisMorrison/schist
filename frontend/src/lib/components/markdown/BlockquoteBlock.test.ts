@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render } from '$lib/test/component-utils';
+import { render } from '#lib/test/component-utils.ts';
 import BlockquoteBlock from './BlockquoteBlock.svelte';
-import type { BlockquoteBlock as BlockquoteBlockType } from '$lib/utils/markdown-blocks';
+import type { BlockquoteBlock as BlockquoteBlockType } from '#lib/utils/markdown-blocks.ts';
 
 // Mock the sanitizer module
-vi.mock('$lib/utils/sanitizer', () => {
+vi.mock('#lib/utils/sanitizer.ts', () => {
 	return {
 		sanitizeHtml: (html: string) => html
 	};

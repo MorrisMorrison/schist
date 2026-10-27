@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
-vi.mock('$lib/api/client', () => ({ apiClient: { uploadImage: vi.fn() } }));
+vi.mock('#lib/api/client.ts', () => ({ apiClient: { uploadImage: vi.fn() } }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import { imagePasteExtension } from './image-paste';
 
 let view: EditorView;

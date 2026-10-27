@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import TabsHarness from '$lib/test/ui/TabsHarness.svelte';
+import TabsHarness from '#lib/test/ui/TabsHarness.svelte';
 
 function setup(props: Record<string, unknown> = {}) {
 	const onValueChange = vi.fn();

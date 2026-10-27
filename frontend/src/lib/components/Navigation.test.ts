@@ -5,7 +5,7 @@ const pageState = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
 
 vi.mock('$app/state', () => ({ page: pageState }));
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		setAuthToken: vi.fn(),
 		getSecretsStatus: vi.fn(),
@@ -13,20 +13,20 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-vi.mock('$lib/auth/auth-service', () => ({
+vi.mock('#lib/auth/auth-service.ts', () => ({
 	authService: { logout: vi.fn() }
 }));
 
-vi.mock('$lib/stores/passkeys.svelte', () => ({
+vi.mock('#lib/stores/passkeys.svelte.ts', () => ({
 	passkeyStore: { authenticateWithPasskey: vi.fn() }
 }));
 
-import { apiClient } from '$lib/api/client';
-import { authService } from '$lib/auth/auth-service';
-import { authActions } from '$lib/stores/auth.svelte';
-import { passkeyStore } from '$lib/stores/passkeys.svelte';
-import { secretStore } from '$lib/stores/secrets.svelte';
-import { sidebar, sidebarActions } from '$lib/stores/sidebar.svelte';
+import { apiClient } from '#lib/api/client.ts';
+import { authService } from '#lib/auth/auth-service.ts';
+import { authActions } from '#lib/stores/auth.svelte.ts';
+import { passkeyStore } from '#lib/stores/passkeys.svelte.ts';
+import { secretStore } from '#lib/stores/secrets.svelte.ts';
+import { sidebar, sidebarActions } from '#lib/stores/sidebar.svelte.ts';
 import Navigation from './Navigation.svelte';
 
 const user = { username: 'ada', created_at: '', last_login: '' };

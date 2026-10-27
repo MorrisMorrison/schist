@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { EditorView } from '@codemirror/view';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getTemplates: vi.fn(),
 		createDocument: vi.fn(),
@@ -18,8 +18,8 @@ vi.mock('$lib/api/client', () => ({
 }));
 
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { resetAllState } from '$lib/stores/documents.svelte';
+import { apiClient } from '#lib/api/client.ts';
+import { resetAllState } from '#lib/stores/documents.svelte.ts';
 import Page from './+page.svelte';
 
 async function editorView(): Promise<EditorView> {

@@ -1,5 +1,5 @@
-import { apiClient } from '$lib/api/client';
-import type { UserInfo } from '$lib/api/types';
+import { apiClient } from '#lib/api/client.ts';
+import type { UserInfo } from '#lib/api/types.ts';
 
 interface WorkspaceState {
 	users: UserInfo[];

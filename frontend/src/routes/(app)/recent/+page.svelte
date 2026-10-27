@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { PageContainer } from '$lib/components/ui/page-container';
-	import FolderView from '$lib/components/folder/FolderView.svelte';
-	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
+	import { PageContainer } from '#lib/components/ui/page-container/index.ts';
+	import FolderView from '#lib/components/folder/FolderView.svelte';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
 	import type { PageData } from './$types';
 
 	interface Props {

@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { githubActions, githubStore } from '$lib/stores/github.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import * as Select from '$lib/components/ui/select';
-	import * as Tabs from '$lib/components/ui/tabs';
-	import { Separator } from '$lib/components/ui/separator';
-	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
-	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
+	import { githubActions, githubStore } from '#lib/stores/github.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import * as Tabs from '#lib/components/ui/tabs/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
+	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
+	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
+	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
-	import type { GitHubSetupRequest } from '$lib/api/types';
+	import type { GitHubSetupRequest } from '#lib/api/types.ts';
 	import { onMount } from 'svelte';
 
 	let token = $state('');

@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getDocuments: vi.fn(),
 		getDocumentByPath: vi.fn()
 	}
 }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import {
 	parseMarkdownToBlocks,
 	type CodeBlock,

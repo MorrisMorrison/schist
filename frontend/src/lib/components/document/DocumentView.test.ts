@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { flushSync } from 'svelte';
-import type { Document, DocumentVersion, WikiLink } from '$lib/api/types';
+import type { Document, DocumentVersion, WikiLink } from '#lib/api/types.ts';
 
 const pageState = vi.hoisted(() => ({ url: new URL('http://localhost/documents/notes/plan') }));
 vi.mock('$app/state', () => ({ page: pageState }));
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getDocumentVersions: vi.fn(),
 		getDocumentBacklinks: vi.fn(),
@@ -22,27 +22,27 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-vi.mock('$lib/components/VersionHistoryModal.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('VersionHistoryModal')
+vi.mock('#lib/components/VersionHistoryModal.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('VersionHistoryModal')
 }));
-vi.mock('$lib/components/modal/ShareDocumentModal.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('ShareDocumentModal')
+vi.mock('#lib/components/modal/ShareDocumentModal.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('ShareDocumentModal')
 }));
-vi.mock('$lib/components/document/LazyDocumentGraphView.svelte', async () => ({
-	default: (await import('$lib/test/stub-component')).namedStub('GraphView')
+vi.mock('#lib/components/document/LazyDocumentGraphView.svelte', async () => ({
+	default: (await import('#lib/test/stub-component.ts')).namedStub('GraphView')
 }));
-vi.mock('$lib/components/editor/DocumentInlineEditor.svelte', async () => ({
-	default: (await import('$lib/test/InlineEditorStub.svelte')).default
+vi.mock('#lib/components/editor/DocumentInlineEditor.svelte', async () => ({
+	default: (await import('#lib/test/InlineEditorStub.svelte')).default
 }));
 
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { resetAllState } from '$lib/stores/documents.svelte';
-import { secretStore } from '$lib/stores/secrets.svelte';
-import { stubProps } from '$lib/test/stub-registry';
-import { waitForPointerEvents } from '$lib/test/dialog';
-import { inlineEditorStub } from '$lib/test/inline-editor-stub';
-import { settingsActions } from '$lib/stores/settings.svelte';
+import { apiClient } from '#lib/api/client.ts';
+import { resetAllState } from '#lib/stores/documents.svelte.ts';
+import { secretStore } from '#lib/stores/secrets.svelte.ts';
+import { stubProps } from '#lib/test/stub-registry.ts';
+import { waitForPointerEvents } from '#lib/test/dialog.ts';
+import { inlineEditorStub } from '#lib/test/inline-editor-stub.ts';
+import { settingsActions } from '#lib/stores/settings.svelte.ts';
 import DocumentView from './DocumentView.svelte';
 
 function makeDoc(

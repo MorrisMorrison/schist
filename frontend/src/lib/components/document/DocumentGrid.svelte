@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import DeleteConfirmModal from '$lib/components/modal/DeleteConfirmModal.svelte';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { ToggleSlider } from '$lib/components/ui/toggle-slider/index.js';
+	import DeleteConfirmModal from '#lib/components/modal/DeleteConfirmModal.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { ToggleSlider } from '#lib/components/ui/toggle-slider/index.ts';
 	import { FileText, Trash2 } from '@lucide/svelte';
 	import DocumentCard from './DocumentCard.svelte';
 	import LoadingSpinner from '../LoadingSpinner.svelte';
 	import ErrorAlert from '../ErrorAlert.svelte';
-	import type { Document } from '$lib/api/types.js';
-	import { documentActions } from '$lib/stores/documents.svelte';
+	import type { Document } from '#lib/api/types.ts';
+	import { documentActions } from '#lib/stores/documents.svelte.ts';
 
 	interface Props {
 		documents: Document[];

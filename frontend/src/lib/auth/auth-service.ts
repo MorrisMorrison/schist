@@ -1,7 +1,7 @@
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { authActions, authStore } from '$lib/stores/auth.svelte';
-import { isUnauthorizedError } from '$lib/utils/error';
+import { apiClient } from '#lib/api/client.ts';
+import { authActions, authStore } from '#lib/stores/auth.svelte.ts';
+import { isUnauthorizedError } from '#lib/utils/error.ts';
 
 const PUBLIC_ROUTES = ['/login', '/setup'];
 const PUBLIC_ROUTE_PREFIXES = ['/share/'];

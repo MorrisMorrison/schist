@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/public';
+import { PUBLIC_API_URL } from '$app/env/public';
 import type {
 	Document,
 	CreateDocumentRequest,
@@ -58,9 +58,9 @@ import type {
 	WikiLink,
 	OutgoingLinksResponse
 } from './types';
-import { buildApiEndpoint, encodePath, normalizePath } from '$lib/utils/path';
-import { parseError, getErrorCodeFromStatus } from '$lib/utils/error';
-import { requestDeduplicator, createRequestKey } from '$lib/utils/request-deduplication';
+import { buildApiEndpoint, encodePath, normalizePath } from '#lib/utils/path.ts';
+import { parseError, getErrorCodeFromStatus } from '#lib/utils/error.ts';
+import { requestDeduplicator, createRequestKey } from '#lib/utils/request-deduplication.ts';
 
 /** The `{ message }` body many mutating endpoints answer with. */
 type MessageResponse = { message: string };
@@ -93,8 +93,8 @@ class SchistApiClient {
 	}
 
 	private determineApiUrl(): string {
-		if (env.PUBLIC_API_URL) {
-			return env.PUBLIC_API_URL;
+		if (PUBLIC_API_URL) {
+			return PUBLIC_API_URL;
 		}
 
 		if (typeof window !== 'undefined') {
@@ -139,12 +139,12 @@ class SchistApiClient {
 		}
 
 		// Clear auth state through the store (will automatically clear API client token)
-		const { authActions } = await import('$lib/stores/auth.svelte');
+		const { authActions } = await import('#lib/stores/auth.svelte.ts');
 		authActions.clearAuth();
 
 		// The session is confirmed dead: redirect (skipped on public routes)
 		// without re-checking it, see AuthService.handleSessionExpired.
-		const { authService } = await import('$lib/auth/auth-service');
+		const { authService } = await import('#lib/auth/auth-service.ts');
 		const returnUrl = window.location.pathname + window.location.search;
 		await authService.handleSessionExpired(returnUrl);
 	}

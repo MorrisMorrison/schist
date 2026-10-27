@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { TableBlock } from '$lib/utils/markdown-blocks';
-	import { sanitizeHtml } from '$lib/utils/sanitizer';
+	import type { TableBlock } from '#lib/utils/markdown-blocks.ts';
+	import { sanitizeHtml } from '#lib/utils/sanitizer.ts';
 
 	let { block }: { block: TableBlock } = $props();
 

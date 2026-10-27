@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { goto } from '$app/navigation';
-import { apiClient } from '$lib/api/client';
-import { resetAllState, documentsStore } from '$lib/stores/documents.svelte';
-import type { Document } from '$lib/api/types';
-import { waitForDialogFocus } from '$lib/test/dialog';
+import { apiClient } from '#lib/api/client.ts';
+import { resetAllState, documentsStore } from '#lib/stores/documents.svelte.ts';
+import type { Document } from '#lib/api/types.ts';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
 import FolderView from './FolderView.svelte';
-import { chooseSelectOption } from '$lib/test/select';
+import { chooseSelectOption } from '#lib/test/select.ts';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getFolderTree: vi.fn(),
 		getDocuments: vi.fn(),

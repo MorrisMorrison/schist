@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, user } from '$lib/test/component-utils.js';
+import { render, user } from '#lib/test/component-utils.ts';
 import ToggleSlider from './ToggleSlider.svelte';
 
 describe('ToggleSlider', () => {

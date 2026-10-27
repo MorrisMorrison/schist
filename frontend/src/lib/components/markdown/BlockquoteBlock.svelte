@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { BlockquoteBlock } from '$lib/utils/markdown-blocks';
-	import { sanitizeHtml } from '$lib/utils/sanitizer';
+	import type { BlockquoteBlock } from '#lib/utils/markdown-blocks.ts';
+	import { sanitizeHtml } from '#lib/utils/sanitizer.ts';
 
 	let { block }: { block: BlockquoteBlock } = $props();
 </script>

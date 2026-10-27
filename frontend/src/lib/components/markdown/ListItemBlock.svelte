@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { ListItemBlock } from '$lib/utils/markdown-blocks';
-	import { sanitizeHtml } from '$lib/utils/sanitizer';
-	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
+	import type { ListItemBlock } from '#lib/utils/markdown-blocks.ts';
+	import { sanitizeHtml } from '#lib/utils/sanitizer.ts';
+	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
 
 	let { block }: { block: ListItemBlock } = $props();
 </script>

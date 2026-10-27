@@ -1,7 +1,7 @@
 import { autocompletion } from '@codemirror/autocomplete';
 import type { CompletionResult, CompletionContext } from '@codemirror/autocomplete';
 
-import { getCachedDocuments, getCachedTags } from '$lib/utils/markdown-cache';
+import { getCachedDocuments, getCachedTags } from '#lib/utils/markdown-cache.ts';
 import { HASHTAG_PARTIAL_REGEX } from './hashtag-constants';
 
 async function wikiLinkCompletion(context: CompletionContext): Promise<CompletionResult | null> {

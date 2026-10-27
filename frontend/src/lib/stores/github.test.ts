@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
-vi.mock('$lib/api/client', () => ({
+vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getGitHubSettings: vi.fn(),
 		getGitHubConnectionStatus: vi.fn(),
@@ -14,7 +14,7 @@ vi.mock('$lib/api/client', () => ({
 	}
 }));
 
-import { apiClient } from '$lib/api/client';
+import { apiClient } from '#lib/api/client.ts';
 import { githubActions, githubStore } from './github.svelte';
 
 const api = vi.mocked(apiClient);

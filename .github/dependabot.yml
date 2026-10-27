@@ -32,25 +32,22 @@ updates:
         update-types: ["minor", "patch"]
     ignore:
       # Hold eslint / @eslint/js / typescript MAJORS: they outpace
-      # typescript-eslint@8's peer ranges (eslint "^8.40 || 9", typescript
-      # ">=4.8.4 <6.0.0") and break `npm ci`. @eslint/js is versioned in lockstep
-      # with eslint, so its major must be held too. Remove once typescript-eslint
-      # ships support for the new major.
+      # typescript-eslint@8's peer ranges and break `npm ci`. @eslint/js is
+      # versioned in lockstep with eslint, so its major must be held too. Remove
+      # once typescript-eslint ships support for the new major.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
+      # TypeScript is pinned ~6.0 (SvelteKit 3 needs ^6; typescript-eslint@8
+      # allows ">=4.8.4 <6.1.0"), so hold minors too until typescript-eslint
+      # widens its range.
       - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # Hold @lucide/svelte MAJOR: v1 removed all brand icons (e.g. the Github
       # icon used in the GitHub-integration settings), which breaks the build.
       # Lift once those icons are replaced.
       - dependency-name: "@lucide/svelte"
-        update-types: ["version-update:semver-major"]
-      # Hold @sveltejs/adapter-static MAJOR: v4 peers on @sveltejs/kit ^3 (still a
-      # prerelease) and breaks `npm ci` against kit 2. Lift together with the
-      # SvelteKit 3 upgrade.
-      - dependency-name: "@sveltejs/adapter-static"
         update-types: ["version-update:semver-major"]
 
   # E2E (Playwright) npm dependencies

@@ -1,6 +1,6 @@
-import type { Folder as FolderType, Document } from '$lib/api/types';
-import { folderActions, documentActions } from '$lib/stores/documents.svelte';
-import { joinPath } from '$lib/utils/path';
+import type { Folder as FolderType, Document } from '#lib/api/types.ts';
+import { folderActions, documentActions } from '#lib/stores/documents.svelte.ts';
+import { joinPath } from '#lib/utils/path.ts';
 
 export interface DragItem {
 	type: 'folder' | 'page';

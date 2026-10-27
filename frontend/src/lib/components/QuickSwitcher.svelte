@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { apiClient } from '$lib/api/client';
-	import type { Document } from '$lib/api/types';
+	import { apiClient } from '#lib/api/client.ts';
+	import type { Document } from '#lib/api/types.ts';
 	import { Search, FileText, Clock, Folder } from '@lucide/svelte';
 	import {
 		fuzzySearchDocuments,
 		addToRecentDocuments,
 		getRecentDocumentPaths
-	} from '$lib/utils/fuzzy-search';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import { Badge } from '$lib/components/ui/badge';
-	import { Dialog, DialogContent, DialogTitle } from '$lib/components/ui/dialog';
+	} from '#lib/utils/fuzzy-search.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import { Dialog, DialogContent, DialogTitle } from '#lib/components/ui/dialog/index.ts';
 
 	interface Props {
 		open: boolean;

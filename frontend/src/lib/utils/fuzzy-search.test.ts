@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { Document } from '$lib/api/types';
+import type { Document } from '#lib/api/types.ts';
 import { addToRecentDocuments, fuzzySearchDocuments, getRecentDocumentPaths } from './fuzzy-search';
 
 function doc(title: string, path: string, extra: Partial<Document> = {}): Document {

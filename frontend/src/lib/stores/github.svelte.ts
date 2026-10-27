@@ -1,6 +1,6 @@
 import { apiClient } from '../api/client';
-import { getErrorMessage } from '$lib/utils/error';
-import { runAsync } from '$lib/stores/resource.svelte';
+import { getErrorMessage } from '#lib/utils/error.ts';
+import { runAsync } from '#lib/stores/resource.svelte.ts';
 import type {
 	GitHubSettings,
 	GitHubConnectionStatus,

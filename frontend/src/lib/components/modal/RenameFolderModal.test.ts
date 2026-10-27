@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { waitForDialogFocus } from '$lib/test/dialog';
-import { folderActions } from '$lib/stores/documents.svelte';
-import type { Folder } from '$lib/api/types';
+import { waitForDialogFocus } from '#lib/test/dialog.ts';
+import { folderActions } from '#lib/stores/documents.svelte.ts';
+import type { Folder } from '#lib/api/types.ts';
 import RenameFolderModal from './RenameFolderModal.svelte';
 
-vi.mock('$lib/stores/documents.svelte', () => ({
+vi.mock('#lib/stores/documents.svelte.ts', () => ({
 	folderActions: { renameFolder: vi.fn() }
 }));
 

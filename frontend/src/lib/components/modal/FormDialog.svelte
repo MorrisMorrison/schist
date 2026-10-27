@@ -2,14 +2,14 @@
 	// A small dialog around a form: icon + title, the fields, then Cancel and a
 	// submit button that shows its busy label while the action runs.
 	import type { Component, Snippet } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import {
 		Dialog,
 		DialogContent,
 		DialogHeader,
 		DialogTitle,
 		DialogFooter
-	} from '$lib/components/ui/dialog';
+	} from '#lib/components/ui/dialog/index.ts';
 
 	interface Props {
 		open: boolean;

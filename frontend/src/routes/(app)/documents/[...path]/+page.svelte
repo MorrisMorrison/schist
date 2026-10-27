@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
-	import { documentActions } from '$lib/stores/documents.svelte';
+	import { documentActions } from '#lib/stores/documents.svelte.ts';
 	import { goto, replaceState } from '$app/navigation';
-	import FolderView from '$lib/components/folder/FolderView.svelte';
-	import DocumentView from '$lib/components/document/DocumentView.svelte';
-	import type { Document } from '$lib/api/types';
-	import { Button } from '$lib/components/ui/button';
+	import FolderView from '#lib/components/folder/FolderView.svelte';
+	import DocumentView from '#lib/components/document/DocumentView.svelte';
+	import type { Document } from '#lib/api/types.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Home, Plus, RotateCcw, Search } from '@lucide/svelte';
-	import { addToRecentDocuments } from '$lib/utils/fuzzy-search';
-	import { isNotFoundError, getErrorMessage } from '$lib/utils/error';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import { useOptimizedLoading } from '$lib/composables/useOptimizedLoading.svelte.js';
-	import type { DocumentMode } from '$lib/types/editor';
-	import { settings } from '$lib/stores/settings.svelte';
+	import { addToRecentDocuments } from '#lib/utils/fuzzy-search.ts';
+	import { isNotFoundError, getErrorMessage } from '#lib/utils/error.ts';
+	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
+	import { useOptimizedLoading } from '#lib/composables/useOptimizedLoading.svelte.ts';
+	import type { DocumentMode } from '#lib/types/editor.ts';
+	import { settings } from '#lib/stores/settings.svelte.ts';
 
 	let currentDocument = $state<Document | null>(null);
 	let isFolder = $state(false);

@@ -12,6 +12,7 @@ type Services struct {
 	SecretManager  *SecretManager
 	PasskeyService *PasskeyService
 	UserService    *UserService
+	TokenService   *TokenService
 
 	AssetService    *AssetService
 	IgnoreService   *IgnoreService
@@ -52,6 +53,7 @@ func NewServices() (*Services, error) {
 		return nil, fmt.Errorf("failed to create passkey service: %w", err)
 	}
 	userService := NewUserService(dataDir)
+	tokenService := NewTokenService(dataDir, userService)
 	secretManager := NewSecretManager(settings, dataDir, passkeyService)
 	documentService := NewDocumentService(dataDir, gitService, ignoreService)
 	searchService := NewSearchService(documentService, ignoreService)
@@ -66,6 +68,7 @@ func NewServices() (*Services, error) {
 		SecretManager:   secretManager,
 		PasskeyService:  passkeyService,
 		UserService:     userService,
+		TokenService:    tokenService,
 		AssetService:    assetService,
 		IgnoreService:   ignoreService,
 		GitService:      gitService,

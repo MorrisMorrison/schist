@@ -51,6 +51,7 @@ A lightweight, self-hosted markdown wiki with Obsidian-style features in the bro
 - **Sharing:** public read-only links that expire.
 - **Accounts:** passwordless login with passkeys (WebAuthn), invite links for new users, and an admin role for user management.
 - **Secrets:** reference values like API keys from your pages. They show as locked placeholders until you unlock them with your passkey.
+- **AI assistants (MCP):** an optional [Model Context Protocol](https://modelcontextprotocol.io) endpoint lets Claude and other assistants search, read and write your wiki, using personal access tokens.
 - **Import and export** of markdown files.
 - **Dark and light themes**, keyboard shortcuts and a mobile layout.
 - **Secure defaults:** authentication, rate limiting and security headers (CSP, HSTS, …) are on unless you turn them off.
@@ -113,8 +114,36 @@ Everything is configured with environment variables. The common ones:
 | `SCHIST_AUTH_ENABLED` | `true` | Passkey login. Turn it off only for a single-user wiki that sits behind other authentication |
 | `SCHIST_RATE_LIMIT_ENABLED` / `SCHIST_RATE_LIMIT_RPM` | `true` / `100` | Per-IP rate limit |
 | `SCHIST_SHARING_ENABLED` | `true` | Public share links (`SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` 7, `SCHIST_SHARE_MAX_EXPIRY_DAYS` 90) |
+| `SCHIST_MCP_ENABLED` | `false` | The MCP endpoint for AI assistants at `/api/mcp` (see below) |
 
 GitHub backup is set up in the app under **Settings → GitHub**. [docs/CONFIGURATION.md](docs/CONFIGURATION.md) has the full list, including the security headers and CSP.
+
+## AI assistants (MCP)
+
+Start Schist with `SCHIST_MCP_ENABLED=true`, then create a token under **Settings → AI Assistants & API Tokens** and connect your assistant. Settings shows the exact commands for your instance. For Claude Code:
+
+```bash
+claude mcp add --transport http schist https://wiki.example.com/api/mcp --header "Authorization: Bearer sch_..."
+```
+
+Other clients that support remote MCP servers take the same URL and `Authorization` header in their JSON config.
+
+| Tool | Does |
+|---|---|
+| `search` | Full-text search with snippets and `tag:` filters |
+| `read_document` | A page's markdown, title, tags and dates |
+| `list_folder` | A folder's subfolders and pages |
+| `get_backlinks` | The pages linking to a page |
+| `list_tags` | Every tag with its count |
+| `create_document` | Create a page |
+| `update_document` | Replace a page's content, title or tags |
+| `append_to_document` | Add text at the end of a page or of a section |
+
+**Tokens:**
+- **Access level:** a *read-only* token only gets the first five tools; a *read and write* token gets all eight.
+- **Git history:** every write is a git commit, so you can restore earlier versions.
+- **What tokens can't reach:** there is no delete tool, and tokens can't use secrets, passkeys, users, shares or settings.
+- **Without authentication** (`SCHIST_AUTH_ENABLED=false`), the endpoint needs no token.
 
 ## Your data
 

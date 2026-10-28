@@ -46,7 +46,7 @@ func newAuthRouter(t *testing.T, authEnabled bool) *gin.Engine {
 	authService := services.NewAuthService(cfg, services.NewUserService(t.TempDir()))
 
 	router := gin.New()
-	router.Use(JWTMiddleware(authService, cfg))
+	router.Use(JWTMiddleware(authService, nil, cfg))
 	echo := func(c *gin.Context) {
 		user, _ := c.Get("authenticated_user")
 		name, _ := user.(string)

@@ -446,6 +446,15 @@ describe('SchistApiClient', () => {
 			['searchDocuments', (c) => c.searchDocuments('a & b'), '/api/search?q=a+%26+b'],
 			['searchDocuments with limit', (c) => c.searchDocuments('x', 5), '/api/search?q=x&limit=5'],
 			['getAllTags', (c) => c.getAllTags(), '/api/tags'],
+			['listApiTokens', (c) => c.listApiTokens(), '/api/tokens'],
+			[
+				'createApiToken',
+				(c) => c.createApiToken({ name: 'n', scope: 'read', expires_in_days: 0 }),
+				'/api/tokens',
+				'POST',
+				{ name: 'n', scope: 'read', expires_in_days: 0 }
+			],
+			['revokeApiToken', (c) => c.revokeApiToken('a b'), '/api/tokens/a%20b', 'DELETE'],
 			['getDocumentVersions', (c) => c.getDocumentVersions('a'), '/api/versions?path=%2Fa'],
 			[
 				'restoreDocumentToVersion',

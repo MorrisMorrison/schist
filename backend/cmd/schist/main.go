@@ -16,6 +16,7 @@ import (
 	"github.com/MorrisMorrison/schist/internal/handlers"
 	"github.com/MorrisMorrison/schist/internal/middleware"
 	"github.com/MorrisMorrison/schist/internal/services"
+	"github.com/MorrisMorrison/schist/internal/version"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -68,7 +69,7 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Printf("Starting Schist server on port %s (env: %s)", services.Config.Port, services.Config.Environment)
+		log.Printf("Starting Schist %s on port %s (env: %s)", version.Version, services.Config.Port, services.Config.Environment)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Failed to start server: %v", err)
 		}

@@ -63,7 +63,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 ## Workflow
 - Branch off `main`, open a PR (template in `.github/pull_request_template.md`), squash-merge after review.
 - Conventional-commit titles with a scope: `feat(frontend): …`, `fix(services): …`, `refactor(errors): …`, `test(e2e): …`, `ci: …`, `chore(deps): …`.
-- CI (`docs/CI.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs, publish on `main`). README Screenshots (on frontend changes; on `main` it force-pushes the PNGs to the `screenshots` branch the README links to, so keep that branch unprotected). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
+- CI (`docs/CI.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs; publish `:latest` on `main` and `:X.Y.Z` on a `vX.Y.Z` tag, which never moves `:latest`), Release (`release.yml`: a `v*` tag creates the GitHub release, `v0.*` as a pre-release). README Screenshots (on frontend changes; on `main` it force-pushes the PNGs to the `screenshots` branch the README links to, so keep that branch unprotected). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
 - Dependabot opens grouped weekly PRs per ecosystem; held-back majors are listed in `.github/dependabot.yml`.
 
 ## Project skills

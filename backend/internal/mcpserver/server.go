@@ -10,6 +10,7 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/middleware"
 	"github.com/MorrisMorrison/schist/internal/services"
+	"github.com/MorrisMorrison/schist/internal/version"
 	"github.com/gin-gonic/gin"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -53,7 +54,7 @@ func New(svc *services.Services) *Server {
 }
 
 func newMCPServer(t *tools, write bool) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "schist", Title: "Schist wiki", Version: "1.0.0"},
+	server := mcp.NewServer(&mcp.Implementation{Name: "schist", Title: "Schist wiki", Version: version.Version},
 		&mcp.ServerOptions{Instructions: instructions})
 	t.registerRead(server)
 	if write {

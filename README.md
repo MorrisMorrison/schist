@@ -74,6 +74,8 @@ Open http://localhost:8080. On first start, Schist walks you through creating th
 > - **`SCHIST_JWT_SECRET`** is required in production: at least 32 random characters. Keep it stable, or everyone is logged out on every restart.
 > - **`SCHIST_FRONTEND_URL`** must be the exact URL you open Schist at, with scheme, host and port (e.g. `https://wiki.example.com`). Passkeys, share links and invite links are built from it. Passkeys only work on `localhost` or over HTTPS.
 
+**Image tags.** `:latest` follows `main` (every merged change). To stay on a release instead, pin its version, e.g. `ghcr.io/morrismorrison/schist:0.0.1`. See the [releases page](https://github.com/MorrisMorrison/schist/releases). Schist is pre-1.0: releases are snapshots on the way to a stable 1.0, not long-term-supported versions.
+
 ### Docker Compose
 
 ```yaml

@@ -29,7 +29,7 @@ Schist creates a simple, fast, and reliable web-based wiki that uses plain markd
 ### Backend
 - **Language**: Go with Gin framework
 - **File System**: Direct markdown file manipulation using Go's native file operations
-- **Search**: Full-text search using Bleve (pure Go search engine)
+- **Search**: Full-text search over an in-memory index (titles, headings, tags, bodies), refreshed from the files on each query
 - **File Watching**: fsnotify for monitoring file changes and auto-indexing
 - **API**: RESTful endpoints with Gin router
 - **Deployment**: Dockerized with multi-stage builds for optimal size
@@ -149,7 +149,7 @@ GET    /api/documents/:slug    - Get specific document content
 POST   /api/documents          - Create new document
 PUT    /api/documents/:slug    - Update document content
 DELETE /api/documents/:slug    - Delete document
-GET    /api/search?q=query     - Search documents with Bleve
+GET    /api/search?q=query     - Full-text search with ranking and snippets
 GET    /api/links/:slug        - Get document links and backlinks
 POST   /api/assets             - Upload images/files
 GET    /api/graph              - Get wiki link graph data

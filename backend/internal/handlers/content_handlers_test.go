@@ -267,12 +267,33 @@ func TestSearchTagsTemplates(t *testing.T) {
 	env.createDoc(t, "/a", "Apple pie", "baking recipe", "food", "dessert")
 	env.createDoc(t, "/b", "Banana", "fruit", "food")
 
-	// Search matches titles, with tag: filters.
+	// Search matches titles and bodies, with tag: filters.
 	w := env.do(t, http.MethodGet, "/api/search?q=apple", nil, "")
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	body := decode(t, w)
 	assert.Equal(t, "apple", body["query"])
 	assert.EqualValues(t, 1, body["total"])
+	result := body["results"].([]any)[0].(map[string]any)
+	assert.Equal(t, "/a", result["path"])
+	assert.Equal(t, "Apple pie", result["title"])
+	assert.Equal(t, "title", result["matchedIn"])
+
+	w = env.do(t, http.MethodGet, "/api/search?q=recipe", nil, "")
+	body = decode(t, w)
+	require.EqualValues(t, 1, body["total"])
+	result = body["results"].([]any)[0].(map[string]any)
+	assert.Equal(t, "content", result["matchedIn"])
+	assert.Equal(t, []any{
+		map[string]any{"text": "baking "},
+		map[string]any{"text": "recipe", "match": true},
+	}, result["snippet"])
+
+	w = env.do(t, http.MethodGet, "/api/search?q=tag:food&limit=1", nil, "")
+	body = decode(t, w)
+	assert.EqualValues(t, 2, body["total"], "total counts every match")
+	assert.Len(t, body["results"], 1)
+	w = env.do(t, http.MethodGet, "/api/search?q=", nil, "")
+	assert.Equal(t, []any{}, decode(t, w)["results"], "empty query: empty list, not null")
 	w = env.do(t, http.MethodGet, "/api/search?q=tag:food", nil, "")
 	assert.EqualValues(t, 2, decode(t, w)["total"])
 	w = env.do(t, http.MethodGet, "/api/search?q=tag:food+tag:dessert", nil, "")

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/errors"
@@ -14,6 +15,7 @@ import (
 
 type APIHandler struct {
 	DocumentService *services.DocumentService
+	SearchService   *services.SearchService
 	AssetService    *services.AssetService
 	LinkService     *services.LinkService
 	GitService      *services.GitService
@@ -28,6 +30,7 @@ type APIHandler struct {
 func NewAPIHandler(services *services.Services) *APIHandler {
 	return &APIHandler{
 		DocumentService: services.DocumentService,
+		SearchService:   services.SearchService,
 		AssetService:    services.AssetService,
 		LinkService:     services.LinkService,
 		GitService:      services.GitService,
@@ -194,15 +197,16 @@ func (h *APIHandler) getConfig(c *gin.Context) {
 
 func (h *APIHandler) search(c *gin.Context) {
 	query := c.Query("q")
-	documents, err := h.DocumentService.Search(query)
+	limit, _ := strconv.Atoi(c.Query("limit")) // invalid or missing: the default
+	results, total, err := h.SearchService.Search(query, limit)
 	if err != nil {
 		HandleError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"query":     query,
-		"documents": documents,
-		"total":     len(documents),
+		"query":   query,
+		"results": results,
+		"total":   total,
 	})
 }
 

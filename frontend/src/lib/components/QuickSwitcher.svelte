@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { apiClient } from '#lib/api/client.ts';
-	import type { Document } from '#lib/api/types.ts';
+	import type { SnippetSegment } from '#lib/api/types.ts';
 	import { Search, FileText, Clock, Folder } from '@lucide/svelte';
-	import {
-		fuzzySearchDocuments,
-		addToRecentDocuments,
-		getRecentDocumentPaths
-	} from '#lib/utils/fuzzy-search.ts';
+	import { addToRecentDocuments, getRecentDocumentPaths } from '#lib/utils/recent-documents.ts';
+	import { getCachedDocuments } from '#lib/utils/markdown-cache.ts';
 	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import { Dialog, DialogContent, DialogTitle } from '#lib/components/ui/dialog/index.ts';
@@ -17,26 +14,37 @@
 		onClose: () => void;
 	}
 
+	/** A row in the list: a recent document or a search hit. */
+	interface Item {
+		path: string;
+		title: string;
+		tags: string[];
+		snippet?: SnippetSegment[];
+	}
+
+	const RESULT_LIMIT = 10;
+	const RECENT_LIMIT = 8;
+
 	let { open, onClose }: Props = $props();
 
 	let query = $state('');
-	let results: Document[] = $state([]);
-	let recentDocuments: Document[] = $state([]);
-	let allDocuments: Document[] = $state([]);
+	let results: Item[] = $state([]);
+	let recentDocuments: Item[] = $state([]);
 	let selectedIndex = $state(0);
 	let isSearching = $state(false);
 	let searchTimeout: ReturnType<typeof setTimeout>;
+	// Only the newest request may set results, so a slow early response
+	// can't overwrite a later one.
+	let latestRequest = 0;
 	let inputElement = $state<HTMLInputElement>();
 
-	const displayResults = $derived(
-		query.trim() === '' ? recentDocuments.slice(0, 8) : results.slice(0, 10)
-	);
+	const displayResults = $derived(query.trim() === '' ? recentDocuments : results);
 
 	$effect(() => {
 		if (open) {
 			selectedIndex = 0;
 			query = '';
-			loadInitialData();
+			loadRecentDocuments();
 			setTimeout(() => inputElement?.focus(), 50);
 		}
 	});
@@ -44,9 +52,12 @@
 	$effect(() => {
 		if (query.trim().length > 0) {
 			clearTimeout(searchTimeout);
+			isSearching = true; // from the first keystroke, so "No documents found" can't flash
 			searchTimeout = setTimeout(performSearch, 150);
 		} else {
+			latestRequest++;
 			results = [];
+			isSearching = false;
 			selectedIndex = 0;
 		}
 
@@ -55,41 +66,51 @@
 		};
 	});
 
-	async function loadInitialData() {
+	async function loadRecentDocuments() {
+		const recentPaths = getRecentDocumentPaths();
+		if (recentPaths.length === 0) {
+			recentDocuments = [];
+			return;
+		}
 		try {
-			allDocuments = await apiClient.getDocuments();
-
-			if (!allDocuments || allDocuments.length === 0) {
-				console.warn('QuickSwitcher: No documents returned from API');
-			}
-
-			const recentPaths = getRecentDocumentPaths();
+			const documents = await getCachedDocuments();
 			recentDocuments = recentPaths
-				.map((path) => allDocuments.find((doc) => doc.metaData?.path === path))
-				.filter((doc): doc is Document => doc !== undefined)
-				.slice(0, 8);
+				.map((path) => documents.find((doc) => doc.metaData?.path === path))
+				.filter((doc) => doc !== undefined)
+				.slice(0, RECENT_LIMIT)
+				.map((doc) => ({
+					path: doc.metaData.path,
+					title: doc.metaData.title,
+					tags: doc.metaData.tags ?? []
+				}));
 		} catch (error) {
-			console.error('QuickSwitcher: Failed to load documents for search', {
-				error
-			});
-			allDocuments = [];
+			console.error('QuickSwitcher: Failed to load recent documents', { error });
 			recentDocuments = [];
 		}
 	}
 
-	function performSearch() {
-		if (query.trim().length === 0) return;
+	async function performSearch() {
+		const text = query.trim();
+		if (text.length === 0) return;
 
+		const request = ++latestRequest;
 		isSearching = true;
 		try {
-			const searchResults = fuzzySearchDocuments(allDocuments, query.trim());
-			results = [...searchResults];
+			const response = await apiClient.searchDocuments(text, RESULT_LIMIT);
+			if (request !== latestRequest) return;
+			results = response.results.map((hit) => ({
+				path: hit.path,
+				title: hit.title,
+				tags: hit.tags ?? [],
+				snippet: hit.snippet
+			}));
 			selectedIndex = 0;
 		} catch (error) {
+			if (request !== latestRequest) return;
 			console.error('Search failed:', error);
 			results = [];
 		} finally {
-			isSearching = false;
+			if (request === latestRequest) isSearching = false;
 		}
 	}
 
@@ -112,10 +133,10 @@
 		}
 	}
 
-	function selectDocument(document: Document) {
-		addToRecentDocuments(document.metaData.path);
+	function selectDocument(item: Item) {
+		addToRecentDocuments(item.path);
 
-		goto(`/documents${document.metaData.path}`);
+		goto(`/documents${item.path}`);
 		onClose();
 	}
 
@@ -140,7 +161,7 @@
 				bind:this={inputElement}
 				bind:value={query}
 				onkeydown={handleKeydown}
-				placeholder="Search documents... (type to search, use arrows to navigate)"
+				placeholder="Search titles and text..."
 				class="placeholder:text-muted-foreground flex-1 bg-transparent text-lg outline-none"
 				autocomplete="off"
 				spellcheck="false"
@@ -160,7 +181,7 @@
 						<Clock class="mb-2 h-8 w-8" />
 						<p>No recent documents</p>
 						<p class="text-sm">Start typing to search all documents</p>
-					{:else}
+					{:else if !isSearching}
 						<FileText class="mb-2 h-8 w-8" />
 						<p>No documents found</p>
 						<p class="text-sm">Try different search terms</p>
@@ -175,14 +196,14 @@
 					</div>
 				{/if}
 
-				{#each displayResults as document, index (document.metaData.path)}
+				{#each displayResults as item, index (item.path)}
 					<button
 						type="button"
-						class="hover:bg-accent focus:bg-accent flex w-full items-center gap-3 px-4 py-3 text-left transition-colors {selectedIndex ===
+						class="hover:bg-accent focus:bg-accent flex w-full items-start gap-3 px-4 py-3 text-left transition-colors {selectedIndex ===
 						index
 							? 'bg-accent'
 							: ''}"
-						onclick={() => selectDocument(document)}
+						onclick={() => selectDocument(item)}
 						onmouseenter={() => (selectedIndex = index)}
 						data-testid="quick-switcher-result"
 					>
@@ -192,23 +213,35 @@
 
 						<div class="min-w-0 flex-1">
 							<div class="text-foreground truncate font-medium">
-								{document.metaData.title}
+								{item.title}
 							</div>
 							<div class="text-muted-foreground flex items-center gap-1 text-sm">
 								<Folder class="h-3 w-3" />
-								<span class="truncate">{getParentPath(document.metaData.path)}</span>
+								<span class="truncate">{getParentPath(item.path)}</span>
 							</div>
+							{#if item.snippet?.length}
+								<p
+									class="text-muted-foreground mt-1 line-clamp-2 text-sm"
+									data-testid="quick-switcher-snippet"
+								>
+									{#each item.snippet as segment, i (i)}
+										{#if segment.match}
+											<mark class="bg-primary/15 text-foreground rounded-sm">{segment.text}</mark>
+										{:else}
+											{segment.text}
+										{/if}
+									{/each}
+								</p>
+							{/if}
 						</div>
 
-						{#if document.metaData.tags && document.metaData.tags.length > 0}
-							<div class="flex gap-1">
-								{#each document.metaData.tags.slice(0, 2) as tag (tag)}
+						{#if item.tags.length > 0}
+							<div class="flex gap-1 self-start">
+								{#each item.tags.slice(0, 2) as tag (tag)}
 									<Badge variant="secondary">{tag}</Badge>
 								{/each}
-								{#if document.metaData.tags.length > 2}
-									<span class="text-muted-foreground text-xs"
-										>+{document.metaData.tags.length - 2}</span
-									>
+								{#if item.tags.length > 2}
+									<span class="text-muted-foreground text-xs">+{item.tags.length - 2}</span>
 								{/if}
 							</div>
 						{/if}

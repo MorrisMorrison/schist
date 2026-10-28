@@ -295,7 +295,7 @@ func TestDocumentService_RenameFolderErrors(t *testing.T) {
 	})
 }
 
-func TestDocumentService_SearchAndTagsIgnoreInternalDirs(t *testing.T) {
+func TestDocumentService_TagsIgnoreInternalDirs(t *testing.T) {
 	ds, dir := newSafetyDocumentService(t)
 	require.NoError(t, ds.CreateDocument(&models.Document{
 		MetaData: &models.DocumentMetaData{Title: "Go Notes", Path: "/go", Tags: []string{"golang"}}, Content: "x",
@@ -305,19 +305,6 @@ func TestDocumentService_SearchAndTagsIgnoreInternalDirs(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Join(dir, "trash"), 0755))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "trash", "old.md"),
 		[]byte("---\ntitle: Go Old\npath: /trash/old\ntags: [golang]\n---\nz\n"), 0644))
-
-	results, err := ds.Search("go")
-	require.NoError(t, err)
-	assert.Len(t, results, 2)
-
-	results, err = ds.Search("go tag:golang")
-	require.NoError(t, err)
-	require.Len(t, results, 1)
-	assert.Equal(t, "/go", results[0].MetaData.Path)
-
-	results, err = ds.Search("tag:")
-	require.NoError(t, err)
-	assert.Len(t, results, 2, "an empty tag filter is ignored")
 
 	tags, err := ds.GetAllTags()
 	require.NoError(t, err)

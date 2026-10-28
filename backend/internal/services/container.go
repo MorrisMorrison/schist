@@ -19,6 +19,7 @@ type Services struct {
 	TemplateService *TemplateService
 
 	DocumentService *DocumentService
+	SearchService   *SearchService
 	LinkService     *LinkService
 	GitHubService   *GitHubService
 	AuthService     *AuthService
@@ -53,6 +54,7 @@ func NewServices() (*Services, error) {
 	userService := NewUserService(dataDir)
 	secretManager := NewSecretManager(settings, dataDir, passkeyService)
 	documentService := NewDocumentService(dataDir, gitService, ignoreService)
+	searchService := NewSearchService(documentService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)
 	gitHubService := NewGitHubService(appConfig, gitService, settings, secretManager)
 	authService := NewAuthService(appConfig, userService)
@@ -69,6 +71,7 @@ func NewServices() (*Services, error) {
 		GitService:      gitService,
 		TemplateService: templateService,
 		DocumentService: documentService,
+		SearchService:   searchService,
 		LinkService:     linkService,
 		GitHubService:   gitHubService,
 		AuthService:     authService,

@@ -8,7 +8,7 @@
 	import type { Document } from '#lib/api/types.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Home, Plus, RotateCcw, Search } from '@lucide/svelte';
-	import { addToRecentDocuments } from '#lib/utils/fuzzy-search.ts';
+	import { addToRecentDocuments } from '#lib/utils/recent-documents.ts';
 	import { isNotFoundError, getErrorMessage } from '#lib/utils/error.ts';
 	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 	import { useOptimizedLoading } from '#lib/composables/useOptimizedLoading.svelte.ts';

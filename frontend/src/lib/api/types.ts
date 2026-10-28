@@ -32,9 +32,26 @@ export interface UpdateDocumentRequest {
 	content: string;
 }
 
-export interface SearchResult {
-	documents: Document[];
+/** A piece of a search snippet; `match` marks a query hit. */
+export interface SnippetSegment {
+	text: string;
+	match?: boolean;
+}
+
+export interface SearchHit {
+	path: string;
+	title: string;
+	tags?: string[];
+	/** Where the strongest match was found. */
+	matchedIn: 'title' | 'heading' | 'tag' | 'content';
+	snippet?: SnippetSegment[];
+	score: number;
+}
+
+export interface SearchResponse {
 	query: string;
+	results: SearchHit[];
+	/** Every match, even when `results` is cut by the limit. */
 	total: number;
 }
 

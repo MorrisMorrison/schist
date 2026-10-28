@@ -825,65 +825,6 @@ func TestDocumentService_ImportResult_SkippedField(t *testing.T) {
 	})
 }
 
-func TestDocumentService_SearchFunctionality(t *testing.T) {
-	testDir := t.TempDir()
-
-	documentService := setupDocumentService(t, testDir)
-
-	// Create test documents with tags
-	doc1 := &models.Document{
-		MetaData: &models.DocumentMetaData{
-			Title: "Go Programming",
-			Tags:  []string{"programming", "golang", "tutorial"},
-		},
-		Content: "# Go Programming\n\nThis is about Go programming language.",
-	}
-
-	doc2 := &models.Document{
-		MetaData: &models.DocumentMetaData{
-			Title: "Python Guide",
-			Tags:  []string{"programming", "python", "guide"},
-		},
-		Content: "# Python Guide\n\nThis is about Python programming.",
-	}
-
-	doc3 := &models.Document{
-		MetaData: &models.DocumentMetaData{
-			Title: "Database Design",
-			Tags:  []string{"database", "design", "sql"},
-		},
-		Content: "# Database Design\n\nThis covers database design principles.",
-	}
-
-	// Create the documents
-	require.NoError(t, documentService.CreateDocument(doc1))
-	require.NoError(t, documentService.CreateDocument(doc2))
-	require.NoError(t, documentService.CreateDocument(doc3))
-
-	t.Run("search by content", func(t *testing.T) {
-		results, err := documentService.Search("Go programming")
-		assert.NoError(t, err)
-		assert.Len(t, results, 1)
-		assert.Equal(t, "Go Programming", results[0].MetaData.Title)
-	})
-
-	t.Run("search by tag", func(t *testing.T) {
-		results, err := documentService.Search("tag:programming")
-		assert.NoError(t, err)
-		assert.Len(t, results, 2)
-
-		titles := []string{results[0].MetaData.Title, results[1].MetaData.Title}
-		assert.Contains(t, titles, "Go Programming")
-		assert.Contains(t, titles, "Python Guide")
-	})
-
-	t.Run("search empty query returns all", func(t *testing.T) {
-		results, err := documentService.Search("")
-		assert.NoError(t, err)
-		assert.Len(t, results, 3)
-	})
-}
-
 func TestDocumentService_GetAllTags(t *testing.T) {
 	testDir := t.TempDir()
 

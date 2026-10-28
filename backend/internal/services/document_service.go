@@ -49,87 +49,6 @@ func NewDocumentService(dataDir string, gitService *GitService, ignoreService *I
 	}
 }
 
-func (d *DocumentService) Search(query string) ([]*models.Document, error) {
-	documents, err := d.ListDocuments()
-	if err != nil {
-		return nil, err
-	}
-
-	textQuery, tagFilters := d.parseSearchQuery(query)
-
-	var filtered []*models.Document
-	lowerTextQuery := strings.ToLower(textQuery)
-
-	for _, document := range documents {
-		if d.ignoreService.ShouldIgnore(document.MetaData.Path) {
-			continue
-		}
-
-		textMatch := textQuery == "" || strings.Contains(strings.ToLower(document.MetaData.Title), lowerTextQuery)
-
-		tagMatch := d.matchesTags(document, tagFilters)
-
-		if textMatch && tagMatch {
-			filtered = append(filtered, document)
-		}
-	}
-
-	return filtered, nil
-}
-
-// Supports syntax like: "authentication tag:security tag:golang"
-func (d *DocumentService) parseSearchQuery(query string) (string, []string) {
-	var textParts []string
-	var tagFilters []string
-
-	// Split query into words
-	words := strings.Fields(query)
-
-	for _, word := range words {
-		if strings.HasPrefix(strings.ToLower(word), "tag:") {
-			// Extract tag name (case-insensitive matching)
-			tagName := strings.TrimPrefix(strings.ToLower(word), "tag:")
-			if tagName != "" {
-				tagFilters = append(tagFilters, tagName)
-			}
-		} else {
-			// Regular text search word
-			textParts = append(textParts, word)
-		}
-	}
-
-	textQuery := strings.Join(textParts, " ")
-	return textQuery, tagFilters
-}
-
-func (d *DocumentService) matchesTags(document *models.Document, requiredTags []string) bool {
-	if len(requiredTags) == 0 {
-		return true
-	}
-
-	if document.MetaData.Tags == nil {
-		return false
-	}
-
-	for _, requiredTag := range requiredTags {
-		requiredLower := strings.ToLower(requiredTag)
-		found := false
-
-		for _, documentTag := range document.MetaData.Tags {
-			if strings.Contains(strings.ToLower(documentTag), requiredLower) {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (d *DocumentService) GetAllTags() (map[string]int, error) {
 	documents, err := d.ListDocuments()
 	if err != nil {
@@ -263,6 +182,26 @@ func (d *DocumentService) DeleteDocument(path string) error {
 func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 	var documents []*models.Document
 
+	err := d.walkDocumentFiles(func(_ string, logicalPath string, _ os.DirEntry) error {
+		document, err := d.GetDocumentByPath(logicalPath)
+		if err != nil {
+			log.Printf("Skipping file %s: %v", logicalPath, err)
+			return nil
+		}
+		documents = append(documents, document)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return documents, nil
+}
+
+// walkDocumentFiles calls fn for every markdown document under the data dir,
+// skipping ignored files and directories. logicalPath is the document's path
+// without the .md suffix ("/projects/plan").
+func (d *DocumentService) walkDocumentFiles(fn func(fsPath, logicalPath string, entry os.DirEntry) error) error {
 	err := filepath.WalkDir(d.dataDir, func(path string, dirEntry os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -287,23 +226,12 @@ func (d *DocumentService) ListDocuments() ([]*models.Document, error) {
 		if err != nil {
 			return err
 		}
-		logicalPath = strings.TrimSuffix(logicalPath, MARKDOWN_FILE_ENDING)
-
-		document, err := d.GetDocumentByPath(logicalPath)
-		if err != nil {
-			log.Printf("Skipping file %s: %v", logicalPath, err)
-			return nil
-		}
-
-		documents = append(documents, document)
-		return nil
+		return fn(path, strings.TrimSuffix(logicalPath, MARKDOWN_FILE_ENDING), dirEntry)
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk directory tree: %w", err)
+		return fmt.Errorf("failed to walk directory tree: %w", err)
 	}
-
-	return documents, nil
+	return nil
 }
 
 // logicalPath maps a file or folder under the data dir to its slash-separated

@@ -12,7 +12,7 @@ import type {
 	CreateDocumentResponse,
 	Asset,
 	AssetUploadResponse,
-	SearchResult,
+	SearchResponse,
 	TagsResponse,
 	Template,
 	TemplatesResponse,
@@ -454,9 +454,10 @@ class SchistApiClient {
 		return this.send<MoveDocumentResponse>('POST', '/folders/move', normalizedRequest);
 	}
 
-	async searchDocuments(query: string): Promise<SearchResult> {
+	async searchDocuments(query: string, limit?: number): Promise<SearchResponse> {
 		const params = new URLSearchParams({ q: query });
-		return this.request<SearchResult>(`/search?${params}`);
+		if (limit) params.set('limit', String(limit));
+		return this.request<SearchResponse>(`/search?${params}`);
 	}
 
 	async getAllTags(): Promise<TagsResponse> {

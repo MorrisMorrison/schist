@@ -444,6 +444,7 @@ describe('SchistApiClient', () => {
 			],
 			['deleteFolder', (c) => c.deleteFolder('x'), '/api/folders/x', 'DELETE'],
 			['searchDocuments', (c) => c.searchDocuments('a & b'), '/api/search?q=a+%26+b'],
+			['searchDocuments with limit', (c) => c.searchDocuments('x', 5), '/api/search?q=x&limit=5'],
 			['getAllTags', (c) => c.getAllTags(), '/api/tags'],
 			['getDocumentVersions', (c) => c.getDocumentVersions('a'), '/api/versions?path=%2Fa'],
 			[

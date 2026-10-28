@@ -320,34 +320,45 @@ Remove a folder and all its contents permanently.
 ### Search
 
 #### Search Documents
-**GET** `/api/search?q={query}`
+**GET** `/api/search?q={query}&limit={n}`
 
-Full-text search across document titles (case-insensitive). Excludes documents in `/trash`.
+Full-text search over titles, headings, tags and document bodies (case-insensitive). Every word must match the start of a word somewhere in the document. `tag:name` words filter by tag. Ignored paths such as `/trash` are excluded. The index notices files changed outside the app on the next query.
+
+Results are ranked: a title match comes before a heading, then a tag, then the body. An exact title, a title that starts with the query and the whole phrase appearing all score extra. If a query matches only as a fuzzy subsequence of a title (`gtst` → "Getting started"), that page still appears, below every real match.
 
 **Query Parameters:**
-- `q` (string, required) - Search term
+- `q` (string, required): search words and `tag:` filters. An empty query returns no results.
+- `limit` (number, optional): maximum number of results (default 20, max 100).
 
 **Examples:**
-- `/api/search?q=getting started`
-- `/api/search?q=API`
+- `/api/search?q=release notes`
+- `/api/search?q=deploy tag:runbook`
 
 **Response:**
 ```json
 {
-  "query": "search term",
-  "documents": [
+  "query": "release notes",
+  "total": 3,
+  "results": [
     {
-      "metaData": {
-        "title": "Getting Started Guide",
-        "path": "/docs/getting-started",
-        ...
-      },
-      "content": "..."
+      "path": "/guides/releasing",
+      "title": "Releasing",
+      "tags": ["process"],
+      "matchedIn": "content",
+      "score": 14.4,
+      "snippet": [
+        { "text": "…before tagging, write the " },
+        { "text": "release notes", "match": true },
+        { "text": " and link the milestone…" }
+      ]
     }
-  ],
-  "total": 2
+  ]
 }
 ```
+
+- `total` counts every match, even when `results` is cut by `limit`.
+- `matchedIn` is where the strongest match was: `title`, `heading`, `tag` or `content`.
+- `snippet` is an excerpt of the body. When the body matched, it's centred on the match; otherwise it's the body's start. It comes as segments, and `match: true` marks a query hit, so clients can highlight without parsing HTML.
 
 ### Asset Management
 

@@ -48,6 +48,9 @@ type Config struct {
 	JWTSecret      string
 	JWTExpiryHours int
 
+	// MCPEnabled serves the Model Context Protocol endpoint at /api/mcp.
+	MCPEnabled bool
+
 	SharingEnabled         bool
 	ShareMaxExpiryDays     int
 	ShareDefaultExpiryDays int
@@ -84,6 +87,8 @@ func Load() (*Config, error) {
 		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", true),
 		JWTSecret:      jwtSecret,
 		JWTExpiryHours: getEnvInt("SCHIST_JWT_EXPIRY_HOURS", 24),
+
+		MCPEnabled: getEnvBool("SCHIST_MCP_ENABLED", false),
 
 		SharingEnabled:         getEnvBool("SCHIST_SHARING_ENABLED", true),
 		ShareMaxExpiryDays:     getEnvInt("SCHIST_SHARE_MAX_EXPIRY_DAYS", 90),

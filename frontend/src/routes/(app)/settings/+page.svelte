@@ -13,7 +13,10 @@
 	import SecretManager from '#lib/components/SecretManager.svelte';
 	import PasskeyManager from '#lib/components/PasskeyManager.svelte';
 	import UserManagement from '#lib/components/UserManagement.svelte';
+	import ApiTokensSection from '#lib/components/ApiTokensSection.svelte';
 	import { authService } from '#lib/auth/auth-service.ts';
+	import { apiClient } from '#lib/api/client.ts';
+	import { onMount } from 'svelte';
 
 	// Passkeys, secrets and user management are only meaningful when authentication is
 	// enabled (no auth => no user, no passkeys). Hide these sections otherwise so a no-auth
@@ -21,6 +24,14 @@
 	// Fail-safe: isAuthEnabled() returns true when config couldn't be loaded, so we never
 	// wrongly hide them in a normal auth-enabled instance.
 	const authEnabled = authService.isAuthEnabled();
+
+	let mcpEnabled = $state(false);
+	onMount(() => {
+		apiClient
+			.getConfig()
+			.then((config) => (mcpEnabled = config.mcp_enabled ?? false))
+			.catch(() => {});
+	});
 </script>
 
 <svelte:head>
@@ -60,6 +71,9 @@
 		<!-- Secret Management Section -->
 		<SecretManager />
 	{/if}
+
+	<!-- AI assistants (MCP) and personal access tokens -->
+	<ApiTokensSection {authEnabled} {mcpEnabled} />
 
 	<!-- GitHub Integration Section -->
 	<Card>

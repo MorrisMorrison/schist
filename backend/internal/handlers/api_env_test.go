@@ -33,6 +33,7 @@ type apiEnv struct {
 type apiEnvOptions struct {
 	authEnabled    bool
 	sharingEnabled bool
+	mcpEnabled     bool
 }
 
 func newAPIEnv(t *testing.T, opts apiEnvOptions) *apiEnv {
@@ -51,6 +52,7 @@ func newAPIEnv(t *testing.T, opts apiEnvOptions) *apiEnv {
 	t.Setenv("SCHIST_JWT_SECRET", "handler-test-secret-that-is-long-enough-0123456789")
 	t.Setenv("SCHIST_AUTH_ENABLED", boolEnv(opts.authEnabled))
 	t.Setenv("SCHIST_SHARING_ENABLED", boolEnv(opts.sharingEnabled))
+	t.Setenv("SCHIST_MCP_ENABLED", boolEnv(opts.mcpEnabled))
 	t.Setenv("SCHIST_FRONTEND_URL", "http://localhost:5173")
 	t.Setenv("SCHIST_TEMPLATES_DIR", filepath.Join("..", "..", "..", "templates"))
 
@@ -60,7 +62,7 @@ func newAPIEnv(t *testing.T, opts apiEnvOptions) *apiEnv {
 	router := gin.New()
 	router.Use(RecoverMiddleware())
 	router.Use(ValidationMiddleware())
-	router.Use(middleware.JWTMiddleware(svc.AuthService, svc.Config))
+	router.Use(middleware.JWTMiddleware(svc.AuthService, svc.TokenService, svc.Config))
 	NewAPIHandler(svc).SetupAPIRoutes(router.Group("/api"))
 
 	return &apiEnv{router: router, svc: svc, dataDir: dataDir}

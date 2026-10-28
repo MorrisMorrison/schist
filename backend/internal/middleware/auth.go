@@ -9,16 +9,33 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Context keys set for authenticated requests.
+const (
+	// AuthMethodKey is AuthMethodSession or AuthMethodToken.
+	AuthMethodKey = "auth_method"
+	// TokenScopeKey holds a personal access token's scope.
+	TokenScopeKey = "token_scope"
+
+	AuthMethodSession = "session"
+	AuthMethodToken   = "token"
+)
+
+// MCPPath is exempt from the read-only method check: every MCP call is a
+// POST, and the MCP server itself hides write tools from read-only tokens.
+const MCPPath = "/api/mcp"
+
 type JWTAuth struct {
 	authService     *services.AuthService
+	tokenService    *services.TokenService
 	config          *config.Config
 	publicEndpoints []string
 }
 
-func NewJWTAuth(authService *services.AuthService, config *config.Config) *JWTAuth {
+func NewJWTAuth(authService *services.AuthService, tokenService *services.TokenService, config *config.Config) *JWTAuth {
 	return &JWTAuth{
-		authService: authService,
-		config:      config,
+		authService:  authService,
+		tokenService: tokenService,
+		config:       config,
 		publicEndpoints: []string{
 			"/api/health",
 			"/api/config",
@@ -63,10 +80,10 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 			// still identified: e.g. passkey registration lets a signed-in user
 			// add a passkey to their own account. A missing or invalid token
 			// is ignored, exactly as before.
+			// Tokens never identify the caller here: passkey registration
+			// would otherwise let a token holder add a passkey to the account.
 			if ja.config.AuthEnabled {
-				if username, ok := ja.authenticate(c); ok {
-					c.Set("authenticated_user", username)
-				}
+				ja.authenticate(c, false)
 			}
 			c.Next()
 			return
@@ -86,29 +103,80 @@ func (ja *JWTAuth) Middleware() gin.HandlerFunc {
 			}
 		}
 
-		username, ok := ja.authenticate(c)
-		if !ok {
+		if !ja.authenticate(c, true) {
 			ja.unauthorized(c)
 			return
 		}
 
-		c.Set("authenticated_user", username)
+		if c.GetString(AuthMethodKey) == AuthMethodToken {
+			if !tokenAllowed(c.Request.URL.Path) {
+				ja.forbidden(c, "Personal access tokens can't use this endpoint")
+				return
+			}
+			// A read-only token can only read the REST API.
+			if c.GetString(TokenScopeKey) == services.TokenScopeRead && !isReadMethod(c.Request.Method) &&
+				c.Request.URL.Path != MCPPath {
+				ja.forbidden(c, "This token is read-only")
+				return
+			}
+		}
+
 		c.Next()
 	}
 }
 
-// authenticate validates the request's bearer token and returns its username.
-func (ja *JWTAuth) authenticate(c *gin.Context) (string, bool) {
-	token := ja.extractToken(c.GetHeader("Authorization"))
-	if token == "" {
-		return "", false
+// authenticate validates the request's bearer credential (a session JWT, or a
+// personal access token when allowTokens) and records who made the request.
+func (ja *JWTAuth) authenticate(c *gin.Context, allowTokens bool) bool {
+	credential := ja.extractToken(c.GetHeader("Authorization"))
+	if credential == "" {
+		return false
 	}
 
-	username, err := ja.authService.ValidateToken(token)
-	if err != nil {
-		return "", false
+	if services.IsAPIToken(credential) {
+		if !allowTokens || ja.tokenService == nil {
+			return false
+		}
+		token, err := ja.tokenService.Validate(credential)
+		if err != nil {
+			return false
+		}
+		c.Set("authenticated_user", token.Username)
+		c.Set(AuthMethodKey, AuthMethodToken)
+		c.Set(TokenScopeKey, token.Scope)
+		return true
 	}
-	return username, true
+
+	username, err := ja.authService.ValidateToken(credential)
+	if err != nil {
+		return false
+	}
+	c.Set("authenticated_user", username)
+	c.Set(AuthMethodKey, AuthMethodSession)
+	return true
+}
+
+// tokenPrefixes are the parts of the API a personal access token may use:
+// documents and what's derived from them. Secrets, passkeys, users, tokens,
+// shares and GitHub settings need a signed-in session, so a leaked token can't
+// read secret values or take over the account.
+var tokenPrefixes = []string{
+	MCPPath,
+	"/api/documents", "/api/folders", "/api/assets", "/api/links", "/api/versions",
+	"/api/export", "/api/import/documents", "/api/search", "/api/tags", "/api/templates",
+}
+
+func tokenAllowed(path string) bool {
+	for _, prefix := range tokenPrefixes {
+		if path == prefix || strings.HasPrefix(path, prefix+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func isReadMethod(method string) bool {
+	return method == http.MethodGet || method == http.MethodHead
 }
 
 func (ja *JWTAuth) extractToken(auth string) string {
@@ -119,6 +187,14 @@ func (ja *JWTAuth) extractToken(auth string) string {
 	return ""
 }
 
+func (ja *JWTAuth) forbidden(c *gin.Context, message string) {
+	c.JSON(http.StatusForbidden, gin.H{
+		"error":   "Forbidden",
+		"message": message,
+	})
+	c.Abort()
+}
+
 func (ja *JWTAuth) unauthorized(c *gin.Context) {
 	c.JSON(http.StatusUnauthorized, gin.H{
 		"error":   "Unauthorized",
@@ -127,7 +203,7 @@ func (ja *JWTAuth) unauthorized(c *gin.Context) {
 	c.Abort()
 }
 
-func JWTMiddleware(authService *services.AuthService, config *config.Config) gin.HandlerFunc {
-	auth := NewJWTAuth(authService, config)
+func JWTMiddleware(authService *services.AuthService, tokenService *services.TokenService, config *config.Config) gin.HandlerFunc {
+	auth := NewJWTAuth(authService, tokenService, config)
 	return auth.Middleware()
 }

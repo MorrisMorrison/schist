@@ -128,7 +128,7 @@ func setupMiddleware(router *gin.Engine, services *services.Services) {
 		log.Printf("Rate limiting enabled: %d requests per minute", services.Config.RateLimitRPM)
 	}
 
-	router.Use(middleware.JWTMiddleware(services.AuthService, services.Config))
+	router.Use(middleware.JWTMiddleware(services.AuthService, services.TokenService, services.Config))
 	if services.Config.AuthEnabled {
 		log.Printf("JWT authentication enabled for all endpoints")
 	} else {

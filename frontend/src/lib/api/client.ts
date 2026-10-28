@@ -13,6 +13,9 @@ import type {
 	Asset,
 	AssetUploadResponse,
 	SearchResponse,
+	ApiToken,
+	CreateApiTokenRequest,
+	CreateApiTokenResponse,
 	TagsResponse,
 	Template,
 	TemplatesResponse,
@@ -458,6 +461,19 @@ class SchistApiClient {
 		const params = new URLSearchParams({ q: query });
 		if (limit) params.set('limit', String(limit));
 		return this.request<SearchResponse>(`/search?${params}`);
+	}
+
+	async listApiTokens(): Promise<ApiToken[]> {
+		const response = await this.request<{ tokens: ApiToken[] }>('/tokens');
+		return response.tokens;
+	}
+
+	async createApiToken(request: CreateApiTokenRequest): Promise<CreateApiTokenResponse> {
+		return this.send<CreateApiTokenResponse>('POST', '/tokens', request);
+	}
+
+	async revokeApiToken(id: string): Promise<void> {
+		await this.send<void>('DELETE', `/tokens/${encodeURIComponent(id)}`);
 	}
 
 	async getAllTags(): Promise<TagsResponse> {

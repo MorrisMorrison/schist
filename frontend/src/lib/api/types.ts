@@ -325,6 +325,35 @@ export interface LoginResponse {
 export interface AppConfig {
 	auth_enabled: boolean;
 	sharing_enabled?: boolean;
+	/** The MCP endpoint at /api/mcp is on (SCHIST_MCP_ENABLED). */
+	mcp_enabled?: boolean;
+}
+
+export type ApiTokenScope = 'read' | 'read-write';
+
+/** A personal access token as listed; the secret itself is never returned again. */
+export interface ApiToken {
+	id: string;
+	name: string;
+	/** The token's first characters, to tell tokens apart. */
+	prefix: string;
+	scope: ApiTokenScope;
+	created_at: string;
+	last_used_at?: string;
+	expires_at?: string;
+}
+
+export interface CreateApiTokenRequest {
+	name: string;
+	scope: ApiTokenScope;
+	/** 0 means the token never expires. */
+	expires_in_days: number;
+}
+
+export interface CreateApiTokenResponse {
+	/** The raw token, returned this once. */
+	token: string;
+	info: ApiToken;
 }
 
 // Share-related types

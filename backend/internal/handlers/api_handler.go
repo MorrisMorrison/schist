@@ -7,6 +7,7 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/errors"
+	"github.com/MorrisMorrison/schist/internal/mcpserver"
 	"github.com/MorrisMorrison/schist/internal/middleware"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/services"
@@ -176,6 +177,22 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		passkeys.GET("/status", PasskeyStatusHandler(h.Services))
 	}
 
+	tokens := routerGroup.Group("/tokens")
+	{
+		tokens.GET("", h.listTokens)
+		tokens.POST("", h.createToken)
+		tokens.DELETE("/:id", h.revokeToken)
+	}
+
+	if h.Config.MCPEnabled {
+		// Stateless Streamable HTTP: clients POST JSON-RPC; GET and DELETE
+		// are answered 405 by the SDK, as the spec expects.
+		mcp := mcpserver.New(h.Services)
+		routerGroup.POST("/mcp", mcp.Handle)
+		routerGroup.GET("/mcp", mcp.Handle)
+		routerGroup.DELETE("/mcp", mcp.Handle)
+	}
+
 	routerGroup.POST("/import/documents", h.importDocuments)
 	routerGroup.GET("/search", h.search)
 	routerGroup.GET("/tags", h.getAllTags)
@@ -192,6 +209,7 @@ func (h *APIHandler) healthCheck(c *gin.Context) {
 func (h *APIHandler) getConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"auth_enabled": h.Config.AuthEnabled,
+		"mcp_enabled":  h.Config.MCPEnabled,
 	})
 }
 

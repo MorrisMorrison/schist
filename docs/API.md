@@ -35,6 +35,23 @@ Authorization: Bearer <jwt-token>
 }
 ```
 
+### Personal Access Tokens
+Long-lived tokens for scripts and the MCP endpoint. Send them like a JWT: `Authorization: Bearer sch_...`.
+
+- **Created in the app** under Settings, or with the endpoints below. These need a signed-in session: a token can't create or revoke tokens.
+- **Stored as a hash:** only a SHA-256 hash is stored, so the raw token is shown once.
+- **Scope:** `read` or `read-write`. A `read` token gets `403` on anything but `GET`/`HEAD` (except `/api/mcp`).
+- **Where tokens work:** only `/api/documents`, `/api/folders`, `/api/assets`, `/api/links`, `/api/versions`, `/api/export`, `/api/import/documents`, `/api/search`, `/api/tags`, `/api/templates` and `/api/mcp`. Every other endpoint answers `403`, including secrets, passkeys, users, shares, tokens and GitHub settings.
+- **When a token stops working (`401`):** it expires, it is revoked, or its user is deleted.
+
+| Method | Endpoint | Does |
+|---|---|---|
+| `GET` | `/api/tokens` | Your tokens (`{tokens, total}`), newest first. Never includes the raw token or its hash |
+| `POST` | `/api/tokens` | Create one: `{"name": "Laptop", "scope": "read" \| "read-write", "expires_in_days": 0-365}` (`0` = no expiry). Returns `201 {"token": "sch_...", "info": {...}}`; `token` is shown this once. At most 25 per user |
+| `DELETE` | `/api/tokens/{id}` | Revoke one of your tokens (`204`; `404` for an unknown id or someone else's token) |
+
+Token endpoints answer `409` when authentication is disabled.
+
 ## Rate Limiting
 
 Rate limiting is **optional** and can be enabled to prevent abuse.
@@ -359,6 +376,32 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 - `total` counts every match, even when `results` is cut by `limit`.
 - `matchedIn` is where the strongest match was: `title`, `heading`, `tag` or `content`.
 - `snippet` is an excerpt of the body. When the body matched, it's centred on the match; otherwise it's the body's start. It comes as segments, and `match: true` marks a query hit, so clients can highlight without parsing HTML.
+
+### MCP (Model Context Protocol)
+
+**POST** `/api/mcp` serves MCP over Streamable HTTP in stateless mode, so `GET` and `DELETE` answer `405`. It exists only when `SCHIST_MCP_ENABLED=true`; otherwise the path is `404`. `GET /api/config` reports it as `mcp_enabled`.
+
+**Auth:**
+- **Auth enabled:** send a personal access token or a session JWT.
+- **Read-only tokens:** they see only the read tools.
+- **Auth disabled:** the endpoint is open.
+
+| Tool | Access | Arguments | Does |
+|---|---|---|---|
+| `search` | read | `query`, `limit?` | Full-text search (same as `/api/search`); snippets have matches in `**bold**` |
+| `read_document` | read | `path` | Markdown content, title, tags, created and updated times |
+| `list_folder` | read | `path?` | Subfolders (with page counts) and the pages directly in the folder |
+| `get_backlinks` | read | `path` | Pages linking to `path` with `[[wiki links]]` |
+| `list_tags` | read | – | Tags with counts, most used first |
+| `create_document` | write | `path`, `content`, `title?`, `tags?` | New page; fails if it exists. The title defaults to one made from the path |
+| `update_document` | write | `path`, `content?`, `title?`, `tags?` | Replaces only the fields passed; the path doesn't change |
+| `append_to_document` | write | `path`, `content`, `heading?` | Adds at the end of the page, or at the end of the section under `heading` |
+
+**How the tools behave:**
+- **Paths:** written like `/folder/page`, with no `.md`.
+- **Writes:** they go through the same services as the REST API. Each is a git commit, and backlinks are updated.
+- **Errors:** they come back as tool errors with a client-safe message.
+- **Secrets:** `{{secret:...}}` placeholders are returned as written and never resolved.
 
 ### Asset Management
 

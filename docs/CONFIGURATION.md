@@ -22,6 +22,7 @@ Schist is designed with minimal configuration using environment variables and se
 | `SCHIST_SHARING_ENABLED` | `true` | Enable/disable public share links. When `false`, new shares are refused (403) and existing share links stop resolving (404); owners can still list and revoke them |
 | `SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` | `7` | Expiry used when a share is created without `expiry_days` (or with `0`) |
 | `SCHIST_SHARE_MAX_EXPIRY_DAYS` | `90` | Upper bound for a share's `expiry_days` |
+| `SCHIST_MCP_ENABLED` | `false` | Serve the Model Context Protocol endpoint at `/api/mcp`. With auth on, clients authenticate with a personal access token (Settings → AI Assistants & API Tokens). Behind a reverse proxy this works as is: the bearer token, not the `Host` header, protects the endpoint. Without auth, the SDK's DNS-rebinding protection stays on, so local clients must use `localhost` |
 
 ### Frontend Configuration
 

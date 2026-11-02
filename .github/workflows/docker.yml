@@ -1,14 +1,20 @@
-# Build the Docker image, smoke-test it, and -- only on a push to main -- publish
-# the *tested* image to ghcr. The image is built ONCE: the exact image that
-# passed the health check is the one that gets pushed, so a broken image can
-# never reach :latest (which deployments may auto-pull). PRs run build + test as
-# a gate without publishing.
+# Build the Docker image, smoke-test it, and -- only on a push to main or a
+# release tag -- publish the *tested* image to ghcr. The image is built ONCE: the
+# exact image that passed the health check is the one that gets pushed, so a
+# broken image can never reach :latest (which deployments may auto-pull). PRs run
+# build + test as a gate without publishing.
+#
+#   push to main   -> :latest + :main-<sha>
+#   tag v0.0.1     -> :0.0.1 + :v0.0.1-<sha>   (never moves :latest)
+#   manual run     -> :<tag input> + :<branch>-<sha>, if a tag is given
 name: Docker
 
 on:
   push:
     branches: [ main ]   # publish :latest on every main commit
-    paths:               # ...but only when something in the image actually changed
+    tags: [ 'v*' ]       # a release tag (v0.0.1) publishes the pinned :0.0.1 image
+    paths:               # ...but only when something in the image actually changed (path
+                         # filters aren't evaluated for tag pushes, so tags always build)
       - 'backend/**'
       - 'frontend/**'
       - 'Dockerfile'
@@ -25,9 +31,8 @@ on:
   workflow_dispatch:  # plus manual triggering with an optional explicit tag
     inputs:
       tag:
-        description: 'Docker image tag (optional, defaults to latest)'
+        description: 'Extra Docker image tag (optional; never latest unless you type it)'
         required: false
-        default: 'latest'
         type: string
 
 concurrency:
@@ -62,6 +67,9 @@ jobs:
           context: .
           load: true
           tags: schist-test:${{ github.run_id }}
+          # The release tag (v0.0.1 -> 0.0.1) on tags, dev-<sha> otherwise.
+          build-args: |
+            VERSION=${{ github.ref_type == 'tag' && github.ref_name || format('dev-{0}', github.sha) }}
           cache-from: type=gha,scope=schist-image
           cache-to: ${{ github.event_name != 'pull_request' && 'type=gha,mode=max,scope=schist-image' || '' }}
 
@@ -107,19 +115,29 @@ jobs:
 
       - name: Tag and push the tested image
         if: github.event_name != 'pull_request'
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
           set -euo pipefail
           # ghcr requires a lowercase image path.
           IMAGE="$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')"
-          PRIMARY="${{ github.event.inputs.tag || 'latest' }}"
-          SHA_TAG="main-${GITHUB_SHA::7}"
+          SHA_TAG="${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}"
+          TAGS=("$SHA_TAG")
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            TAGS+=("${GITHUB_REF_NAME#v}")           # v0.0.1 -> 0.0.1; :latest stays on main
+          elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            TAGS+=("latest")
+          fi
+          if [ -n "${INPUT_TAG}" ]; then
+            TAGS+=("${INPUT_TAG}")
+          fi
 
           # Push the exact image that was just smoke-tested -- no rebuild.
-          docker tag "schist-test:${GITHUB_RUN_ID}" "${IMAGE}:${PRIMARY}"
-          docker tag "schist-test:${GITHUB_RUN_ID}" "${IMAGE}:${SHA_TAG}"
-          docker push "${IMAGE}:${PRIMARY}"
-          docker push "${IMAGE}:${SHA_TAG}"
-          echo "Pushed ${IMAGE}:${PRIMARY} and ${IMAGE}:${SHA_TAG}"
+          for tag in "${TAGS[@]}"; do
+            docker tag "schist-test:${GITHUB_RUN_ID}" "${IMAGE}:${tag}"
+            docker push "${IMAGE}:${tag}"
+          done
+          echo "Pushed: ${TAGS[*]}"
 
       - name: Cleanup Docker resources
         if: always()

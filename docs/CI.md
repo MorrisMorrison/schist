@@ -12,7 +12,8 @@ doc covers what runs, where the image is published, and how to use your own runn
 | Frontend Tests | `test-frontend.yml` | `frontend/**` | Vitest unit tests, lint, `svelte-check` (inside the Playwright image) |
 | E2E Tests | `e2e.yml` | backend, frontend, `e2e/**`, Dockerfile, docker-compose | Playwright suite against the Dockerised app, split into 2 shards (`e2e (1/2)`, `e2e (2/2)`), each on its own GitHub-hosted runner with its own backend. The image build reads a GitHub Actions layer cache (`scope=schist-image`) that only the Docker workflow on `main` writes (PRs can read `main`'s cache, not each other's) |
 | Secret Scan | `secret-scan.yml` | all changes | gitleaks over the full history (via `make secret-scan`) |
-| Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose | Build + smoke-test the image on PRs; on push to `main`, publish the tested image |
+| Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose; every `v*` tag | Build + smoke-test the image on PRs; on push to `main` or a release tag, publish the tested image |
+| Release | `release.yml` | `v*` tags | Create the GitHub release with notes generated from the merged PRs (`v0.*` are pre-releases) |
 
 ## Coverage (Codecov)
 
@@ -30,14 +31,30 @@ Locally: `cd backend && go test -cover ./...`, or
 
 ## Published image
 
-On every push to `main` that changes the image, `docker.yml` pushes the exact
-image that passed the smoke test to the GitHub Container Registry:
+`docker.yml` pushes the exact image that passed the smoke test to the GitHub
+Container Registry:
 
-- `ghcr.io/morrismorrison/schist:latest`
-- `ghcr.io/morrismorrison/schist:main-<short-sha>` (pin this for reproducible deploys)
+- **Push to `main`** (when the image changed): `:latest` and `:main-<short-sha>`.
+- **Release tag `vX.Y.Z`:** `:X.Y.Z` and `:vX.Y.Z-<short-sha>`. A tag never moves `:latest`.
+- **Manual run** (`workflow_dispatch`): `:<branch>-<short-sha>`, plus the tag you type, if any.
 
-A manual run (`workflow_dispatch`) can publish an extra tag. The job logs in with
-the built-in `GITHUB_TOKEN` (`packages: write`), so no registry secret is needed.
+The binary is stamped with the version (`X.Y.Z` on a tag, `dev-<sha>` otherwise). It shows in
+the startup log line and as the MCP server's version. The job logs in with the built-in
+`GITHUB_TOKEN` (`packages: write`), so no registry secret is needed.
+
+## Releases
+
+A release is a version tag on a commit of `main` that CI has already tested:
+
+```bash
+git tag -a v0.0.2 -m "Schist 0.0.2"
+git push origin v0.0.2
+```
+
+- **`release.yml`** creates the GitHub release with notes generated from the merged PRs. Tags
+  starting with `v0.` are marked as pre-releases until 1.0.
+- **`docker.yml`** publishes `:0.0.2`.
+- **Never move or re-tag a published version;** a broken release gets the next version.
 
 ## Runners
 

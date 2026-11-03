@@ -4,9 +4,9 @@ import type { Range } from '@codemirror/state';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { goto } from '$app/navigation';
-import { generateSlug } from '#lib/utils/path.ts';
 import { getCachedDocuments } from '#lib/utils/markdown-cache.ts';
 import { findWikiLinkMatches } from '#lib/utils/wiki-link-syntax.ts';
+import { resolveWikiTarget } from '#lib/utils/resolve-wiki-target.ts';
 import { asyncDecorations, autocompleteTheme } from './async-decorations';
 
 const existsCache = new Map<string, { exists: boolean; time: number }>();
@@ -23,9 +23,7 @@ async function documentExists(documentName: string): Promise<boolean> {
 
 	try {
 		const documents = await getCachedDocuments();
-		const exists = documents.some(
-			(document) => document.metaData?.title?.toLowerCase() === cacheKey
-		);
+		const { exists } = resolveWikiTarget(documentName, documents);
 
 		existsCache.set(cacheKey, { exists, time: now });
 
@@ -37,17 +35,7 @@ async function documentExists(documentName: string): Promise<boolean> {
 }
 
 async function resolveDocumentPath(documentName: string): Promise<string> {
-	const documents = await getCachedDocuments();
-	const matchingDocument = documents.find(
-		(document) => document.metaData?.title?.toLowerCase() === documentName.toLowerCase()
-	);
-
-	if (matchingDocument && matchingDocument.metaData?.path) {
-		return matchingDocument.metaData.path;
-	}
-
-	const slug = generateSlug(documentName);
-	return `/${slug}`;
+	return resolveWikiTarget(documentName, await getCachedDocuments()).path;
 }
 
 class WikiLinkWidget extends WidgetType {

@@ -6,6 +6,7 @@ import { apiClient } from '#lib/api/client.ts';
 import { generateSlug } from '#lib/utils/path.ts';
 import { goto } from '$app/navigation';
 import { replaceWikiLinks } from './wiki-link-syntax';
+import { resolveWikiTarget } from './resolve-wiki-target';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -468,19 +469,8 @@ interface WikiLink {
 async function resolveWikiLink(target: string): Promise<WikiLink> {
 	try {
 		const documents = await apiClient.getDocuments();
-
-		const matchingDocument = documents.find(
-			(document: { metaData?: { title?: string; path?: string } }) =>
-				document.metaData?.title?.toLowerCase() === target.toLowerCase()
-		);
-
-		if (matchingDocument && matchingDocument.metaData?.path) {
-			return {
-				target,
-				displayText: target,
-				path: matchingDocument.metaData.path
-			};
-		}
+		const { path } = resolveWikiTarget(target, documents);
+		return { target, displayText: target, path };
 	} catch (error) {
 		console.warn('Failed to fetch documents for wiki link resolution:', error);
 	}

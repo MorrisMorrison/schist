@@ -601,6 +601,14 @@ Check out our [[API Documentation]] or [[/docs/getting-started]].
 # Both create clickable links in the frontend
 ```
 
+A `[[target]]` resolves, in this order, to:
+1. the page with that title (any case);
+2. the page at the root path `/<slug of target>`;
+3. the page that lists it in its `aliases` property (a string or a list);
+4. the page whose name, the last segment of its path, is the target's slug. An imported Obsidian note's name is its file name, so `[[router]]` finds `/lab/devices/router`.
+
+An alias or name that more than one page has doesn't resolve, so the link shows as broken rather than picking one page.
+
 ### Asset Workflow
 ```bash
 # 1. Upload image

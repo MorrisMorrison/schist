@@ -42,9 +42,9 @@ describe('combinedAutocompletionExtension', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(getCachedDocuments).mockResolvedValue([
-			{ metaData: { title: 'Writing style', path: '/writing' }, content: 'x'.repeat(150) },
-			{ metaData: { title: 'Deployment', path: '/deploy' }, content: 'short' },
-			{ metaData: { title: 'Rewriting history', path: '/history' }, content: '' }
+			{ metaData: { title: 'Writing style', path: '/writing' }, excerpt: 'x'.repeat(150) },
+			{ metaData: { title: 'Deployment', path: '/deploy' }, excerpt: 'short' },
+			{ metaData: { title: 'Rewriting history', path: '/history' }, excerpt: '' }
 		] as never);
 		vi.mocked(getCachedTags).mockResolvedValue([
 			{ name: 'golang', count: 4 },

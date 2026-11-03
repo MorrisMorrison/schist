@@ -3,13 +3,13 @@
 	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Edit, Trash2, Move, FileText, Clock, Folder } from '@lucide/svelte';
-	import type { Document } from '#lib/api/types.ts';
+	import type { DocumentSummary } from '#lib/api/types.ts';
 	import { getParentPath } from '#lib/utils/path.ts';
 	import { formatRelativeDate } from '#lib/utils/date.ts';
 	import { getDocumentColor } from '#lib/utils/document-color.ts';
 
 	interface Props {
-		document: Document;
+		document: DocumentSummary;
 		showTags?: boolean;
 		showDates?: boolean;
 		showPath?: boolean;
@@ -18,7 +18,7 @@
 		onEdit?: (slug: string) => void;
 		onDelete?: (slug: string) => void;
 		onView?: (path: string) => void;
-		onMove?: (document: Document) => void;
+		onMove?: (document: DocumentSummary) => void;
 		onToggleSelect?: (event: Event) => void;
 	}
 
@@ -186,10 +186,10 @@
 	</div>
 
 	<!-- Content preview -->
-	{#if document.content}
+	{#if document.excerpt}
 		<div class="px-6 pb-4">
 			<p class="text-muted-foreground line-clamp-3 text-sm leading-relaxed">
-				{getExcerpt(document.content, 180)}
+				{getExcerpt(document.excerpt, 180)}
 			</p>
 		</div>
 	{/if}

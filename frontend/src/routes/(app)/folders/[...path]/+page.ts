@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
 import { apiClient } from '#lib/api/client.ts';
 import { error } from '@sveltejs/kit';
-import type { Folder, Document } from '#lib/api/types.ts';
+import type { Folder, DocumentSummary } from '#lib/api/types.ts';
 
 export const load: PageLoad = async ({ params }) => {
 	const pathSegments = params.path.split('/').filter(Boolean);
@@ -33,7 +33,7 @@ export const load: PageLoad = async ({ params }) => {
 		if (folder) {
 			// This is a folder - filter documents and subfolders for this path
 			const folderDocuments = allDocuments?.filter(
-				(document: Document) =>
+				(document: DocumentSummary) =>
 					document.metaData?.path === fullPath ||
 					(fullPath === '/' && !document.metaData?.path?.includes('/'))
 			);

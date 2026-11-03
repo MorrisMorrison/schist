@@ -1,9 +1,9 @@
 import { apiClient } from '#lib/api/client.ts';
-import type { Document, TagInfo } from '#lib/api/types.ts';
+import type { DocumentSummary, TagInfo } from '#lib/api/types.ts';
 
 const CACHE_DURATION = 60000;
 
-let documentsCache: Document[] = [];
+let documentsCache: DocumentSummary[] = [];
 let documentsCacheTime = 0;
 
 let tagsCache: TagInfo[] = [];
@@ -17,7 +17,7 @@ let tagsCacheTime = 0;
  * returns an empty array without updating the cache timestamp (so the next
  * call retries).
  */
-export async function getCachedDocuments(): Promise<Document[]> {
+export async function getCachedDocuments(): Promise<DocumentSummary[]> {
 	const now = Date.now();
 	if (now - documentsCacheTime > CACHE_DURATION || documentsCache.length === 0) {
 		try {

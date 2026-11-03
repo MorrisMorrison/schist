@@ -1,16 +1,17 @@
 <script lang="ts">
 	import { documentActions } from '#lib/stores/documents.svelte.ts';
+	import { apiClient } from '#lib/api/client.ts';
 	import FormDialog from './FormDialog.svelte';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import { Edit } from '@lucide/svelte';
 	import InlineError from '#lib/components/ui/InlineError.svelte';
-	import type { Document } from '#lib/api/types.ts';
+	import type { DocumentSummary } from '#lib/api/types.ts';
 	import { generateSlug } from '#lib/utils/path.ts';
 	import { getErrorMessage } from '#lib/utils/error.ts';
 
 	interface Props {
-		document?: Document;
+		document?: DocumentSummary;
 		open?: boolean;
 		onClose: () => void;
 		onRenamed: (oldPath: string, newPath: string) => void;
@@ -67,14 +68,17 @@
 				}
 			}
 
+			// The sidebar passes a document list entry, which has no content.
+			// Save what's on disk now, so a rename never blanks or reverts the page.
+			const current = await apiClient.getDocumentByPath(currentPath);
 			const updatedDocument = await documentActions.updateDocumentByPath(currentPath, {
 				metaData: {
-					...document.metaData,
+					...current.metaData,
 					title: documentTitle.trim(),
 					slug: slug,
 					path: newPath
 				},
-				content: document.content
+				content: current.content
 			});
 			onRenamed(currentPath, updatedDocument.metaData?.path || newPath);
 		} catch (err) {

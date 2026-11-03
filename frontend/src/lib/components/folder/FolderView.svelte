@@ -12,7 +12,7 @@
 	import { ToggleSlider } from '#lib/components/ui/toggle-slider/index.ts';
 	import { Card, CardContent } from '#lib/components/ui/card/index.ts';
 	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
-	import type { Document, Folder as FolderType } from '#lib/api/types.ts';
+	import type { DocumentSummary, Folder as FolderType } from '#lib/api/types.ts';
 	import { isDirectChild } from '#lib/utils/path.ts';
 
 	interface Props {
@@ -20,7 +20,7 @@
 		mode?: 'folder' | 'recent' | 'all';
 		recentLimit?: number;
 		showCreateButtons?: boolean;
-		initialDocuments?: Document[];
+		initialDocuments?: DocumentSummary[];
 		initialFolders?: FolderType[];
 	}
 

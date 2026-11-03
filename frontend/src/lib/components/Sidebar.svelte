@@ -8,7 +8,7 @@
 	import RenameDocumentModal from './modal/RenameDocumentModal.svelte';
 	import DeleteConfirmModal from './modal/DeleteConfirmModal.svelte';
 	import ImportDocumentsModal from './modal/ImportDocumentsModal.svelte';
-	import type { Folder as FolderType, Document } from '#lib/api/types.ts';
+	import type { Folder as FolderType, DocumentSummary } from '#lib/api/types.ts';
 	import { folderActions, documentActions, foldersStore } from '#lib/stores/documents.svelte.ts';
 	import { apiClient } from '#lib/api/client.ts';
 	import { onMount } from 'svelte';
@@ -21,8 +21,8 @@
 	let folderToDelete = $state<FolderType | undefined>(undefined);
 	let showRenameDocumentModal = $state(false);
 	let showDeletePageModal = $state(false);
-	let pageToRename = $state<Document | null>(null);
-	let pageToDelete = $state<Document | null>(null);
+	let pageToRename = $state<DocumentSummary | null>(null);
+	let pageToDelete = $state<DocumentSummary | null>(null);
 	let showImportModal = $state(false);
 	let importTargetPath = $state('/');
 
@@ -32,7 +32,7 @@
 		goto(`/folders${event.path}`);
 	}
 
-	function handleDocumentSelect(event: { document: Document }) {
+	function handleDocumentSelect(event: { document: DocumentSummary }) {
 		const pagePath = event.document.metaData?.path || `/${event.document.metaData?.slug}`;
 		goto(`/documents${pagePath}`);
 	}
@@ -69,12 +69,12 @@
 		folderActions.loadFolderTree();
 	}
 
-	function handlePageDelete(event: { document: Document }) {
+	function handlePageDelete(event: { document: DocumentSummary }) {
 		pageToDelete = event.document;
 		showDeletePageModal = true;
 	}
 
-	function handlePageRename(event: { document: Document }) {
+	function handlePageRename(event: { document: DocumentSummary }) {
 		pageToRename = event.document;
 		showRenameDocumentModal = true;
 	}
@@ -131,7 +131,7 @@
 		apiClient.exportFolder(event.path);
 	}
 
-	function handleDocumentExport(event: { path: string; document: Document }) {
+	function handleDocumentExport(event: { path: string; document: DocumentSummary }) {
 		apiClient.exportDocument(event.path);
 	}
 

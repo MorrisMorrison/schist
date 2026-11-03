@@ -1,11 +1,11 @@
-import type { Folder as FolderType, Document } from '#lib/api/types.ts';
+import type { Folder as FolderType, DocumentSummary } from '#lib/api/types.ts';
 import { folderActions, documentActions } from '#lib/stores/documents.svelte.ts';
 import { joinPath } from '#lib/utils/path.ts';
 
 export interface DragItem {
 	type: 'folder' | 'page';
 	path: string;
-	data: FolderType | Document;
+	data: FolderType | DocumentSummary;
 }
 
 export function useDragAndDrop(showPages: boolean) {
@@ -18,7 +18,7 @@ export function useDragAndDrop(showPages: boolean) {
 		event: DragEvent,
 		type: 'folder' | 'page',
 		path: string,
-		data: FolderType | Document
+		data: FolderType | DocumentSummary
 	) {
 		if (!event.dataTransfer) return;
 

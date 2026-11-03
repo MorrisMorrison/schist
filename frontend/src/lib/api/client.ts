@@ -4,6 +4,7 @@ import type {
 	CreateDocumentRequest,
 	UpdateDocumentRequest,
 	DocumentListResponse,
+	DocumentSummary,
 	Folder,
 	FolderTreeResponse,
 	MoveDocumentRequest,
@@ -344,7 +345,7 @@ class SchistApiClient {
 		return this.request<User>('/auth/me');
 	}
 
-	async getDocuments(force = false): Promise<Document[]> {
+	async getDocuments(force = false): Promise<DocumentSummary[]> {
 		const response = await this.deduplicatedRequest<DocumentListResponse>('/documents', {}, force);
 		return response.documents;
 	}

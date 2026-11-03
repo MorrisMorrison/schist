@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
-import type { Document } from '#lib/api/types.ts';
+import type { DocumentSummary } from '#lib/api/types.ts';
 
 vi.mock('#lib/api/client.ts', () => ({ apiClient: {} }));
 
@@ -13,10 +13,10 @@ import { goto } from '$app/navigation';
 import { documentActions } from '#lib/stores/documents.svelte.ts';
 import DocumentGrid from './DocumentGrid.svelte';
 
-function doc(title: string, path: string): Document {
+function doc(title: string, path: string): DocumentSummary {
 	return {
 		metaData: { title, path, slug: path.split('/').pop(), tags: [], updated: '2024-01-01' },
-		content: `${title} body`
+		excerpt: `${title} body`
 	};
 }
 

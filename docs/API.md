@@ -149,6 +149,9 @@ Documents in Schist are organized hierarchically using path-based routing. Paths
 
 Retrieve all wiki documents with metadata. Automatically excludes documents in the `/trash` folder.
 
+- **No full content:** each entry has the metadata and an `excerpt`, the first 400 characters of the markdown.
+- **Getting the content:** fetch the page with `GET /api/documents/*path`.
+
 **Response:**
 ```json
 {
@@ -162,7 +165,7 @@ Retrieve all wiki documents with metadata. Automatically excludes documents in t
         "updated": "2024-01-15T10:30:00Z",
         "tags": ["welcome", "getting-started"]
       },
-      "content": "# Welcome to Schist\n\nMarkdown content here..."
+      "excerpt": "# Welcome to Schist\n\nMarkdown content here..."
     }
   ],
   "total": 1

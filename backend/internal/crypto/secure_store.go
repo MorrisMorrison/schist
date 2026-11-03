@@ -23,7 +23,14 @@ type EncryptedValue struct {
 	Encrypted bool   `json:"encrypted"`
 	Value     string `json:"value"`
 	Nonce     string `json:"nonce,omitempty"`
+	// Key names the key that encrypted Value: KeyServer for the server-side
+	// key, empty for the passkey-unlocked secret store (all older values).
+	Key string `json:"key,omitempty"`
 }
+
+// KeyServer marks a value encrypted with the server-side key (DeriveKey), so
+// the server can read it without a passkey unlock, e.g. after a restart.
+const KeyServer = "server"
 
 type SecureStore struct {
 	masterKey []byte

@@ -34,6 +34,10 @@ type apiEnvOptions struct {
 	authEnabled    bool
 	sharingEnabled bool
 	mcpEnabled     bool
+	// passkeyOnly runs without a server secret (no SCHIST_SECRET_KEY, a JWT
+	// secret generated for the run), so the GitHub token needs the
+	// passkey-unlocked store, as on a development server.
+	passkeyOnly bool
 }
 
 func newAPIEnv(t *testing.T, opts apiEnvOptions) *apiEnv {
@@ -49,7 +53,12 @@ func newAPIEnv(t *testing.T, opts apiEnvOptions) *apiEnv {
 	}
 	t.Setenv("ENV", "development")
 	t.Setenv("SCHIST_DATA_DIR", dataDir)
-	t.Setenv("SCHIST_JWT_SECRET", "handler-test-secret-that-is-long-enough-0123456789")
+	t.Setenv("SCHIST_SECRET_KEY", "")
+	if opts.passkeyOnly {
+		t.Setenv("SCHIST_JWT_SECRET", "")
+	} else {
+		t.Setenv("SCHIST_JWT_SECRET", "handler-test-secret-that-is-long-enough-0123456789")
+	}
 	t.Setenv("SCHIST_AUTH_ENABLED", boolEnv(opts.authEnabled))
 	t.Setenv("SCHIST_SHARING_ENABLED", boolEnv(opts.sharingEnabled))
 	t.Setenv("SCHIST_MCP_ENABLED", boolEnv(opts.mcpEnabled))

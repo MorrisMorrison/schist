@@ -292,11 +292,30 @@ func TestGitHub_ConnectionStatusWithEncryptedToken(t *testing.T) {
 		assert.EqualValues(t, 15, cfg["auto_sync_interval_minutes"])
 	})
 
-	t.Run("setup while locked", func(t *testing.T) {
-		env := newAPIEnv(t, apiEnvOptions{})
+	t.Run("setup while locked, without a server key", func(t *testing.T) {
+		env := newAPIEnv(t, apiEnvOptions{passkeyOnly: true})
 		w := env.do(t, http.MethodPost, "/api/github/setup", `{"token":"t","owner":"o","repo":"r"}`, "")
 		requireAPIError(t, w, http.StatusLocked, "SECRETS_LOCKED")
 		assert.False(t, env.svc.GitHubService.IsEnabled())
+	})
+
+	t.Run("with a server key a stored token needs no unlock", func(t *testing.T) {
+		env := newAPIEnv(t, apiEnvOptions{})
+		require.False(t, env.svc.SecretManager.IsUnlocked())
+		assert.True(t, env.svc.SecretManager.CanStoreGitHubToken(), "the server key replaces the unlock")
+		require.NoError(t, env.svc.SecretManager.SetGitHubToken("ghp_example"))
+		assert.True(t, env.svc.SecretManager.CanUseGitHubToken())
+	})
+
+	t.Run("a token under a server key this server doesn't have", func(t *testing.T) {
+		env := newAPIEnv(t, apiEnvOptions{})
+		token := crypto.NewEncryptedValue("bm90LXJlYWw=", true)
+		token.Nonce = "AAAAAAAAAAAAAAAA"
+		token.Key = crypto.KeyServer
+		enableGitHub(t, env, token)
+
+		w := env.do(t, http.MethodPost, "/api/github/sync", nil, "")
+		requireAPIError(t, w, http.StatusConflict, "INVALID_STATE")
 	})
 
 	t.Run("store unlocked but token undecryptable", func(t *testing.T) {

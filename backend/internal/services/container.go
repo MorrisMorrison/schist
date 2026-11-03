@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/MorrisMorrison/schist/internal/config"
 )
@@ -55,6 +56,13 @@ func NewServices() (*Services, error) {
 	userService := NewUserService(dataDir)
 	tokenService := NewTokenService(dataDir, userService)
 	secretManager := NewSecretManager(settings, dataDir, passkeyService)
+	if appConfig.ServerSecret != "" {
+		if err := secretManager.UseServerKey(appConfig.ServerSecret); err != nil {
+			return nil, fmt.Errorf("failed to set up the server key: %w", err)
+		}
+	} else {
+		log.Printf("WARN: no server secret (SCHIST_SECRET_KEY or SCHIST_JWT_SECRET); the GitHub backup token needs a passkey unlock after every restart")
+	}
 	documentService := NewDocumentService(dataDir, gitService, ignoreService)
 	searchService := NewSearchService(documentService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)

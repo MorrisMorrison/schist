@@ -203,6 +203,8 @@ Create a new wiki document. The system automatically generates slugs and paths i
 - `path` - Hierarchical path from slug if not provided
 - `created` and `updated` - Current timestamp
 
+**Inline hashtags:** whenever a document is saved (create, update, move, import, or the MCP tools), `#tags` in its content are added to `tags`. Only prose counts: fenced and inline code are skipped, and a tag must start a word (`fill:#fff` and `page#install` aren't tags). Tags passed in `tags` are kept.
+
 **Response:**
 ```json
 {
@@ -392,7 +394,7 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 
 **What the import does**
 - **Folders:** kept. Hidden folders lose their dot (`.agents` becomes `agents`), and folder names become slugs. Tool folders (`.obsidian`, `.git`, `.trash`) and hidden files are skipped. Other non-markdown files inside a folder or zip are skipped too.
-- **Front matter:** `title`, `tags` (a list or a string, with a leading `#` removed) and `created`/`updated` are kept. Other keys are dropped.
+- **Front matter:** `title`, `tags` (a list or a string, with a leading `#` removed) and `created`/`updated` are kept. Other keys are dropped. Inline `#tags` in the note are added to its tags.
 - **Removed plugin syntax:** Dataview, DataviewJS and Tasks queries, inline Dataview, Templater tags, `%% comments %%`, block IDs and Buttons or Meta Bind blocks.
 - **Converted:** callouts become a bold label in the quote. Note embeds `![[x]]` become links; embedded images and other files aren't imported.
 - **Links between the imported files** are rewritten to `[[Title]]`, whether they're `[[file]]`, `[[folder/file]]`, `[[file#heading]]` (shown as `file › heading`), `[[file\|alias]]` inside tables (still escaped), or markdown links to `.md` files.

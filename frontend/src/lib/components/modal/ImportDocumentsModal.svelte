@@ -12,21 +12,23 @@
 	} from '#lib/components/ui/dialog/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
-	import * as Select from '#lib/components/ui/select/index.ts';
 	import * as RadioGroup from '#lib/components/ui/radio-group/index.ts';
 	import { Upload, AlertCircle, CheckCircle, FolderUp } from '@lucide/svelte';
 	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 	import InlineError from '#lib/components/ui/InlineError.svelte';
 	import { getErrorMessage } from '#lib/utils/error.ts';
+	import { generateSlug } from '#lib/utils/path.ts';
 
 	interface Props {
 		open?: boolean;
 		onClose: () => void;
 		onSuccess: () => void;
 		folders: Folder[];
+		/** The folder the dialog starts at (e.g. the folder it was opened from). */
+		targetPath?: string;
 	}
 
-	let { open = false, onClose, onSuccess, folders }: Props = $props();
+	let { open = false, onClose, onSuccess, folders, targetPath = '/' }: Props = $props();
 
 	let selectedFiles = $state<File[] | null>(null);
 	/** For a folder upload: each file's path inside the folder. */
@@ -34,7 +36,8 @@
 	/** Files of an uploaded folder that are left out (not markdown). */
 	let leftOut = $state(0);
 	let folderInput = $state<HTMLInputElement>();
-	let targetPath = $state('/');
+	/** What the user typed or picked: an existing folder or a new path. */
+	let target = $state('/');
 	type OverwriteMode = 'skip' | 'overwrite' | 'rename';
 	const overwriteModes: { value: OverwriteMode; label: string; class?: string }[] = [
 		{ value: 'skip', label: 'Skip' },
@@ -52,7 +55,7 @@
 			selectedFiles = null;
 			selectedPaths = null;
 			leftOut = 0;
-			targetPath = '/';
+			target = targetPath;
 			overwriteMode = 'rename';
 			isLoading = false;
 			error = '';
@@ -107,7 +110,7 @@
 
 		try {
 			const options: ImportOptions = {
-				target_path: targetPath,
+				target_path: targetFolder,
 				overwrite_mode: overwriteMode
 			};
 
@@ -156,6 +159,24 @@
 	}
 
 	const folderOptions = $derived(generateFolderOptions(folders));
+
+	/**
+	 * The folder the import goes into, as the server stores it: names that
+	 * aren't valid path segments become slugs ("My Notes" → "my-notes").
+	 */
+	function normalizeTarget(path: string): string {
+		const segments = path
+			.split(/[\\/]+/)
+			.map((segment) => segment.trim())
+			.filter((segment) => segment && segment !== '.')
+			.map((segment) => (/^[A-Za-z0-9_-]+$/.test(segment) ? segment : generateSlug(segment)));
+		return '/' + segments.join('/');
+	}
+
+	const targetFolder = $derived(normalizeTarget(target));
+	const isNewFolder = $derived(
+		!folderOptions.some((option) => option.value.toLowerCase() === targetFolder.toLowerCase())
+	);
 
 	function skipReason(doc: { final_path: string; notes?: string[] }): string {
 		const target = doc.final_path ? `→ ${doc.final_path} ` : '';
@@ -238,16 +259,27 @@
 					<!-- Target Path Selection -->
 					<div class="space-y-2">
 						<Label for="target-path">Import to Folder</Label>
-						<Select.Root type="single" items={folderOptions} bind:value={targetPath}>
-							<Select.Trigger id="target-path" class="w-full">
-								<Select.Value />
-							</Select.Trigger>
-							<Select.Content>
-								{#each folderOptions as option (option.value)}
-									<Select.Item {...option} />
-								{/each}
-							</Select.Content>
-						</Select.Root>
+						<Input
+							id="target-path"
+							bind:value={target}
+							list="import-target-folders"
+							placeholder="/"
+							autocomplete="off"
+							spellcheck={false}
+							data-testid="import-target-path"
+						/>
+						<datalist id="import-target-folders">
+							{#each folderOptions as option (option.value)}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</datalist>
+						<p class="text-muted-foreground text-xs" data-testid="import-target-hint">
+							{#if isNewFolder}
+								New folder: {targetFolder} is created by the import.
+							{:else}
+								Pick a folder or type a new path.
+							{/if}
+						</p>
 					</div>
 
 					<!-- Overwrite Mode -->

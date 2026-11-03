@@ -22,7 +22,8 @@ function setup(overrides: Record<string, unknown> = {}) {
 		onRename: vi.fn(),
 		onDelete: vi.fn(),
 		onFolderExport: vi.fn(),
-		onExportAll: vi.fn()
+		onExportAll: vi.fn(),
+		onImport: vi.fn()
 	};
 	render(FolderContextMenu, {
 		props: { folder, position: { x: 30, y: 50 }, isOpen: true, ...handlers, ...overrides }
@@ -47,6 +48,7 @@ describe('FolderContextMenu', () => {
 		expect(await items()).toEqual([
 			'Create Subfolder',
 			'Create Document',
+			'Import here',
 			'Export',
 			'Rename',
 			'Delete'
@@ -62,6 +64,7 @@ describe('FolderContextMenu', () => {
 
 		for (const [label, handler, arg] of [
 			['Create Document', 'onCreateDocument', '/notes'],
+			['Import here', 'onImport', folder],
 			['Export', 'onFolderExport', folder],
 			['Rename', 'onRename', folder],
 			['Delete', 'onDelete', folder]
@@ -77,15 +80,16 @@ describe('FolderContextMenu', () => {
 	it('exports everything and hides rename / delete for the root', async () => {
 		const h = setup({ folder: root });
 
-		expect(await items()).toEqual(['Create Subfolder', 'Create Document', 'Export']);
+		expect(await items()).toEqual(['Create Subfolder', 'Create Document', 'Import here', 'Export']);
 		await userEvent.click(screen.getByRole('menuitem', { name: 'Export' }));
 		expect(h.onExportAll).toHaveBeenCalled();
 		expect(h.onFolderExport).not.toHaveBeenCalled();
 	});
 
-	it('hides Export without export handlers and renders nothing when closed', async () => {
-		setup({ onFolderExport: undefined, onExportAll: undefined });
+	it('hides Export and Import without their handlers and renders nothing when closed', async () => {
+		setup({ onFolderExport: undefined, onExportAll: undefined, onImport: undefined });
 		expect(await items()).not.toContain('Export');
+		expect(await items()).not.toContain('Import here');
 		cleanup();
 
 		setup({ isOpen: false });

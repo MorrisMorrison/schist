@@ -24,6 +24,7 @@
 	let pageToRename = $state<Document | null>(null);
 	let pageToDelete = $state<Document | null>(null);
 	let showImportModal = $state(false);
+	let importTargetPath = $state('/');
 
 	const currentPath = $derived(page.url.pathname);
 
@@ -113,7 +114,8 @@
 		}
 	}
 
-	function handleImportDocuments() {
+	function handleImportDocuments(event?: { path: string }) {
+		importTargetPath = event?.path || '/';
 		showImportModal = true;
 	}
 
@@ -242,6 +244,7 @@
 <ImportDocumentsModal
 	open={showImportModal}
 	folders={foldersStore.folders}
+	targetPath={importTargetPath}
 	onClose={handleImportClose}
 	onSuccess={handleImportSuccess}
 />

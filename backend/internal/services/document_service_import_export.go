@@ -139,9 +139,11 @@ func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models
 		Skipped:    make([]models.ImportedDocument, 0),
 		TotalFiles: len(files),
 	}
-	if options.TargetPath == "" {
-		options.TargetPath = "/"
+	target, err := importTargetFolder(options.TargetPath)
+	if err != nil {
+		return nil, err
 	}
+	options.TargetPath = target
 	if len(files) > maxImportFiles {
 		return nil, errors.NewValidationError(fmt.Sprintf("an import can have at most %d files", maxImportFiles))
 	}
@@ -265,6 +267,26 @@ func (d *DocumentService) importWikiLinkIndex(targetPath string) (importLinkInde
 		idx.addPage(document.MetaData.Path, document.MetaData.Title, targetPath)
 	}
 	return idx, nil
+}
+
+// importTargetFolder cleans the folder an import goes into, which may not
+// exist yet: names that are valid paths stay as they are, others become slugs
+// ("My Notes" → "my-notes"), and a folder that climbs out is refused.
+func importTargetFolder(target string) (string, error) {
+	var parts []string
+	for _, seg := range strings.Split(strings.ReplaceAll(target, "\\", "/"), "/") {
+		seg = strings.TrimSpace(seg)
+		switch {
+		case seg == "" || seg == ".":
+			continue
+		case seg == "..":
+			return "", errors.NewValidationError("invalid target folder")
+		case utils.ValidatePath("/"+seg) != nil:
+			seg = slugifySegment(seg)
+		}
+		parts = append(parts, seg)
+	}
+	return "/" + strings.Join(parts, "/"), nil
 }
 
 // cleanImportPath turns an upload or zip entry name into a clean relative

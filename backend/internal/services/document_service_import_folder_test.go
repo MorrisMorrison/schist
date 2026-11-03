@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -222,4 +223,37 @@ func TestImportFiles_TwoBatchesLinkToEachOther(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "# switch — core\n\nBack to [[router — main gateway]] and [[router — main gateway|the gateway]].",
 		switchPage.Content, "links into the earlier batch resolve")
+}
+
+func TestImportFiles_IntoANewTargetFolder(t *testing.T) {
+	tests := []struct {
+		name, target, want string
+	}{
+		{"a new nested folder", "/new/sub", "/new/sub/note"},
+		{"names are turned into slugs", "My Notes/2026 plans", "/my-notes/2026-plans/note"},
+		{"valid names stay as they are", "/Projects/Q_1", "/Projects/Q_1/note"},
+		{"backslashes and extra slashes", `\a\\b//`, "/a/b/note"},
+		{"empty means the root", "  ", "/note"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ds, _ := newSafetyDocumentService(t)
+			result, err := ds.ImportFiles(importFiles(map[string]string{"note.md": "# Note"}),
+				&models.ImportOptions{TargetPath: tt.target})
+			require.NoError(t, err)
+			require.Len(t, result.Success, 1, "%+v", result.Failed)
+			assert.Equal(t, tt.want, result.Success[0].FinalPath)
+			_, err = ds.GetDocumentByPath(tt.want)
+			require.NoError(t, err)
+		})
+	}
+
+	t.Run("a target that climbs out is refused", func(t *testing.T) {
+		ds, _ := newSafetyDocumentService(t)
+		for _, target := range []string{"/../outside", "a/../../b", `..\x`} {
+			_, err := ds.ImportFiles(importFiles(map[string]string{"note.md": "# Note"}),
+				&models.ImportOptions{TargetPath: target})
+			assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err), target)
+		}
+	})
 }

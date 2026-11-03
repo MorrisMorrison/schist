@@ -312,7 +312,7 @@ func TestDocumentService_TagsIgnoreInternalDirs(t *testing.T) {
 }
 
 func TestDocumentService_ImportTargetsAndTitles(t *testing.T) {
-	ds, _ := newSafetyDocumentService(t)
+	ds, dir := newSafetyDocumentService(t)
 	require.NoError(t, ds.CreateFolder("/imports"))
 
 	result, err := ds.ImportDocuments(multipartFiles(t, map[string]string{
@@ -342,13 +342,20 @@ func TestDocumentService_ImportTargetsAndTitles(t *testing.T) {
 		assert.Equal(t, "/root", result.Success[0].FinalPath)
 	})
 
-	t.Run("invalid target path fails per file without writing", func(t *testing.T) {
+	t.Run("a target name that isn't a valid path becomes a slug", func(t *testing.T) {
 		result, err := ds.ImportDocuments(multipartFiles(t, map[string]string{"x.md": "# X"}),
 			&models.ImportOptions{TargetPath: "/bad path"})
 		require.NoError(t, err)
-		assert.Equal(t, 1, result.FailedCount)
-		require.Len(t, result.Failed, 1)
-		assert.NotContains(t, result.Failed[0].Error, string(os.PathSeparator)+"tmp", "no file system details leak")
+		require.Len(t, result.Success, 1, "failed: %+v", result.Failed)
+		assert.Equal(t, "/bad-path/x", result.Success[0].FinalPath)
+	})
+
+	t.Run("a target that climbs out is refused without writing", func(t *testing.T) {
+		_, err := ds.ImportDocuments(multipartFiles(t, map[string]string{"x.md": "# X"}),
+			&models.ImportOptions{TargetPath: "/../bad"})
+		assert.Equal(t, apierrors.ErrCodeValidation, apiErrorCode(err))
+		entries, readErr := os.ReadDir(filepath.Join(filepath.Dir(dir), "bad"))
+		assert.True(t, os.IsNotExist(readErr), "nothing written outside: %v", entries)
 	})
 }
 

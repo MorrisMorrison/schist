@@ -47,7 +47,8 @@
 		onfolderexport?: (event: { path: string; folder: FolderType }) => void;
 		ondocumentexport?: (event: { path: string; document: Document }) => void;
 		onexportall?: () => void;
-		onimport?: () => void;
+		/** Import documents; from a folder's menu with that folder as the target. */
+		onimport?: (event?: { path: string }) => void;
 	}
 
 	let {
@@ -496,7 +497,7 @@
 						variant="ghost"
 						size="icon"
 						class="h-7 w-7"
-						onclick={onimport}
+						onclick={() => onimport()}
 						title="Import documents"
 						aria-label="Import documents"
 						data-testid="sidebar-import-button"
@@ -533,7 +534,10 @@
 							<DropdownMenu.Separator />
 						{/if}
 						{#if onimport}
-							<DropdownMenu.Item onSelect={onimport} data-testid="import-documents-menu-item">
+							<DropdownMenu.Item
+								onSelect={() => onimport()}
+								data-testid="import-documents-menu-item"
+							>
 								<Upload />
 								Import documents
 							</DropdownMenu.Item>
@@ -637,6 +641,7 @@
 		onDelete={handleDeleteFolder}
 		onFolderExport={onfolderexport ? handleFolderExport : undefined}
 		onExportAll={onexportall}
+		onImport={onimport ? (folder) => onimport({ path: folder.path }) : undefined}
 	/>
 
 	<DocumentContextMenu

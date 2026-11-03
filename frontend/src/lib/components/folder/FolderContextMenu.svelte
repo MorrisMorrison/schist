@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Plus, File, Download, Edit, Trash2 } from '@lucide/svelte';
+	import { Plus, File, Download, Upload, Edit, Trash2 } from '@lucide/svelte';
 	import type { Folder as FolderType } from '#lib/api/types.ts';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
 
@@ -14,6 +14,8 @@
 		onDelete: (folder: FolderType) => void;
 		onFolderExport?: (folder: FolderType) => void;
 		onExportAll?: () => void;
+		/** Import documents into this folder. */
+		onImport?: (folder: FolderType) => void;
 	}
 
 	let {
@@ -26,7 +28,8 @@
 		onRename,
 		onDelete,
 		onFolderExport,
-		onExportAll
+		onExportAll,
+		onImport
 	}: Props = $props();
 
 	const isRootFolder = $derived(folder?.path === '/' || folder?.path === '');
@@ -66,6 +69,12 @@
 				<File />
 				Create Document
 			</ContextMenu.Item>
+			{#if onImport}
+				<ContextMenu.Item onSelect={() => select(onImport)}>
+					<Upload />
+					Import here
+				</ContextMenu.Item>
+			{/if}
 			{#if showExport}
 				<ContextMenu.Item onSelect={() => select(exportFolder)}>
 					<Download />

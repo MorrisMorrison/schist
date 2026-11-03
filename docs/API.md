@@ -389,7 +389,7 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 |---|---|
 | `files` | One or more `.md` files, or `.zip` files whose folders are kept |
 | `paths` | Optional; one per file, in the same order: the file's path inside an uploaded folder (`vault/homelab/network.md`). Browsers drop folders from file names, so a folder upload sends them here |
-| `target_path` | Folder to import into (default `/`) |
+| `target_path` | Folder to import into (default `/`). It may not exist yet: it is created. Names that aren't valid path segments become slugs (`My Notes` → `my-notes`); a path with `..` is refused |
 | `overwrite_mode` | `rename` (default), `skip` or `overwrite` |
 
 **What the import does**

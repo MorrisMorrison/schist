@@ -290,6 +290,18 @@ describe('Sidebar', () => {
 		expect(stubProps.ImportDocumentsModal.open).toBe(false);
 	});
 
+	it('opens the import modal at the folder it was chosen from', () => {
+		render(Sidebar);
+
+		call('FolderTree', 'onimport', { path: '/projects' });
+		expect(stubProps.ImportDocumentsModal.open).toBe(true);
+		expect(stubProps.ImportDocumentsModal.targetPath).toBe('/projects');
+		call('ImportDocumentsModal', 'onClose');
+
+		call('FolderTree', 'onimport');
+		expect(stubProps.ImportDocumentsModal.targetPath).toBe('/');
+	});
+
 	it('stops listening for the global event when unmounted', () => {
 		const { unmount } = render(Sidebar);
 		const createModal = stubProps.CreateFolderModal;

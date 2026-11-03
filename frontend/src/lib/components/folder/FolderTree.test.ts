@@ -279,6 +279,7 @@ describe('FolderTree', () => {
 		expect(button).toHaveAttribute('title', 'Import documents');
 		await userEvent.click(button);
 		expect(onimport).toHaveBeenCalledTimes(1);
+		expect(onimport).toHaveBeenCalledWith();
 	});
 
 	it('leaves out import and export all when they are not wired', async () => {
@@ -381,7 +382,8 @@ describe('FolderTree', () => {
 			ondocumentcreate: vi.fn(),
 			onrename: vi.fn(),
 			ondelete: vi.fn(),
-			onfolderexport: vi.fn()
+			onfolderexport: vi.fn(),
+			onimport: vi.fn()
 		};
 		renderTree(handlers);
 
@@ -407,6 +409,9 @@ describe('FolderTree', () => {
 
 		await userEvent.click(within(await openMenu()).getByText('Export'));
 		expect(handlers.onfolderexport).toHaveBeenCalledWith({ path: '/notes', folder: tree[0] });
+
+		await userEvent.click(within(await openMenu()).getByText('Import here'));
+		expect(handlers.onimport).toHaveBeenCalledWith({ path: '/notes' });
 
 		await openMenu();
 		await userEvent.keyboard('{Escape}');

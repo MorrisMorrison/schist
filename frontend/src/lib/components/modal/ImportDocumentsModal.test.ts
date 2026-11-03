@@ -6,7 +6,6 @@ import { apiClient } from '#lib/api/client.ts';
 import { folderActions, documentActions } from '#lib/stores/documents.svelte.ts';
 import type { Folder, ImportResult } from '#lib/api/types.ts';
 import ImportDocumentsModal from './ImportDocumentsModal.svelte';
-import { chooseSelectOption, selectOptionLabels } from '#lib/test/select.ts';
 
 vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { importDocuments: vi.fn() }
@@ -51,9 +50,9 @@ describe('ImportDocumentsModal', () => {
 	const onClose = vi.fn();
 	const onSuccess = vi.fn();
 
-	async function renderModal() {
+	async function renderModal(props: { targetPath?: string } = {}) {
 		const result = render(ImportDocumentsModal, {
-			props: { open: true, onClose, onSuccess, folders }
+			props: { open: true, onClose, onSuccess, folders, ...props }
 		});
 		if (screen.queryByRole('dialog')) await waitForDialogFocus();
 		return result;
@@ -77,13 +76,56 @@ describe('ImportDocumentsModal', () => {
 		vi.clearAllMocks();
 	});
 
-	it('lists the folder tree as import targets', async () => {
+	function targetInput() {
+		return screen.getByLabelText('Import to Folder') as HTMLInputElement;
+	}
+
+	async function typeTarget(path: string) {
+		await userEvent.clear(targetInput());
+		await userEvent.type(targetInput(), path);
+	}
+
+	it('suggests the folder tree as import targets, starting at the root', async () => {
 		await renderModal();
-		const select = screen.getByLabelText('Import to Folder');
-		expect(select).toHaveTextContent('Root');
-		expect(await selectOptionLabels(select)).toEqual(['Root', '/notes', '/notes/daily', '/work']);
-		// Escape closes only the list, not the dialog around it.
-		expect(screen.getByTestId('import-documents-modal')).toBeInTheDocument();
+		expect(targetInput()).toHaveValue('/');
+		const options = Array.from(targetInput().list?.options ?? []).map((option) => option.value);
+		expect(options).toEqual(['/', '/notes', '/notes/daily', '/work']);
+	});
+
+	it('starts at the folder it was opened for', async () => {
+		await renderModal({ targetPath: '/notes/daily' });
+		expect(targetInput()).toHaveValue('/notes/daily');
+	});
+
+	// A result with a failure, so the dialog doesn't start its auto-close timer.
+	const failedResult = () => result({ failed_count: 1 });
+
+	it('imports into a new folder typed in, and says it will be created', async () => {
+		vi.mocked(apiClient.importDocuments).mockResolvedValue(failedResult());
+		await renderModal();
+		selectFiles(fileInput(), [mdFile('alpha.md')]);
+		await typeTarget('archive/My Notes');
+		expect(screen.getByTestId('import-target-hint')).toHaveTextContent(
+			'New folder: /archive/my-notes is created by the import.'
+		);
+		await userEvent.click(importButton());
+
+		expect(vi.mocked(apiClient.importDocuments).mock.calls[0][1]).toEqual({
+			target_path: '/archive/my-notes',
+			overwrite_mode: 'rename'
+		});
+	});
+
+	it('imports into the root when the target is left empty', async () => {
+		vi.mocked(apiClient.importDocuments).mockResolvedValue(failedResult());
+		await renderModal();
+		selectFiles(fileInput(), [mdFile('alpha.md')]);
+		await userEvent.clear(targetInput());
+		await userEvent.click(importButton());
+
+		expect(vi.mocked(apiClient.importDocuments).mock.calls[0][1]).toMatchObject({
+			target_path: '/'
+		});
 	});
 
 	it('offers the overwrite modes as a radio group, renaming by default', async () => {
@@ -134,7 +176,8 @@ describe('ImportDocumentsModal', () => {
 		);
 		await renderModal();
 		selectFiles(fileInput(), [mdFile('alpha.md')]);
-		await chooseSelectOption(screen.getByLabelText('Import to Folder'), '/work');
+		await typeTarget('/work');
+		expect(screen.queryByTestId('import-target-hint')).not.toHaveTextContent('New folder');
 		await userEvent.click(screen.getByLabelText('Overwrite'));
 		await userEvent.click(importButton());
 

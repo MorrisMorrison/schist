@@ -22,6 +22,7 @@ Schist is designed with minimal configuration using environment variables and se
 | `SCHIST_SHARING_ENABLED` | `true` | Enable/disable public share links. When `false`, new shares are refused (403) and existing share links stop resolving (404); owners can still list and revoke them |
 | `SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` | `7` | Expiry used when a share is created without `expiry_days` (or with `0`) |
 | `SCHIST_SHARE_MAX_EXPIRY_DAYS` | `90` | Upper bound for a share's `expiry_days` |
+| `SCHIST_GITHUB_AUTO_SYNC_MINUTES` | `15` | How often GitHub backup pushes when its backup mode is **Automatic** (whole minutes, 1 to 1440). See [GitHub backup](#github-backup) |
 | `SCHIST_MCP_ENABLED` | `false` | Serve the Model Context Protocol endpoint at `/api/mcp`. With auth on, clients authenticate with a personal access token (Settings → AI Assistants & API Tokens). Behind a reverse proxy this works as is: the bearer token, not the `Host` header, protects the endpoint. Without auth, the SDK's DNS-rebinding protection stays on, so local clients must use `localhost` |
 
 ### Frontend Configuration
@@ -29,6 +30,17 @@ Schist is designed with minimal configuration using environment variables and se
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PUBLIC_API_URL` | `http://localhost:8080/api` | Backend API URL for client-side calls |
+
+## GitHub backup
+
+GitHub backup is set up in the app under **Settings → GitHub** with a personal access token that can read and write the repository's contents. The token is stored in the passkey-protected secret store, so setup needs unlocked secrets, and so does every sync after a server restart (the unlock lives in memory).
+
+- **New repositories:** the repository can be empty, and the branch doesn't have to exist. The first sync creates it.
+- **Push only:** a sync commits pending changes and pushes the wiki's git history to the branch. It never pulls.
+- **When the branch has other commits** (for example a README created with the repository, or another device), a normal sync refuses with `SYNC_REMOTE_DIVERGED` and leaves GitHub as it is. Settings then offers **Replace GitHub branch**, which force-pushes the wiki's history once, after you confirm. Alternatively use an empty repository or a new branch.
+- **Sync on save:** each committed change (an edit, an API or MCP write, an import, a move, a delete) schedules a push 30 seconds after the last change, and at most 5 minutes after the first unpushed one, so a burst of writes makes one push. The push runs in the background and never blocks or fails the write.
+- **Automatic:** a push every `SCHIST_GITHUB_AUTO_SYNC_MINUTES` minutes.
+- **Status:** Settings shows the last successful sync and the last error, background syncs included (for example "Secret store is locked" after a restart).
 
 ## Development vs Production
 

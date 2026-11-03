@@ -34,13 +34,13 @@ type SecretListResponse struct {
 
 // UnlockSecretsHandler removed - using passkey-based unlock through UnlockWithPasskeyHandler
 
-// RequireUnlockedSecrets aborts the request with 401 when the secret store is
-// locked. Applied to the secret read/write routes so each handler no longer has
+// RequireUnlockedSecrets aborts the request with SECRETS_LOCKED (423) when the
+// secret store is locked. Applied to the secret read/write routes so each handler no longer has
 // to repeat the unlock check.
 func RequireUnlockedSecrets(services *services.Services) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !services.SecretManager.IsUnlocked() {
-			HandleError(c, errors.NewUnauthorizedError("Secret store is locked"))
+			HandleError(c, errors.NewSecretsLockedError())
 			c.Abort()
 			return
 		}

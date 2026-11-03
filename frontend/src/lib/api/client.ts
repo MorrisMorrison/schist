@@ -31,6 +31,8 @@ import type {
 	GitHubConfigRequest,
 	GitHubSetupResponse,
 	GitHubConnectionTest,
+	GitHubStatus,
+	GitHubSyncOptions,
 	User,
 	LoginResponse,
 	AppConfig,
@@ -698,30 +700,24 @@ class SchistApiClient {
 	async testGitHubConnection(
 		token: string,
 		owner: string,
-		repository: string
+		repository: string,
+		branch?: string
 	): Promise<GitHubConnectionTest> {
 		return this.send<GitHubConnectionTest>('POST', '/github/test', {
 			token,
 			owner,
 			repo: repository,
-			branch: 'main'
+			branch: branch ?? ''
 		});
 	}
 
-	async syncToGitHub(): Promise<GitHubSyncResult> {
-		return this.send<GitHubSyncResult>('POST', '/github/sync');
+	async syncToGitHub(options: GitHubSyncOptions = {}): Promise<GitHubSyncResult> {
+		const body = options.replaceRemote ? { replace_remote: true } : undefined;
+		return this.send<GitHubSyncResult>('POST', '/github/sync', body);
 	}
 
-	async disconnectGitHub(): Promise<{
-		message: string;
-		settings: GitHubSettings;
-		connection: GitHubConnectionStatus;
-	}> {
-		return this.send<{
-			message: string;
-			settings: GitHubSettings;
-			connection: GitHubConnectionStatus;
-		}>('POST', '/github/disconnect');
+	async disconnectGitHub(): Promise<{ message: string; status: GitHubStatus }> {
+		return this.send<{ message: string; status: GitHubStatus }>('POST', '/github/disconnect');
 	}
 
 	// Share management

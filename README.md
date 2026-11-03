@@ -119,8 +119,9 @@ Everything is configured with environment variables. The common ones:
 | `SCHIST_RATE_LIMIT_ENABLED` / `SCHIST_RATE_LIMIT_RPM` | `true` / `100` | Per-IP rate limit |
 | `SCHIST_SHARING_ENABLED` | `true` | Public share links (`SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` 7, `SCHIST_SHARE_MAX_EXPIRY_DAYS` 90) |
 | `SCHIST_MCP_ENABLED` | `false` | The MCP endpoint for AI assistants at `/api/mcp` (see below) |
+| `SCHIST_GITHUB_AUTO_SYNC_MINUTES` | `15` | Interval of the automatic GitHub backup |
 
-GitHub backup is set up in the app under **Settings → GitHub**. [docs/CONFIGURATION.md](docs/CONFIGURATION.md) has the full list, including the security headers and CSP.
+GitHub backup is set up in the app under **Settings → GitHub**: push-only, to a new or existing repository, manually, on every save or on an interval. [docs/CONFIGURATION.md](docs/CONFIGURATION.md) has the full list, including the security headers and CSP.
 
 ## AI assistants (MCP)
 

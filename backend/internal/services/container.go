@@ -59,6 +59,8 @@ func NewServices() (*Services, error) {
 	searchService := NewSearchService(documentService, ignoreService)
 	linkService := NewLinkService(documentService, ignoreService)
 	gitHubService := NewGitHubService(appConfig, gitService, settings, secretManager)
+	// Sync on save: every document commit schedules a debounced GitHub push.
+	gitService.SetCommitHook(gitHubService.NotifyCommitted)
 	authService := NewAuthService(appConfig, userService)
 	shareService := NewShareService(appConfig, documentService)
 

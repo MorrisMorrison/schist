@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -44,6 +45,22 @@ func classifyVersionLookupError(hash, what string, err error) error {
 type GitService struct {
 	dataDir    string
 	repository *git.Repository
+
+	// commitMu serialises staging and committing: document saves and the
+	// background GitHub sync commit from different goroutines, and go-git's
+	// index isn't safe for concurrent writers.
+	commitMu sync.Mutex
+	// onCommit, if set, runs after each document commit (see SetCommitHook).
+	onCommit func()
+}
+
+// SetCommitHook registers fn to run after every successful document commit
+// (saves, moves, deletes, restores, imports: everything that goes through
+// CommitDocuments). Call it once while wiring services, before serving
+// requests. fn must return quickly and can't fail the commit; GitHub's sync
+// on save uses it to schedule a push.
+func (gs *GitService) SetCommitHook(fn func()) {
+	gs.onCommit = fn
 }
 
 type DocumentVersion struct {
@@ -301,6 +318,8 @@ func (gs *GitService) removeAppStateFromIndex() (int, error) {
 // than with AddGlob(".") so app state stays out even if the user's .gitignore
 // loses the rule. It reports whether a commit was made.
 func (gs *GitService) CommitPendingChanges(message string) (bool, error) {
+	gs.commitMu.Lock()
+	defer gs.commitMu.Unlock()
 	if gs.repository == nil {
 		return false, fmt.Errorf("git repository not initialized")
 	}
@@ -472,6 +491,18 @@ func (gs *GitService) CommitDocument(documentPath string, message string) error 
 // passes both the old and the new path so the old file's deletion is not left
 // unstaged.
 func (gs *GitService) CommitDocuments(message string, documentPaths ...string) error {
+	if err := gs.commitDocuments(message, documentPaths...); err != nil {
+		return err
+	}
+	if gs.onCommit != nil {
+		gs.onCommit()
+	}
+	return nil
+}
+
+func (gs *GitService) commitDocuments(message string, documentPaths ...string) error {
+	gs.commitMu.Lock()
+	defer gs.commitMu.Unlock()
 	if gs.repository == nil {
 		return fmt.Errorf("git repository not initialized")
 	}

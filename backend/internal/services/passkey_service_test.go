@@ -99,12 +99,12 @@ func TestSecretManager_TypedErrors(t *testing.T) {
 	ps, dataDir := newTestPasskeyService(t, "cred-1")
 	sm := services.NewSecretManager(&config.Settings{}, dataDir, ps)
 
-	// Locked store -> 401 for every operation.
+	// Locked store -> SECRETS_LOCKED (423) for every operation.
 	_, err := sm.GetSecret("k")
-	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeUnauthorized), "%v", err)
-	assert.True(t, apierrors.HasCode(sm.SetSecret("k", "v"), apierrors.ErrCodeUnauthorized))
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked), "%v", err)
+	assert.True(t, apierrors.HasCode(sm.SetSecret("k", "v"), apierrors.ErrCodeSecretsLocked))
 	_, err = sm.ListSecrets()
-	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeUnauthorized))
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked))
 
 	// Unknown passkey -> 401, not a 500 with internal text.
 	err = sm.UnlockWithPasskey("no-such-credential")

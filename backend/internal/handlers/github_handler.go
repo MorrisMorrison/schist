@@ -49,14 +49,14 @@ func (h *APIHandler) setupGitHub(c *gin.Context) {
 
 	repoInfo, err := h.GitHubService.SetupRepository(&req)
 	if err != nil {
-		HandleError(c, errors.NewValidationError(fmt.Sprintf("Failed to setup GitHub repository: %v", err)).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
 	config := h.GitHubService.GetGitHubSettings()
 	connectionStatus, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
-		HandleError(c, errors.NewInternalError(fmt.Sprintf("Setup completed but failed to get connection status: %v", err)).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -81,27 +81,27 @@ func (h *APIHandler) getGitHubConfig(c *gin.Context) {
 func (h *APIHandler) getGitHubConnectionStatus(c *gin.Context) {
 	status, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
-		HandleError(c, errors.NewInternalError(fmt.Sprintf("Failed to get GitHub connection status: %v", err)).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, status)
 }
 
+// syncToGitHub pushes the wiki now. An optional body {"replace_remote": true}
+// replaces a diverged GitHub branch; the UI sends it only after the user
+// confirms, in answer to a SYNC_REMOTE_DIVERGED error.
 func (h *APIHandler) syncToGitHub(c *gin.Context) {
-	if !h.GitHubService.IsEnabled() {
-		HandleError(c, errors.NewValidationError("GitHub integration is not enabled"))
-		return
+	var opts services.GitHubSyncOptions
+	if c.Request.ContentLength != 0 {
+		if !bindJSON(c, &opts) {
+			return
+		}
 	}
 
-	result, err := h.GitHubService.SyncToGitHub()
+	result, err := h.GitHubService.Sync(opts)
 	if err != nil {
-		HandleError(c, errors.NewInternalError(fmt.Sprintf("Sync failed: %v", err)).WithCause(err))
-		return
-	}
-
-	if !result.Success && len(result.Errors) > 0 {
-		HandleError(c, errors.NewValidationError(result.Errors[0]))
+		HandleError(c, err)
 		return
 	}
 
@@ -109,25 +109,20 @@ func (h *APIHandler) syncToGitHub(c *gin.Context) {
 }
 
 func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
-	if !h.GitHubService.IsEnabled() {
-		HandleError(c, errors.NewValidationError("GitHub integration is not enabled"))
-		return
-	}
-
 	var req services.GitHubConfigRequest
 	if !bindJSON(c, &req) {
 		return
 	}
 
 	if err := h.GitHubService.UpdateConfiguration(&req); err != nil {
-		HandleError(c, errors.NewValidationError(fmt.Sprintf("Failed to update configuration: %v", err)).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
 	config := h.GitHubService.GetGitHubSettings()
 	connectionStatus, err := h.GitHubService.GetGitHubConnectionStatus()
 	if err != nil {
-		HandleError(c, errors.NewInternalError(fmt.Sprintf("Configuration updated but failed to get connection status: %v", err)).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 
@@ -151,19 +146,17 @@ func (h *APIHandler) testGitHubConnection(c *gin.Context) {
 		return
 	}
 
-	err := h.GitHubService.TestConnection(req.Token, req.Owner, req.Repo, req.Branch)
+	result, err := h.GitHubService.TestConnection(req.Token, req.Owner, req.Repo, req.Branch)
 	if err != nil {
-		// Domain response: the frontend reads the success flag on this endpoint.
-		c.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"error":   fmt.Sprintf("Connection test failed: %v", err),
-		})
+		HandleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "Connection test successful",
+		"success":       true,
+		"message":       result.Message,
+		"branch":        result.Branch,
+		"branch_exists": result.BranchExists,
 	})
 }
 
@@ -223,7 +216,7 @@ func (h *APIHandler) repairGitRepository(c *gin.Context) {
 
 func (h *APIHandler) disconnectGitHub(c *gin.Context) {
 	if err := h.GitHubService.Disconnect(); err != nil {
-		HandleError(c, errors.NewInternalError(fmt.Sprintf("Failed to disconnect GitHub integration: %v", err)).WithCause(err))
+		HandleError(c, err)
 		return
 	}
 

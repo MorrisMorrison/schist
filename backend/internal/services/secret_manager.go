@@ -11,10 +11,10 @@ import (
 )
 
 // errSecretStoreLocked is returned by every secret operation while the store
-// is locked (401, same as the RequireUnlockedSecrets middleware). A fresh
-// value each time, since APIError's With* helpers mutate the receiver.
+// is locked (SECRETS_LOCKED, same as the RequireUnlockedSecrets middleware). A
+// fresh value each time, since APIError's With* helpers mutate the receiver.
 func errSecretStoreLocked() error {
-	return errors.NewUnauthorizedError("secret store is locked")
+	return errors.NewSecretsLockedError()
 }
 
 // SecretManager holds the unlocked secret store. Requests run concurrently,

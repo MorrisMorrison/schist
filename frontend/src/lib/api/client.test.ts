@@ -498,12 +498,19 @@ describe('SchistApiClient', () => {
 			],
 			[
 				'testGitHubConnection',
-				(c) => c.testGitHubConnection('t', 'o', 'r'),
+				(c) => c.testGitHubConnection('t', 'o', 'r', 'backup'),
 				'/api/github/test',
 				'POST',
-				{ token: 't', owner: 'o', repo: 'r', branch: 'main' }
+				{ token: 't', owner: 'o', repo: 'r', branch: 'backup' }
 			],
 			['syncToGitHub', (c) => c.syncToGitHub(), '/api/github/sync', 'POST'],
+			[
+				'syncToGitHub replacing the remote',
+				(c) => c.syncToGitHub({ replaceRemote: true }),
+				'/api/github/sync',
+				'POST',
+				{ replace_remote: true }
+			],
 			['disconnectGitHub', (c) => c.disconnectGitHub(), '/api/github/disconnect', 'POST'],
 			[
 				'createShare',

@@ -5,6 +5,7 @@ import (
 
 	"github.com/MorrisMorrison/schist/internal/config"
 	"github.com/MorrisMorrison/schist/internal/crypto"
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,7 +61,7 @@ func TestSecretManager_SetSecretWhileLocked(t *testing.T) {
 
 	err := sm.SetSecret("test-key", "test-value")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "secret store is locked")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked), "%v", err)
 }
 
 func TestSecretManager_GetSecretWhileLocked(t *testing.T) {
@@ -70,7 +71,7 @@ func TestSecretManager_GetSecretWhileLocked(t *testing.T) {
 
 	_, err := sm.GetSecret("test-key")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "secret store is locked")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked), "%v", err)
 }
 
 func TestSecretManager_ListSecretsWhileLocked(t *testing.T) {
@@ -80,7 +81,7 @@ func TestSecretManager_ListSecretsWhileLocked(t *testing.T) {
 
 	_, err := sm.ListSecrets()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "secret store is locked")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked), "%v", err)
 }
 
 func TestSecretManager_DeleteSecretWhileLocked(t *testing.T) {
@@ -90,7 +91,7 @@ func TestSecretManager_DeleteSecretWhileLocked(t *testing.T) {
 
 	err := sm.DeleteSecret("test-key")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "secret store is locked")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked), "%v", err)
 }
 
 func TestSecretManager_GetGitHubTokenWhileLocked(t *testing.T) {
@@ -100,7 +101,7 @@ func TestSecretManager_GetGitHubTokenWhileLocked(t *testing.T) {
 
 	_, err := sm.GetGitHubToken()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "secret store is locked")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked), "%v", err)
 }
 
 func TestSecretManager_SetGitHubTokenWhileLocked(t *testing.T) {
@@ -110,7 +111,7 @@ func TestSecretManager_SetGitHubTokenWhileLocked(t *testing.T) {
 
 	err := sm.SetGitHubToken("test-token")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "secret store is locked")
+	assert.True(t, apierrors.HasCode(err, apierrors.ErrCodeSecretsLocked), "%v", err)
 }
 
 func TestSecretManager_HasSecrets(t *testing.T) {

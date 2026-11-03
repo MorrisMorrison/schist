@@ -28,11 +28,11 @@ func runWithTimeout(t *testing.T, d time.Duration, fn func()) {
 	}
 }
 
-// okOrLocked accepts success or the "store is locked" 401; anything else
+// okOrLocked accepts success or the "store is locked" error; anything else
 // (a 500 from a nil store, a missing secret that was never deleted, ...) is
 // a consistency bug.
 func okOrLocked(err error) bool {
-	return err == nil || apiErrorCode(err) == apierrors.ErrCodeUnauthorized
+	return err == nil || apiErrorCode(err) == apierrors.ErrCodeSecretsLocked
 }
 
 // Many goroutines read and write secrets while another toggles Lock/Unlock.

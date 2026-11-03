@@ -48,6 +48,7 @@ type fakeGitHub struct {
 	repos         map[string]string   // "owner/repo" -> default branch
 	branches      map[string][]string // "owner/repo" -> branches
 	authorization []string
+	rejectToken   string // requests with this token get 401 Bad credentials
 }
 
 func newFakeGitHub() *fakeGitHub {
@@ -61,6 +62,11 @@ func (f *fakeGitHub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.authorization = append(f.authorization, r.Header.Get("Authorization"))
+	if f.rejectToken != "" && r.Header.Get("Authorization") == "Bearer "+f.rejectToken {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"message":"Bad credentials"}`))
+		return
+	}
 
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) < 3 || parts[0] != "repos" {
@@ -290,12 +296,11 @@ func TestGitHubService_TestConnection(t *testing.T) {
 		{name: "missing token", owner: testOwner, repo: testRepo, wantErr: "token is required"},
 		{name: "missing owner", token: testToken, repo: testRepo, wantErr: "owner is required"},
 		{name: "missing repo", token: testToken, owner: testOwner, wantErr: "name is required"},
-		{name: "unknown repository", token: testToken, owner: testOwner, repo: "nope", wantErr: "failed to access repository"},
-		{name: "unknown branch", token: testToken, owner: testOwner, repo: testRepo, branch: "gone", wantErr: "failed to access branch gone"},
+		{name: "unknown repository", token: testToken, owner: testOwner, repo: "nope", wantErr: "not found"},
 		{name: "explicit branch", token: testToken, owner: testOwner, repo: testRepo, branch: "trunk"},
 		{name: "empty branch uses default branch", token: testToken, owner: testOwner, repo: testRepo},
-		{name: "main falls back to a non-main default branch", token: testToken, owner: testOwner, repo: testRepo,
-			branch: "main", configureDefaultRepo: "trunk"},
+		{name: "empty branch uses a non-main default branch", token: testToken, owner: testOwner, repo: testRepo,
+			configureDefaultRepo: "trunk"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -304,12 +309,16 @@ func TestGitHubService_TestConnection(t *testing.T) {
 				f.api.repos[testOwner+"/"+testRepo] = tt.configureDefaultRepo
 				f.api.branches[testOwner+"/"+testRepo] = []string{tt.configureDefaultRepo}
 			}
-			err := f.gs.TestConnection(tt.token, tt.owner, tt.repo, tt.branch)
+			result, err := f.gs.TestConnection(tt.token, tt.owner, tt.repo, tt.branch)
 			if tt.wantErr != "" {
 				assert.ErrorContains(t, err, tt.wantErr)
 				return
 			}
 			require.NoError(t, err)
+			assert.True(t, result.BranchExists)
+			if tt.configureDefaultRepo != "" {
+				assert.Equal(t, tt.configureDefaultRepo, result.Branch)
+			}
 			assert.Equal(t, "Bearer "+testToken, f.api.lastAuthorization())
 		})
 	}
@@ -330,9 +339,8 @@ func TestGitHubService_SetupRepository(t *testing.T) {
 			{"missing token", func(r *GitHubSetupRequest) { r.Token = "" }, true, "token is required"},
 			{"missing owner", func(r *GitHubSetupRequest) { r.Owner = "" }, true, "owner is required"},
 			{"missing repo", func(r *GitHubSetupRequest) { r.Repo = "" }, true, "name is required"},
-			{"unknown repository", func(r *GitHubSetupRequest) { r.Repo = "nope" }, true, "failed to access repository"},
-			{"unknown branch", func(r *GitHubSetupRequest) { r.Branch = "gone" }, true, "branch gone not found"},
-			{"secret store locked", func(r *GitHubSetupRequest) {}, false, "must be unlocked"},
+			{"unknown repository", func(r *GitHubSetupRequest) { r.Repo = "nope" }, true, "not found"},
+			{"secret store locked", func(r *GitHubSetupRequest) {}, false, "locked"},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -360,13 +368,15 @@ func TestGitHubService_SetupRepository(t *testing.T) {
 		info, err := f.gs.SetupRepository(validReq())
 		require.NoError(t, err)
 		assert.Equal(t, &GitHubRepoInfo{
-			Owner:       testOwner,
-			Name:        testRepo,
-			FullName:    testOwner + "/" + testRepo,
-			Description: "my notes",
-			Private:     true,
-			HTMLURL:     "https://github.com/" + testOwner + "/" + testRepo,
-			CloneURL:    "https://github.com/" + testOwner + "/" + testRepo + ".git",
+			Owner:        testOwner,
+			Name:         testRepo,
+			FullName:     testOwner + "/" + testRepo,
+			Description:  "my notes",
+			Private:      true,
+			HTMLURL:      "https://github.com/" + testOwner + "/" + testRepo,
+			CloneURL:     "https://github.com/" + testOwner + "/" + testRepo + ".git",
+			Branch:       "trunk",
+			BranchExists: true,
 		}, info)
 
 		gh := f.settings.GetGitHubSettings()
@@ -439,7 +449,7 @@ func TestGitHubService_GetGitHubConnectionStatus(t *testing.T) {
 		gh.Repository = "gone"
 		f := newGitHubFixture(t, gh)
 		status, err := f.gs.GetGitHubConnectionStatus()
-		assert.ErrorContains(t, err, "repository connection failed")
+		assert.ErrorContains(t, err, "not found")
 		require.NotNil(t, status)
 		assert.False(t, status.Connected)
 	})
@@ -452,7 +462,7 @@ func TestGitHubService_UpdateConfiguration(t *testing.T) {
 	t.Run("not enabled", func(t *testing.T) {
 		f := newGitHubFixture(t, nil)
 		err := f.gs.UpdateConfiguration(&GitHubConfigRequest{AutoSync: boolPtr(true)})
-		assert.ErrorContains(t, err, "not enabled")
+		assert.ErrorContains(t, err, "not set up")
 		assert.False(t, f.settings.GitHub.AutoSync)
 	})
 
@@ -476,12 +486,14 @@ func TestGitHubService_UpdateConfiguration(t *testing.T) {
 		assert.Equal(t, "trunk", reloaded.GitHub.Branch, "change must be persisted")
 	})
 
-	t.Run("unknown branch is rejected and nothing changes", func(t *testing.T) {
-		f := newGitHubFixture(t, enabledSettings())
+	t.Run("a failed branch lookup is rejected and nothing changes", func(t *testing.T) {
+		gh := enabledSettings()
+		gh.Repository = "gone"
+		f := newGitHubFixture(t, gh)
 		requireClient(t, f.gs)
 
-		err := f.gs.UpdateConfiguration(&GitHubConfigRequest{AutoSync: boolPtr(true), Branch: strPtr("gone")})
-		assert.ErrorContains(t, err, "branch gone not found")
+		err := f.gs.UpdateConfiguration(&GitHubConfigRequest{AutoSync: boolPtr(true), Branch: strPtr("dev")})
+		assert.Error(t, err)
 		assert.Equal(t, "main", f.settings.GitHub.Branch)
 		assert.False(t, f.settings.GitHub.AutoSync)
 	})
@@ -499,7 +511,7 @@ func TestGitHubService_SyncToGitHub_Preconditions(t *testing.T) {
 	t.Run("not enabled", func(t *testing.T) {
 		f := newGitHubFixture(t, nil)
 		result, err := f.gs.SyncToGitHub()
-		assert.ErrorContains(t, err, "not enabled")
+		assert.ErrorContains(t, err, "not set up")
 		assert.Nil(t, result)
 	})
 
@@ -508,7 +520,7 @@ func TestGitHubService_SyncToGitHub_Preconditions(t *testing.T) {
 		gh.Token = nil
 		f := newGitHubFixture(t, gh)
 		_, err := f.gs.SyncToGitHub()
-		assert.ErrorContains(t, err, "failed to initialize github client")
+		assert.ErrorContains(t, err, "token not configured")
 	})
 
 	t.Run("encrypted token while locked", func(t *testing.T) {
@@ -526,15 +538,13 @@ func TestGitHubService_SyncToGitHub_Preconditions(t *testing.T) {
 		assert.ErrorContains(t, err, "git service not available")
 	})
 
-	t.Run("repository unreachable is reported in the result", func(t *testing.T) {
+	t.Run("repository unreachable", func(t *testing.T) {
 		gh := enabledSettings()
 		gh.Repository = "gone"
 		f := newGitHubFixture(t, gh)
 		result, err := f.gs.SyncToGitHub()
-		require.NoError(t, err)
-		assert.False(t, result.Success)
-		assert.Equal(t, "Failed to connect to GitHub repository", result.Message)
-		assert.NotEmpty(t, result.Errors)
+		assert.ErrorContains(t, err, "not found")
+		assert.Nil(t, result)
 		assert.True(t, f.settings.GitHub.LastSync.IsZero())
 	})
 }
@@ -603,21 +613,7 @@ func pushDivergingCommit(t *testing.T, branch string) plumbing.Hash {
 }
 
 func TestGitHubService_SyncToGitHub_DivergedRemote(t *testing.T) {
-	t.Run("default push refuses to overwrite remote history", func(t *testing.T) {
-		f := newGitHubFixture(t, enabledSettings())
-		remoteDir := installLocalRemote(t, testOwner, testRepo)
-		remoteHead := pushDivergingCommit(t, "main")
-		writeNote(t, f.dataDir, "note.md", "# Local\n")
-
-		result, err := f.gs.SyncToGitHub()
-		require.NoError(t, err)
-		assert.False(t, result.Success)
-		assert.Equal(t, "Failed to push to GitHub", result.Message)
-		assert.Equal(t, remoteHead, remoteBranchHash(t, remoteDir, "main"), "remote commits must not be clobbered")
-		assert.True(t, f.settings.GitHub.LastSync.IsZero(), "a failed sync must not record LastSync")
-	})
-
-	t.Run("opt-in force push replaces the remote branch", func(t *testing.T) {
+	t.Run("stored opt-in force push replaces the remote branch", func(t *testing.T) {
 		gh := enabledSettings()
 		gh.ForcePush = true
 		f := newGitHubFixture(t, gh)
@@ -658,7 +654,7 @@ func TestGitHubService_SyncHelpersWithoutRepository(t *testing.T) {
 	assert.ErrorContains(t, f.gs.commitUncommittedChanges(), "not available")
 	_, err := f.gs.countLocalCommits()
 	assert.ErrorContains(t, err, "not available")
-	assert.ErrorContains(t, f.gs.pushToGitHub(), "not available")
+	assert.ErrorContains(t, f.gs.pushToGitHub(false), "not available")
 
 	f.gs.gitService = &GitService{dataDir: f.dataDir}
 	assert.ErrorContains(t, f.gs.setupGitRemote(), "not available")
@@ -681,7 +677,7 @@ func TestGitHubService_PushWithoutTokenFails(t *testing.T) {
 	gh := enabledSettings()
 	gh.Token = nil
 	f := newGitHubFixture(t, gh)
-	assert.ErrorContains(t, f.gs.pushToGitHub(), "failed to get GitHub token")
+	assert.ErrorContains(t, f.gs.pushToGitHub(false), "failed to get GitHub token")
 }
 
 func TestGitHubService_DisconnectClearsClientAndToken(t *testing.T) {

@@ -1,13 +1,16 @@
 import { apiClient } from '../api/client';
-import { getErrorMessage } from '#lib/utils/error.ts';
+import { getErrorMessage, parseError, type ErrorCode } from '#lib/utils/error.ts';
 import { runAsync } from '#lib/stores/resource.svelte.ts';
+import { secretStore } from '#lib/stores/secrets.svelte.ts';
 import type {
 	GitHubSettings,
 	GitHubConnectionStatus,
+	GitHubStatus,
 	GitHubSyncResult,
 	GitHubSetupRequest,
 	GitHubConnectionTest,
-	GitHubConfigRequest
+	GitHubConfigRequest,
+	GitHubSyncOptions
 } from '../api/types';
 
 interface GitHubState {
@@ -15,6 +18,8 @@ interface GitHubState {
 	connectionStatus: GitHubConnectionStatus | null;
 	loading: boolean;
 	error: string | null;
+	/** The API error code of the last failed sync (e.g. SYNC_REMOTE_DIVERGED). */
+	syncErrorCode: ErrorCode | null;
 	syncing: boolean;
 	lastSyncResult: GitHubSyncResult | null;
 	connectionTest: GitHubConnectionTest | null;
@@ -30,6 +35,7 @@ const defaultGitHubState: GitHubState = {
 	connectionStatus: null,
 	loading: false,
 	error: null,
+	syncErrorCode: null,
 	syncing: false,
 	lastSyncResult: null,
 	connectionTest: null,
@@ -41,6 +47,22 @@ const defaultGitHubState: GitHubState = {
 };
 
 const githubState: GitHubState = $state<GitHubState>(defaultGitHubState);
+
+/** Sync failures the UI explains itself; every other code shows the server's message. */
+const syncErrorMessages: Partial<Record<ErrorCode, string>> = {
+	SECRETS_LOCKED: 'Secrets are locked. Unlock them to sync to GitHub.',
+	INVALID_STATE: 'GitHub backup is not set up. Complete the setup first.',
+	NETWORK_ERROR: 'Could not reach the server. Check your connection and try again.'
+};
+
+/** Splits a combined status (setup, config and disconnect responses) into the two halves the store keeps. */
+function splitStatus(status: GitHubStatus): {
+	settings: GitHubSettings;
+	connectionStatus: GitHubConnectionStatus;
+} {
+	const { connected, token_exists, pending_changes, ...settings } = status;
+	return { settings, connectionStatus: { connected, token_exists, pending_changes } };
+}
 
 export const githubStore = {
 	get settings() {
@@ -54,6 +76,16 @@ export const githubStore = {
 	},
 	get error() {
 		return githubState.error;
+	},
+	get syncErrorCode() {
+		return githubState.syncErrorCode;
+	},
+	/** The GitHub branch has commits the wiki doesn't have, from a manual or a background sync. */
+	get remoteDiverged() {
+		return (
+			githubState.syncErrorCode === 'SYNC_REMOTE_DIVERGED' ||
+			githubState.settings?.last_sync_error_code === 'SYNC_REMOTE_DIVERGED'
+		);
 	},
 	get syncing() {
 		return githubState.syncing;
@@ -106,23 +138,34 @@ export const githubActions = {
 		);
 	},
 
+	/**
+	 * Sets up the integration. A SECRETS_LOCKED rejection also refreshes the
+	 * secrets status, so the UI stops showing a stale "unlocked".
+	 */
 	async setupGitHub(setupRequest: GitHubSetupRequest) {
-		return runAsync(
-			githubState,
-			async () => {
-				const setupResult = await apiClient.setupGitHub(setupRequest);
-
-				const settings = setupResult.settings || (await apiClient.getGitHubSettings(true));
-				const connectionStatus =
-					setupResult.connection || (await apiClient.getGitHubConnectionStatus(true));
-
-				githubState.settings = settings;
-				githubState.connectionStatus = connectionStatus;
-
-				return setupResult;
-			},
-			'Failed to setup GitHub integration'
-		);
+		try {
+			return await runAsync(
+				githubState,
+				async () => {
+					const setupResult = await apiClient.setupGitHub(setupRequest);
+					if (setupResult.status) {
+						const { settings, connectionStatus } = splitStatus(setupResult.status);
+						githubState.settings = settings;
+						githubState.connectionStatus = connectionStatus;
+					} else {
+						githubState.settings = await apiClient.getGitHubSettings(true);
+						githubState.connectionStatus = await apiClient.getGitHubConnectionStatus(true);
+					}
+					return setupResult;
+				},
+				'Failed to setup GitHub integration'
+			);
+		} catch (error) {
+			if (parseError(error).code === 'SECRETS_LOCKED') {
+				await secretStore.loadStatus().catch(() => {});
+			}
+			throw error;
+		}
 	},
 
 	async updateSettings(settingsUpdate: GitHubConfigRequest) {
@@ -140,13 +183,13 @@ export const githubActions = {
 		);
 	},
 
-	async testConnection(token: string, owner: string, repository: string) {
+	async testConnection(token: string, owner: string, repository: string, branch?: string) {
 		githubState.testingConnection = true;
 		githubState.error = null;
 		githubState.connectionTest = null;
 
 		try {
-			const result = await apiClient.testGitHubConnection(token, owner, repository);
+			const result = await apiClient.testGitHubConnection(token, owner, repository, branch);
 			githubState.connectionTest = result;
 			githubState.testingConnection = false;
 			return result;
@@ -161,49 +204,39 @@ export const githubActions = {
 		}
 	},
 
-	async syncToGitHub() {
+	/**
+	 * Syncs now. Errors are told apart by their API code, never by message
+	 * text. `replaceRemote` force-pushes over a diverged GitHub branch: only
+	 * pass it after the user confirmed.
+	 */
+	async syncToGitHub(options: GitHubSyncOptions = {}) {
 		githubState.syncing = true;
 		githubState.error = null;
+		githubState.syncErrorCode = null;
 
 		try {
-			const result = await apiClient.syncToGitHub();
-
-			const connectionStatus = await apiClient.getGitHubConnectionStatus(true);
-
+			const result = await apiClient.syncToGitHub(options);
 			githubState.lastSyncResult = result;
-			githubState.connectionStatus = connectionStatus;
-			githubState.syncing = false;
-
+			githubState.connectionStatus = await apiClient.getGitHubConnectionStatus(true);
 			return result;
 		} catch (error) {
-			let errorMessage = 'Failed to sync to GitHub';
-
-			if (error instanceof Error) {
-				const message = error.message.toLowerCase();
-
-				if (message.includes('git repository is not properly initialized')) {
-					errorMessage = 'Git repository is not properly set up. Please check repository health.';
-				} else if (message.includes('failed to access github repository')) {
-					errorMessage =
-						'Cannot access GitHub repository. Please check your credentials and repository permissions.';
-				} else if (message.includes('failed to setup git remote')) {
-					errorMessage = 'Could not configure Git remote connection to GitHub repository.';
-				} else if (message.includes('failed to commit')) {
-					errorMessage = 'Could not create local Git commit. Check for file permission issues.';
-				} else if (message.includes('failed to push to github')) {
-					errorMessage =
-						'Could not push changes to GitHub. Check network connection and repository permissions.';
-				} else if (message.includes('github integration is not enabled')) {
-					errorMessage =
-						'GitHub integration is not properly configured. Please set up GitHub connection first.';
-				} else {
-					errorMessage = getErrorMessage(error, errorMessage);
-				}
+			const { code } = parseError(error);
+			githubState.syncErrorCode = code ?? null;
+			githubState.error =
+				(code && syncErrorMessages[code]) || getErrorMessage(error, 'Failed to sync to GitHub');
+			if (code === 'SECRETS_LOCKED') {
+				await secretStore.loadStatus().catch(() => {});
 			}
-
-			githubState.syncing = false;
-			githubState.error = errorMessage;
 			throw error;
+		} finally {
+			githubState.syncing = false;
+			// The server records every sync's outcome: show the new last-sync status.
+			try {
+				const settings = await apiClient.getGitHubSettings(true);
+				if (settings) githubState.settings = settings;
+			} catch {
+				// Keep the settings we have; the sync's own result is what matters here.
+			}
 		}
 	},
 
@@ -212,21 +245,24 @@ export const githubActions = {
 			githubState,
 			async () => {
 				const result = await apiClient.disconnectGitHub();
-				githubState.settings = result.settings;
-				githubState.connectionStatus = result.connection;
+				const split = result?.status ? splitStatus(result.status) : null;
+				githubState.settings = split?.settings ?? null;
+				githubState.connectionStatus = split?.connectionStatus ?? null;
 				githubState.connectionTest = null;
 				githubState.lastSyncResult = null;
+				githubState.syncErrorCode = null;
 				return result;
 			},
 			'Failed to disconnect from GitHub'
 		);
 	},
 
-	async refresh() {
+	/** Reloads settings and, when the secrets allow it, the connection status. */
+	async refresh(force = false) {
 		try {
-			await githubActions.loadGitHubSettings();
+			await githubActions.loadGitHubSettings(force);
 			try {
-				await githubActions.loadConnectionStatus();
+				await githubActions.loadConnectionStatus(force);
 			} catch (error) {
 				// Connection status might fail if secrets are locked
 				console.debug('Connection status unavailable (secrets may be locked):', error);
@@ -238,6 +274,7 @@ export const githubActions = {
 
 	clearError() {
 		githubState.error = null;
+		githubState.syncErrorCode = null;
 	},
 
 	clearConnectionTest() {

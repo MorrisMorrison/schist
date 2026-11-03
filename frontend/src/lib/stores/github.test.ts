@@ -10,7 +10,8 @@ vi.mock('#lib/api/client.ts', () => ({
 		syncToGitHub: vi.fn(),
 		disconnectGitHub: vi.fn(),
 		checkGitHealth: vi.fn(),
-		repairGitRepository: vi.fn()
+		repairGitRepository: vi.fn(),
+		getSecretsStatus: vi.fn()
 	}
 }));
 
@@ -64,10 +65,16 @@ describe('github store', () => {
 	});
 
 	it('uses the setup response, falling back to fresh reads', async () => {
-		const other = { enabled: false } as never;
-		api.setupGitHub.mockResolvedValueOnce({ settings: other, connection: connected } as never);
+		api.setupGitHub.mockResolvedValueOnce({
+			status: { enabled: true, owner: 'x', connected: true, token_exists: true, pending_changes: 0 }
+		} as never);
 		await githubActions.setupGitHub({ token: 't' } as never);
-		expect(githubStore.settings).toEqual(other);
+		expect(githubStore.settings).toEqual({ enabled: true, owner: 'x' });
+		expect(githubStore.connectionStatus).toEqual({
+			connected: true,
+			token_exists: true,
+			pending_changes: 0
+		});
 		expect(api.getGitHubSettings).not.toHaveBeenCalled();
 
 		api.setupGitHub.mockResolvedValueOnce({ message: 'ok' } as never);
@@ -75,6 +82,14 @@ describe('github store', () => {
 		expect(api.getGitHubSettings).toHaveBeenCalledWith(true);
 		expect(api.getGitHubConnectionStatus).toHaveBeenCalledWith(true);
 		expect(githubStore.settings).toEqual(settings);
+	});
+
+	it('refreshes the secrets status when setup finds the store locked', async () => {
+		api.getSecretsStatus.mockResolvedValueOnce({ unlocked: false } as never);
+		api.setupGitHub.mockRejectedValueOnce(apiError('Secret store is locked.', 'SECRETS_LOCKED'));
+
+		await expect(githubActions.setupGitHub({ token: 't' } as never)).rejects.toThrow();
+		expect(api.getSecretsStatus).toHaveBeenCalled();
 	});
 
 	it('re-reads settings and status after an update', async () => {
@@ -91,9 +106,9 @@ describe('github store', () => {
 		it('stores the test result', async () => {
 			api.testGitHubConnection.mockResolvedValueOnce({ success: true, message: 'ok' } as never);
 
-			await githubActions.testConnection('t', 'o', 'r');
+			await githubActions.testConnection('t', 'o', 'r', 'backup');
 
-			expect(api.testGitHubConnection).toHaveBeenCalledWith('t', 'o', 'r');
+			expect(api.testGitHubConnection).toHaveBeenCalledWith('t', 'o', 'r', 'backup');
 			expect(githubStore.connectionTest).toEqual({ success: true, message: 'ok' });
 			expect(githubStore.testingConnection).toBe(false);
 		});
@@ -122,19 +137,59 @@ describe('github store', () => {
 			expect(githubStore.syncing).toBe(false);
 		});
 
-		it.each([
-			['Git repository is not properly initialized', 'Git repository is not properly set up'],
-			['Failed to access GitHub repository o/r', 'Cannot access GitHub repository'],
-			['failed to setup git remote: x', 'Could not configure Git remote'],
-			['failed to commit changes', 'Could not create local Git commit'],
-			['failed to push to github', 'Could not push changes to GitHub'],
-			['GitHub integration is not enabled', 'GitHub integration is not properly configured']
-		])('explains "%s"', async (message, explanation) => {
-			api.syncToGitHub.mockRejectedValueOnce(apiError(message, 'VALIDATION_ERROR'));
+		it('reloads the settings afterwards, for the recorded last-sync status', async () => {
+			api.syncToGitHub.mockResolvedValueOnce({ success: true } as never);
+			await githubActions.syncToGitHub();
+			expect(api.getGitHubSettings).toHaveBeenCalledWith(true);
+
+			api.syncToGitHub.mockRejectedValueOnce(apiError('down', 'SERVICE_UNAVAILABLE'));
+			await expect(githubActions.syncToGitHub()).rejects.toThrow();
+			expect(api.getGitHubSettings).toHaveBeenCalledTimes(2);
+		});
+
+		it('passes replaceRemote through', async () => {
+			api.syncToGitHub.mockResolvedValueOnce({ success: true } as never);
+			await githubActions.syncToGitHub({ replaceRemote: true });
+			expect(api.syncToGitHub).toHaveBeenCalledWith({ replaceRemote: true });
+		});
+
+		it('tells failures apart by code, not by message text', async () => {
+			// A message that used to be matched by text: the code decides now.
+			api.syncToGitHub.mockRejectedValueOnce(
+				apiError('failed to push to github', 'SECRETS_LOCKED')
+			);
+			api.getSecretsStatus.mockResolvedValueOnce({ unlocked: false } as never);
 
 			await expect(githubActions.syncToGitHub()).rejects.toThrow();
-			expect(githubStore.error).toContain(explanation);
+			expect(githubStore.syncErrorCode).toBe('SECRETS_LOCKED');
+			expect(githubStore.error).toBe('Secrets are locked. Unlock them to sync to GitHub.');
+			expect(api.getSecretsStatus).toHaveBeenCalled();
 			expect(githubStore.syncing).toBe(false);
+		});
+
+		it('flags a diverged remote and shows the server explanation', async () => {
+			api.syncToGitHub.mockRejectedValueOnce(
+				apiError('The GitHub branch "main" has other commits.', 'SYNC_REMOTE_DIVERGED')
+			);
+
+			await expect(githubActions.syncToGitHub()).rejects.toThrow();
+			expect(githubStore.syncErrorCode).toBe('SYNC_REMOTE_DIVERGED');
+			expect(githubStore.remoteDiverged).toBe(true);
+			expect(githubStore.error).toBe('The GitHub branch "main" has other commits.');
+
+			githubActions.clearError();
+			expect(githubStore.remoteDiverged).toBe(false);
+		});
+
+		it('flags a diverged remote reported by a background sync', async () => {
+			api.getGitHubSettings.mockResolvedValueOnce({
+				...(settings as object),
+				last_sync_error_code: 'SYNC_REMOTE_DIVERGED'
+			} as never);
+			await githubActions.loadGitHubSettings(true);
+			expect(githubStore.remoteDiverged).toBe(true);
+			await githubActions.loadGitHubSettings(true);
+			expect(githubStore.remoteDiverged).toBe(false);
 		});
 
 		it('shows the API error text, not the raw envelope, for other failures', async () => {
@@ -150,16 +205,25 @@ describe('github store', () => {
 	it('clears test and sync results on disconnect', async () => {
 		api.disconnectGitHub.mockResolvedValueOnce({
 			message: 'bye',
-			settings: { enabled: false },
-			connection: { connected: false }
+			status: { enabled: false, connected: false, token_exists: false, pending_changes: 0 }
 		} as never);
 
 		await githubActions.disconnect();
 
 		expect(githubStore.settings).toEqual({ enabled: false });
-		expect(githubStore.connectionStatus).toEqual({ connected: false });
+		expect(githubStore.connectionStatus).toEqual({
+			connected: false,
+			token_exists: false,
+			pending_changes: 0
+		});
 		expect(githubStore.connectionTest).toBeNull();
 		expect(githubStore.lastSyncResult).toBeNull();
+	});
+
+	it('refresh can bypass the request cache', async () => {
+		await githubActions.refresh(true);
+		expect(api.getGitHubSettings).toHaveBeenCalledWith(true);
+		expect(api.getGitHubConnectionStatus).toHaveBeenCalledWith(true);
 	});
 
 	it('refresh tolerates an unavailable connection status or settings', async () => {

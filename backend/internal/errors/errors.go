@@ -36,6 +36,14 @@ const (
 	// Business logic errors
 	ErrCodeOperationFailed ErrorCode = "OPERATION_FAILED"
 	ErrCodeInvalidState    ErrorCode = "INVALID_STATE"
+
+	// ErrCodeSecretsLocked: the request needs the unlocked secret store. The
+	// unlocked state lives in server memory, so a restart locks it again; the
+	// client should refresh its status and ask the user to unlock.
+	ErrCodeSecretsLocked ErrorCode = "SECRETS_LOCKED"
+	// ErrCodeSyncRemoteDiverged: the GitHub branch has commits the wiki's
+	// history doesn't contain, so a normal push would lose them.
+	ErrCodeSyncRemoteDiverged ErrorCode = "SYNC_REMOTE_DIVERGED"
 )
 
 type APIError struct {
@@ -178,6 +186,23 @@ func NewOperationFailedError(operation string, reason string) *APIError {
 
 func NewInvalidStateError(message string) *APIError {
 	return NewAPIError(ErrCodeInvalidState, message, http.StatusConflict)
+}
+
+// NewSecretsLockedError reports that the secret store must be unlocked first.
+// It is 423 Locked rather than 401, so clients don't mistake it for an
+// expired session.
+func NewSecretsLockedError() *APIError {
+	return NewAPIError(ErrCodeSecretsLocked, "Secret store is locked. Unlock secrets and try again.", http.StatusLocked)
+}
+
+// NewSyncRemoteDivergedError reports a GitHub branch that has commits the
+// wiki's history doesn't contain.
+func NewSyncRemoteDivergedError(branch string) *APIError {
+	message := fmt.Sprintf("The GitHub branch %q has commits that aren't in this wiki (for example a README "+
+		"created with the repository), so pushing would lose them. Replace the branch with the wiki's "+
+		"history, or use an empty repository or a new branch.", branch)
+	return NewAPIError(ErrCodeSyncRemoteDiverged, message, http.StatusConflict).
+		WithDetails("branch", branch)
 }
 
 func WrapError(err error) *APIError {

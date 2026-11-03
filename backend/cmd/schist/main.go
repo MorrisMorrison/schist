@@ -68,6 +68,9 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// GitHub backup in the background: sync on save and automatic sync.
+	services.GitHubService.StartBackgroundSync(ctx)
+
 	go func() {
 		log.Printf("Starting Schist %s on port %s (env: %s)", version.Version, services.Config.Port, services.Config.Environment)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -86,6 +89,7 @@ func main() {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
+	services.GitHubService.StopBackgroundSync(shutdownCtx)
 
 	log.Printf("Server stopped cleanly")
 }

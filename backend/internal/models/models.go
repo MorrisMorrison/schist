@@ -14,6 +14,10 @@ type DocumentMetaData struct {
 	Created time.Time `yaml:"created" json:"created"`
 	Updated time.Time `yaml:"updated" json:"updated"`
 	Tags    []string  `yaml:"tags,omitempty" json:"tags,omitempty"`
+	// Properties are the other front matter keys (status, owner, aliases…),
+	// kept as they are so they survive import and every save. The serializer
+	// reads and writes them next to the fields above, which always win.
+	Properties map[string]any `yaml:"-" json:"properties,omitempty"`
 }
 
 type Folder struct {

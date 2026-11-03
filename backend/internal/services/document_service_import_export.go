@@ -217,12 +217,13 @@ func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models
 
 		document := &models.Document{
 			MetaData: &models.DocumentMetaData{
-				Slug:    slashpath.Base(p.target.finalPath),
-				Title:   p.note.title,
-				Path:    p.target.finalPath,
-				Tags:    p.note.tags,
-				Created: p.note.created,
-				Updated: p.note.updated,
+				Slug:       slashpath.Base(p.target.finalPath),
+				Title:      p.note.title,
+				Path:       p.target.finalPath,
+				Tags:       p.note.tags,
+				Created:    p.note.created,
+				Updated:    p.note.updated,
+				Properties: p.note.properties,
 			},
 			Content: body,
 		}

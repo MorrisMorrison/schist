@@ -17,6 +17,9 @@ func TestParseImportedMarkdown_FrontMatter(t *testing.T) {
 		"created: 2025-03-04",
 		"updated: 2026-01-02T10:00:00Z",
 		"host: \"[[docki]]\"",
+		"path: /somewhere/else",
+		"network:",
+		"  vlan: 10",
 		"---",
 		"# Heading",
 		"",
@@ -28,7 +31,12 @@ func TestParseImportedMarkdown_FrontMatter(t *testing.T) {
 	assert.Equal(t, time.Date(2025, 3, 4, 0, 0, 0, 0, time.UTC), note.created)
 	assert.Equal(t, time.Date(2026, 1, 2, 10, 0, 0, 0, time.UTC), note.updated)
 	assert.Equal(t, "# Heading\n\nBody.", note.body)
-	assert.Contains(t, note.notes, "dropped front matter: host, status")
+	assert.Equal(t, map[string]any{
+		"status":  "active",
+		"host":    "[[docki]]",
+		"network": map[string]any{"vlan": 10},
+	}, note.properties, "other keys are kept as properties; Schist's own path is not taken over")
+	assert.Empty(t, note.notes, "nothing is dropped")
 }
 
 func TestParseImportedMarkdown_TitlesAndOddFrontMatter(t *testing.T) {

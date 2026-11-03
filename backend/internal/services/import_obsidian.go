@@ -9,12 +9,14 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/MorrisMorrison/schist/internal/serializer"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"gopkg.in/yaml.v2"
 )
 
 // Markdown from Obsidian (and similar tools) is converted on import to what
-// Schist renders: front matter is reduced to title, tags and dates, plugin
+// Schist renders: title, tags and dates are taken from the front matter and
+// the other keys are kept as properties, plugin
 // syntax (Dataview, Templater, comments, block IDs) is removed, callouts and
 // embeds become plain markdown, and links are rewritten so they resolve.
 // Everything that is dropped or changed is reported per file.
@@ -25,8 +27,10 @@ type importedNote struct {
 	tags    []string
 	created time.Time
 	updated time.Time
-	body    string
-	notes   []string
+	// properties are the other front matter keys, kept as they are.
+	properties map[string]any
+	body       string
+	notes      []string
 }
 
 var importFrontMatterBlock = regexp.MustCompile(`(?s)^---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)`)
@@ -56,8 +60,8 @@ func parseImportedMarkdown(content, filename string) importedNote {
 	return note
 }
 
-// applyFrontMatter keeps title, tags and dates; every other key is dropped
-// and reported.
+// applyFrontMatter reads title, tags and dates into Schist's fields and keeps
+// every other key as a property.
 func (n *importedNote) applyFrontMatter(raw string) {
 	var fields map[string]any
 	if err := yaml.Unmarshal([]byte(raw), &fields); err != nil {
@@ -65,7 +69,6 @@ func (n *importedNote) applyFrontMatter(raw string) {
 		return
 	}
 
-	var dropped []string
 	for key, value := range fields {
 		switch strings.ToLower(key) {
 		case "title":
@@ -85,14 +88,16 @@ func (n *importedNote) applyFrontMatter(raw string) {
 		case "path", "slug":
 			// Schist's own fields; the import decides where the note goes.
 		default:
-			dropped = append(dropped, key)
+			if serializer.IsKnownField(key) {
+				continue // another spelling of a field handled above
+			}
+			if n.properties == nil {
+				n.properties = map[string]any{}
+			}
+			n.properties[key] = serializer.NormalizeValue(value)
 		}
 	}
 	n.tags = uniqueStrings(n.tags)
-	if len(dropped) > 0 {
-		sort.Strings(dropped)
-		n.notes = append(n.notes, "dropped front matter: "+strings.Join(dropped, ", "))
-	}
 }
 
 // importTags accepts a YAML list or a comma/space separated string, and drops

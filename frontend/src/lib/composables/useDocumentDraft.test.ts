@@ -91,6 +91,22 @@ describe('useDocumentDraft', () => {
 		);
 	});
 
+	it('sends the custom front matter back unchanged', async () => {
+		const doc = makeDoc();
+		doc.metaData.properties = { status: 'active', aliases: ['gw'] };
+		const draft = useDocumentDraft({ document: doc });
+		draft.setContent('# Plan\n\nEdited');
+
+		await draft.save();
+		expect(update).toHaveBeenLastCalledWith(
+			'notes/plan',
+			expect.objectContaining({
+				metaData: expect.objectContaining({ properties: { status: 'active', aliases: ['gw'] } })
+			}),
+			'manual'
+		);
+	});
+
 	it('renames through the first heading, and later saves use the new path', async () => {
 		const draft = useDocumentDraft({ document: makeDoc() });
 		draft.setContent('# Roadmap\n\nHello');

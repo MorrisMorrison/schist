@@ -5,6 +5,7 @@ export { SharedDocumentPage } from '../pages/SharedDocumentPage';
 export { FolderPage } from '../pages/FolderPage';
 export { BasePage } from '../pages/BasePage';
 export { SettingsPage } from '../pages/SettingsPage';
+export { ImportDialog } from '../pages/ImportDialog';
 
 export { ApiHelper } from '../utils/api-helpers';
 

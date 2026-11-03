@@ -14,6 +14,7 @@ doc covers what runs, where the image is published, and how to use your own runn
 | Secret Scan | `secret-scan.yml` | all changes | gitleaks over the full history (via `make secret-scan`) |
 | Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose; every `v*` tag | Build + smoke-test the image on PRs; on push to `main` or a release tag, publish the tested image |
 | Release | `release.yml` | `v*` tags | Create the GitHub release with notes generated from the merged PRs (`v0.*` are pre-releases) |
+| Docs site | `docs.yml` | `docs/**`, `docs-site/**`, README, CONTRIBUTING | Build the docs site from the repo's Markdown (fails on a broken internal link); on `main`, deploy it to GitHub Pages |
 
 ## Coverage (Codecov)
 

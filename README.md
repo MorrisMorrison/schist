@@ -3,6 +3,7 @@
 [![E2E Tests](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml/badge.svg)](https://github.com/MorrisMorrison/schist/actions/workflows/e2e.yml)
 [![codecov](https://codecov.io/gh/MorrisMorrison/schist/graph/badge.svg)](https://codecov.io/gh/MorrisMorrison/schist)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-live-0e7fe9)](https://morrismorrison.github.io/schist/)
 
 A lightweight, self-hosted markdown wiki with Obsidian-style features in the browser. Your notes stay plain markdown files on disk, versioned with git. There's no database.
 
@@ -182,6 +183,8 @@ make run-frontend                    # app on :5173
 make test                            # backend + frontend tests
 make screenshots                     # regenerate the README screenshots into docs/screenshots/
 ```
+
+All of these docs are also published as a site: **<https://morrismorrison.github.io/schist/>** (built from this repo by `docs-site/`).
 
 See the [development guide](docs/DEVELOPMENT.md) and [CONTRIBUTING.md](CONTRIBUTING.md). More docs: [quick start](docs/QUICK_START.md) · [API](docs/API.md) · [configuration](docs/CONFIGURATION.md) · [design](docs/DESIGN_DOC.md) · [CI](docs/CI.md). Every API area also has a ready-to-run request file in [`http/`](http/).
 

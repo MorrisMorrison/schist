@@ -612,14 +612,40 @@ describe('SchistApiClient', () => {
 			expect(client.getAssetUrl('/assets/img/a.png')).toBe('/uploads/img/a.png');
 		});
 
-		it('opens folder and full exports in a new tab', async () => {
+		it('downloads folder and full exports with the session token, not in a bare tab', async () => {
+			// A new tab can't send the Authorization header, so with auth on it got a 401.
+			client.setAuthToken('tok');
 			const open = vi.spyOn(window, 'open').mockReturnValue(null);
+			vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:z');
+			vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+			const downloaded: string[] = [];
+			vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+				this: HTMLAnchorElement
+			) {
+				downloaded.push(this.download);
+			});
 
+			fetchMock.mockResolvedValueOnce(
+				new Response('zip', {
+					headers: { 'content-disposition': 'attachment; filename="my-folder.zip"' }
+				})
+			);
 			await client.exportFolder('my folder');
-			await client.exportAll();
+			expect(lastCall().url).toBe('/api/export/folder/my%20folder');
+			expect(lastCall().headers).toEqual({ Authorization: 'Bearer tok' });
 
-			expect(open).toHaveBeenNthCalledWith(1, '/api/export/folder/my%20folder', '_blank');
-			expect(open).toHaveBeenNthCalledWith(2, '/api/export/all', '_blank');
+			fetchMock.mockResolvedValueOnce(new Response('zip'));
+			await client.exportAll();
+			expect(lastCall().url).toBe('/api/export/all');
+			expect(lastCall().headers).toEqual({ Authorization: 'Bearer tok' });
+
+			expect(downloaded).toEqual(['my-folder.zip', 'all-documents.zip']);
+			expect(open).not.toHaveBeenCalled();
+
+			fetchMock.mockResolvedValueOnce(
+				new Response('', { status: 401, statusText: 'Unauthorized' })
+			);
+			await expect(client.exportFolder('x')).rejects.toThrow('Export failed: Unauthorized');
 		});
 
 		it('downloads a document under the server-provided filename', async () => {

@@ -276,6 +276,10 @@ func (d *DocumentService) buildFilePathFromPath(path string) string {
 }
 
 func (d *DocumentService) saveDocument(document *models.Document) error {
+	// Every write path (editor, API, MCP, import, move) ends here, so inline
+	// #hashtags become tags no matter how the page was written.
+	document.MetaData.Tags = mergeTags(document.MetaData.Tags, extractHashtags(document.Content))
+
 	content, err := serializer.SerializeDocument(document)
 	if err != nil {
 		return fmt.Errorf("failed to serialize document: %w", err)

@@ -33,6 +33,18 @@ func TestLinkService_ParseWikiLinks(t *testing.T) {
 			expected: []*WikiLink{},
 		},
 		{
+			name:    "escaped pipe in a table cell",
+			content: `| [[Test Page\|alias]] |`,
+			expected: []*WikiLink{
+				{
+					Target:      "Test Page",
+					DisplayText: "alias",
+					Path:        "/test-page",
+					IsValid:     false,
+				},
+			},
+		},
+		{
 			name:    "simple wiki link",
 			content: "Check out [[Test Page]] for more info.",
 			expected: []*WikiLink{

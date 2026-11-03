@@ -1,0 +1,180 @@
+package services_test
+
+import (
+	"archive/zip"
+	"bytes"
+	"mime/multipart"
+	"testing"
+	"time"
+
+	"github.com/MorrisMorrison/schist/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func importFiles(files map[string]string) []models.ImportFile {
+	var out []models.ImportFile
+	for p, c := range files {
+		out = append(out, models.ImportFile{Path: p, Content: []byte(c)})
+	}
+	return out
+}
+
+func byOriginal(docs []models.ImportedDocument) map[string]models.ImportedDocument {
+	out := map[string]models.ImportedDocument{}
+	for _, d := range docs {
+		out[d.OriginalName] = d
+	}
+	return out
+}
+
+func TestImportFiles_ObsidianFolder(t *testing.T) {
+	ds, _ := newSafetyDocumentService(t)
+
+	result, err := ds.ImportFiles(importFiles(map[string]string{
+		"homelab/devices/docki.md": "---\ntitle: Docki host\ntags: [homelab]\ncreated: 2025-03-04\nstatus: active\n---\n" +
+			"Runs on [[network|the LAN]]. ```dataview\n",
+		"homelab/network.md":        "# Network\n\nBack to [[docki]] and [[homelab/devices/docki#Disks]].\n\n```dataview\nLIST\n```\n",
+		".agents/coach/progress.md": "No front matter, just notes. See [the host](../../homelab/devices/docki.md).",
+		".obsidian/workspace.json":  "{}",
+		"homelab/diagram.png":       "PNG",
+		"homelab/.gitkeep":          "",
+	}), &models.ImportOptions{TargetPath: "/vault"})
+	require.NoError(t, err)
+	require.Empty(t, result.Failed)
+	assert.Equal(t, 6, result.TotalFiles)
+	assert.Equal(t, 3, result.ImportedCount)
+	assert.Equal(t, 3, result.SkippedCount)
+
+	ok := byOriginal(result.Success)
+	assert.Equal(t, "/vault/homelab/devices/docki-host", ok["homelab/devices/docki.md"].FinalPath)
+	assert.Equal(t, "/vault/homelab/network", ok["homelab/network.md"].FinalPath)
+	assert.Equal(t, "/vault/agents/coach/progress", ok[".agents/coach/progress.md"].FinalPath, "hidden folders lose their dot")
+	assert.Contains(t, ok["homelab/devices/docki.md"].Notes, "dropped front matter: status")
+	assert.Contains(t, ok["homelab/network.md"].Notes, "1 × removed Dataview query")
+
+	skipped := byOriginal(result.Skipped)
+	assert.Equal(t, []string{"skipped folder .obsidian"}, skipped[".obsidian/workspace.json"].Notes)
+	assert.Equal(t, []string{"not a markdown file"}, skipped["homelab/diagram.png"].Notes)
+	assert.Equal(t, []string{"hidden file"}, skipped["homelab/.gitkeep"].Notes)
+
+	docki, err := ds.GetDocumentByPath("/vault/homelab/devices/docki-host")
+	require.NoError(t, err)
+	assert.Equal(t, "Docki host", docki.MetaData.Title)
+	assert.Equal(t, []string{"homelab"}, docki.MetaData.Tags)
+	assert.Equal(t, time.Date(2025, 3, 4, 0, 0, 0, 0, time.UTC), docki.MetaData.Created.UTC(), "dates are kept")
+	assert.Contains(t, docki.Content, "[[Network|the LAN]]")
+
+	network, err := ds.GetDocumentByPath("/vault/homelab/network")
+	require.NoError(t, err)
+	assert.Equal(t, "# Network\n\nBack to [[Docki host]] and [[Docki host|docki › Disks]].", network.Content)
+
+	progress, err := ds.GetDocumentByPath("/vault/agents/coach/progress")
+	require.NoError(t, err)
+	assert.Equal(t, "progress", progress.MetaData.Title, "no front matter or heading: the file name")
+	assert.Equal(t, "No front matter, just notes. See [[Docki host|the host]].", progress.Content)
+}
+
+func TestImportFiles_NamesWithinOneImportNeverCollide(t *testing.T) {
+	ds, _ := newSafetyDocumentService(t)
+
+	result, err := ds.ImportFiles(importFiles(map[string]string{
+		"a/readme.md": "# Readme",
+		"b/readme.md": "# Readme",
+		"one.md":      "# Same",
+		"two.md":      "# Same",
+	}), &models.ImportOptions{OverwriteMode: "overwrite"})
+	require.NoError(t, err)
+	require.Equal(t, 4, result.ImportedCount, "%+v", result.Failed)
+
+	ok := byOriginal(result.Success)
+	assert.Equal(t, "/a/readme", ok["a/readme.md"].FinalPath)
+	assert.Equal(t, "/b/readme", ok["b/readme.md"].FinalPath)
+	assert.ElementsMatch(t, []string{"/same", "/same-1"}, []string{ok["one.md"].FinalPath, ok["two.md"].FinalPath},
+		"overwrite mode never lets two files of one import replace each other")
+}
+
+func TestImportFiles_RejectsPathsThatClimbOut(t *testing.T) {
+	ds, _ := newSafetyDocumentService(t)
+
+	result, err := ds.ImportFiles(importFiles(map[string]string{
+		"../outside.md":      "# Out",
+		"a/../../escape.md":  "# Escape",
+		`b\..\..\windows.md`: "# Win",
+	}), &models.ImportOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 0, result.ImportedCount)
+	assert.Equal(t, 3, result.FailedCount)
+	for _, f := range result.Failed {
+		assert.Equal(t, "invalid file path", f.Error)
+	}
+}
+
+func zipUpload(t *testing.T, name string, files map[string]string) []*multipart.FileHeader {
+	t.Helper()
+	var archive bytes.Buffer
+	zw := zip.NewWriter(&archive)
+	for p, c := range files {
+		w, err := zw.Create(p)
+		require.NoError(t, err)
+		_, err = w.Write([]byte(c))
+		require.NoError(t, err)
+	}
+	require.NoError(t, zw.Close())
+	return multipartFiles(t, map[string]string{name: archive.String()})
+}
+
+func TestImportUploads_ZipAndFolderPaths(t *testing.T) {
+	ds, _ := newSafetyDocumentService(t)
+
+	result, err := ds.ImportUploads(zipUpload(t, "vault.zip", map[string]string{
+		"vault/projects/plan.md":   "# Plan\n\nSee [[Ideas]].",
+		"vault/ideas.md":           "# Ideas",
+		"vault/.obsidian/app.json": "{}",
+	}), nil, &models.ImportOptions{})
+	require.NoError(t, err)
+	require.Empty(t, result.Failed)
+	assert.ElementsMatch(t, []string{"/vault/projects/plan", "/vault/ideas"},
+		[]string{result.Success[0].FinalPath, result.Success[1].FinalPath})
+	assert.Equal(t, 1, result.SkippedCount)
+
+	t.Run("relative paths from a folder upload", func(t *testing.T) {
+		ds, _ := newSafetyDocumentService(t)
+		files := multipartFiles(t, map[string]string{"note.md": "# Note"})
+		result, err := ds.ImportUploads(files, []string{"my vault/sub/note.md"}, &models.ImportOptions{})
+		require.NoError(t, err)
+		require.Len(t, result.Success, 1)
+		assert.Equal(t, "/my-vault/sub/note", result.Success[0].FinalPath)
+	})
+
+	t.Run("a broken zip fails alone", func(t *testing.T) {
+		ds, _ := newSafetyDocumentService(t)
+		result, err := ds.ImportUploads(multipartFiles(t, map[string]string{"bad.zip": "not a zip", "fine.md": "# Fine"}),
+			nil, &models.ImportOptions{})
+		require.NoError(t, err)
+		assert.Equal(t, 1, result.ImportedCount)
+		require.Len(t, result.Failed, 1)
+		assert.Equal(t, "not a valid zip file", result.Failed[0].Error)
+		assert.Equal(t, 2, result.TotalFiles)
+	})
+}
+
+func TestImportFiles_OneCommitForTheWholeImport(t *testing.T) {
+	ds, _ := newSafetyDocumentService(t)
+
+	result, err := ds.ImportFiles(importFiles(map[string]string{
+		"a.md": "# A", "b.md": "# B", "sub/c.md": "# C",
+	}), &models.ImportOptions{})
+	require.NoError(t, err)
+	require.Equal(t, 3, result.ImportedCount)
+
+	hashes := map[string]bool{}
+	for _, doc := range result.Success {
+		versions, err := ds.GetDocumentVersions(doc.FinalPath)
+		require.NoError(t, err)
+		require.Len(t, versions, 1, doc.FinalPath)
+		assert.Equal(t, "Import 3 documents", versions[0].Message)
+		hashes[versions[0].Hash] = true
+	}
+	assert.Len(t, hashes, 1, "all three files are in the same commit")
+}

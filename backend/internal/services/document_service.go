@@ -76,10 +76,22 @@ func (d *DocumentService) GetAllTags() (map[string]int, error) {
 // document at the same path (AlreadyExists) so a stale client-side existence
 // check or a racing request can never silently overwrite a note.
 func (d *DocumentService) CreateDocument(document *models.Document) error {
-	return d.createDocument(document, false)
+	return d.createDocument(document, createOptions{})
 }
 
-func (d *DocumentService) createDocument(document *models.Document, overwrite bool) error {
+// createOptions tune createDocument for imports.
+type createOptions struct {
+	overwrite bool
+	// keepDates keeps the created and updated times already set on the
+	// document (an import carries them over); otherwise both are now.
+	keepDates bool
+	// noCommit leaves the git commit to the caller (one commit per import).
+	noCommit bool
+}
+
+// createDocument writes a new document.
+func (d *DocumentService) createDocument(document *models.Document, opts createOptions) error {
+	overwrite, keepDates := opts.overwrite, opts.keepDates
 	if document.MetaData == nil {
 		return errors.NewMissingRequiredFieldError("metaData")
 	}
@@ -107,11 +119,21 @@ func (d *DocumentService) createDocument(document *models.Document, overwrite bo
 	}
 
 	now := time.Now()
-	document.MetaData.Created = now
-	document.MetaData.Updated = now
+	if !keepDates || document.MetaData.Created.IsZero() {
+		document.MetaData.Created = now
+	}
+	if !keepDates || document.MetaData.Updated.IsZero() {
+		document.MetaData.Updated = document.MetaData.Created
+		if !keepDates {
+			document.MetaData.Updated = now
+		}
+	}
 
 	if err := d.saveDocument(document); err != nil {
 		return err
+	}
+	if opts.noCommit {
+		return nil
 	}
 
 	return d.commitDocumentChange(fmt.Sprintf("Create document: %s", document.MetaData.Path), document.MetaData.Path)

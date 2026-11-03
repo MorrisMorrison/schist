@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
@@ -38,7 +39,13 @@ func NewLinkService(documentService *DocumentService, ignoreService *IgnoreServi
 
 var wikiLinkRegex = regexp.MustCompile(`\[\[([^\]|]+)(?:\|([^\]]+))?\]\]`)
 
+// ParseWikiLinks returns the wiki links in content, resolved against the
+// current documents.
 func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
+	return parseWikiLinks(content, l.newLinkResolver(nil))
+}
+
+func parseWikiLinks(content string, resolver *linkResolver) []*WikiLink {
 	matches := wikiLinkRegex.FindAllStringSubmatch(content, -1)
 	var links []*WikiLink
 
@@ -47,7 +54,8 @@ func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
 			continue
 		}
 
-		target := strings.TrimSpace(match[1])
+		// In a table cell the alias pipe is escaped: [[Title\|alias]].
+		target := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(match[1]), `\`))
 		if target == "" {
 			continue
 		}
@@ -57,9 +65,7 @@ func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
 			displayText = strings.TrimSpace(match[2])
 		}
 
-		path := l.resolveTargetToPath(target)
-
-		isValid := l.documentExists(path)
+		path, isValid := resolver.resolve(target)
 
 		links = append(links, &WikiLink{
 			Target:      target,
@@ -73,28 +79,48 @@ func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
 }
 
 func (l *LinkService) resolveTargetToPath(target string) string {
-	if path := l.findDocumentByTitle(target); path != "" {
-		return path
-	}
-
-	slug := utils.GenerateSlug(target)
-	return "/" + slug
+	path, _ := l.newLinkResolver(nil).resolve(target)
+	return path
 }
 
-func (l *LinkService) findDocumentByTitle(title string) string {
-	documents, err := l.documentService.ListDocuments()
-	if err != nil {
-		return ""
-	}
+// linkResolver maps link targets to document paths from one listing of the
+// documents. Resolving each link by listing every document again made
+// importing or indexing a wiki with many links take seconds per page.
+type linkResolver struct {
+	l       *LinkService
+	byTitle map[string]string // lower-cased title -> path
+	paths   map[string]bool
+}
 
-	lowerTitle := strings.ToLower(title)
+// newLinkResolver builds a resolver from documents, or from a fresh listing
+// when documents is nil.
+func (l *LinkService) newLinkResolver(documents []*models.Document) *linkResolver {
+	if documents == nil {
+		documents, _ = l.documentService.ListDocuments()
+	}
+	r := &linkResolver{l: l, byTitle: map[string]string{}, paths: map[string]bool{}}
 	for _, document := range documents {
-		if strings.ToLower(document.MetaData.Title) == lowerTitle {
-			return document.MetaData.Path
+		r.paths[document.MetaData.Path] = true
+		key := strings.ToLower(document.MetaData.Title)
+		if _, taken := r.byTitle[key]; !taken {
+			r.byTitle[key] = document.MetaData.Path
 		}
 	}
+	return r
+}
 
-	return ""
+// resolve returns the path a link target points to (by title, else by slug)
+// and whether a document exists there.
+func (r *linkResolver) resolve(target string) (string, bool) {
+	if path, ok := r.byTitle[strings.ToLower(target)]; ok {
+		return path, true
+	}
+	path := "/" + utils.GenerateSlug(target)
+	if r.paths[path] {
+		return path, true
+	}
+	// Not in the listing (e.g. an ignored folder): check the file itself.
+	return path, r.l.documentExists(path)
 }
 
 func (l *LinkService) documentExists(path string) bool {
@@ -136,18 +162,40 @@ func (l *LinkService) GetBacklinks(targetPath string) ([]string, error) {
 }
 
 func (l *LinkService) UpdateBacklinks(pagePath string) error {
+	return l.UpdateBacklinksFor(pagePath)
+}
+
+// UpdateBacklinksFor refreshes the backlinks contributed by each page, with
+// one listing of the documents for all of them (an import passes every new
+// page at once). The first error is returned after all pages are tried.
+func (l *LinkService) UpdateBacklinksFor(pagePaths ...string) error {
+	resolver := l.newLinkResolver(nil)
+	var firstErr error
+	for _, pagePath := range pagePaths {
+		if err := l.updateBacklinks(pagePath, resolver); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
+}
+
+func (l *LinkService) updateBacklinks(pagePath string, resolver *linkResolver) error {
 	if err := utils.ValidatePath(pagePath); err != nil {
 		return fmt.Errorf("invalid page path: %w", err)
 	}
 
-	links, err := l.GetOutgoingLinks(pagePath)
+	page, err := l.documentService.GetDocumentByPath(pagePath)
+	var links []*WikiLink
+	if err == nil {
+		links = parseWikiLinks(page.Content, resolver)
+	}
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.removeBacklinksFromSource(pagePath)
 	if err != nil {
-		return fmt.Errorf("failed to get outgoing links: %w", err)
+		return fmt.Errorf("failed to get outgoing links: failed to get page: %w", err)
 	}
 
 	for _, link := range links {
@@ -195,12 +243,13 @@ func (l *LinkService) buildBacklinksIndex() (map[string][]string, error) {
 		return nil, fmt.Errorf("failed to list documents: %w", err)
 	}
 
+	resolver := l.newLinkResolver(documents)
 	for _, document := range documents {
 		if l.ignoreService.ShouldIgnore(document.MetaData.Path) {
 			continue
 		}
 
-		links := l.ParseWikiLinks(document.Content)
+		links := parseWikiLinks(document.Content, resolver)
 		for _, link := range links {
 			if link.IsValid {
 				addBacklink(index, link.Path, document.MetaData.Path)
@@ -219,12 +268,13 @@ func (l *LinkService) GetBrokenLinks() (map[string][]*WikiLink, error) {
 
 	brokenLinks := make(map[string][]*WikiLink)
 
+	resolver := l.newLinkResolver(pages)
 	for _, page := range pages {
 		if l.ignoreService.ShouldIgnore(page.MetaData.Path) {
 			continue
 		}
 
-		links := l.ParseWikiLinks(page.Content)
+		links := parseWikiLinks(page.Content, resolver)
 		var broken []*WikiLink
 
 		for _, link := range links {

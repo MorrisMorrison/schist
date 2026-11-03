@@ -67,6 +67,14 @@ func (t *tools) registerWrite(s *mcp.Server) {
 		Description: "Add markdown to a page: at the end, or at the end of the section under a given heading. Safer than update_document for adding notes.",
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: &notDestructive},
 	}, t.appendToDocument)
+	mcp.AddTool(s, &mcp.Tool{
+		Name: "import_documents",
+		Description: "Import markdown files (e.g. from an Obsidian vault) into a folder, keeping their relative folders. " +
+			"Obsidian syntax is converted: front matter keeps title, tags and dates; Dataview, Templater, comments and " +
+			"block IDs are removed; callouts and embeds become plain markdown; links between the imported files are " +
+			"rewritten. Each file reports what was changed. Existing pages are skipped unless on_conflict says otherwise.",
+		Annotations: &mcp.ToolAnnotations{DestructiveHint: &notDestructive},
+	}, t.importDocuments)
 }
 
 // --- read tools ---
@@ -462,6 +470,102 @@ func headingLine(line string) (int, string) {
 func isFence(line string) bool {
 	t := strings.TrimSpace(line)
 	return strings.HasPrefix(t, "```") || strings.HasPrefix(t, "~~~")
+}
+
+const (
+	maxMCPImportFiles = 200
+	maxMCPImportBytes = 10 << 20
+)
+
+type importFileIn struct {
+	Path    string `json:"path" jsonschema:"path inside the import, folders included, e.g. homelab/network.md"`
+	Content string `json:"content" jsonschema:"the file's markdown, front matter included"`
+}
+
+type importIn struct {
+	Files      []importFileIn `json:"files" jsonschema:"markdown files to import (at most 200 per call)"`
+	Folder     string         `json:"folder,omitempty" jsonschema:"folder to import into; default the root"`
+	OnConflict string         `json:"on_conflict,omitempty" jsonschema:"when a page already exists: skip (default), rename or overwrite"`
+}
+
+type importedOut struct {
+	Source string   `json:"source"`
+	Path   string   `json:"path,omitempty"`
+	Title  string   `json:"title,omitempty"`
+	Notes  []string `json:"notes,omitempty" jsonschema:"what the import changed or dropped, or why it skipped the file"`
+	Error  string   `json:"error,omitempty"`
+}
+
+type importOut struct {
+	Imported []importedOut `json:"imported"`
+	Skipped  []importedOut `json:"skipped"`
+	Failed   []importedOut `json:"failed"`
+}
+
+func (t *tools) importDocuments(_ context.Context, _ *mcp.CallToolRequest, in importIn) (*mcp.CallToolResult, importOut, error) {
+	if len(in.Files) == 0 {
+		return nil, importOut{}, errors.New("files is required")
+	}
+	if len(in.Files) > maxMCPImportFiles {
+		return nil, importOut{}, fmt.Errorf("at most %d files per call; split the import", maxMCPImportFiles)
+	}
+	mode := strings.ToLower(strings.TrimSpace(in.OnConflict))
+	switch mode {
+	case "":
+		mode = "skip"
+	case "skip", "rename", "overwrite":
+	default:
+		return nil, importOut{}, errors.New(`on_conflict must be "skip", "rename" or "overwrite"`)
+	}
+
+	files := make([]models.ImportFile, 0, len(in.Files))
+	total := 0
+	for _, f := range in.Files {
+		total += len(f.Content)
+		files = append(files, models.ImportFile{Path: f.Path, Content: []byte(f.Content)})
+	}
+	if total > maxMCPImportBytes {
+		return nil, importOut{}, errors.New("the files are larger than 10 MB in total; split the import")
+	}
+
+	result, err := t.svc.DocumentService.ImportFiles(files, &models.ImportOptions{
+		TargetPath: documentPath(in.Folder), OverwriteMode: mode,
+	})
+	if err != nil {
+		return nil, importOut{}, toolError(err)
+	}
+
+	out := importOut{Imported: []importedOut{}, Skipped: []importedOut{}, Failed: []importedOut{}}
+	imported := make([]string, 0, len(result.Success))
+	for _, d := range result.Success {
+		imported = append(imported, d.FinalPath)
+		out.Imported = append(out.Imported, importedOut{Source: d.OriginalName, Path: d.FinalPath, Title: d.Title, Notes: d.Notes})
+	}
+	if err := t.svc.LinkService.UpdateBacklinksFor(imported...); err != nil {
+		log.Printf("[MCP] failed to update backlinks after import: %v", err)
+	}
+	for _, d := range result.Skipped {
+		out.Skipped = append(out.Skipped, importedOut{Source: d.OriginalName, Path: d.FinalPath, Notes: d.Notes})
+	}
+	for _, f := range result.Failed {
+		out.Failed = append(out.Failed, importedOut{Source: f.OriginalName, Error: f.Error})
+	}
+
+	var text strings.Builder
+	fmt.Fprintf(&text, "Imported %d, skipped %d, failed %d.", len(out.Imported), len(out.Skipped), len(out.Failed))
+	for _, d := range out.Imported {
+		fmt.Fprintf(&text, "\n+ %s → %s", d.Source, d.Path)
+		if len(d.Notes) > 0 {
+			fmt.Fprintf(&text, " (%s)", strings.Join(d.Notes, "; "))
+		}
+	}
+	for _, d := range out.Skipped {
+		fmt.Fprintf(&text, "\n~ %s: %s", d.Source, strings.Join(d.Notes, "; "))
+	}
+	for _, d := range out.Failed {
+		fmt.Fprintf(&text, "\n! %s: %s", d.Source, d.Error)
+	}
+	return textResult(text.String()), out, nil
 }
 
 // --- helpers ---

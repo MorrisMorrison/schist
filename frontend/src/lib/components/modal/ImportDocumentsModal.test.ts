@@ -206,6 +206,78 @@ describe('ImportDocumentsModal', () => {
 		expect(await screen.findByText('Import Summary')).toBeInTheDocument();
 	});
 
+	it('accepts zip files next to markdown', async () => {
+		await renderModal();
+		selectFiles(fileInput(), [mdFile('a.md'), new File(['PK'], 'vault.zip')]);
+		expect(await screen.findByText('Selected: 2 files')).toBeInTheDocument();
+		expect(importButton()).toBeEnabled();
+	});
+
+	it('uploads a folder: only its markdown files, with their paths inside the folder', async () => {
+		vi.mocked(apiClient.importDocuments).mockResolvedValue(
+			result({ total_files: 2, imported_count: 2, success: [] })
+		);
+		await renderModal();
+		const withPath = (name: string, path: string) => {
+			const file = new File(['x'], name);
+			Object.defineProperty(file, 'webkitRelativePath', { value: path });
+			return file;
+		};
+		const folder = screen.getByLabelText('Select a folder') as HTMLInputElement;
+		Object.defineProperty(folder, 'files', {
+			value: [
+				withPath('docki.md', 'vault/homelab/docki.md'),
+				withPath('diagram.png', 'vault/homelab/diagram.png'),
+				withPath('progress.md', 'vault/.agents/coach/progress.md'),
+				withPath('app.json', 'vault/.obsidian/app.json')
+			]
+		});
+		folder.dispatchEvent(new Event('change', { bubbles: true }));
+
+		expect(await screen.findByText('Selected folder vault: 2 markdown files')).toBeInTheDocument();
+		expect(screen.getByTestId('import-left-out')).toHaveTextContent('2 other files');
+		await userEvent.click(importButton());
+
+		const [files, , paths] = vi.mocked(apiClient.importDocuments).mock.calls[0];
+		expect((files as File[]).map((f) => f.name)).toEqual(['docki.md', 'progress.md']);
+		expect(paths).toEqual(['vault/homelab/docki.md', 'vault/.agents/coach/progress.md']);
+	});
+
+	it('shows what the import changed and why files were skipped', async () => {
+		vi.mocked(apiClient.importDocuments).mockResolvedValue(
+			result({
+				total_files: 2,
+				imported_count: 1,
+				skipped_count: 1,
+				success: [
+					{
+						original_name: 'vault/docki.md',
+						title: 'Docki',
+						final_path: '/vault/docki',
+						notes: ['dropped front matter: status', '1 × removed Dataview query']
+					}
+				],
+				skipped: [
+					{
+						original_name: 'vault/.obsidian/app.json',
+						title: '',
+						final_path: '',
+						notes: ['skipped folder .obsidian']
+					}
+				]
+			})
+		);
+		await renderModal();
+		selectFiles(fileInput(), [mdFile('docki.md')]);
+		await userEvent.click(importButton());
+
+		expect(await screen.findByTestId('import-notes')).toHaveTextContent(
+			'dropped front matter: status · 1 × removed Dataview query'
+		);
+		expect(screen.getByText('vault/.obsidian/app.json')).toBeInTheDocument();
+		expect(screen.getByText('(skipped folder .obsidian)')).toBeInTheDocument();
+	});
+
 	it('closes from Cancel and Escape', async () => {
 		await renderModal();
 		await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));

@@ -14,7 +14,7 @@
 	import { Label } from '#lib/components/ui/label/index.ts';
 	import * as Select from '#lib/components/ui/select/index.ts';
 	import * as RadioGroup from '#lib/components/ui/radio-group/index.ts';
-	import { Upload, AlertCircle, CheckCircle } from '@lucide/svelte';
+	import { Upload, AlertCircle, CheckCircle, FolderUp } from '@lucide/svelte';
 	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
 	import InlineError from '#lib/components/ui/InlineError.svelte';
 	import { getErrorMessage } from '#lib/utils/error.ts';
@@ -28,7 +28,12 @@
 
 	let { open = false, onClose, onSuccess, folders }: Props = $props();
 
-	let selectedFiles = $state<FileList | null>(null);
+	let selectedFiles = $state<File[] | null>(null);
+	/** For a folder upload: each file's path inside the folder. */
+	let selectedPaths = $state<string[] | null>(null);
+	/** Files of an uploaded folder that are left out (not markdown). */
+	let leftOut = $state(0);
+	let folderInput = $state<HTMLInputElement>();
 	let targetPath = $state('/');
 	type OverwriteMode = 'skip' | 'overwrite' | 'rename';
 	const overwriteModes: { value: OverwriteMode; label: string; class?: string }[] = [
@@ -45,6 +50,8 @@
 	$effect(() => {
 		if (open) {
 			selectedFiles = null;
+			selectedPaths = null;
+			leftOut = 0;
 			targetPath = '/';
 			overwriteMode = 'rename';
 			isLoading = false;
@@ -53,19 +60,38 @@
 		}
 	});
 
+	const importable = (name: string) => /\.(md|zip)$/i.test(name);
+
 	const isValidSelection = $derived(
-		selectedFiles &&
+		selectedFiles !== null &&
 			selectedFiles.length > 0 &&
-			Array.from(selectedFiles).every((file) => file.name.toLowerCase().endsWith('.md'))
+			selectedFiles.every((file) => importable(file.name))
 	);
 
 	function handleFileSelect(event: Event) {
 		const input = event.target as HTMLInputElement;
-		selectedFiles = input.files;
+		selectedFiles = input.files ? Array.from(input.files) : null;
+		selectedPaths = null;
+		leftOut = 0;
 		error = '';
 	}
 
-	function getFileDisplayText(files: FileList): string {
+	// A folder upload sends only its markdown files, with their paths inside
+	// the folder; the server keeps the structure and skips tool folders.
+	function handleFolderSelect(event: Event) {
+		const all = Array.from((event.target as HTMLInputElement).files ?? []);
+		const markdown = all.filter((file) => /\.md$/i.test(file.name));
+		selectedFiles = markdown;
+		selectedPaths = markdown.map((file) => file.webkitRelativePath || file.name);
+		leftOut = all.length - markdown.length;
+		error = markdown.length === 0 ? 'The folder has no markdown files.' : '';
+	}
+
+	function getFileDisplayText(files: File[]): string {
+		if (selectedPaths) {
+			const folder = selectedPaths[0]?.split('/')[0] ?? '';
+			return `Selected folder ${folder}: ${files.length} markdown files`;
+		}
 		if (files.length === 1) {
 			return `Selected: ${files[0].name}`;
 		}
@@ -85,7 +111,11 @@
 				overwrite_mode: overwriteMode
 			};
 
-			const result = await apiClient.importDocuments(selectedFiles, options);
+			const result = await apiClient.importDocuments(
+				selectedFiles,
+				options,
+				selectedPaths ?? undefined
+			);
 			importResult = result;
 
 			if (result.imported_count > 0) {
@@ -126,6 +156,11 @@
 	}
 
 	const folderOptions = $derived(generateFolderOptions(folders));
+
+	function skipReason(doc: { final_path: string; notes?: string[] }): string {
+		const target = doc.final_path ? `→ ${doc.final_path} ` : '';
+		return `${target}(${doc.notes?.join(', ') || 'already exists'})`;
+	}
 </script>
 
 <Dialog {open} onOpenChange={(openState) => !openState && onClose()}>
@@ -153,17 +188,50 @@
 							<Input
 								id="file-input"
 								type="file"
-								accept=".md"
+								accept=".md,.zip"
 								multiple
 								onchange={handleFileSelect}
 								class="h-12 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
 							/>
+							<div class="flex items-center gap-3">
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onclick={() => folderInput?.click()}
+									data-testid="import-folder-button"
+								>
+									<FolderUp class="size-4" />
+									Choose a folder
+								</Button>
+								<span class="text-muted-foreground text-xs"
+									>or pick a .zip, e.g. an Obsidian vault: folders are kept</span
+								>
+								<input
+									bind:this={folderInput}
+									type="file"
+									class="hidden"
+									webkitdirectory
+									multiple
+									onchange={handleFolderSelect}
+									aria-label="Select a folder"
+								/>
+							</div>
 							{#if selectedFiles && selectedFiles.length > 0}
 								<div class="flex items-center gap-2 text-sm text-green-600">
 									<CheckCircle class="h-4 w-4" />
 									{getFileDisplayText(selectedFiles)}
 								</div>
 							{/if}
+							{#if leftOut > 0}
+								<p class="text-muted-foreground text-xs" data-testid="import-left-out">
+									{leftOut} other files (images, settings and so on) are left out.
+								</p>
+							{/if}
+							<p class="text-muted-foreground text-xs">
+								Obsidian notes are converted: front matter keeps title, tags and dates; plugin
+								syntax (Dataview, Templater, comments) is removed; links between the files are kept.
+							</p>
 						</div>
 					</div>
 
@@ -222,7 +290,7 @@
 			</form>
 		{:else}
 			<!-- Import Results -->
-			<div class="space-y-4">
+			<div class="min-w-0 space-y-4">
 				<div class="bg-muted rounded-lg p-4">
 					<h3 class="text-foreground mb-2 text-sm font-medium">Import Summary</h3>
 					<div class="grid grid-cols-4 gap-4 text-sm">
@@ -250,16 +318,28 @@
 						<h4 class="text-sm font-medium text-green-700 dark:text-green-400">
 							Successfully Imported
 						</h4>
-						<div class="max-h-32 space-y-1 overflow-y-auto">
-							{#each importResult.success as doc (doc.final_path)}
+						<div class="max-h-60 space-y-1 overflow-y-auto">
+							{#each importResult.success as doc (doc.original_name)}
 								<div
-									class="flex items-center gap-2 rounded border border-green-200 bg-green-50 p-2 text-sm dark:border-green-800 dark:bg-green-950/20"
+									class="flex items-start gap-2 rounded border border-green-200 bg-green-50 p-2 text-sm dark:border-green-800 dark:bg-green-950/20"
 								>
-									<CheckCircle class="h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
-									<span class="truncate">
-										<strong class="text-foreground">{doc.title}</strong>
-										<span class="text-muted-foreground ml-1">→ {doc.final_path}</span>
-									</span>
+									<CheckCircle
+										class="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400"
+									/>
+									<div class="min-w-0">
+										<div class="truncate">
+											<strong class="text-foreground">{doc.title}</strong>
+											<span class="text-muted-foreground ml-1">→ {doc.final_path}</span>
+										</div>
+										{#if doc.notes?.length}
+											<div
+												class="text-muted-foreground text-xs break-words"
+												data-testid="import-notes"
+											>
+												{doc.notes.join(' · ')}
+											</div>
+										{/if}
+									</div>
 								</div>
 							{/each}
 						</div>
@@ -269,17 +349,15 @@
 				{#if importResult.skipped && importResult.skipped.length > 0}
 					<div class="space-y-2">
 						<h4 class="text-sm font-medium text-yellow-700 dark:text-yellow-400">Skipped Files</h4>
-						<div class="max-h-32 space-y-1 overflow-y-auto">
-							{#each importResult.skipped as doc (doc.final_path)}
+						<div class="max-h-40 space-y-1 overflow-y-auto">
+							{#each importResult.skipped as doc (doc.original_name)}
 								<div
 									class="flex items-center gap-2 rounded border border-yellow-200 bg-yellow-50 p-2 text-sm dark:border-yellow-800 dark:bg-yellow-950/20"
 								>
 									<AlertCircle class="h-4 w-4 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
 									<span class="truncate">
-										<strong class="text-foreground">{doc.title}</strong>
-										<span class="text-muted-foreground ml-1"
-											>→ {doc.final_path} (already exists)</span
-										>
+										<strong class="text-foreground">{doc.title || doc.original_name}</strong>
+										<span class="text-muted-foreground ml-1">{skipReason(doc)}</span>
 									</span>
 								</div>
 							{/each}

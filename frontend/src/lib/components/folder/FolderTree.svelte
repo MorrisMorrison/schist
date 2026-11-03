@@ -491,7 +491,20 @@
 				>
 					<Folder class="h-4 w-4" />
 				</Button>
-				<!-- One "new" menu: replaces the root node's context menu and the Import button. -->
+				{#if onimport}
+					<Button
+						variant="ghost"
+						size="icon"
+						class="h-7 w-7"
+						onclick={onimport}
+						title="Import documents"
+						aria-label="Import documents"
+						data-testid="sidebar-import-button"
+					>
+						<Upload class="h-4 w-4" />
+					</Button>
+				{/if}
+				<!-- One "new" menu: replaces the root node's context menu; import is also a button above. -->
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger
 						class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-7 w-7')}

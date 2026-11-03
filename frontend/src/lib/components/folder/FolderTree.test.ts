@@ -270,8 +270,20 @@ describe('FolderTree', () => {
 		expect(handlers.onexportall).toHaveBeenCalledTimes(1);
 	});
 
+	it('has an Import button in the button bar next to +', async () => {
+		const onimport = vi.fn();
+		renderTree({ showActions: true, onimport });
+
+		const button = screen.getByTestId('sidebar-import-button');
+		expect(button).toHaveAccessibleName('Import documents');
+		expect(button).toHaveAttribute('title', 'Import documents');
+		await userEvent.click(button);
+		expect(onimport).toHaveBeenCalledTimes(1);
+	});
+
 	it('leaves out import and export all when they are not wired', async () => {
 		renderTree({ showActions: true });
+		expect(screen.queryByTestId('sidebar-import-button')).not.toBeInTheDocument();
 		await userEvent.click(screen.getByTestId('sidebar-new-menu'));
 		expect(await screen.findByRole('menuitem', { name: 'New page' })).toBeInTheDocument();
 		expect(screen.queryByRole('menuitem', { name: 'Import documents' })).not.toBeInTheDocument();

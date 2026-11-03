@@ -1,9 +1,9 @@
 module github.com/MorrisMorrison/schist
 
-go 1.26.0
+go 1.26.10
 
 require (
-	github.com/gin-contrib/cors v1.7.9
+	github.com/gin-contrib/cors v1.7.10
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-git/go-git/v5 v5.19.3
 	github.com/go-playground/assert/v2 v2.2.0

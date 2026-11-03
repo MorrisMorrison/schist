@@ -62,6 +62,8 @@ SCHIST_RATE_LIMIT_ENABLED=true
 SCHIST_RATE_LIMIT_RPM=100  # requests per minute per IP
 ```
 
+It covers `/api/*` except `/api/health`; static files are never limited.
+
 **Response Headers:**
 ```http
 X-RateLimit-Limit: 100

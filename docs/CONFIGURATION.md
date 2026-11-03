@@ -87,6 +87,8 @@ SCHIST_RATE_LIMIT_ENABLED=true
 SCHIST_RATE_LIMIT_RPM=60
 ```
 
+The limit applies to API requests (`/api/*`) only. The web app's static files and `/api/health` are never limited: a single page load fetches dozens of JS, CSS and font files. Those files carry content hashes, so browsers cache them for a year, while the app shell (`index.html`) is always revalidated so a new deploy is picked up.
+
 ### JWT Authentication
 
 **Configuration:**

@@ -76,13 +76,14 @@ func TestSetupMiddleware_WiresSecurityRateLimitAndAuth(t *testing.T) {
 		return w
 	}
 
-	w := get("/api/health")
+	w := get("/api/config")
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.NotEmpty(t, w.Header().Get("X-Content-Type-Options"), "security headers are installed")
 	assert.Equal(t, "2", w.Header().Get("X-RateLimit-Limit"))
 
 	assert.Equal(t, http.StatusUnauthorized, get("/api/documents").Code, "auth is enforced")
-	assert.Equal(t, http.StatusTooManyRequests, get("/api/health").Code, "rate limiting is installed")
+	assert.Equal(t, http.StatusTooManyRequests, get("/api/config").Code, "rate limiting is installed")
+	assert.Equal(t, http.StatusOK, get("/api/health").Code, "the health check is never limited")
 }
 
 func TestSetupMiddleware_AuthAndRateLimitOff(t *testing.T) {

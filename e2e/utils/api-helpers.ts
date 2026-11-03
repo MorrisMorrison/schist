@@ -17,6 +17,33 @@ interface DocumentListData {
 	}>;
 }
 
+export interface DocumentData {
+	metaData: {
+		title: string;
+		path: string;
+		tags?: string[];
+		properties?: Record<string, unknown>;
+	};
+	content: string;
+}
+
+export interface ImportedDocumentData {
+	original_name: string;
+	final_path: string;
+	title: string;
+	notes?: string[];
+}
+
+export interface ImportResultData {
+	success: ImportedDocumentData[];
+	skipped: ImportedDocumentData[];
+	failed: { original_name: string; error: string }[];
+	total_files: number;
+	imported_count: number;
+	skipped_count: number;
+	failed_count: number;
+}
+
 interface FolderListData {
 	folders: Array<{
 		name?: string;
@@ -197,6 +224,34 @@ export class ApiHelper {
 
 	async listDocuments(): Promise<ApiResponse<DocumentListData>> {
 		return this.request('GET', '/documents') as Promise<ApiResponse<DocumentListData>>;
+	}
+
+	async getDocument(path: string): Promise<ApiResponse<DocumentData>> {
+		return this.request('GET', `/documents${path}`) as Promise<ApiResponse<DocumentData>>;
+	}
+
+	/**
+	 * Seeds pages through the import endpoint, as a folder upload would: each
+	 * file with its path inside the folder. Fails the test unless it worked.
+	 */
+	async importFiles(
+		files: { name: string; data: Buffer }[],
+		options: { targetPath: string; overwriteMode?: 'rename' | 'skip' | 'overwrite' }
+	): Promise<ImportResultData> {
+		const form = new FormData();
+		for (const file of files) {
+			form.append('files', new Blob([new Uint8Array(file.data)]), file.name.split('/').pop());
+			form.append('paths', file.name);
+		}
+		form.append('target_path', options.targetPath);
+		form.append('overwrite_mode', options.overwriteMode ?? 'rename');
+
+		const response = await this.apiContext.post(`${this.baseURL}/import/documents`, {
+			multipart: form,
+			headers: this.getAuthHeaders()
+		});
+		expect(response.status(), await response.text()).toBe(200);
+		return (await response.json()) as ImportResultData;
 	}
 
 	// Folders

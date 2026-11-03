@@ -104,7 +104,7 @@ describe('Content Parser', () => {
 		});
 
 		it('should ignore hashtags in code blocks', () => {
-			const content = 'Normal #tag but ignore ```\n#codeTag\n``` this one';
+			const content = 'Normal #tag but ignore\n```\n#codeTag\n```\nthis one';
 			const tags = extractHashtagsFromContent(content);
 			expect(tags).toEqual(['tag']);
 		});

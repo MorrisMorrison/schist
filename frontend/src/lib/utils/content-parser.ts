@@ -1,4 +1,5 @@
 import { HASHTAG_REGEX } from './hashtag-constants';
+import { mapProse } from './hashtag-renderer';
 
 export function extractTitleFromContent(content: string): string {
 	const lines = content.split('\n');
@@ -17,12 +18,13 @@ export function extractTitleFromContent(content: string): string {
 	return 'Untitled Document';
 }
 
+/** The prose of markdown: fenced code blocks and inline code removed. */
 export function excludeCodeBlocks(content: string): string {
-	const withoutCodeBlocks = content.replace(/```[\s\S]*?```/g, '');
-
-	const withoutInlineCode = withoutCodeBlocks.replace(/`[^`]*`/g, '');
-
-	return withoutInlineCode;
+	return mapProse(
+		content,
+		(prose) => prose,
+		() => ''
+	);
 }
 
 export function extractHashtagsFromContent(content: string): string[] {

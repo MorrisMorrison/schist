@@ -14,7 +14,14 @@
 	import HtmlBlock from './HtmlBlock.svelte';
 	import ImageBlock from './ImageBlock.svelte';
 
-	let { content = '' }: { content: string } = $props();
+	let {
+		content = '',
+		onrendered
+	}: {
+		content: string;
+		/** Called each time non-empty content is on screen (parsed and rendered, or failed). */
+		onrendered?: () => void;
+	} = $props();
 
 	let blocks: MarkdownBlock[] = $state([]);
 	let loading = $state(false);
@@ -24,6 +31,7 @@
 	$effect(() => {
 		if (!content) {
 			blocks = [];
+			loading = false;
 			return;
 		}
 
@@ -44,7 +52,9 @@
 				blocks = [];
 			})
 			.finally(() => {
-				if (!stale) loading = false;
+				if (stale) return;
+				loading = false;
+				onrendered?.();
 			});
 
 		return () => {

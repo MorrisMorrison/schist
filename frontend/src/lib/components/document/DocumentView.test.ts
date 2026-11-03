@@ -442,6 +442,29 @@ describe('DocumentView', () => {
 			expect(stubProps.GraphView.outgoingLinks).toEqual(outgoing);
 		});
 
+		it('shows the links section only after the page text has rendered', async () => {
+			// The renderer resolves wiki links from the page list; hold that back
+			// so the text isn't rendered yet while the links have already loaded.
+			const pages = deferred<Document[]>();
+			vi.mocked(apiClient.getDocuments).mockReturnValue(pages.promise as never);
+			render(DocumentView, {
+				props: { document: makeDoc({}, '# Plan\n\nSee [[Budget]] for numbers.') }
+			});
+
+			await vi.waitFor(() => expect(apiClient.getDocumentBacklinks).toHaveBeenCalled());
+			await new Promise((r) => setTimeout(r, 50));
+			expect(screen.queryByRole('heading', { name: 'Links' })).not.toBeInTheDocument();
+
+			pages.resolve([]);
+			const links = await screen.findByRole('heading', { name: 'Links' });
+			const text = screen.getByTestId('document-content');
+			expect(text).toHaveTextContent('See Budget for numbers.');
+			expect(
+				text.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING,
+				'the links section comes after the text'
+			).toBeTruthy();
+		});
+
 		it('lists links in list view and navigates to them', async () => {
 			render(DocumentView, { props: { document: makeDoc() } });
 			await screen.findByRole('heading', { name: 'Links' });

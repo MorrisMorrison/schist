@@ -134,6 +134,73 @@ describe('parseMarkdownToBlocks', () => {
 		expect(list.items[0].text).toContain('wiki-link');
 	});
 
+	describe('link resolution cost', () => {
+		beforeEach(() => {
+			vi.mocked(apiClient.getDocuments).mockClear();
+			vi.mocked(apiClient.getDocumentByPath).mockClear();
+			vi.mocked(apiClient.getDocuments).mockResolvedValue([
+				{ metaData: { title: 'Writing style', path: '/writing-style' }, content: '' },
+				{ metaData: { title: 'Router', path: '/devices/router' }, content: '' }
+			] as unknown as Document[]);
+		});
+
+		it('resolves every link from one page list, without fetching linked pages', async () => {
+			const blocks = await parseMarkdownToBlocks(
+				[
+					'# [[Writing style]]',
+					'',
+					'See [[Writing style]], [[router|the router]] and [[Missing page]].',
+					'',
+					'- [[Router]]',
+					'',
+					'| a |',
+					'|---|',
+					'| [[Writing style]] |'
+				].join('\n')
+			);
+			const html = blocks
+				.map((b) =>
+					b.type === 'list'
+						? (b as ListBlock).items.map((i) => i.text).join(' ')
+						: b.type === 'table'
+							? (b as TableBlock).rows.flat().join(' ')
+							: (b as ParagraphBlock).text
+				)
+				.join(' ');
+			const doc = new DOMParser().parseFromString(html, 'text/html');
+
+			expect(apiClient.getDocuments).toHaveBeenCalledTimes(1);
+			expect(apiClient.getDocumentByPath).not.toHaveBeenCalled();
+			expect(html).not.toContain('PLACEHOLDER');
+
+			const targets = Array.from(doc.querySelectorAll('.wiki-link')).map((l) =>
+				l.getAttribute('data-wiki-target')
+			);
+			expect(targets).toEqual([
+				'/writing-style',
+				'/writing-style',
+				'/devices/router',
+				'/missing-page',
+				'/devices/router',
+				'/writing-style'
+			]);
+			const broken = Array.from(doc.querySelectorAll('.broken-link')).map((l) => l.textContent);
+			expect(broken).toEqual(['Missing page']);
+		});
+
+		it('still renders the text when the page list fails', async () => {
+			vi.mocked(apiClient.getDocuments).mockRejectedValue(new Error('offline'));
+			const [block] = (await parseMarkdownToBlocks(
+				'Read [[Writing style]] first.'
+			)) as ParagraphBlock[];
+
+			expect(block.text).toContain('Read ');
+			expect(block.text).toContain('>Writing style</span>');
+			expect(block.text).toContain('data-wiki-target="/writing-style"');
+			expect(apiClient.getDocumentByPath).not.toHaveBeenCalled();
+		});
+	});
+
 	it('escapes wiki link display text and target in the generated HTML', async () => {
 		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
 		const [block] = (await parseMarkdownToBlocks(

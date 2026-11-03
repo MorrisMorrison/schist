@@ -1,9 +1,9 @@
 # CLAUDE.md
 
-Guidance for AI agents (and humans) working on this repo. Keep it short and current: when behaviour, commands, config or layout change, update this file and the README / `docs/` in the same PR.
+Guidance for AI agents (and humans) working on this repo. Keep it short and current: when behaviour, commands, config or layout change, update this file and the matching page in `docs/` in the same PR. The README stays short and links into the docs site.
 
 ## What this is
-Schist is a self-hosted markdown wiki. A Go (Gin) API stores documents as plain markdown files with YAML front matter (no database), versions them with git (go-git), and can back up to a GitHub repo. A SvelteKit single-page app (built with `adapter-static`) is served by the same binary. Auth is optional (passkeys/WebAuthn + JWT, off by default); there are public share links, passkey-protected secrets, wiki links and full-text search.
+Schist is a self-hosted markdown wiki. A Go (Gin) API stores documents as plain markdown files with YAML front matter (no database), versions them with git (go-git), and can back up to a GitHub repo. A SvelteKit single-page app (built with `adapter-static`) is served by the same binary. Auth (passkeys/WebAuthn + JWT) is on by default; there are public share links, passkey-protected secrets, wiki links and full-text search.
 
 ## Layout
 | Path | Responsibility |
@@ -21,11 +21,11 @@ Schist is a self-hosted markdown wiki. A Go (Gin) API stores documents as plain 
 | `frontend/src/lib/components/ui` | shadcn-style component library (bits-ui + tailwind-variants) |
 | `e2e/` | Playwright suite (`tests/`, page objects in `pages/`, `fixtures/`) |
 | `http/` | `.http` request files for every API area (REST Client / JetBrains) |
-| `docs/` | API, configuration, CI, design and development docs |
-| `docs-site/` | The docs website (Astro + Starlight, GitHub Pages). `scripts/sync-docs.mjs` builds its pages from `docs/*.md`, `README.md` and `CONTRIBUTING.md` |
+| `docs/` | The user and developer docs, by section: `getting-started/`, `guides/`, `reference/` (configuration, REST API, MCP tools, error codes), `self-hosting/`, `development/` |
+| `docs-site/` | The docs website (Astro + Starlight, GitHub Pages). `scripts/sync-docs.mjs` builds its pages from `docs/<section>/*.md` and `CONTRIBUTING.md` |
 
 ## Commands
-Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCHAIN=auto` fetches it), Node 24 (what CI uses), and Docker for the e2e suite.
+Run from the repo root unless noted. Needs the Go version in `backend/go.mod` (`GOTOOLCHAIN=auto` fetches it), Node 24 (what CI uses), and Docker for the e2e suite.
 
 | Task | Command |
 |---|---|
@@ -38,11 +38,11 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 | Everything before a PR | `make verify` then `make test` |
 | Run locally | `ENV=development make run-backend` (:8080) + `make run-frontend` (:5173) |
 | e2e | `docker compose --profile e2e up -d --build`, then `make e2e`, `make e2e-test TEST=<file>` or `make e2e-grep GREP="<title>"` |
-| Coverage | `cd backend && go test -cover ./...`; `cd frontend && npm run test:unit -- --coverage`. CI uploads both to Codecov (informational only, see `docs/CI.md`) |
+| Coverage | `cd backend && go test -cover ./...`; `cd frontend && npm run test:unit -- --coverage`. CI uploads both to Codecov (informational only, see `docs/development/ci-and-releases.md`) |
 | Secret scan | `make secret-scan` (gitleaks) |
 | README screenshots | `make screenshots` (builds the frontend, runs the backend against a demo wiki, writes `docs/screenshots/`; capture in `e2e/readme-screenshots/`) |
 | Clean artifacts | `make cleanup` (scoped `git clean` of build/test output only) |
-| Docs site | `cd docs-site && npm ci && npm run dev` (live preview at :4321/schist/); `npm run build` also checks internal links. Edit the Markdown in `docs/`, README or CONTRIBUTING, not the generated pages; a new doc needs an entry in `PAGES` (`scripts/sync-docs.mjs`) and the sidebar (`astro.config.mjs`) |
+| Docs site | `cd docs-site && npm ci && npm run dev` (live preview at :4321/schist/); `npm run build` also checks internal links. Edit the Markdown in `docs/` or CONTRIBUTING, not the generated pages; a new doc goes in a `docs/<section>/` folder and needs an entry in `DOCS` (`scripts/sync-docs.mjs`) and the sidebar (`astro.config.mjs`); a moved page gets a redirect there. How-to: `docs/development/docs-site.md` |
 
 ## Tests and how they isolate things
 - **Backend:** standard `go test`, table-driven where it helps. File and git services run against `t.TempDir()`; nothing touches a real data dir or the network. GitHub tests cover settings and sync state with no client configured; there's no fake GitHub remote, so keep push/pull logic thin and test what you can locally. Add tests next to the code (`*_test.go`).
@@ -55,7 +55,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 - **Errors:** services return typed errors from `internal/errors`; handlers just call `HandleError(c, err)`, which finds them with `errors.As` (so `%w` wrapping is fine) and writes the `{error, code, details}` envelope. Plain `fmt.Errorf` means an internal 500: the cause is logged, not returned. Never map status codes by matching error text, and never send `err.Error()` to the client.
 - **Paths:** every user-supplied path goes through the `utils` path helpers (no `..`, stays inside the data dir).
 - **JSON stores** (users, shares, passkeys) use the generic `jsonStore[T]` in `services/json_store.go`: every read-modify-write runs under its mutex (`update`) and every write is atomic (temp file + rename). Use it for any new store.
-- **Config:** new settings are `SCHIST_*` env vars in `internal/config`, documented in `docs/CONFIGURATION.md` with a safe default.
+- **Config:** new settings are `SCHIST_*` env vars in `internal/config`, documented in `docs/reference/configuration.md` with a safe default.
 - **Frontend:** Svelte 5 runes, TypeScript everywhere. Backend calls only through `lib/api/client.ts`; shared state in `lib/stores`. Handle API errors by HTTP status / `code`, not message strings.
 - **Component library:** `lib/components/ui/*`, its variants and the design tokens in `app.css` are a complete library. Don't delete parts because they're currently unused. Unused *app* code is fair to remove.
 - **Use the library, don't hand-roll UI:** build buttons, inputs, labels, checkboxes, badges, dialogs, dropdown menus and alerts from `lib/components/ui` (render custom triggers through `Button` / `buttonVariants`), not raw elements with copied Tailwind classes or custom modal shells. If a variant is missing, add it to the library. Icons inside `Button` take `size-*` classes (the button forces other svgs to `size-4`).
@@ -65,7 +65,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 ## Workflow
 - Branch off `main`, open a PR (template in `.github/pull_request_template.md`), squash-merge after review.
 - Conventional-commit titles with a scope: `feat(frontend): …`, `fix(services): …`, `refactor(errors): …`, `test(e2e): …`, `ci: …`, `chore(deps): …`.
-- CI (`docs/CI.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs; publish `:latest` on `main` and `:X.Y.Z` on a `vX.Y.Z` tag, which never moves `:latest`), Release (`release.yml`: a `v*` tag creates the GitHub release, `v0.*` as a pre-release), Docs site (`docs.yml`: builds `docs-site/` on PRs, deploys to GitHub Pages on `main`). README Screenshots (on frontend changes; on `main` it force-pushes the PNGs to the `screenshots` branch the README links to, so keep that branch unprotected). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
+- CI (`docs/development/ci-and-releases.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs; publish `:latest` on `main` and `:X.Y.Z` on a `vX.Y.Z` tag, which never moves `:latest`), Release (`release.yml`: a `v*` tag creates the GitHub release, `v0.*` as a pre-release), Docs site (`docs.yml`: builds `docs-site/` on PRs, deploys to GitHub Pages on `main`). README Screenshots (on frontend changes; on `main` it force-pushes the PNGs to the `screenshots` branch the README links to, so keep that branch unprotected). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
 - Dependabot opens grouped weekly PRs per ecosystem; held-back majors are listed in `.github/dependabot.yml`.
 
 ## Project skills

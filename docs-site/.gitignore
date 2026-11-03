@@ -4,4 +4,5 @@ dist/
 src/content/docs/getting-started/
 src/content/docs/guides/
 src/content/docs/reference/
-src/content/docs/project/
+src/content/docs/self-hosting/
+src/content/docs/development/

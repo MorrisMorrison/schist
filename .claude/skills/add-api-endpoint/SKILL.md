@@ -29,7 +29,7 @@ Work from the inside out: service → handler → route → client → docs. Wri
 
 ## 5. Docs and request files
 - Add the request to the area's file in `http/` (same style: `###` title, expected status in a `# =>` comment).
-- Update `docs/API.md`; new config → `docs/CONFIGURATION.md`; user-visible feature → `README.md`.
+- Update `docs/reference/rest-api.md` (and `docs/reference/error-codes.md` for a new code); new config → `docs/reference/configuration.md`; a new MCP tool → `docs/reference/mcp-tools.md`; a user-visible feature → its guide in `docs/guides/`.
 
 ## Verify
 ```bash

@@ -1,7 +1,6 @@
-# CI / CD
+# CI and releases
 
-GitHub Actions workflows live in [`.github/workflows`](../.github/workflows). This
-doc covers what runs, where the image is published, and how to use your own runner.
+What runs on every pull request and on `main`, where the image is published, how a release is cut, and how to use your own runner. The workflows live in [`.github/workflows`](../../.github/workflows).
 
 ## Workflows
 
@@ -14,7 +13,8 @@ doc covers what runs, where the image is published, and how to use your own runn
 | Secret Scan | `secret-scan.yml` | all changes | gitleaks over the full history (via `make secret-scan`) |
 | Docker | `docker.yml` | backend, frontend, Dockerfile, docker-compose; every `v*` tag | Build + smoke-test the image on PRs; on push to `main` or a release tag, publish the tested image |
 | Release | `release.yml` | `v*` tags | Create the GitHub release with notes generated from the merged PRs (`v0.*` are pre-releases) |
-| Docs site | `docs.yml` | `docs/**`, `docs-site/**`, README, CONTRIBUTING | Build the docs site from the repo's Markdown (fails on a broken internal link); on `main`, deploy it to GitHub Pages |
+| README Screenshots | `screenshots.yml` | `frontend/**`, `e2e/readme-screenshots/**` | Capture the README screenshots from a demo wiki; on `main`, force-push them to the `screenshots` branch |
+| Docs site | `docs.yml` | `docs/**`, `docs-site/**`, README, CONTRIBUTING | Build this site from the repo's Markdown (fails on a broken internal link); on `main`, deploy it to GitHub Pages |
 
 ## Coverage (Codecov)
 
@@ -48,13 +48,13 @@ the startup log line and as the MCP server's version. The job logs in with the b
 A release is a version tag on a commit of `main` that CI has already tested:
 
 ```bash
-git tag -a v0.0.2 -m "Schist 0.0.2"
-git push origin v0.0.2
+git tag -a v0.0.5 -m "Schist 0.0.5"
+git push origin v0.0.5
 ```
 
 - **`release.yml`** creates the GitHub release with notes generated from the merged PRs. Tags
   starting with `v0.` are marked as pre-releases until 1.0.
-- **`docker.yml`** publishes `:0.0.2`.
+- **`docker.yml`** publishes `:0.0.5`.
 - **Never move or re-tag a published version;** a broken release gets the next version.
 
 ## Runners
@@ -80,7 +80,7 @@ test and the frontend/e2e browser jobs talk over run-unique Docker networks and
 mounts or the `container:` job key. The host needs:
 
 - **Docker** (daemon running)
-- **Go 1.25** and **Node.js 24** with npm
+- **Go** (the version in `backend/go.mod`) and **Node.js 24** with npm
 - **make**, `curl`, `openssl`, `git`
 
 Don't run `playwright install` on a shared runner host: browser jobs run inside

@@ -46,7 +46,7 @@ env:
 jobs:
   docker:
     name: Docker Build & Publish
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # repo variable, see docs/CI.md
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # repo variable, see docs/development/ci-and-releases.md
     timeout-minutes: 30
     permissions:
       contents: read

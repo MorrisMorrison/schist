@@ -225,6 +225,8 @@ export interface ImportedDocument {
 	original_name: string;
 	final_path: string;
 	title: string;
+	/** What the import changed or dropped, or why the file was skipped. */
+	notes?: string[];
 }
 
 export interface ImportError {

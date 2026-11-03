@@ -10,10 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	slashpath "path"
-	"path/filepath"
-	"regexp"
 	"strings"
-	"time"
 
 	"github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
@@ -23,37 +20,248 @@ import (
 // Bulk import and export (markdown / zip) operations for documents and folders.
 // Split out of document_service.go to keep that file focused on CRUD.
 
+// Import limits: a whole vault fits, a zip bomb doesn't.
+const (
+	maxImportFiles     = 5000
+	maxImportFileBytes = 10 << 20  // one markdown file
+	maxImportZipBytes  = 200 << 20 // uncompressed content of one zip
+)
+
+// ImportDocuments imports uploaded files into one folder (the classic
+// multi-file upload). See ImportUploads for folders and zips.
 func (d *DocumentService) ImportDocuments(
 	files []*multipart.FileHeader,
 	options *models.ImportOptions,
 ) (*models.ImportResult, error) {
+	return d.ImportUploads(files, nil, options)
+}
+
+// ImportUploads imports uploaded files. relPaths, when given, holds each
+// file's path inside an uploaded folder ("homelab/devices/vps.md"), so the
+// folder structure is kept. A .zip upload is unpacked the same way.
+func (d *DocumentService) ImportUploads(
+	files []*multipart.FileHeader,
+	relPaths []string,
+	options *models.ImportOptions,
+) (*models.ImportResult, error) {
+	var importFiles []models.ImportFile
+	var failed []models.ImportError
+	for i, header := range files {
+		name := header.Filename
+		if i < len(relPaths) && strings.TrimSpace(relPaths[i]) != "" {
+			name = relPaths[i]
+		}
+		data, err := readUpload(header)
+		if err != nil {
+			failed = append(failed, models.ImportError{OriginalName: name, Error: importErrorMessage(name, err)})
+			continue
+		}
+		if strings.EqualFold(slashpath.Ext(name), ".zip") {
+			entries, err := unpackImportZip(data)
+			if err != nil {
+				failed = append(failed, models.ImportError{OriginalName: name, Error: importErrorMessage(name, err)})
+				continue
+			}
+			importFiles = append(importFiles, entries...)
+			continue
+		}
+		importFiles = append(importFiles, models.ImportFile{Path: name, Content: data})
+	}
+
+	result, err := d.ImportFiles(importFiles, options)
+	if err != nil {
+		return nil, err
+	}
+	if len(failed) > 0 {
+		result.Failed = append(failed, result.Failed...)
+		result.FailedCount = len(result.Failed)
+		result.TotalFiles += len(failed)
+	}
+	return result, nil
+}
+
+func readUpload(header *multipart.FileHeader) ([]byte, error) {
+	if header.Size > maxImportZipBytes {
+		return nil, errors.NewValidationError("file is too large")
+	}
+	file, err := header.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
+	}
+	defer file.Close()
+	return io.ReadAll(io.LimitReader(file, maxImportZipBytes+1))
+}
+
+// unpackImportZip returns the zip's files with their paths inside the zip.
+// Sizes are checked as entries are read, not trusted from the header.
+func unpackImportZip(data []byte) ([]models.ImportFile, error) {
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, errors.NewValidationError("not a valid zip file")
+	}
+	if len(reader.File) > maxImportFiles {
+		return nil, errors.NewValidationError(fmt.Sprintf("the zip has more than %d files", maxImportFiles))
+	}
+
+	var files []models.ImportFile
+	var total int64
+	for _, entry := range reader.File {
+		if entry.FileInfo().IsDir() {
+			continue
+		}
+		rc, err := entry.Open()
+		if err != nil {
+			return nil, errors.NewValidationError("the zip could not be read")
+		}
+		content, err := io.ReadAll(io.LimitReader(rc, maxImportFileBytes+1))
+		rc.Close()
+		if err != nil {
+			return nil, errors.NewValidationError("the zip could not be read")
+		}
+		total += int64(len(content))
+		if total > maxImportZipBytes {
+			return nil, errors.NewValidationError("the zip is too large to import")
+		}
+		files = append(files, models.ImportFile{Path: entry.Name, Content: content})
+	}
+	return files, nil
+}
+
+// ImportFiles imports markdown files given by their path inside the import
+// (folders are kept) and content. Obsidian syntax is converted, and links
+// between the imported files are rewritten so they resolve. Files that can't
+// be imported are reported per file; only an unexpected failure returns an
+// error.
+func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models.ImportOptions) (*models.ImportResult, error) {
 	result := &models.ImportResult{
 		Success:    make([]models.ImportedDocument, 0),
 		Failed:     make([]models.ImportError, 0),
 		Skipped:    make([]models.ImportedDocument, 0),
 		TotalFiles: len(files),
 	}
-
 	if options.TargetPath == "" {
 		options.TargetPath = "/"
 	}
+	if len(files) > maxImportFiles {
+		return nil, errors.NewValidationError(fmt.Sprintf("an import can have at most %d files", maxImportFiles))
+	}
 
-	for _, fileHeader := range files {
-		err := d.importSingleFile(fileHeader, options, result)
+	// Pass 1: convert every file and decide where it goes.
+	type pending struct {
+		relPath string
+		note    importedNote
+		target  pathResult
+	}
+	var queue []pending
+	links := importLinkIndex{}
+	taken := map[string]bool{}
+	for _, file := range files {
+		relPath, err := cleanImportPath(file.Path)
 		if err != nil {
-			result.Failed = append(result.Failed, models.ImportError{
-				OriginalName: fileHeader.Filename,
-				Error:        importErrorMessage(fileHeader.Filename, err),
-			})
-			result.FailedCount++
+			result.Failed = append(result.Failed, models.ImportError{OriginalName: file.Path, Error: importErrorMessage(file.Path, err)})
+			continue
+		}
+		if reason := importSkipReason(relPath); reason != "" {
+			result.Skipped = append(result.Skipped, models.ImportedDocument{OriginalName: relPath, Notes: []string{reason}})
+			continue
+		}
+		if !strings.EqualFold(slashpath.Ext(relPath), ".md") {
+			if strings.Contains(relPath, "/") {
+				result.Skipped = append(result.Skipped, models.ImportedDocument{OriginalName: relPath, Notes: []string{"not a markdown file"}})
+			} else {
+				result.Failed = append(result.Failed, models.ImportError{OriginalName: relPath, Error: errUnsupportedImportType.Message})
+			}
+			continue
+		}
+		if len(file.Content) > maxImportFileBytes {
+			result.Failed = append(result.Failed, models.ImportError{OriginalName: relPath, Error: "file is too large"})
+			continue
+		}
+
+		note := parseImportedMarkdown(string(file.Content), relPath)
+		folder := strings.Trim(strings.Trim(options.TargetPath, "/")+"/"+importFolderPath(slashpath.Dir(relPath)), "/")
+		target, err := d.determineFinalPath(utils.GenerateSlug(note.title), folder, options.OverwriteMode, taken)
+		if err != nil {
+			result.Failed = append(result.Failed, models.ImportError{OriginalName: relPath, Error: importErrorMessage(relPath, err)})
+			continue
+		}
+		taken[target.finalPath] = true
+		links.add(relPath, note.title)
+		queue = append(queue, pending{relPath: relPath, note: note, target: target})
+	}
+
+	// Pass 2: rewrite links against the whole import, then write.
+	var written []string
+	for _, p := range queue {
+		imported := models.ImportedDocument{OriginalName: p.relPath, FinalPath: p.target.finalPath, Title: p.note.title}
+		body, unresolved := rewriteImportLinks(p.note.body, slashpath.Dir(p.relPath), links)
+		imported.Notes = p.note.notes
+		if unresolved > 0 {
+			imported.Notes = append(imported.Notes, plural(unresolved, "link not found in this import (kept by name)"))
+		}
+		if p.target.shouldSkip {
+			imported.Notes = append(imported.Notes, "a document already exists here")
+			result.Skipped = append(result.Skipped, imported)
+			continue
+		}
+
+		document := &models.Document{
+			MetaData: &models.DocumentMetaData{
+				Slug:    slashpath.Base(p.target.finalPath),
+				Title:   p.note.title,
+				Path:    p.target.finalPath,
+				Tags:    p.note.tags,
+				Created: p.note.created,
+				Updated: p.note.updated,
+			},
+			Content: body,
+		}
+		if document.MetaData.Tags == nil {
+			document.MetaData.Tags = []string{}
+		}
+		if err := d.createDocument(document, createOptions{overwrite: p.target.overwrite, keepDates: true, noCommit: true}); err != nil {
+			result.Failed = append(result.Failed, models.ImportError{OriginalName: p.relPath, Error: importErrorMessage(p.relPath, err)})
+			continue
+		}
+		result.Success = append(result.Success, imported)
+		written = append(written, p.target.finalPath)
+	}
+
+	// One commit for the whole import: a commit per page made importing a
+	// vault take seconds per note.
+	if len(written) > 0 {
+		message := fmt.Sprintf("Import %d documents", len(written))
+		if len(written) == 1 {
+			message = "Import document: " + written[0]
+		}
+		if err := d.commitDocumentChange(message, written...); err != nil {
+			log.Printf("Warning: import written but not committed: %v", err)
 		}
 	}
 
 	result.ImportedCount = len(result.Success)
 	result.SkippedCount = len(result.Skipped)
-
+	result.FailedCount = len(result.Failed)
 	return result, nil
 }
+
+// cleanImportPath turns an upload or zip entry name into a clean relative
+// slash path, refusing anything that climbs out of the import.
+func cleanImportPath(name string) (string, error) {
+	p := strings.ReplaceAll(strings.TrimSpace(name), "\\", "/")
+	for _, seg := range strings.Split(p, "/") {
+		if seg == ".." {
+			return "", errors.NewValidationError("invalid file path")
+		}
+	}
+	p = strings.TrimPrefix(slashpath.Clean("/"+p), "/")
+	if p == "" || p == "." {
+		return "", errors.NewValidationError("invalid file path")
+	}
+	return p, nil
+}
+
+func slugifySegment(s string) string { return utils.GenerateSlug(s) }
 
 // errUnsupportedImportType is a client-facing import failure reason.
 var errUnsupportedImportType = errors.NewValidationError("only markdown files (.md) are supported")
@@ -70,101 +278,10 @@ func importErrorMessage(filename string, err error) string {
 	return "failed to import file"
 }
 
-func (d *DocumentService) importSingleFile(
-	fileHeader *multipart.FileHeader,
-	options *models.ImportOptions,
-	result *models.ImportResult,
-) error {
-	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".md") {
-		return errUnsupportedImportType
-	}
-
-	file, err := fileHeader.Open()
-	if err != nil {
-		return fmt.Errorf("failed to open uploaded file: %w", err)
-	}
-	defer file.Close()
-
-	content, err := io.ReadAll(file)
-	if err != nil {
-		return fmt.Errorf("failed to read file content: %w", err)
-	}
-
-	processedContent := d.processImportedMarkdown(string(content))
-
-	title := d.extractTitleFromContent(processedContent, fileHeader.Filename)
-	slug := utils.GenerateSlug(title)
-
-	pathResult, err := d.determineFinalPath(slug, options.TargetPath, options.OverwriteMode)
-	if err != nil {
-		return err
-	}
-
-	// Check if file should be skipped
-	if pathResult.shouldSkip {
-		result.Skipped = append(result.Skipped, models.ImportedDocument{
-			OriginalName: fileHeader.Filename,
-			FinalPath:    pathResult.finalPath,
-			Title:        title,
-		})
-		return nil
-	}
-
-	now := time.Now()
-	metadata := &models.DocumentMetaData{
-		Slug:    slug,
-		Title:   title,
-		Path:    pathResult.finalPath,
-		Created: now,
-		Updated: now,
-		Tags:    []string{},
-	}
-
-	document := &models.Document{
-		MetaData: metadata,
-		Content:  processedContent,
-	}
-	if err := d.createDocument(document, pathResult.overwrite); err != nil {
-		return err
-	}
-
-	result.Success = append(result.Success, models.ImportedDocument{
-		OriginalName: fileHeader.Filename,
-		FinalPath:    pathResult.finalPath,
-		Title:        title,
-	})
-
-	return nil
-}
-
-// importFrontMatterRegex matches a leading YAML front matter block (Obsidian
-// and other tools). (?s) lets the lazy body span lines; without it only a
-// single-line front matter block was ever stripped.
-var importFrontMatterRegex = regexp.MustCompile(`(?s)^---\s*\n.*?\n---\s*\n`)
-
-func (d *DocumentService) processImportedMarkdown(content string) string {
-	content = importFrontMatterRegex.ReplaceAllString(content, "")
-
-	return strings.TrimSpace(content)
-}
-
-func (d *DocumentService) extractTitleFromContent(content, filename string) string {
-	lines := strings.Split(content, "\n")
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "# ") {
-			title := strings.TrimSpace(strings.TrimPrefix(line, "# "))
-			if title != "" {
-				return title
-			}
-		}
-	}
-
-	return strings.TrimSuffix(filename, filepath.Ext(filename))
-}
-
-func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string) (pathResult, error) {
+// determineFinalPath picks the path for an imported note. taken holds paths
+// already given to earlier files of the same import, which are always
+// renamed around (two files must never land on the same document).
+func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode string, taken map[string]bool) (pathResult, error) {
 	targetPath = strings.Trim(targetPath, "/")
 	if targetPath != "" {
 		targetPath = "/" + targetPath
@@ -179,6 +296,10 @@ func (d *DocumentService) determineFinalPath(slug, targetPath, overwriteMode str
 	for counter := 1; ; counter++ {
 		// Check the file itself rather than whether it parses: an existing note
 		// with broken front matter must never be treated as a free slot.
+		if taken[finalPath] {
+			finalPath = fmt.Sprintf("%s-%d", basePath, counter)
+			continue
+		}
 		exists, err := d.documentFileExists(finalPath)
 		if err != nil {
 			return pathResult{}, err

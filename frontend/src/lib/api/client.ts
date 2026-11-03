@@ -587,11 +587,21 @@ class SchistApiClient {
 		});
 	}
 
-	async importDocuments(files: FileList, options: ImportOptions): Promise<ImportResult> {
+	/**
+	 * Uploads markdown files or zips. paths, when given, holds each file's path
+	 * inside an uploaded folder (browsers drop it from the file name), so the
+	 * server keeps the folder structure.
+	 */
+	async importDocuments(
+		files: FileList | File[],
+		options: ImportOptions,
+		paths?: string[]
+	): Promise<ImportResult> {
 		const formData = new FormData();
 
 		for (let i = 0; i < files.length; i++) {
 			formData.append('files', files[i]);
+			if (paths) formData.append('paths', paths[i]);
 		}
 
 		formData.append('target_path', options.target_path);

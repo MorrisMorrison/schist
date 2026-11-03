@@ -52,6 +52,16 @@ type ImportedDocument struct {
 	OriginalName string `json:"original_name"`
 	FinalPath    string `json:"final_path"`
 	Title        string `json:"title"`
+	// Notes lists what the import changed or dropped (front matter keys,
+	// plugin syntax, unresolved links) or why the file was skipped.
+	Notes []string `json:"notes,omitempty"`
+}
+
+// ImportFile is one file to import: its path inside the import (folders are
+// kept, e.g. "guides/setup.md") and its content.
+type ImportFile struct {
+	Path    string
+	Content []byte
 }
 
 type ImportError struct {

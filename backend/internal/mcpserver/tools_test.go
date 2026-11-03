@@ -101,7 +101,7 @@ func TestTools_ReadOnlyServerHidesWriteTools(t *testing.T) {
 
 	assert.Equal(t, []string{"get_backlinks", "list_folder", "list_tags", "read_document", "search"},
 		toolNames(t, connect(t, svc, false)))
-	assert.Equal(t, []string{"append_to_document", "create_document", "get_backlinks", "list_folder",
+	assert.Equal(t, []string{"append_to_document", "create_document", "get_backlinks", "import_documents", "list_folder",
 		"list_tags", "read_document", "search", "update_document"}, toolNames(t, connect(t, svc, true)))
 }
 
@@ -278,4 +278,47 @@ func TestAppendMarkdown(t *testing.T) {
 
 	_, err := appendMarkdown("## A", "x", "B")
 	assert.Error(t, err)
+}
+
+func TestTools_ImportDocuments(t *testing.T) {
+	svc := newTestServices(t)
+	cs := connect(t, svc, true)
+	files := []map[string]any{
+		{"path": "vault/homelab/docki.md", "content": "---\ntitle: Docki\nstatus: active\n---\nRuns [[network]].\n\n```dataview\nLIST\n```"},
+		{"path": "vault/homelab/network.md", "content": "# Network\n\nThe LAN."},
+		{"path": "vault/.obsidian/app.json", "content": "{}"},
+	}
+
+	res := call(t, cs, "import_documents", map[string]any{"files": files, "folder": "imported"})
+	var out importOut
+	structured(t, res, &out)
+	require.Len(t, out.Imported, 2, text(res))
+	assert.Len(t, out.Skipped, 1)
+	assert.Empty(t, out.Failed)
+	byPath := map[string]importedOut{}
+	for _, d := range out.Imported {
+		byPath[d.Path] = d
+	}
+	docki := byPath["/imported/vault/homelab/docki"]
+	assert.Equal(t, "vault/homelab/docki.md", docki.Source)
+	assert.Contains(t, docki.Notes, "dropped front matter: status")
+	assert.Contains(t, docki.Notes, "1 × removed Dataview query")
+	assert.Contains(t, text(res), "Imported 2, skipped 1, failed 0.")
+
+	doc, err := svc.DocumentService.GetDocumentByPath("/imported/vault/homelab/docki")
+	require.NoError(t, err)
+	assert.Equal(t, "Runs [[Network]].", doc.Content)
+
+	var links backlinksOut
+	structured(t, call(t, cs, "get_backlinks", map[string]any{"path": "/imported/vault/homelab/network"}), &links)
+	assert.Equal(t, []pageEntry{{Title: "Docki", Path: "/imported/vault/homelab/docki"}}, links.Backlinks,
+		"backlinks are updated for imported pages")
+
+	// Running the same import again skips what exists (the default).
+	structured(t, call(t, cs, "import_documents", map[string]any{"files": files[:2], "folder": "imported"}), &out)
+	assert.Empty(t, out.Imported)
+	assert.Len(t, out.Skipped, 2)
+
+	requireToolError(t, call(t, cs, "import_documents", map[string]any{"files": []map[string]any{}}), "files is required")
+	requireToolError(t, call(t, cs, "import_documents", map[string]any{"files": files, "on_conflict": "merge"}), "on_conflict")
 }

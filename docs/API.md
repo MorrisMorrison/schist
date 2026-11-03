@@ -379,6 +379,27 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 - `matchedIn` is where the strongest match was: `title`, `heading`, `tag` or `content`.
 - `snippet` is an excerpt of the body. When the body matched, it's centred on the match; otherwise it's the body's start. It comes as segments, and `match: true` marks a query hit, so clients can highlight without parsing HTML.
 
+### Import
+
+**POST** `/api/import/documents` (multipart form)
+
+| Field | Description |
+|---|---|
+| `files` | One or more `.md` files, or `.zip` files whose folders are kept |
+| `paths` | Optional; one per file, in the same order: the file's path inside an uploaded folder (`vault/homelab/network.md`). Browsers drop folders from file names, so a folder upload sends them here |
+| `target_path` | Folder to import into (default `/`) |
+| `overwrite_mode` | `rename` (default), `skip` or `overwrite` |
+
+**What the import does**
+- **Folders:** kept. Hidden folders lose their dot (`.agents` becomes `agents`), and folder names become slugs. Tool folders (`.obsidian`, `.git`, `.trash`) and hidden files are skipped. Other non-markdown files inside a folder or zip are skipped too.
+- **Front matter:** `title`, `tags` (a list or a string, with a leading `#` removed) and `created`/`updated` are kept. Other keys are dropped.
+- **Removed plugin syntax:** Dataview, DataviewJS and Tasks queries, inline Dataview, Templater tags, `%% comments %%`, block IDs and Buttons or Meta Bind blocks.
+- **Converted:** callouts become a bold label in the quote. Note embeds `![[x]]` become links; embedded images and other files aren't imported.
+- **Links between the imported files** are rewritten to `[[Title]]`, whether they're `[[file]]`, `[[folder/file]]`, `[[file#heading]]` (shown as `file › heading`), `[[file\|alias]]` inside tables (still escaped), or markdown links to `.md` files.
+- **One git commit** holds the whole import. Backlinks are updated for every new page.
+
+**Response:** `{total_files, imported_count, skipped_count, failed_count, success, skipped, failed}`. Each entry in `success` and `skipped` has `original_name` (the path inside the import), `final_path`, `title` and `notes`. The notes list what was changed or dropped (`dropped front matter: status`, `2 × converted callout`, `1 × link not found in this import (kept by name)`) or why a file was skipped.
+
 ### MCP (Model Context Protocol)
 
 **POST** `/api/mcp` serves MCP over Streamable HTTP in stateless mode, so `GET` and `DELETE` answer `405`. It exists only when `SCHIST_MCP_ENABLED=true`; otherwise the path is `404`. `GET /api/config` reports it as `mcp_enabled`.
@@ -398,6 +419,7 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 | `create_document` | write | `path`, `content`, `title?`, `tags?` | New page; fails if it exists. The title defaults to one made from the path |
 | `update_document` | write | `path`, `content?`, `title?`, `tags?` | Replaces only the fields passed; the path doesn't change |
 | `append_to_document` | write | `path`, `content`, `heading?` | Adds at the end of the page, or at the end of the section under `heading` |
+| `import_documents` | write | `files` (`[{path, content}]`, at most 200 and 10 MB), `folder?`, `on_conflict?` | Imports markdown files with the same conversion as `POST /api/import/documents`. Existing pages are skipped unless `on_conflict` is `rename` or `overwrite`, so a re-run is safe |
 
 **How the tools behave:**
 - **Paths:** written like `/folder/page`, with no `.md`.

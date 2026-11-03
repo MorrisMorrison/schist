@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -342,10 +343,24 @@ func (h *APIHandler) importDocuments(c *gin.Context) {
 		options.OverwriteMode = "rename"
 	}
 
-	result, err := h.DocumentService.ImportDocuments(files, options)
+	// Browsers drop the folder from a file's name, so a folder upload sends
+	// each file's relative path in "paths", in the same order as "files".
+	var relPaths []string
+	if paths := form.Value["paths"]; len(paths) == len(files) {
+		relPaths = paths
+	}
+
+	result, err := h.DocumentService.ImportUploads(files, relPaths, options)
 	if err != nil {
 		HandleError(c, err)
 		return
+	}
+	imported := make([]string, 0, len(result.Success))
+	for _, doc := range result.Success {
+		imported = append(imported, doc.FinalPath)
+	}
+	if err := h.LinkService.UpdateBacklinksFor(imported...); err != nil {
+		log.Printf("Warning: failed to update backlinks for imported documents: %v", err)
 	}
 
 	c.JSON(http.StatusOK, result)

@@ -130,6 +130,20 @@ describe('SchistApiClient', () => {
 			expect(body.get('overwrite_mode')).toBe('skip');
 		});
 
+		it('sends folder paths next to the files', async () => {
+			fetchMock.mockResolvedValue(json({ imported: 2 }));
+			const files = [new File(['# a'], 'a.md'), new File(['# b'], 'b.md')];
+
+			await client.importDocuments(files, { target_path: '/', overwrite_mode: 'skip' }, [
+				'vault/a.md',
+				'vault/sub/b.md'
+			]);
+
+			const body = lastCall().init.body as FormData;
+			expect(body.getAll('files')).toHaveLength(2);
+			expect(body.getAll('paths')).toEqual(['vault/a.md', 'vault/sub/b.md']);
+		});
+
 		it('deduplicates concurrent GETs unless forced', async () => {
 			let resolve!: (r: Response) => void;
 			fetchMock.mockImplementation(() => new Promise<Response>((r) => (resolve = r)));

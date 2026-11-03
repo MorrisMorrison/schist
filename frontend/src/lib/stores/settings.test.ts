@@ -21,7 +21,8 @@ describe('settings store', () => {
 		expect(settings.app).toEqual({
 			openDocumentsInEditMode: false,
 			alwaysOpenFullscreen: false,
-			fullWidthDocuments: false
+			fullWidthDocuments: false,
+			wrapSidebarNames: false
 		});
 	});
 
@@ -36,7 +37,8 @@ describe('settings store', () => {
 		expect(settings.app).toEqual({
 			openDocumentsInEditMode: false,
 			alwaysOpenFullscreen: true,
-			fullWidthDocuments: false
+			fullWidthDocuments: false,
+			wrapSidebarNames: false
 		});
 	});
 
@@ -53,7 +55,8 @@ describe('settings store', () => {
 		expect(settings.app).toEqual({
 			openDocumentsInEditMode: false,
 			alwaysOpenFullscreen: true,
-			fullWidthDocuments: false
+			fullWidthDocuments: false,
+			wrapSidebarNames: false
 		});
 	});
 
@@ -75,10 +78,16 @@ describe('settings store', () => {
 		expect(settings.app).toEqual({
 			openDocumentsInEditMode: true,
 			alwaysOpenFullscreen: false,
-			fullWidthDocuments: false
+			fullWidthDocuments: false,
+			wrapSidebarNames: false
 		});
 		expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual({
-			app: { openDocumentsInEditMode: true, alwaysOpenFullscreen: false, fullWidthDocuments: false }
+			app: {
+				openDocumentsInEditMode: true,
+				alwaysOpenFullscreen: false,
+				fullWidthDocuments: false,
+				wrapSidebarNames: false
+			}
 		});
 	});
 

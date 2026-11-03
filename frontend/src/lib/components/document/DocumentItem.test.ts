@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, user, fireEvent } from '#lib/test/component-utils.ts';
 import DocumentItem from './DocumentItem.svelte';
 import type { Document } from '#lib/api/types.ts';
+import { settingsActions } from '#lib/stores/settings.svelte.ts';
 
 // Mock Lucide icons
 vi.mock('@lucide/svelte', () => {
@@ -169,5 +170,31 @@ describe('DocumentItem', () => {
 		expect(dnd.handleDragLeave).toHaveBeenCalledWith(expect.any(Event), '/test');
 		expect(dnd.handleDrop).toHaveBeenCalledWith(expect.any(Event), '/test');
 		expect(dnd.handleDragEnd).toHaveBeenCalled();
+	});
+
+	describe('long names', () => {
+		const longTitle = 'Runbook — Recover the backup server after a failed upgrade';
+		const props = () => ({
+			...defaultProps,
+			document: { ...mockDocument, metaData: { ...mockDocument.metaData, title: longTitle } }
+		});
+
+		afterEach(() => settingsActions.updateAppSetting('wrapSidebarNames', false));
+
+		it('cuts a long name to one line and shows the full name as a tooltip', () => {
+			const { getByText } = render(DocumentItem, { props: props() });
+			const name = getByText(longTitle);
+			expect(name).toHaveAttribute('title', longTitle);
+			expect(name).toHaveClass('truncate');
+		});
+
+		it('wraps it onto two lines when the setting is on', () => {
+			settingsActions.updateAppSetting('wrapSidebarNames', true);
+			const { getByText } = render(DocumentItem, { props: props() });
+			const name = getByText(longTitle);
+			expect(name).toHaveAttribute('title', longTitle);
+			expect(name).toHaveClass('line-clamp-2');
+			expect(name).not.toHaveClass('truncate');
+		});
 	});
 });

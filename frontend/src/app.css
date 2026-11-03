@@ -217,6 +217,33 @@
 		@apply border-border outline-ring/50;
 	}
 
+	/* Thin scrollbars in the theme's colours (sidebar, page, code blocks), light and dark.
+	   Browsers that support scrollbar-color use it; older WebKit uses the rules below. */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--border-secondary) transparent;
+	}
+
+	*::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	*::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	*::-webkit-scrollbar-thumb {
+		border: 2px solid transparent;
+		border-radius: 9999px;
+		background-color: var(--border-secondary);
+		background-clip: content-box;
+	}
+
+	*::-webkit-scrollbar-thumb:hover {
+		background-color: var(--muted-foreground);
+	}
+
 	body {
 		@apply bg-background text-foreground;
 		font-family:

@@ -10,6 +10,7 @@ describe('EditorSettingsSection', () => {
 		settingsActions.updateAppSetting('openDocumentsInEditMode', false);
 		settingsActions.updateAppSetting('alwaysOpenFullscreen', false);
 		settingsActions.updateAppSetting('fullWidthDocuments', false);
+		settingsActions.updateAppSetting('wrapSidebarNames', false);
 		localStorage.removeItem('schist_settings');
 	});
 
@@ -28,6 +29,15 @@ describe('EditorSettingsSection', () => {
 		expect(editMode).toHaveAttribute('aria-checked', 'false');
 		expect(fullscreen).toHaveAttribute('aria-checked', 'true');
 		expect(fullWidth).toHaveAttribute('aria-checked', 'false');
+		expect(screen.getByText('Wrap long names in the sidebar')).toBeInTheDocument();
+		expect(switches()[3]).toHaveAttribute('aria-checked', 'false');
+	});
+
+	it('toggles "wrap long names in the sidebar"', async () => {
+		render(EditorSettingsSection);
+		await userEvent.click(switches()[3]);
+		expect(settings.app.wrapSidebarNames).toBe(true);
+		expect(JSON.parse(localStorage.getItem('schist_settings')!).app.wrapSidebarNames).toBe(true);
 	});
 
 	it('toggles "open documents in edit mode" and persists it', async () => {

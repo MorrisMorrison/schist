@@ -21,6 +21,12 @@
 			label: 'Full-width documents',
 			description:
 				'Documents and the editor use the whole width of the window instead of a reading column'
+		},
+		{
+			key: 'wrapSidebarNames',
+			label: 'Wrap long names in the sidebar',
+			description:
+				'Long page and folder names show on two lines instead of being cut off (the full name is also in the tooltip)'
 		}
 	];
 </script>

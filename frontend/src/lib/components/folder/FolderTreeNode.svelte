@@ -2,6 +2,7 @@
 	import { ChevronRight, ChevronDown, Folder } from '@lucide/svelte';
 	import { cn } from '#lib/utils.ts';
 	import TreeRowMenuTrigger from './TreeRowMenuTrigger.svelte';
+	import { sidebarNameClass } from '#lib/stores/settings.svelte.ts';
 	import type { Folder as FolderType, Document } from '#lib/api/types.ts';
 	import DocumentItem from '../document/DocumentItem.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
@@ -168,7 +169,7 @@
 				>
 					<Folder class="text-muted-foreground h-4 w-4 flex-shrink-0" />
 
-					<span class="truncate font-medium" title={folder.name}>
+					<span class="{sidebarNameClass()} font-medium" title={folder.name}>
 						{folder.name}
 					</span>
 

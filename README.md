@@ -55,7 +55,7 @@ A lightweight, self-hosted markdown wiki with Obsidian-style features in the bro
 - **Secrets:** reference values like API keys from your pages. They show as locked placeholders until you unlock them with your passkey.
 - **AI assistants (MCP):** an optional [Model Context Protocol](https://modelcontextprotocol.io) endpoint lets Claude and other assistants search, read and write your wiki, using personal access tokens.
 - **Import and export** of markdown files.
-- **Dark and light themes**, keyboard shortcuts and a mobile layout.
+- **Dark and light themes**, keyboard shortcuts, a resizable sidebar and a mobile layout.
 - **Secure defaults:** authentication, rate limiting and security headers (CSP, HSTS, …) are on unless you turn them off.
 
 ## Quick start (Docker)

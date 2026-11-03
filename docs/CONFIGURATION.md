@@ -18,6 +18,7 @@ Schist is designed with minimal configuration using environment variables and se
 | `SCHIST_AUTH_ENABLED` | `true` | Enable/disable JWT authentication |
 | `SCHIST_JWT_SECRET` | `""` | JWT signing secret (required when auth is enabled) |
 | `SCHIST_JWT_EXPIRY_HOURS` | `24` | JWT token expiry time in hours |
+| `SCHIST_SECRET_KEY` | `""` | Secret for the key that encrypts the GitHub backup token, so backups keep running after a restart. When empty, the key comes from `SCHIST_JWT_SECRET`. Changing it (or the JWT secret it falls back to) means setting up GitHub backup again. See [GitHub backup](#github-backup) |
 | `SCHIST_TEMPLATES_DIR` | `../../../templates` | Directory with document templates |
 | `SCHIST_SHARING_ENABLED` | `true` | Enable/disable public share links. When `false`, new shares are refused (403) and existing share links stop resolving (404); owners can still list and revoke them |
 | `SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` | `7` | Expiry used when a share is created without `expiry_days` (or with `0`) |
@@ -33,14 +34,19 @@ Schist is designed with minimal configuration using environment variables and se
 
 ## GitHub backup
 
-GitHub backup is set up in the app under **Settings → GitHub** with a personal access token that can read and write the repository's contents. The token is stored in the passkey-protected secret store, so setup needs unlocked secrets, and so does every sync after a server restart (the unlock lives in memory).
+GitHub backup is set up in the app under **Settings → GitHub** with a personal access token that can read and write the repository's contents.
+
+**How the token is stored:** encrypted (AES-256-GCM) in `.schist/config.json` with a key derived from `SCHIST_SECRET_KEY`, or from `SCHIST_JWT_SECRET` when that's empty. The server can read it on its own, so backups keep running after a restart without anyone unlocking secrets. The token is then as safe as the server's environment: anyone who can read both the environment and the data directory can read it. Use a fine-grained token limited to the backup repository.
+- **Without a server secret** (a development server whose JWT secret is generated at each start), the token is kept in the passkey-protected secret store instead: setup needs unlocked secrets, and so does every sync after a restart.
+- **Tokens saved by older versions** are in the secret store. The first sync with secrets unlocked moves them to the server key; after that no unlock is needed.
+- **If the key changes,** the saved token can't be read any more, and syncs fail with "set up GitHub backup again".
 
 - **New repositories:** the repository can be empty, and the branch doesn't have to exist. The first sync creates it.
 - **Push only:** a sync commits pending changes and pushes the wiki's git history to the branch. It never pulls.
 - **When the branch has other commits** (for example a README created with the repository, or another device), a normal sync refuses with `SYNC_REMOTE_DIVERGED` and leaves GitHub as it is. Settings then offers **Replace GitHub branch**, which force-pushes the wiki's history once, after you confirm. Alternatively use an empty repository or a new branch.
 - **Sync on save:** each committed change (an edit, an API or MCP write, an import, a move, a delete) schedules a push 30 seconds after the last change, and at most 5 minutes after the first unpushed one, so a burst of writes makes one push. The push runs in the background and never blocks or fails the write.
 - **Automatic:** a push every `SCHIST_GITHUB_AUTO_SYNC_MINUTES` minutes.
-- **Status:** Settings shows the last successful sync and the last error, background syncs included (for example "Secret store is locked" after a restart).
+- **Status:** Settings shows the last successful sync and the last error, background syncs included (for example "Secret store is locked" after a restart on a server without a server secret).
 
 ## Development vs Production
 

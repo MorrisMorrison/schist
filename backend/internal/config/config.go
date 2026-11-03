@@ -49,6 +49,13 @@ type Config struct {
 	JWTSecret      string
 	JWTExpiryHours int
 
+	// ServerSecret protects stored credentials the server must use on its own
+	// (the GitHub backup token): SCHIST_SECRET_KEY, or else the JWT secret
+	// when it was set explicitly. Empty when the JWT secret is generated for
+	// this run, since a key that changes on every start can't protect a
+	// stored value; such tokens then need the passkey-unlocked store.
+	ServerSecret string
+
 	// MCPEnabled serves the Model Context Protocol endpoint at /api/mcp.
 	MCPEnabled bool
 
@@ -78,6 +85,11 @@ func Load() (*Config, error) {
 	}
 	jwtSecret := jwtResult.Secret
 
+	serverSecret := os.Getenv("SCHIST_SECRET_KEY")
+	if serverSecret == "" && !jwtResult.Generated {
+		serverSecret = jwtSecret
+	}
+
 	return &Config{
 		Port:         getEnv("SCHIST_PORT", "8080"),
 		DataDir:      getEnv("SCHIST_DATA_DIR", "data"),
@@ -92,6 +104,7 @@ func Load() (*Config, error) {
 		AuthEnabled:    getEnvBool("SCHIST_AUTH_ENABLED", true),
 		JWTSecret:      jwtSecret,
 		JWTExpiryHours: getEnvInt("SCHIST_JWT_EXPIRY_HOURS", 24),
+		ServerSecret:   serverSecret,
 
 		MCPEnabled: getEnvBool("SCHIST_MCP_ENABLED", false),
 

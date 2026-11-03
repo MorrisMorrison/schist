@@ -19,7 +19,6 @@ import (
 	"golang.org/x/oauth2"
 
 	appconfig "github.com/MorrisMorrison/schist/internal/config"
-	"github.com/MorrisMorrison/schist/internal/crypto"
 	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 )
 
@@ -184,24 +183,15 @@ func (gs *GitHubService) StopBackgroundSync(ctx context.Context) {
 }
 
 func (gs *GitHubService) hasToken() bool {
-	githubSettings := gs.settings.GetGitHubSettings()
-	return githubSettings.Token != nil && (crypto.IsPlaintext(githubSettings.Token) || gs.secretManager.IsUnlocked())
+	return gs.secretManager.CanUseGitHubToken()
 }
 
+// getToken returns the saved token. Under the server key it needs no unlock;
+// an older passkey-protected token returns SECRETS_LOCKED until unlocked.
 func (gs *GitHubService) getToken() (string, error) {
-	githubSettings := gs.settings.GetGitHubSettings()
-	if githubSettings.Token == nil {
+	if gs.settings.GetGitHubSettings().Token == nil {
 		return "", apierrors.NewInvalidStateError("GitHub token not configured. Set up GitHub backup again.")
 	}
-
-	if crypto.IsPlaintext(githubSettings.Token) {
-		return githubSettings.Token.Value, nil
-	}
-
-	if !gs.secretManager.IsUnlocked() {
-		return "", apierrors.NewSecretsLockedError()
-	}
-
 	return gs.secretManager.GetGitHubToken()
 }
 
@@ -349,9 +339,10 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		return nil, err
 	}
 
-	// The token is stored encrypted, so setup needs the unlocked store. Check
-	// first: the UI may still show an unlock from before a server restart.
-	if !gs.secretManager.IsUnlocked() {
+	// The token is stored encrypted: with the server key there's nothing to
+	// unlock; without one, setup needs the unlocked store. Check first: the
+	// UI may still show an unlock from before a server restart.
+	if !gs.secretManager.CanStoreGitHubToken() {
 		return nil, apierrors.NewSecretsLockedError()
 	}
 

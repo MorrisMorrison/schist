@@ -532,7 +532,7 @@ Direct static access to uploaded assets (maps to `{dataDir}/assets/`).
 
 Clients branch on `code`, never on the message. Codes with a special meaning:
 
-- `SECRETS_LOCKED` (423): the request needs the unlocked secret store (secrets, GitHub setup and sync). The unlock lives in server memory, so a restart locks it again: refresh `/api/secrets/status`, unlock and retry.
+- `SECRETS_LOCKED` (423): the request needs the unlocked secret store (secrets; GitHub setup and sync only on a server without a server secret, or for a token saved by an older version). The unlock lives in server memory, so a restart locks it again: refresh `/api/secrets/status`, unlock and retry.
 - `SYNC_REMOTE_DIVERGED` (409): the GitHub branch has commits the wiki doesn't have. Retry `POST /api/github/sync` with `{"replace_remote": true}` to replace the branch, only after the user confirms.
 
 ### HTTP Status Codes

@@ -54,3 +54,37 @@ func TestStaticHandler_ServeStatic(t *testing.T) {
 	})
 	// t.TempDir cleanup fails on Windows if a handler leaked an open file.
 }
+
+func TestStaticHandler_CacheHeaders(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	staticDir := t.TempDir()
+	require.NoError(t, os.MkdirAll(filepath.Join(staticDir, "_app", "immutable", "chunks"), 0755))
+	for p, content := range map[string]string{
+		"index.html":                         "INDEX",
+		"_app/version.json":                  `{"version":"1"}`,
+		"_app/immutable/chunks/app.abc12.js": "CHUNK",
+	} {
+		require.NoError(t, os.WriteFile(filepath.Join(staticDir, filepath.FromSlash(p)), []byte(content), 0644))
+	}
+	router := gin.New()
+	NewStaticHandler(staticDir).SetupStaticRoutes(router)
+
+	get := func(target string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, target, nil))
+		return w
+	}
+
+	w := get("/_app/immutable/chunks/app.abc12.js")
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "CHUNK", w.Body.String())
+	assert.Equal(t, "public, max-age=31536000, immutable", w.Header().Get("Cache-Control"), "hashed build output is cached")
+
+	w = get("/_app/version.json")
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Empty(t, w.Header().Get("Cache-Control"), "unhashed files are revalidated")
+
+	w = get("/documents/some/page")
+	assert.Equal(t, "INDEX", w.Body.String())
+	assert.Equal(t, "no-cache", w.Header().Get("Cache-Control"), "the SPA shell is always revalidated")
+}

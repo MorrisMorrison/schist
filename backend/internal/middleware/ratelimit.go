@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,6 +51,10 @@ func (rl *RateLimiter) CleanupOldLimiters() {
 	}
 }
 
+func rateLimited(path string) bool {
+	return strings.HasPrefix(path, "/api/") && path != "/api/health"
+}
+
 func RateLimitMiddleware(rpm int) gin.HandlerFunc {
 	rateLimiter := NewRateLimiter(rpm)
 
@@ -62,6 +67,14 @@ func RateLimitMiddleware(rpm int) gin.HandlerFunc {
 	}()
 
 	return func(c *gin.Context) {
+		// Only the API is limited. A single page load fetches about fifty
+		// static files (JS chunks, CSS, fonts); counting those locked people
+		// out after a few reloads. The health check is exempt for monitors.
+		if !rateLimited(c.Request.URL.Path) {
+			c.Next()
+			return
+		}
+
 		ip := c.ClientIP()
 		limiter := rateLimiter.GetLimiter(ip)
 

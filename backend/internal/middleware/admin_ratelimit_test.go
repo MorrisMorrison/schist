@@ -67,12 +67,20 @@ func rateLimitedRouter(rpm int) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.Use(RateLimitMiddleware(rpm))
-	router.GET("/", func(c *gin.Context) { c.Status(http.StatusOK) })
+	ok := func(c *gin.Context) { c.Status(http.StatusOK) }
+	router.GET("/api/documents", ok)
+	router.GET("/api/health", ok)
+	router.GET("/_app/immutable/app.js", ok)
+	router.NoRoute(ok)
 	return router
 }
 
 func getFrom(router http.Handler, ip string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	return getPathFrom(router, "/api/documents", ip)
+}
+
+func getPathFrom(router http.Handler, path, ip string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, path, nil)
 	req.RemoteAddr = ip + ":1234"
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -103,6 +111,26 @@ func TestRateLimitMiddleware(t *testing.T) {
 
 	// Limits are per client IP.
 	assert.Equal(t, http.StatusOK, getFrom(router, "203.0.113.2").Code)
+}
+
+// Static files and the health check are never limited, and don't use up the
+// API budget: a page load fetches dozens of them.
+func TestRateLimitMiddleware_OnlyLimitsTheAPI(t *testing.T) {
+	router := rateLimitedRouter(2)
+	const ip = "203.0.113.9"
+
+	for i := 0; i < 50; i++ {
+		for _, path := range []string{"/_app/immutable/app.js", "/documents/some/page", "/", "/api/health"} {
+			w := getPathFrom(router, path, ip)
+			require.Equal(t, http.StatusOK, w.Code, "%s #%d", path, i)
+			assert.Empty(t, w.Header().Get("X-RateLimit-Limit"), path)
+		}
+	}
+
+	assert.Equal(t, http.StatusOK, getFrom(router, ip).Code)
+	assert.Equal(t, http.StatusOK, getFrom(router, ip).Code)
+	assert.Equal(t, http.StatusTooManyRequests, getFrom(router, ip).Code, "the API budget is still enforced")
+	assert.Equal(t, http.StatusOK, getPathFrom(router, "/_app/immutable/app.js", ip).Code, "static files still load")
 }
 
 func TestRateLimiter_LimiterPerIPAndCleanup(t *testing.T) {

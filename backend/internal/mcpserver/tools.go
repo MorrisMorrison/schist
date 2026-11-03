@@ -68,6 +68,13 @@ func (t *tools) registerWrite(s *mcp.Server) {
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: &notDestructive},
 	}, t.appendToDocument)
 	mcp.AddTool(s, &mcp.Tool{
+		Name: "edit_document",
+		Description: "Change part of a page without resending it: replace an exact snippet (old_text, which must occur " +
+			"once unless replace_all is set) or the whole section under a heading. Fails without changing anything if " +
+			"the snippet or heading is missing or ambiguous. Reports how many places changed and on which lines. " +
+			"The previous version stays in git history.",
+	}, t.editDocument)
+	mcp.AddTool(s, &mcp.Tool{
 		Name: "import_documents",
 		Description: "Import markdown files (e.g. from an Obsidian vault) into a folder, keeping their relative folders. " +
 			"Obsidian syntax is converted: front matter keeps title, tags and dates; Dataview, Templater, comments and " +
@@ -174,9 +181,10 @@ type folderIn struct {
 }
 
 type folderEntry struct {
-	Name          string `json:"name"`
-	Path          string `json:"path"`
-	DocumentCount int    `json:"documentCount"`
+	Name               string `json:"name"`
+	Path               string `json:"path"`
+	DocumentCount      int    `json:"documentCount" jsonschema:"pages directly in this folder"`
+	TotalDocumentCount int    `json:"totalDocumentCount" jsonschema:"pages in this folder and all its subfolders"`
 }
 
 type pageEntry struct {
@@ -198,18 +206,34 @@ func (t *tools) listFolder(_ context.Context, _ *mcp.CallToolRequest, in folderI
 	if err != nil {
 		return nil, folderOut{}, toolError(err)
 	}
+	documents, err := t.svc.DocumentService.ListDocuments()
+	if err != nil {
+		return nil, folderOut{}, toolError(err)
+	}
+	visible := make([]string, 0, len(documents))
+	for _, doc := range documents {
+		if !t.svc.IgnoreService.ShouldIgnore(doc.MetaData.Path) {
+			visible = append(visible, doc.MetaData.Path)
+		}
+	}
+
 	out := folderOut{Path: folderPath, Folders: []folderEntry{}, Documents: []pageEntry{}}
 	for _, sub := range folder.SubFolders {
 		if t.svc.IgnoreService.ShouldIgnore(sub.Path) {
 			continue
 		}
-		out.Folders = append(out.Folders, folderEntry{Name: sub.Name, Path: sub.Path, DocumentCount: sub.DocumentCount})
+		entry := folderEntry{Name: sub.Name, Path: sub.Path}
+		for _, p := range visible {
+			if strings.HasPrefix(p, sub.Path+"/") {
+				entry.TotalDocumentCount++
+				if path.Dir(p) == sub.Path {
+					entry.DocumentCount++
+				}
+			}
+		}
+		out.Folders = append(out.Folders, entry)
 	}
 
-	documents, err := t.svc.DocumentService.ListDocuments()
-	if err != nil {
-		return nil, folderOut{}, toolError(err)
-	}
 	for _, doc := range documents {
 		p := doc.MetaData.Path
 		if path.Dir(p) != folderPath || t.svc.IgnoreService.ShouldIgnore(p) {
@@ -226,7 +250,7 @@ func (t *tools) listFolder(_ context.Context, _ *mcp.CallToolRequest, in folderI
 	var text strings.Builder
 	fmt.Fprintf(&text, "Folder %s: %d folders, %d pages\n", out.Path, len(out.Folders), len(out.Documents))
 	for _, f := range out.Folders {
-		fmt.Fprintf(&text, "\n[folder] %s (%d pages)", f.Path, f.DocumentCount)
+		fmt.Fprintf(&text, "\n[folder] %s (%d pages, %d including subfolders)", f.Path, f.DocumentCount, f.TotalDocumentCount)
 	}
 	for _, d := range out.Documents {
 		fmt.Fprintf(&text, "\n%s (%s)", d.Title, d.Path)
@@ -403,38 +427,9 @@ func appendMarkdown(content, addition, heading string) (string, error) {
 	}
 
 	lines := strings.Split(content, "\n")
-	want := strings.ToLower(strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(heading), "#")))
-	start, level := -1, 0
-	inFence := false
-	for i, line := range lines {
-		if isFence(line) {
-			inFence = !inFence
-		}
-		if inFence {
-			continue
-		}
-		if l, text := headingLine(line); l > 0 && strings.ToLower(text) == want {
-			start, level = i, l
-			break
-		}
-	}
-	if start < 0 {
-		return "", fmt.Errorf("no heading %q in this page; omit heading to append at the end", heading)
-	}
-
-	end := len(lines)
-	inFence = false
-	for i := start + 1; i < len(lines); i++ {
-		if isFence(lines[i]) {
-			inFence = !inFence
-		}
-		if inFence {
-			continue
-		}
-		if l, _ := headingLine(lines[i]); l > 0 && l <= level {
-			end = i
-			break
-		}
+	start, end, err := findSection(lines, heading, false)
+	if err != nil {
+		return "", fmt.Errorf("%w; omit heading to append at the end", err)
 	}
 	// Insert after the section's last non-blank line.
 	insertAt := end

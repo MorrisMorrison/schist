@@ -415,12 +415,13 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 |---|---|---|---|
 | `search` | read | `query`, `limit?` | Full-text search (same as `/api/search`); snippets have matches in `**bold**` |
 | `read_document` | read | `path` | Markdown content, title, tags, created and updated times |
-| `list_folder` | read | `path?` | Subfolders (with page counts) and the pages directly in the folder |
+| `list_folder` | read | `path?` | Subfolders and the pages directly in the folder. Each subfolder has `documentCount` (pages directly in it) and `totalDocumentCount` (including its subfolders) |
 | `get_backlinks` | read | `path` | Pages linking to `path` with `[[wiki links]]` |
 | `list_tags` | read | – | Tags with counts, most used first |
 | `create_document` | write | `path`, `content`, `title?`, `tags?` | New page; fails if it exists. The title defaults to one made from the path |
 | `update_document` | write | `path`, `content?`, `title?`, `tags?` | Replaces only the fields passed; the path doesn't change |
 | `append_to_document` | write | `path`, `content`, `heading?` | Adds at the end of the page, or at the end of the section under `heading` |
+| `edit_document` | write | `path`, `new_text`, and `old_text` (+ `replace_all?`) or `heading` | Replaces an exact snippet, or the section under `heading` up to the next heading of the same or a higher level (the heading line stays). Fails without writing if the snippet or heading is missing, or matches more than once and `replace_all` isn't set. Returns `replacements` and the `lines` where each change starts; an edit that changes nothing isn't committed |
 | `import_documents` | write | `files` (`[{path, content}]`, at most 200 and 10 MB), `folder?`, `on_conflict?` | Imports markdown files with the same conversion as `POST /api/import/documents`. Existing pages are skipped unless `on_conflict` is `rename` or `overwrite`, so a re-run is safe |
 
 **How the tools behave:**

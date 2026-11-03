@@ -101,7 +101,7 @@ func TestTools_ReadOnlyServerHidesWriteTools(t *testing.T) {
 
 	assert.Equal(t, []string{"get_backlinks", "list_folder", "list_tags", "read_document", "search"},
 		toolNames(t, connect(t, svc, false)))
-	assert.Equal(t, []string{"append_to_document", "create_document", "get_backlinks", "import_documents", "list_folder",
+	assert.Equal(t, []string{"append_to_document", "create_document", "edit_document", "get_backlinks", "import_documents", "list_folder",
 		"list_tags", "read_document", "search", "update_document"}, toolNames(t, connect(t, svc, true)))
 }
 
@@ -160,14 +160,22 @@ func TestTools_ListFolder(t *testing.T) {
 	seed(t, svc, "/guides/b", "Beta guide", "x")
 	seed(t, svc, "/guides/a", "Alpha guide", "x")
 	seed(t, svc, "/guides/deep/c", "Deep", "x")
+	seed(t, svc, "/archive/2025/old", "Old", "x")
 	cs := connect(t, svc, false)
 
 	var root folderOut
 	structured(t, call(t, cs, "list_folder", map[string]any{}), &root)
 	assert.Equal(t, "/", root.Path)
 	assert.Equal(t, []pageEntry{{Title: "Top", Path: "/top", Updated: root.Documents[0].Updated}}, root.Documents)
-	require.Len(t, root.Folders, 1)
-	assert.Equal(t, "/guides", root.Folders[0].Path)
+	require.Len(t, root.Folders, 2)
+	byPath := map[string]folderEntry{}
+	for _, f := range root.Folders {
+		byPath[f.Path] = f
+	}
+	assert.Equal(t, folderEntry{Name: "guides", Path: "/guides", DocumentCount: 2, TotalDocumentCount: 3}, byPath["/guides"])
+	assert.Equal(t, folderEntry{Name: "archive", Path: "/archive", DocumentCount: 0, TotalDocumentCount: 1}, byPath["/archive"],
+		"pages in subfolders count toward the total")
+	assert.Contains(t, text(call(t, cs, "list_folder", map[string]any{})), "[folder] /archive (0 pages, 1 including subfolders)")
 
 	var guides folderOut
 	structured(t, call(t, cs, "list_folder", map[string]any{"path": "guides"}), &guides)

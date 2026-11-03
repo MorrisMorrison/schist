@@ -135,16 +135,17 @@ Other clients that support remote MCP servers take the same URL and `Authorizati
 |---|---|
 | `search` | Full-text search with snippets and `tag:` filters |
 | `read_document` | A page's markdown, title, tags and dates |
-| `list_folder` | A folder's subfolders and pages |
+| `list_folder` | A folder's subfolders (with page counts, subfolders included) and pages |
 | `get_backlinks` | The pages linking to a page |
 | `list_tags` | Every tag with its count |
 | `create_document` | Create a page |
 | `update_document` | Replace a page's content, title or tags |
 | `append_to_document` | Add text at the end of a page or of a section |
+| `edit_document` | Replace an exact snippet or a whole section, without resending the page |
 | `import_documents` | Import markdown files (e.g. from an Obsidian vault), keeping folders and converting Obsidian syntax |
 
 **Tokens:**
-- **Access level:** a *read-only* token only gets the first five tools; a *read and write* token gets all nine.
+- **Access level:** a *read-only* token only gets the first five tools; a *read and write* token gets all ten.
 - **Git history:** every write is a git commit, so you can restore earlier versions.
 - **What tokens can't reach:** there is no delete tool, and tokens can't use secrets, passkeys, users, shares or settings.
 - **Without authentication** (`SCHIST_AUTH_ENABLED=false`), the endpoint needs no token.

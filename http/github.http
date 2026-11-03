@@ -24,7 +24,9 @@ Content-Type: application/json
   "repo": "{{ghRepo}}",
   "branch": "main"
 }
-# => 200 { "success": true, "message": "Connection test successful" }
+# => 200 { "success": true, "message": ..., "branch": "main", "branch_exists": true }
+# A missing branch (or an empty repository) is fine: branch_exists is false and
+# the first sync creates it.
 
 ### Set up the GitHub integration (persists config + token)
 POST {{apiUrl}}/github/setup
@@ -38,11 +40,14 @@ Content-Type: application/json
   "auto_sync": false,
   "sync_on_save": false
 }
-# => 200 { "message": ..., "repository": ..., "status": ... }
+# => 200 { "message": ..., "repository": { ..., "branch", "branch_exists" }, "status": ... }
+# => 423 SECRETS_LOCKED when the secret store is locked
 
 ### Non-sensitive GitHub config (no secret unlock required)
 GET {{apiUrl}}/github/config
-# => 200 GitHub settings (owner/repo/branch/flags, no token)
+# => 200 GitHub settings (owner/repo/branch/flags, no token), plus the last sync
+#    status (last_sync, last_sync_attempt, last_sync_error, last_sync_error_code)
+#    and auto_sync_interval_minutes
 
 ### Connection status (requires the secret store to be unlocked)
 GET {{apiUrl}}/github/connection-status
@@ -60,7 +65,18 @@ Content-Type: application/json
 
 ### Push pending changes to GitHub
 POST {{apiUrl}}/github/sync
-# => 200 sync result, or 400 if the integration isn't enabled
+# => 200 sync result
+# => 409 INVALID_STATE if GitHub backup isn't set up
+# => 409 SYNC_REMOTE_DIVERGED if the branch has commits the wiki doesn't have
+# => 423 SECRETS_LOCKED if the secret store is locked
+
+### Replace a diverged GitHub branch with the wiki's history (force push, once)
+POST {{apiUrl}}/github/sync
+Content-Type: application/json
+
+{
+  "replace_remote": true
+}
 
 ### Disconnect the GitHub integration
 POST {{apiUrl}}/github/disconnect

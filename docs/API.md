@@ -518,15 +518,24 @@ Direct static access to uploaded assets (maps to `{dataDir}/assets/`).
 ### Standard Error Response
 ```json
 {
-  "error": "Descriptive error message"
+  "error": "Descriptive error message",
+  "code": "SECRETS_LOCKED",
+  "details": {}
 }
 ```
+
+Clients branch on `code`, never on the message. Codes with a special meaning:
+
+- `SECRETS_LOCKED` (423): the request needs the unlocked secret store (secrets, GitHub setup and sync). The unlock lives in server memory, so a restart locks it again: refresh `/api/secrets/status`, unlock and retry.
+- `SYNC_REMOTE_DIVERGED` (409): the GitHub branch has commits the wiki doesn't have. Retry `POST /api/github/sync` with `{"replace_remote": true}` to replace the branch, only after the user confirms.
 
 ### HTTP Status Codes
 - **200** - Success
 - **201** - Created (new documents/folders/assets)
 - **400** - Bad Request (validation errors, invalid JSON)
 - **404** - Not Found (missing documents/folders/assets)
+- **409** - Conflict (e.g. GitHub backup not set up, a diverged GitHub branch)
+- **423** - Locked (the secret store must be unlocked first)
 - **500** - Internal Server Error (filesystem/parsing errors)
 
 ## Path and Security Validation

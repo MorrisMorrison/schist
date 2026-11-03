@@ -2,6 +2,7 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,4 +57,27 @@ func TestLoad_ProductionRequiresSecret(t *testing.T) {
 	t.Setenv("SCHIST_JWT_SECRET", "short")
 	_, err = Load()
 	assert.Error(t, err)
+}
+
+func TestLoadGitHubAutoSyncInterval(t *testing.T) {
+	tests := []struct {
+		value string
+		want  time.Duration
+	}{
+		{"", 15 * time.Minute},
+		{"60", time.Hour},
+		{" 5 ", 5 * time.Minute},
+		{"1", time.Minute},
+		{"1440", 24 * time.Hour},
+		{"0", 15 * time.Minute},
+		{"-3", 15 * time.Minute},
+		{"1441", 15 * time.Minute},
+		{"10m", 15 * time.Minute},
+	}
+	for _, tt := range tests {
+		t.Run(tt.value, func(t *testing.T) {
+			t.Setenv("SCHIST_GITHUB_AUTO_SYNC_MINUTES", tt.value)
+			assert.Equal(t, tt.want, loadGitHubAutoSyncInterval())
+		})
+	}
 }

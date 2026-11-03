@@ -109,7 +109,7 @@ func TestSecretManager_SecretLifecycle(t *testing.T) {
 		sm.Lock()
 		assert.False(t, sm.IsUnlocked())
 		_, err := sm.GetSecret("api")
-		assert.Equal(t, apierrors.ErrCodeUnauthorized, apiErrorCode(err))
+		assert.Equal(t, apierrors.ErrCodeSecretsLocked, apiErrorCode(err))
 
 		reloaded, err := config.LoadSettings(dir)
 		require.NoError(t, err)

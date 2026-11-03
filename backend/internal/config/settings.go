@@ -42,8 +42,15 @@ type GitHubSettings struct {
 	// ForcePush opts in to force-pushing to the remote branch. It is false by
 	// default, keeping the safe fast-forward-only push behavior. Only enable it
 	// when you knowingly accept that remote history may be overwritten.
-	ForcePush bool      `json:"force_push"`
-	LastSync  time.Time `json:"last_sync,omitempty"`
+	ForcePush bool `json:"force_push"`
+	// LastSync is the time of the last successful push.
+	LastSync time.Time `json:"last_sync,omitempty"`
+	// LastSyncAttempt is when a sync last ran, successful or not.
+	LastSyncAttempt time.Time `json:"last_sync_attempt,omitempty"`
+	// LastSyncError and LastSyncErrorCode describe the last sync's failure
+	// (empty after a success): a user-facing message and the API error code.
+	LastSyncError     string `json:"last_sync_error,omitempty"`
+	LastSyncErrorCode string `json:"last_sync_error_code,omitempty"`
 }
 
 type UISettings struct {

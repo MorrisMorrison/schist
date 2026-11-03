@@ -16,7 +16,9 @@ export type ErrorCode =
 	| 'RATE_LIMITED'
 	| 'SERVICE_UNAVAILABLE'
 	| 'OPERATION_FAILED'
-	| 'INVALID_STATE';
+	| 'INVALID_STATE'
+	| 'SECRETS_LOCKED'
+	| 'SYNC_REMOTE_DIVERGED';
 
 export interface APIErrorResponse {
 	error: string;
@@ -242,6 +244,8 @@ export function getErrorCodeFromStatus(status: number): ErrorCode | undefined {
 			return 'FORBIDDEN';
 		case 404:
 			return 'RESOURCE_NOT_FOUND';
+		case 423:
+			return 'SECRETS_LOCKED';
 		case 409:
 			return 'RESOURCE_CONFLICT';
 		case 408:
@@ -313,6 +317,11 @@ function getSeverityFromCode(code?: ErrorCode): 'error' | 'warning' | 'info' {
 export function isNotFoundError(error: unknown): boolean {
 	const parsed = parseError(error);
 	return parsed.code === 'RESOURCE_NOT_FOUND';
+}
+
+/** The request needs the unlocked secret store (the server forgets an unlock when it restarts). */
+export function isSecretsLockedError(error: unknown): boolean {
+	return parseError(error).code === 'SECRETS_LOCKED';
 }
 
 export function isUnauthorizedError(error: unknown): boolean {

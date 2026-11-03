@@ -1,3 +1,5 @@
+import type { ErrorCode } from '#lib/utils/error.ts';
+
 export interface DocumentMetaData {
 	slug?: string;
 	title: string;
@@ -255,8 +257,15 @@ export interface GitHubSettings {
 	branch: string;
 	auto_sync: boolean;
 	sync_on_save: boolean;
+	/** The last successful sync. */
 	last_sync?: string;
+	/** The last sync attempt, background syncs included. */
+	last_sync_attempt?: string;
+	/** Why the last sync failed; empty after a success. */
 	last_sync_error?: string;
+	last_sync_error_code?: ErrorCode;
+	/** The server's automatic backup interval (SCHIST_GITHUB_AUTO_SYNC_MINUTES). */
+	auto_sync_interval_minutes?: number;
 }
 
 export interface GitHubConnectionStatus {
@@ -291,8 +300,14 @@ export interface GitHubConfigRequest {
 export interface GitHubConnectionTest {
 	success: boolean;
 	message: string;
-	repositoryExists?: boolean;
-	hasWriteAccess?: boolean;
+	branch?: string;
+	/** False for an empty repository or a new branch: the first sync creates it. */
+	branch_exists?: boolean;
+}
+
+export interface GitHubSyncOptions {
+	/** Replace a diverged GitHub branch with the wiki's history (force push). Ask first. */
+	replaceRemote?: boolean;
 }
 
 export interface GitHubRepoInfo {
@@ -301,13 +316,17 @@ export interface GitHubRepoInfo {
 	full_name: string;
 	private: boolean;
 	html_url: string;
+	branch: string;
+	branch_exists: boolean;
 }
+
+/** Settings and connection status in one object, as the setup, config and disconnect endpoints return them. */
+export type GitHubStatus = GitHubSettings & GitHubConnectionStatus;
 
 export interface GitHubSetupResponse {
 	message: string;
 	repository: GitHubRepoInfo;
-	settings?: GitHubSettings;
-	connection?: GitHubConnectionStatus;
+	status: GitHubStatus;
 	auto_sync: boolean;
 	sync_on_save: boolean;
 }

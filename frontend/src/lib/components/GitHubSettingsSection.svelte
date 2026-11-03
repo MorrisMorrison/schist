@@ -1,36 +1,39 @@
 <script lang="ts">
 	import { githubActions, githubStore } from '#lib/stores/github.svelte.ts';
+	import { secretStore } from '#lib/stores/secrets.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
-	import * as Select from '#lib/components/ui/select/index.ts';
 	import * as Tabs from '#lib/components/ui/tabs/index.ts';
 	import { Separator } from '#lib/components/ui/separator/index.ts';
 	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
 	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
 	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
+	import PasskeyUnlockModal from '#lib/components/modal/PasskeyUnlockModal.svelte';
+	import DeleteConfirmModal from '#lib/components/modal/DeleteConfirmModal.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
 	import type { GitHubSetupRequest } from '#lib/api/types.ts';
+	import { isSecretsLockedError } from '#lib/utils/error.ts';
 	import { onMount } from 'svelte';
 
 	let token = $state('');
 	let owner = $state('');
 	let repository = $state('');
 	let branch = $state('main');
-	let createRepository = $state(false);
-	let private_repo = $state(true);
-	type BackupMode = 'manual' | 'auto';
-	const backupModeItems: { value: BackupMode; label: string }[] = [
-		{ value: 'manual', label: 'Manual' },
-		{ value: 'auto', label: 'Automatic' }
-	];
-	let backupMode = $state<BackupMode>('manual');
-	let syncInterval = $state(60);
+	let syncOnSave = $state(false);
+	let autoSync = $state(false);
 	let formError = $state('');
 	let tokenChanged = $state(false);
 
 	type GitHubTab = 'setup' | 'sync';
 	let activeTab = $state<GitHubTab>('setup');
+
+	// The secret store's unlock lives in server memory, so a restart locks it
+	// even though this page may still say "unlocked". A SECRETS_LOCKED answer
+	// asks for the passkey and then retries what failed.
+	let unlockOpen = $state(false);
+	let retryAfterUnlock: (() => Promise<void>) | null = null;
+	let confirmReplaceOpen = $state(false);
 
 	$effect(() => {
 		if (
@@ -43,26 +46,77 @@
 			owner = githubStore.settings.owner || '';
 			repository = githubStore.settings.repository || '';
 			branch = githubStore.settings.branch || 'main';
-			backupMode = githubStore.settings.auto_sync ? 'auto' : 'manual';
-			syncInterval = 60;
+			syncOnSave = githubStore.settings.sync_on_save;
+			autoSync = githubStore.settings.auto_sync;
 			tokenChanged = false;
 		}
 	});
 
 	const isConnected = $derived(githubStore.connectionStatus?.connected ?? false);
 	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
+	const intervalMinutes = $derived(githubStore.settings?.auto_sync_interval_minutes ?? 15);
 	const hasChanges = $derived(
 		githubStore.connectionStatus && githubStore.connectionStatus.connected && githubStore.settings
 			? branch !== githubStore.settings.branch ||
-					(backupMode === 'auto') !== githubStore.settings.auto_sync
+					syncOnSave !== githubStore.settings.sync_on_save ||
+					autoSync !== githubStore.settings.auto_sync
 			: canTestConnection
 	);
+	const lastSyncFailed = $derived(Boolean(githubStore.settings?.last_sync_error));
 
 	onMount(() => {
 		if (!githubStore.settings && !githubStore.connectionStatus) {
 			githubActions.refresh();
 		}
+
+		// Coming back to the page (another tab, a server restart meanwhile):
+		// reload the secrets and GitHub status instead of trusting old state.
+		const refreshStatus = () => {
+			if (document.visibilityState === 'hidden') return;
+			secretStore.loadStatus().catch(() => {});
+			githubActions.refresh(true);
+		};
+		window.addEventListener('focus', refreshStatus);
+		document.addEventListener('visibilitychange', refreshStatus);
+		return () => {
+			window.removeEventListener('focus', refreshStatus);
+			document.removeEventListener('visibilitychange', refreshStatus);
+		};
 	});
+
+	/** Runs action; if the secrets turn out to be locked, asks to unlock and retries it once. */
+	async function withUnlock(action: () => Promise<unknown>) {
+		try {
+			await action();
+		} catch (error) {
+			if (!isSecretsLockedError(error)) throw error;
+			githubActions.clearError();
+			retryAfterUnlock = async () => {
+				await action();
+			};
+			unlockOpen = true;
+		}
+	}
+
+	async function handleUnlocked() {
+		// Take the retry first: the modal calls oncancel right after onsuccess.
+		const retry = retryAfterUnlock;
+		retryAfterUnlock = null;
+		unlockOpen = false;
+		await secretStore.loadStatus().catch(() => {});
+		if (!retry) return;
+		try {
+			await retry();
+			await githubActions.refresh(true);
+		} catch {
+			console.error('Error retrying after unlocking secrets');
+		}
+	}
+
+	function handleUnlockCancelled() {
+		unlockOpen = false;
+		retryAfterUnlock = null;
+	}
 
 	function validateForm(): boolean {
 		if (!token.trim()) {
@@ -86,10 +140,6 @@
 			formError = 'Branch name is required';
 			return false;
 		}
-		if (syncInterval < 5) {
-			formError = 'Sync interval must be at least 5 minutes';
-			return false;
-		}
 
 		formError = '';
 		return true;
@@ -99,7 +149,12 @@
 		if (!validateForm()) return;
 
 		try {
-			await githubActions.testConnection(token.trim(), owner.trim(), repository.trim());
+			await githubActions.testConnection(
+				token.trim(),
+				owner.trim(),
+				repository.trim(),
+				branch.trim()
+			);
 		} catch {
 			console.error('Error testing connection');
 		}
@@ -108,19 +163,18 @@
 	async function setupGitHub() {
 		if (!validateForm()) return;
 
+		const tokenToUse = tokenChanged ? token.trim() : ''; // Token is not accessible from settings (stored securely)
+		const setupRequest: GitHubSetupRequest = {
+			token: tokenToUse,
+			owner: owner.trim(),
+			repo: repository.trim(),
+			branch: branch.trim(),
+			auto_sync: autoSync,
+			sync_on_save: syncOnSave
+		};
+
 		try {
-			const tokenToUse = tokenChanged ? token.trim() : ''; // Token is not accessible from settings (stored securely)
-
-			const setupRequest: GitHubSetupRequest = {
-				token: tokenToUse,
-				owner: owner.trim(),
-				repo: repository.trim(),
-				branch: branch.trim(),
-				auto_sync: backupMode === 'auto',
-				sync_on_save: false
-			};
-
-			await githubActions.setupGitHub(setupRequest);
+			await withUnlock(() => githubActions.setupGitHub(setupRequest));
 		} catch {
 			console.error('Error setting up github');
 		}
@@ -130,7 +184,8 @@
 		if (!validateSettingsUpdate()) return;
 		try {
 			await githubActions.updateSettings({
-				auto_sync: backupMode === 'auto',
+				auto_sync: autoSync,
+				sync_on_save: syncOnSave,
 				branch: branch.trim()
 			});
 		} catch {
@@ -138,12 +193,17 @@
 		}
 	}
 
-	async function syncNow() {
+	async function syncNow(replaceRemote = false) {
 		try {
-			await githubActions.syncToGitHub();
+			await withUnlock(() => githubActions.syncToGitHub({ replaceRemote }));
 		} catch {
 			console.error('Error syncing with github');
 		}
+	}
+
+	async function replaceRemote() {
+		confirmReplaceOpen = false;
+		await syncNow(true);
 	}
 
 	async function disconnect() {
@@ -194,6 +254,35 @@
 		'GitHub is not connected. Please complete the setup in the "Setup" tab before syncing.';
 </script>
 
+{#snippet divergedNotice()}
+	{#if isConnected && githubStore.remoteDiverged}
+		<Alert variant="warning" data-testid="github-diverged-notice">
+			<AlertCircle />
+			<AlertTitle>The GitHub branch has other commits</AlertTitle>
+			<AlertDescription>
+				<p>
+					The branch <strong>{githubStore.settings?.branch}</strong> has commits that aren't in this wiki,
+					for example a README created with the repository. Backups stay paused so they can't be lost.
+				</p>
+				<p>
+					Replace the branch with the wiki's history, or set up an empty repository or a new branch
+					instead.
+				</p>
+				<Button
+					variant="destructive"
+					size="sm"
+					class="mt-2"
+					data-testid="github-replace-remote-button"
+					disabled={githubStore.syncing}
+					onclick={() => (confirmReplaceOpen = true)}
+				>
+					Replace GitHub branch…
+				</Button>
+			</AlertDescription>
+		</Alert>
+	{/if}
+{/snippet}
+
 <Tabs.Root class="gap-6" bind:value={() => activeTab, (value) => (activeTab = value as GitHubTab)}>
 	<Tabs.List variant="line" aria-label="GitHub integration">
 		<Tabs.Trigger value="setup" data-testid="github-setup-tab" onclick={clearErrors}>
@@ -237,7 +326,7 @@
 								href="https://github.com/settings/tokens"
 								target="_blank"
 								class="text-blue-600 hover:underline dark:text-blue-400">GitHub Settings</a
-							> with repo permissions.
+							> with read and write access to the repository contents.
 						</p>
 					</div>
 
@@ -274,65 +363,34 @@
 							placeholder="main"
 							required
 						/>
+						{#if !isConnected}
+							<p class="text-muted-foreground text-sm">
+								The repository can be empty and the branch new: the first sync creates it.
+							</p>
+						{/if}
 					</div>
-
-					{#if !isConnected}
-						<div class="space-y-3">
-							<label class="flex items-center space-x-2">
-								<Checkbox
-									checked={createRepository}
-									onCheckedChange={(checked) => (createRepository = checked)}
-								/>
-								<span class="text-sm">Create repository if it doesn't exist</span>
-							</label>
-
-							{#if createRepository}
-								<label class="ml-6 flex items-center space-x-2">
-									<Checkbox
-										checked={private_repo}
-										onCheckedChange={(checked) => (private_repo = checked)}
-									/>
-									<span class="text-sm">Make repository private</span>
-								</label>
-							{/if}
-						</div>
-					{/if}
 
 					<Separator />
 
-					<div class="space-y-4">
+					<div class="space-y-3">
 						<h3 class="text-lg font-medium">Backup Settings</h3>
+						<p class="text-muted-foreground text-sm">
+							Backups push the wiki's history to GitHub. You can always sync by hand on the Sync
+							tab.
+						</p>
 
-						<div class="space-y-2">
-							<Label for="backup-mode">Backup Mode</Label>
-							<Select.Root
-								type="single"
-								items={backupModeItems}
-								bind:value={() => backupMode, (value) => (backupMode = value as BackupMode)}
-							>
-								<Select.Trigger id="backup-mode" class="w-full">
-									<Select.Value />
-								</Select.Trigger>
-								<Select.Content>
-									{#each backupModeItems as item (item.value)}
-										<Select.Item {...item} />
-									{/each}
-								</Select.Content>
-							</Select.Root>
-						</div>
+						<label class="flex items-center space-x-2">
+							<Checkbox
+								checked={syncOnSave}
+								onCheckedChange={(checked) => (syncOnSave = checked)}
+							/>
+							<span class="text-sm">Back up after every change</span>
+						</label>
 
-						{#if backupMode === 'auto'}
-							<div class="space-y-2">
-								<Label for="sync-interval">Sync Interval (minutes)</Label>
-								<Input
-									id="sync-interval"
-									type="number"
-									bind:value={syncInterval}
-									min="5"
-									max="1440"
-								/>
-							</div>
-						{/if}
+						<label class="flex items-center space-x-2">
+							<Checkbox checked={autoSync} onCheckedChange={(checked) => (autoSync = checked)} />
+							<span class="text-sm">Back up every {intervalMinutes} minutes</span>
+						</label>
 					</div>
 				</div>
 
@@ -385,7 +443,7 @@
 
 							<div class="space-y-2">
 								<Label>Last Sync</Label>
-								<div class="text-foreground text-sm">
+								<div class="text-foreground text-sm" data-testid="github-last-sync">
 									{formatLastSync(githubStore.settings?.last_sync)}
 								</div>
 							</div>
@@ -409,9 +467,17 @@
 							{/if}
 						</div>
 
-						{#if githubStore.settings?.last_sync_error}
-							<ErrorAlert error={githubStore.settings.last_sync_error} />
+						{#if lastSyncFailed}
+							<Alert variant="destructive" data-testid="github-last-sync-error">
+								<AlertCircle />
+								<AlertTitle>
+									Last sync failed ({formatLastSync(githubStore.settings?.last_sync_attempt)})
+								</AlertTitle>
+								<AlertDescription>{githubStore.settings?.last_sync_error}</AlertDescription>
+							</Alert>
 						{/if}
+
+						{@render divergedNotice()}
 					</div>
 				{/if}
 
@@ -554,7 +620,7 @@
 					<h3 class="text-lg font-medium">Manual Sync</h3>
 					<Button
 						data-testid="github-sync-now-button"
-						onclick={syncNow}
+						onclick={() => syncNow()}
 						disabled={!isConnected || githubStore.syncing}
 						title={!isConnected ? 'Configure GitHub connection first' : 'Sync documents to GitHub'}
 					>
@@ -567,6 +633,12 @@
 						{/if}
 					</Button>
 				</div>
+
+				{#if githubStore.error}
+					<ErrorAlert error={githubStore.error} />
+				{/if}
+
+				{@render divergedNotice()}
 
 				{#if githubStore.lastSyncResult}
 					{@const synced = githubStore.lastSyncResult.success}
@@ -617,3 +689,20 @@
 		{/if}
 	</Tabs.Content>
 </Tabs.Root>
+
+<PasskeyUnlockModal
+	bind:open={unlockOpen}
+	title="Unlock secrets to continue"
+	description="The GitHub token is stored encrypted. The secret store is locked (for example after the server restarted), so unlock it with your passkey to continue."
+	onsuccess={handleUnlocked}
+	oncancel={handleUnlockCancelled}
+/>
+
+<DeleteConfirmModal
+	open={confirmReplaceOpen}
+	title="Replace the GitHub branch?"
+	description={`This force-pushes the wiki's history to ${githubStore.settings?.owner}/${githubStore.settings?.repository} (branch ${githubStore.settings?.branch}). Commits on that branch that aren't in this wiki, such as a README, are removed from the branch. This happens once; later syncs push normally.`}
+	confirmText="Replace branch"
+	onConfirm={replaceRemote}
+	onCancel={() => (confirmReplaceOpen = false)}
+/>

@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MorrisMorrison/schist/internal/crypto"
 )
@@ -51,6 +52,10 @@ type Config struct {
 	// MCPEnabled serves the Model Context Protocol endpoint at /api/mcp.
 	MCPEnabled bool
 
+	// GitHubAutoSyncInterval is how often GitHub backup pushes when the
+	// "Automatic" backup mode is on (SCHIST_GITHUB_AUTO_SYNC_MINUTES).
+	GitHubAutoSyncInterval time.Duration
+
 	SharingEnabled         bool
 	ShareMaxExpiryDays     int
 	ShareDefaultExpiryDays int
@@ -90,12 +95,35 @@ func Load() (*Config, error) {
 
 		MCPEnabled: getEnvBool("SCHIST_MCP_ENABLED", false),
 
+		GitHubAutoSyncInterval: loadGitHubAutoSyncInterval(),
+
 		SharingEnabled:         getEnvBool("SCHIST_SHARING_ENABLED", true),
 		ShareMaxExpiryDays:     getEnvInt("SCHIST_SHARE_MAX_EXPIRY_DAYS", 90),
 		ShareDefaultExpiryDays: getEnvInt("SCHIST_SHARE_DEFAULT_EXPIRY_DAYS", 7),
 
 		SecurityHeaders: loadSecurityHeadersConfig(),
 	}, nil
+}
+
+// DefaultGitHubAutoSyncMinutes is the automatic backup interval when
+// SCHIST_GITHUB_AUTO_SYNC_MINUTES is unset or invalid.
+const DefaultGitHubAutoSyncMinutes = 15
+
+// loadGitHubAutoSyncInterval reads SCHIST_GITHUB_AUTO_SYNC_MINUTES. Anything
+// that isn't a whole number of minutes between 1 and 1440 (one day) falls back
+// to the default, with a warning.
+func loadGitHubAutoSyncInterval() time.Duration {
+	minutes := DefaultGitHubAutoSyncMinutes
+	if value := os.Getenv("SCHIST_GITHUB_AUTO_SYNC_MINUTES"); value != "" {
+		parsed, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil || parsed < 1 || parsed > 1440 {
+			log.Printf("WARN: SCHIST_GITHUB_AUTO_SYNC_MINUTES=%q is not a number of minutes from 1 to 1440; using %d",
+				value, DefaultGitHubAutoSyncMinutes)
+		} else {
+			minutes = parsed
+		}
+	}
+	return time.Duration(minutes) * time.Minute
 }
 
 func loadSecurityHeadersConfig() SecurityHeadersConfig {

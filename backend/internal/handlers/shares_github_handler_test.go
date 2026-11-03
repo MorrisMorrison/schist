@@ -185,9 +185,9 @@ func TestGitHub_NotConfigured(t *testing.T) {
 	assert.Equal(t, false, status["connected"])
 
 	w = env.do(t, http.MethodPost, "/api/github/sync", nil, "")
-	requireAPIError(t, w, http.StatusBadRequest, "VALIDATION_ERROR")
+	requireAPIError(t, w, http.StatusConflict, "INVALID_STATE")
 	w = env.do(t, http.MethodPut, "/api/github/config", `{"auto_sync":true}`, "")
-	requireAPIError(t, w, http.StatusBadRequest, "VALIDATION_ERROR")
+	requireAPIError(t, w, http.StatusConflict, "INVALID_STATE")
 
 	w = env.do(t, http.MethodPost, "/api/github/disconnect", nil, "")
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
@@ -240,10 +240,13 @@ func TestGitHub_EnabledWithoutClient(t *testing.T) {
 	assert.Equal(t, true, cfg["enabled"])
 	assert.Equal(t, "octo", cfg["owner"])
 
-	// Sync can't build a client without a token: an internal error whose
-	// cause stays in the log.
+	// Sync can't build a client without a token: set up again.
 	w = env.do(t, http.MethodPost, "/api/github/sync", nil, "")
-	requireAPIError(t, w, http.StatusInternalServerError, "INTERNAL_ERROR")
+	requireAPIError(t, w, http.StatusConflict, "INVALID_STATE")
+
+	// A malformed sync body is rejected before anything runs.
+	w = env.do(t, http.MethodPost, "/api/github/sync", `{`, "")
+	requireAPIError(t, w, http.StatusBadRequest, "INVALID_REQUEST")
 
 	w = env.do(t, http.MethodPut, "/api/github/config", `{`, "")
 	requireAPIError(t, w, http.StatusBadRequest, "INVALID_REQUEST")
@@ -276,6 +279,24 @@ func TestGitHub_ConnectionStatusWithEncryptedToken(t *testing.T) {
 		status := decode(t, w)
 		assert.Equal(t, true, status["token_exists"])
 		assert.Equal(t, false, status["connected"])
+
+		// Sync needs the token: SECRETS_LOCKED tells the UI to ask for an
+		// unlock (423, not 401, so it isn't taken for an expired session).
+		w = env.do(t, http.MethodPost, "/api/github/sync", nil, "")
+		requireAPIError(t, w, http.StatusLocked, "SECRETS_LOCKED")
+		w = env.do(t, http.MethodGet, "/api/github/config", nil, "")
+		require.Equal(t, http.StatusOK, w.Code)
+		cfg := decode(t, w)
+		assert.Equal(t, "SECRETS_LOCKED", cfg["last_sync_error_code"], "the failure is shown as the last sync status")
+		assert.NotEmpty(t, cfg["last_sync_error"])
+		assert.EqualValues(t, 15, cfg["auto_sync_interval_minutes"])
+	})
+
+	t.Run("setup while locked", func(t *testing.T) {
+		env := newAPIEnv(t, apiEnvOptions{})
+		w := env.do(t, http.MethodPost, "/api/github/setup", `{"token":"t","owner":"o","repo":"r"}`, "")
+		requireAPIError(t, w, http.StatusLocked, "SECRETS_LOCKED")
+		assert.False(t, env.svc.GitHubService.IsEnabled())
 	})
 
 	t.Run("store unlocked but token undecryptable", func(t *testing.T) {

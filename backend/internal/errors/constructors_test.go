@@ -29,6 +29,7 @@ func TestConstructors_StatusAndCode(t *testing.T) {
 		{"unavailable", NewUnavailableError("git"), http.StatusServiceUnavailable, ErrCodeUnavailable, "Service unavailable: git"},
 		{"operation failed", NewOperationFailedError("sync", "no remote"), http.StatusUnprocessableEntity, ErrCodeOperationFailed, "Operation failed: sync - no remote"},
 		{"invalid state", NewInvalidStateError("locked"), http.StatusConflict, ErrCodeInvalidState, "locked"},
+		{"secrets locked", NewSecretsLockedError(), http.StatusLocked, ErrCodeSecretsLocked, "Secret store is locked. Unlock secrets and try again."},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -45,6 +46,12 @@ func TestConstructors_StatusAndCode(t *testing.T) {
 	op := NewOperationFailedError("sync", "no remote")
 	assert.Equal(t, "no remote", op.Details["reason"])
 	assert.Equal(t, "git", NewUnavailableError("git").Details["service"])
+
+	diverged := NewSyncRemoteDivergedError("main")
+	assert.Equal(t, http.StatusConflict, diverged.HTTPStatus)
+	assert.Equal(t, ErrCodeSyncRemoteDiverged, diverged.Code)
+	assert.Equal(t, "main", diverged.Details["branch"])
+	assert.Contains(t, diverged.Message, `"main"`)
 }
 
 func TestWithDetails_NilMap(t *testing.T) {

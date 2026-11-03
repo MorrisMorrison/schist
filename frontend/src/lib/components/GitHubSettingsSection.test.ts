@@ -6,7 +6,7 @@ import { apiClient } from '#lib/api/client.ts';
 import { githubActions, githubStore } from '#lib/stores/github.svelte.ts';
 import type { GitHubConnectionStatus, GitHubSettings } from '#lib/api/types.ts';
 import GitHubSettingsSection from './GitHubSettingsSection.svelte';
-import { chooseSelectOption } from '#lib/test/select.ts';
+import { authenticateWithPasskey } from '#lib/utils/webauthn.ts';
 
 vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
@@ -18,9 +18,18 @@ vi.mock('#lib/api/client.ts', () => ({
 		syncToGitHub: vi.fn(),
 		disconnectGitHub: vi.fn(),
 		checkGitHealth: vi.fn(),
-		repairGitRepository: vi.fn()
+		repairGitRepository: vi.fn(),
+		getSecretsStatus: vi.fn(),
+		unlockWithPasskey: vi.fn(),
+		getPasskeyStatus: vi.fn()
 	}
 }));
+
+vi.mock('#lib/utils/webauthn.ts', async (importOriginal) =>
+	(await import('#lib/test/webauthn-mock.ts')).mockWebAuthn(importOriginal)
+);
+
+const apiError = (error: string, code: string) => new Error(JSON.stringify({ error, code }));
 
 const settings: GitHubSettings = {
 	enabled: true,
@@ -47,10 +56,7 @@ async function seedConnected(overrides: Partial<GitHubSettings> = {}) {
 async function resetGitHubStore() {
 	// The store has no reset; disconnecting with an empty response clears the
 	// settings, status, connection test and last sync result.
-	vi.mocked(apiClient.disconnectGitHub).mockResolvedValue({
-		settings: null,
-		connection: null
-	} as never);
+	vi.mocked(apiClient.disconnectGitHub).mockResolvedValue({} as never);
 	await githubActions.disconnect();
 	githubActions.clearError();
 	githubActions.clearHealthStatus();
@@ -73,6 +79,7 @@ describe('GitHubSettingsSection', () => {
 		vi.clearAllMocks();
 		vi.mocked(apiClient.getGitHubSettings).mockResolvedValue(null as never);
 		vi.mocked(apiClient.getGitHubConnectionStatus).mockResolvedValue(disconnected);
+		vi.mocked(apiClient.getSecretsStatus).mockResolvedValue({ unlocked: true } as never);
 	});
 
 	afterEach(async () => {
@@ -111,7 +118,12 @@ describe('GitHubSettingsSection', () => {
 			await fillSetupForm();
 			expect(input('github-test-connection-button')).toBeEnabled();
 			await userEvent.click(input('github-test-connection-button'));
-			expect(apiClient.testGitHubConnection).toHaveBeenCalledWith('ghp_token', 'octo', 'wiki');
+			expect(apiClient.testGitHubConnection).toHaveBeenCalledWith(
+				'ghp_token',
+				'octo',
+				'wiki',
+				'main'
+			);
 			expect(await screen.findByTestId('github-connection-test-message')).toHaveTextContent(
 				'Repository is accessible'
 			);
@@ -150,32 +162,22 @@ describe('GitHubSettingsSection', () => {
 			expect(apiClient.setupGitHub).not.toHaveBeenCalled();
 		});
 
-		it('validates the sync interval in automatic mode', async () => {
+		it('explains that a new repository or branch is fine', () => {
 			render(GitHubSettingsSection);
-			await fillSetupForm();
-			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
-			const interval = screen.getByLabelText('Sync Interval (minutes)');
-			await userEvent.clear(interval);
-			await userEvent.type(interval, '2');
-			input('github-setup-button').closest('form')!.noValidate = true;
-			await userEvent.click(input('github-setup-button'));
-			expect(
-				await screen.findByText('Sync interval must be at least 5 minutes')
-			).toBeInTheDocument();
+			expect(screen.getByText(/the first sync creates it/)).toBeInTheDocument();
+			expect(screen.getByLabelText('Back up every 15 minutes')).not.toBeChecked();
 		});
 
 		it('sets up GitHub with the entered values', async () => {
 			vi.mocked(apiClient.setupGitHub).mockResolvedValue({
-				settings: { ...settings, auto_sync: true, branch: 'docs' },
-				connection: connected
+				status: { ...settings, auto_sync: true, sync_on_save: true, branch: 'docs', ...connected }
 			} as never);
 			render(GitHubSettingsSection);
 			await fillSetupForm();
 			await userEvent.clear(input('github-branch-input'));
 			await userEvent.type(input('github-branch-input'), 'docs');
-			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
-			await userEvent.click(screen.getByLabelText("Create repository if it doesn't exist"));
-			expect(screen.getByLabelText('Make repository private')).toBeChecked();
+			await userEvent.click(screen.getByLabelText('Back up after every change'));
+			await userEvent.click(screen.getByLabelText('Back up every 15 minutes'));
 			await userEvent.click(input('github-setup-button'));
 
 			expect(apiClient.setupGitHub).toHaveBeenCalledWith({
@@ -184,7 +186,7 @@ describe('GitHubSettingsSection', () => {
 				repo: 'wiki',
 				branch: 'docs',
 				auto_sync: true,
-				sync_on_save: false
+				sync_on_save: true
 			});
 			expect(await screen.findByTestId('github-status-connected')).toBeInTheDocument();
 			expect(input('github-setup-button')).toHaveTextContent('Update Settings');
@@ -199,6 +201,62 @@ describe('GitHubSettingsSection', () => {
 			await userEvent.click(input('github-setup-button'));
 			expect(await screen.findByRole('alert')).toHaveTextContent('Repository not found');
 			expect(console.error).toHaveBeenCalledWith('Error setting up github');
+		});
+
+		it('asks to unlock when the server says the secrets are locked, then retries setup', async () => {
+			vi.mocked(apiClient.setupGitHub)
+				.mockRejectedValueOnce(apiError('Secret store is locked.', 'SECRETS_LOCKED'))
+				.mockResolvedValueOnce({ status: { ...settings, ...connected } } as never);
+			vi.mocked(apiClient.getSecretsStatus).mockResolvedValue({ unlocked: false } as never);
+			vi.mocked(authenticateWithPasskey).mockResolvedValue({
+				credentialId: 'c',
+				authTicket: 't'
+			} as never);
+			vi.mocked(apiClient.unlockWithPasskey).mockResolvedValue(undefined as never);
+			vi.mocked(apiClient.getPasskeyStatus).mockResolvedValue({ isUnlocked: true } as never);
+
+			render(GitHubSettingsSection);
+			await fillSetupForm();
+			await userEvent.click(input('github-setup-button'));
+
+			expect(
+				await screen.findByRole('heading', { name: 'Unlock secrets to continue' })
+			).toBeInTheDocument();
+			expect(apiClient.getSecretsStatus).toHaveBeenCalled();
+			expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+			vi.mocked(apiClient.getSecretsStatus).mockResolvedValue({ unlocked: true } as never);
+			await userEvent.click(screen.getByRole('button', { name: 'Unlock with Passkey' }));
+			await waitFor(() => expect(apiClient.setupGitHub).toHaveBeenCalledTimes(2), {
+				timeout: 4000
+			});
+			expect(await screen.findByTestId('github-status-connected')).toBeInTheDocument();
+		});
+
+		it('drops the retry when the unlock is cancelled', async () => {
+			vi.mocked(apiClient.setupGitHub).mockRejectedValue(
+				apiError('Secret store is locked.', 'SECRETS_LOCKED')
+			);
+			render(GitHubSettingsSection);
+			await fillSetupForm();
+			await userEvent.click(input('github-setup-button'));
+			await screen.findByRole('heading', { name: 'Unlock secrets to continue' });
+			await userEvent.keyboard('{Escape}');
+			await waitFor(() =>
+				expect(
+					screen.queryByRole('heading', { name: 'Unlock secrets to continue' })
+				).not.toBeInTheDocument()
+			);
+			expect(apiClient.setupGitHub).toHaveBeenCalledTimes(1);
+		});
+
+		it('refreshes the secrets and GitHub status when the page regains focus', async () => {
+			render(GitHubSettingsSection);
+			vi.clearAllMocks();
+			vi.mocked(apiClient.getSecretsStatus).mockResolvedValue({ unlocked: false } as never);
+			window.dispatchEvent(new Event('focus'));
+			await waitFor(() => expect(apiClient.getSecretsStatus).toHaveBeenCalled());
+			expect(apiClient.getGitHubSettings).toHaveBeenCalledWith(true);
 		});
 
 		it('explains that sync needs a connection when it drops on the Sync tab', async () => {
@@ -244,22 +302,75 @@ describe('GitHubSettingsSection', () => {
 		});
 
 		it('shows "Never" for a missing or epoch last sync and the last sync error', async () => {
-			await seedConnected({ last_sync: '1970-01-01T00:00:00Z', last_sync_error: 'push rejected' });
+			await seedConnected({
+				last_sync: '1970-01-01T00:00:00Z',
+				last_sync_attempt: '2024-05-03T08:00:00Z',
+				last_sync_error: 'push rejected',
+				last_sync_error_code: 'SERVICE_UNAVAILABLE'
+			});
 			render(GitHubSettingsSection);
-			expect(screen.getByText('Never')).toBeInTheDocument();
-			expect(screen.getByText('push rejected')).toBeInTheDocument();
+			expect(input('github-last-sync')).toHaveTextContent('Never');
+			expect(input('github-last-sync-error')).toHaveTextContent('push rejected');
+			expect(input('github-last-sync-error')).toHaveTextContent(
+				new Date('2024-05-03T08:00:00Z').toLocaleString()
+			);
+			expect(screen.queryByTestId('github-diverged-notice')).not.toBeInTheDocument();
 		});
 
-		it('updates branch and backup mode', async () => {
+		it('shows the server interval and updates the backup options', async () => {
+			await seedConnected({ auto_sync_interval_minutes: 30 });
 			vi.mocked(apiClient.updateGitHubSettings).mockResolvedValue(undefined as never);
 			render(GitHubSettingsSection);
-			await chooseSelectOption(screen.getByLabelText('Backup Mode'), 'Automatic');
+			await userEvent.click(screen.getByLabelText('Back up every 30 minutes'));
+			await userEvent.click(screen.getByLabelText('Back up after every change'));
 			expect(input('github-setup-button')).toBeEnabled();
 			await userEvent.click(input('github-setup-button'));
 			expect(apiClient.updateGitHubSettings).toHaveBeenCalledWith({
 				auto_sync: true,
+				sync_on_save: true,
 				branch: 'main'
 			});
+		});
+
+		it('offers to replace a diverged branch only after confirming', async () => {
+			vi.mocked(apiClient.syncToGitHub)
+				.mockRejectedValueOnce(
+					apiError('The GitHub branch "main" has other commits.', 'SYNC_REMOTE_DIVERGED')
+				)
+				.mockResolvedValueOnce({
+					success: true,
+					message: 'GitHub sync completed successfully',
+					timestamp: '2024-05-02T12:00:00Z'
+				});
+			render(GitHubSettingsSection);
+			await userEvent.click(input('github-sync-tab'));
+			await userEvent.click(input('github-sync-now-button'));
+
+			expect(await screen.findByTestId('github-diverged-notice')).toBeInTheDocument();
+			expect(apiClient.syncToGitHub).toHaveBeenCalledWith({ replaceRemote: false });
+
+			await userEvent.click(input('github-replace-remote-button'));
+			const dialog = await screen.findByTestId('confirm-dialog');
+			expect(dialog).toHaveTextContent('octo/wiki');
+			await userEvent.click(screen.getByRole('button', { name: 'Replace branch' }));
+
+			await waitFor(() =>
+				expect(apiClient.syncToGitHub).toHaveBeenLastCalledWith({ replaceRemote: true })
+			);
+			expect(await screen.findByText('Last Sync Successful')).toBeInTheDocument();
+			expect(screen.queryByTestId('github-diverged-notice')).not.toBeInTheDocument();
+		});
+
+		it('shows the replace option for a diverged branch found by a background sync', async () => {
+			await seedConnected({
+				last_sync_error: 'The GitHub branch "main" has other commits.',
+				last_sync_error_code: 'SYNC_REMOTE_DIVERGED'
+			});
+			render(GitHubSettingsSection);
+			expect(input('github-diverged-notice')).toBeInTheDocument();
+			await userEvent.click(input('github-replace-remote-button'));
+			await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+			expect(apiClient.syncToGitHub).not.toHaveBeenCalled();
 		});
 
 		it('logs when updating fails', async () => {
@@ -276,8 +387,7 @@ describe('GitHubSettingsSection', () => {
 
 		it('disconnects and returns to the setup tab', async () => {
 			vi.mocked(apiClient.disconnectGitHub).mockResolvedValue({
-				settings: { ...settings, enabled: false },
-				connection: disconnected
+				status: { ...settings, enabled: false, ...disconnected }
 			} as never);
 			render(GitHubSettingsSection);
 			await userEvent.click(input('github-sync-tab'));
@@ -328,13 +438,16 @@ describe('GitHubSettingsSection', () => {
 			expect(await screen.findByText('Last Sync Successful')).toBeInTheDocument();
 		});
 
-		it('logs when syncing fails', async () => {
-			vi.mocked(apiClient.syncToGitHub).mockRejectedValue(new Error('failed to push to github'));
+		it('logs when syncing fails and shows the server message', async () => {
+			vi.mocked(apiClient.syncToGitHub).mockRejectedValue(
+				apiError('Service unavailable: GitHub', 'SERVICE_UNAVAILABLE')
+			);
 			render(GitHubSettingsSection);
 			await userEvent.click(input('github-sync-tab'));
 			await userEvent.click(input('github-sync-now-button'));
 			await waitFor(() => expect(console.error).toHaveBeenCalledWith('Error syncing with github'));
-			expect(githubStore.error).toMatch(/Could not push changes/);
+			expect(githubStore.error).toBe('Service unavailable: GitHub');
+			expect(screen.getByRole('alert')).toHaveTextContent('Service unavailable: GitHub');
 		});
 
 		it('checks repository health', async () => {

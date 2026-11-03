@@ -43,7 +43,7 @@ func TestSecrets_LockedStoreRejectsAccess(t *testing.T) {
 	for _, r := range routes {
 		t.Run(r.method+" "+r.target, func(t *testing.T) {
 			w := env.do(t, r.method, r.target, r.body, env.token)
-			requireAPIError(t, w, http.StatusUnauthorized, "UNAUTHORIZED")
+			requireAPIError(t, w, http.StatusLocked, "SECRETS_LOCKED")
 		})
 	}
 
@@ -95,7 +95,7 @@ func TestSecrets_CRUD(t *testing.T) {
 	w = env.do(t, http.MethodPost, "/api/secrets/lock", nil, env.token)
 	require.Equal(t, http.StatusOK, w.Code)
 	w = env.do(t, http.MethodGet, "/api/secrets", nil, env.token)
-	requireAPIError(t, w, http.StatusUnauthorized, "UNAUTHORIZED")
+	requireAPIError(t, w, http.StatusLocked, "SECRETS_LOCKED")
 }
 
 func TestSecrets_Validation(t *testing.T) {

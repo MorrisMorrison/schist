@@ -22,6 +22,8 @@ const instructions = `Schist is a markdown wiki. Every page is a markdown file i
 - Link pages with [[Page title]] wiki links; tags come from the "tags" list and inline #hashtags.
 - To change an existing page, prefer "append_to_document" (add notes) or "edit_document" (replace an exact
   snippet or a section under a heading) over "update_document", which replaces the whole content.
+- "move_document" and "move_folder" move or rename; links keep working because they point at titles.
+- "delete_document" and "delete_folder" move things to /trash; undo by moving them back. Nothing is removed for good.
 - Every write is committed to git, so earlier versions can be restored in Schist.
 - Secret placeholders like {{secret:name}} are never resolved here; keep them as they are.`
 
@@ -60,6 +62,7 @@ func newMCPServer(t *tools, write bool) *mcp.Server {
 	t.registerRead(server)
 	if write {
 		t.registerWrite(server)
+		t.registerManage(server)
 	}
 	return server
 }

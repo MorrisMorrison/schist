@@ -101,17 +101,36 @@ func TestTools_ReadOnlyServerHidesWriteTools(t *testing.T) {
 
 	assert.Equal(t, []string{"get_backlinks", "list_folder", "list_tags", "read_document", "search"},
 		toolNames(t, connect(t, svc, false)))
-	assert.Equal(t, []string{"append_to_document", "create_document", "edit_document", "get_backlinks", "import_documents", "list_folder",
-		"list_tags", "read_document", "search", "update_document"}, toolNames(t, connect(t, svc, true)))
+	assert.Equal(t, []string{"append_to_document", "create_document", "delete_document", "delete_folder", "edit_document", "get_backlinks", "import_documents", "list_folder",
+		"list_tags", "move_document", "move_folder", "read_document", "search", "update_document"}, toolNames(t, connect(t, svc, true)))
 }
 
 func TestTools_ReadToolsAreMarkedReadOnly(t *testing.T) {
-	res, err := connect(t, newTestServices(t), true).ListTools(context.Background(), nil)
+	svc := newTestServices(t)
+	readTools := map[string]bool{}
+	for _, name := range toolNames(t, connect(t, svc, false)) {
+		readTools[name] = true
+	}
+	res, err := connect(t, svc, true).ListTools(context.Background(), nil)
 	require.NoError(t, err)
 	for _, tool := range res.Tools {
 		readOnly := tool.Annotations != nil && tool.Annotations.ReadOnlyHint
-		write := strings.Contains(tool.Name, "document") && tool.Name != "read_document"
-		assert.Equal(t, !write, readOnly, tool.Name)
+		assert.Equal(t, readTools[tool.Name], readOnly, tool.Name)
+	}
+}
+
+func TestTools_DestructiveToolsSaySo(t *testing.T) {
+	res, err := connect(t, newTestServices(t), true).ListTools(context.Background(), nil)
+	require.NoError(t, err)
+	for _, tool := range res.Tools {
+		if !strings.HasPrefix(tool.Name, "delete_") {
+			continue
+		}
+		require.NotNil(t, tool.Annotations, tool.Name)
+		require.NotNil(t, tool.Annotations.DestructiveHint, tool.Name)
+		assert.True(t, *tool.Annotations.DestructiveHint, tool.Name)
+		assert.True(t, strings.HasPrefix(tool.Description, "Destructive:"), tool.Name)
+		assert.Contains(t, tool.Description, "trash", tool.Name)
 	}
 }
 

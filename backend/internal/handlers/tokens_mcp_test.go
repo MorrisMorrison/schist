@@ -160,7 +160,7 @@ func TestMCP_OverHTTPWithTokens(t *testing.T) {
 
 	write, err := mcpSession(t, env, writeToken)
 	require.NoError(t, err)
-	assert.Len(t, mcpToolNames(t, write), 10)
+	assert.Len(t, mcpToolNames(t, write), 14)
 
 	res, err := write.CallTool(context.Background(), &mcp.CallToolParams{
 		Name: "create_document", Arguments: map[string]any{"path": "/notes/from-agent", "content": "Written over MCP about zeppelins."},
@@ -182,14 +182,14 @@ func TestMCP_SignedInSessionGetsAllTools(t *testing.T) {
 
 	cs, err := mcpSession(t, env, env.token)
 	require.NoError(t, err)
-	assert.Len(t, mcpToolNames(t, cs), 10)
+	assert.Len(t, mcpToolNames(t, cs), 14)
 }
 
 func TestMCP_OpenWithoutAuthAndOffByDefault(t *testing.T) {
 	open := newAPIEnv(t, apiEnvOptions{mcpEnabled: true})
 	cs, err := mcpSession(t, open, "")
 	require.NoError(t, err, "auth disabled: no token needed")
-	assert.Len(t, mcpToolNames(t, cs), 10)
+	assert.Len(t, mcpToolNames(t, cs), 14)
 
 	off := newAPIEnv(t, apiEnvOptions{})
 	assert.Equal(t, http.StatusNotFound, off.do(t, http.MethodPost, "/api/mcp", `{}`, "").Code)

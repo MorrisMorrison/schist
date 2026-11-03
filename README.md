@@ -143,12 +143,15 @@ Other clients that support remote MCP servers take the same URL and `Authorizati
 | `update_document` | Replace a page's content, title or tags |
 | `append_to_document` | Add text at the end of a page or of a section |
 | `edit_document` | Replace an exact snippet or a whole section, without resending the page |
+| `move_document`, `move_folder` | Move or rename a page or a folder |
+| `delete_document`, `delete_folder` | Move a page or a folder to the trash (undo by moving it back) |
 | `import_documents` | Import markdown files (e.g. from an Obsidian vault), keeping folders and converting Obsidian syntax |
 
 **Tokens:**
-- **Access level:** a *read-only* token only gets the first five tools; a *read and write* token gets all ten.
+- **Access level:** a *read-only* token only gets the first five tools; a *read and write* token gets all fourteen.
 - **Git history:** every write is a git commit, so you can restore earlier versions.
-- **What tokens can't reach:** there is no delete tool, and tokens can't use secrets, passkeys, users, shares or settings.
+- **Deleting** moves pages and folders to `/trash`; nothing is removed for good over MCP.
+- **What tokens can't reach:** secrets, passkeys, users, shares and settings.
 - **Without authentication** (`SCHIST_AUTH_ENABLED=false`), the endpoint needs no token.
 
 ## Your data

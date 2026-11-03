@@ -158,3 +158,40 @@ func TestConvertObsidianMarkdown_PluginBlocksAndBlockIDs(t *testing.T) {
 	assert.Equal(t, "Intro\n\nNext\n", out)
 	assert.ElementsMatch(t, []string{"1 × removed Buttons query", "2 × removed block ID"}, notes)
 }
+
+func TestImportPageSlug(t *testing.T) {
+	tests := []struct {
+		name, relPath, title, want string
+	}{
+		{"file name, not the heading", "devices/router.md", "router — main gateway", "router"},
+		{"spaces and case", "notes/Setup Guide.md", "Setting things up", "setup-guide"},
+		{"file name without letters falls back to the title", "???.md", "Question marks", "question-marks"},
+		{"nothing usable at all", "???.md", "", "untitled"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, importPageSlug(tt.relPath, tt.title))
+		})
+	}
+}
+
+func TestRewriteImportLinks_FallsBackToTheWiki(t *testing.T) {
+	batch := importLinkIndex{}
+	batch.add("devices/switch.md", "switch — core")
+
+	wiki := importLinkIndex{}
+	wiki.addPage("/lab/devices/router", "router — main gateway", "/lab")
+	wiki.addPage("/notes/setup-guide", "Setting things up", "/lab")
+	wiki.addPage("/lab/devices/switch", "Old switch page", "/lab")
+
+	out, unresolved := rewriteImportLinks(strings.Join([]string{
+		"[[router]] [[devices/router|gateway]] [[/lab/devices/router]]",
+		"[[Setup Guide]] [[setting things up]] [[switch]] [[nowhere]]",
+	}, "\n"), "devices", batch, wiki)
+
+	assert.Equal(t, strings.Join([]string{
+		"[[router — main gateway]] [[router — main gateway|gateway]] [[router — main gateway]]",
+		"[[Setting things up]] [[Setting things up]] [[switch — core]] [[nowhere]]",
+	}, "\n"), out, "the import's own files win over pages already in the wiki")
+	assert.Equal(t, 1, unresolved)
+}

@@ -258,7 +258,7 @@ func TestDocumentService_ImportModes(t *testing.T) {
 			mustCreate(t, ds, "/my-note", "My Note", "original")
 
 			result, err := ds.ImportDocuments(
-				multipartFiles(t, map[string]string{"x.md": "# My Note\n\nimported"}),
+				multipartFiles(t, map[string]string{"my-note.md": "# My Note\n\nimported"}),
 				&models.ImportOptions{TargetPath: "/", OverwriteMode: tt.mode},
 			)
 			require.NoError(t, err)

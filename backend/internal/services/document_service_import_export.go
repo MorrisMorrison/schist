@@ -154,6 +154,10 @@ func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models
 	}
 	var queue []pending
 	links := importLinkIndex{}
+	wikiLinks, err := d.importWikiLinkIndex(options.TargetPath)
+	if err != nil {
+		return nil, err
+	}
 	taken := map[string]bool{}
 	for _, file := range files {
 		relPath, err := cleanImportPath(file.Path)
@@ -180,13 +184,17 @@ func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models
 
 		note := parseImportedMarkdown(string(file.Content), relPath)
 		folder := strings.Trim(strings.Trim(options.TargetPath, "/")+"/"+importFolderPath(slashpath.Dir(relPath)), "/")
-		target, err := d.determineFinalPath(utils.GenerateSlug(note.title), folder, options.OverwriteMode, taken)
+		target, err := d.determineFinalPath(importPageSlug(relPath, note.title), folder, options.OverwriteMode, taken)
 		if err != nil {
 			result.Failed = append(result.Failed, models.ImportError{OriginalName: relPath, Error: importErrorMessage(relPath, err)})
 			continue
 		}
 		taken[target.finalPath] = true
-		links.add(relPath, note.title)
+		if !target.shouldSkip {
+			// A skipped file keeps the page already there; links find that
+			// page through the wiki index.
+			links.add(relPath, note.title)
+		}
 		queue = append(queue, pending{relPath: relPath, note: note, target: target})
 	}
 
@@ -194,10 +202,10 @@ func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models
 	var written []string
 	for _, p := range queue {
 		imported := models.ImportedDocument{OriginalName: p.relPath, FinalPath: p.target.finalPath, Title: p.note.title}
-		body, unresolved := rewriteImportLinks(p.note.body, slashpath.Dir(p.relPath), links)
+		body, unresolved := rewriteImportLinks(p.note.body, slashpath.Dir(p.relPath), links, wikiLinks)
 		imported.Notes = p.note.notes
 		if unresolved > 0 {
-			imported.Notes = append(imported.Notes, plural(unresolved, "link not found in this import (kept by name)"))
+			imported.Notes = append(imported.Notes, plural(unresolved, "link not found in this import or the wiki (kept by name)"))
 		}
 		if p.target.shouldSkip {
 			imported.Notes = append(imported.Notes, "a document already exists here")
@@ -243,6 +251,20 @@ func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models
 	result.SkippedCount = len(result.Skipped)
 	result.FailedCount = len(result.Failed)
 	return result, nil
+}
+
+// importWikiLinkIndex indexes the pages already in the wiki, so links to notes
+// outside the import (an earlier batch, a page written in Schist) resolve.
+func (d *DocumentService) importWikiLinkIndex(targetPath string) (importLinkIndex, error) {
+	documents, err := d.ListDocuments()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list documents for import links: %w", err)
+	}
+	idx := importLinkIndex{}
+	for _, document := range documents {
+		idx.addPage(document.MetaData.Path, document.MetaData.Title, targetPath)
+	}
+	return idx, nil
 }
 
 // cleanImportPath turns an upload or zip entry name into a clean relative

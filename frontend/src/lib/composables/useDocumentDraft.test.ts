@@ -110,6 +110,29 @@ describe('useDocumentDraft', () => {
 		expect(update).toHaveBeenLastCalledWith('notes/roadmap', expect.anything(), 'auto');
 	});
 
+	it('keeps a path that differs from the heading while the heading is unchanged', async () => {
+		// An imported note lives at its file name, not at its heading's slug.
+		const draft = useDocumentDraft({
+			document: makeDoc('# router — main gateway\n\nPorts', '/devices/router')
+		});
+		draft.setContent('# router — main gateway\n\nPorts and VLANs');
+		expect(draft.targetPath).toBe('devices/router');
+
+		await draft.save();
+		expect(exists).not.toHaveBeenCalled();
+		expect(update).toHaveBeenLastCalledWith(
+			'devices/router',
+			expect.objectContaining({
+				metaData: expect.objectContaining({ path: 'devices/router', slug: 'router' })
+			}),
+			'manual'
+		);
+		expect(draft.path).toBe('devices/router');
+
+		draft.setContent('# Gateway\n\nPorts and VLANs');
+		expect(draft.targetPath).toBe('devices/gateway');
+	});
+
 	it('refuses a rename onto an existing document', async () => {
 		exists.mockResolvedValue(true);
 		const draft = useDocumentDraft({ document: makeDoc() });

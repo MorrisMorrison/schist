@@ -323,11 +323,14 @@ func TestDocumentService_ImportTargetsAndTitles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 3, result.ImportedCount, "failed: %+v", result.Failed)
 
-	paths := map[string]string{}
+	paths, titles := map[string]string{}, map[string]string{}
 	for _, s := range result.Success {
 		paths[s.OriginalName] = s.FinalPath
+		titles[s.OriginalName] = s.Title
 	}
-	assert.Equal(t, "/imports/from-heading", paths["heading.md"])
+	// Paths come from the file name, titles from the heading.
+	assert.Equal(t, "/imports/heading", paths["heading.md"])
+	assert.Equal(t, "From Heading", titles["heading.md"])
 	assert.Equal(t, "/imports/no-title", paths["no-title.MD"])
 	assert.Equal(t, "/imports/blank", paths["blank.md"])
 
@@ -336,7 +339,7 @@ func TestDocumentService_ImportTargetsAndTitles(t *testing.T) {
 			&models.ImportOptions{})
 		require.NoError(t, err)
 		require.Len(t, result.Success, 1)
-		assert.Equal(t, "/root-note", result.Success[0].FinalPath)
+		assert.Equal(t, "/root", result.Success[0].FinalPath)
 	})
 
 	t.Run("invalid target path fails per file without writing", func(t *testing.T) {

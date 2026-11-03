@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/MorrisMorrison/schist/internal/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -288,14 +289,32 @@ func plural(n int, label string) string {
 	return fmt.Sprintf("%d × %s", n, label)
 }
 
-// importLinkIndex finds the Schist title of a link target among the files of
-// one import: by relative path, file name or title, all case-insensitive.
+// importLinkIndex finds the Schist title of a link target: by relative path,
+// file name or title, all case-insensitive. One index holds the files of the
+// import, another the pages already in the wiki (see rewriteImportLinks).
 type importLinkIndex map[string]string
 
+// add indexes a file of the import by its path inside the import.
 func (idx importLinkIndex) add(relPath, title string) {
 	noExt := strings.ToLower(strings.TrimSuffix(relPath, path.Ext(relPath)))
-	for _, key := range []string{noExt, path.Base(noExt), strings.ToLower(title)} {
-		if _, taken := idx[key]; !taken {
+	idx.addKeys(title, noExt, path.Base(noExt), utils.GenerateSlug(path.Base(noExt)), strings.ToLower(title))
+}
+
+// addPage indexes a page already in the wiki by its full path, its path
+// relative to the import's target folder, its page name and its title.
+func (idx importLinkIndex) addPage(pagePath, title, targetPath string) {
+	full := strings.ToLower(strings.Trim(pagePath, "/"))
+	keys := []string{full}
+	if target := strings.ToLower(strings.Trim(targetPath, "/")); target != "" && strings.HasPrefix(full, target+"/") {
+		keys = append(keys, strings.TrimPrefix(full, target+"/"))
+	}
+	keys = append(keys, path.Base(full), strings.ToLower(title))
+	idx.addKeys(title, keys...)
+}
+
+func (idx importLinkIndex) addKeys(title string, keys ...string) {
+	for _, key := range keys {
+		if _, taken := idx[key]; !taken && key != "" {
 			idx[key] = title
 		}
 	}
@@ -304,11 +323,23 @@ func (idx importLinkIndex) add(relPath, title string) {
 func (idx importLinkIndex) lookup(target string) (string, bool) {
 	t := strings.ToLower(strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(target), ".md")))
 	t = strings.TrimPrefix(t, "/")
-	if title, ok := idx[t]; ok {
-		return title, true
+	for _, key := range []string{t, path.Base(t), utils.GenerateSlug(path.Base(t))} {
+		if title, ok := idx[key]; ok {
+			return title, true
+		}
 	}
-	title, ok := idx[path.Base(t)]
-	return title, ok
+	return "", false
+}
+
+// lookupImportLink asks each index in turn, so the import's own files win
+// over pages already in the wiki.
+func lookupImportLink(indexes []importLinkIndex, target string) (string, bool) {
+	for _, idx := range indexes {
+		if title, ok := idx.lookup(target); ok {
+			return title, true
+		}
+	}
+	return "", false
 }
 
 var (
@@ -319,8 +350,8 @@ var (
 // rewriteImportLinks turns [[file#heading|alias]] and [text](file.md) links
 // into [[Title|text]] links that resolve in Schist. relDir is the directory of
 // the note inside the import, for relative markdown links. Inline code and
-// fenced code are left alone.
-func rewriteImportLinks(body, relDir string, idx importLinkIndex) (string, int) {
+// fenced code are left alone. Targets are looked up in indexes in order.
+func rewriteImportLinks(body, relDir string, indexes ...importLinkIndex) (string, int) {
 	unresolved := 0
 	var out strings.Builder
 	for _, seg := range splitFences(body) {
@@ -347,7 +378,7 @@ func rewriteImportLinks(body, relDir string, idx importLinkIndex) (string, int) 
 				}
 				return strings.TrimSpace(heading)
 			}
-			title, ok := idx.lookup(target)
+			title, ok := lookupImportLink(indexes, target)
 			if !ok {
 				unresolved++
 				title = path.Base(target)
@@ -369,9 +400,9 @@ func rewriteImportLinks(body, relDir string, idx importLinkIndex) (string, int) 
 			}
 			target = strings.ReplaceAll(target, "%20", " ")
 			resolved := path.Clean(path.Join(relDir, target))
-			title, ok := idx.lookup(resolved)
+			title, ok := lookupImportLink(indexes, resolved)
 			if !ok {
-				title, ok = idx.lookup(target)
+				title, ok = lookupImportLink(indexes, target)
 			}
 			if !ok {
 				unresolved++
@@ -404,6 +435,17 @@ func unmaskInlineCode(text string, spans []string) string {
 		fmt.Sscanf(importMaskedMarker.FindStringSubmatch(m)[1], "%d", &i)
 		return spans[i]
 	})
+}
+
+// importPageSlug is the last path segment of an imported note: its file name,
+// as in Obsidian, where `router.md` is linked as [[router]] whatever its
+// heading says. A file name with nothing usable in it falls back to the title.
+func importPageSlug(relPath, title string) string {
+	name := strings.TrimSuffix(path.Base(relPath), path.Ext(relPath))
+	if slug := utils.GenerateSlug(name); slug != "untitled" || strings.EqualFold(name, "untitled") {
+		return slug
+	}
+	return utils.GenerateSlug(title)
 }
 
 // importFolderPath maps a folder of the import to a Schist path segment by

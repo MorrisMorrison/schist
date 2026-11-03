@@ -394,13 +394,14 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 
 **What the import does**
 - **Folders:** kept. Hidden folders lose their dot (`.agents` becomes `agents`), and folder names become slugs. Tool folders (`.obsidian`, `.git`, `.trash`) and hidden files are skipped. Other non-markdown files inside a folder or zip are skipped too.
+- **Page paths** come from the file name, as in Obsidian: `devices/router.md` becomes `/devices/router`, whatever its heading says. The title comes from the front matter `title`, else the first `# heading`, else the file name. Editing the page keeps that path until its heading changes.
 - **Front matter:** `title`, `tags` (a list or a string, with a leading `#` removed) and `created`/`updated` are kept. Other keys are dropped. Inline `#tags` in the note are added to its tags.
 - **Removed plugin syntax:** Dataview, DataviewJS and Tasks queries, inline Dataview, Templater tags, `%% comments %%`, block IDs and Buttons or Meta Bind blocks.
 - **Converted:** callouts become a bold label in the quote. Note embeds `![[x]]` become links; embedded images and other files aren't imported.
-- **Links between the imported files** are rewritten to `[[Title]]`, whether they're `[[file]]`, `[[folder/file]]`, `[[file#heading]]` (shown as `file › heading`), `[[file\|alias]]` inside tables (still escaped), or markdown links to `.md` files.
+- **Links** are rewritten to `[[Title]]`, whether they're `[[file]]`, `[[folder/file]]`, `[[file#heading]]` (shown as `file › heading`), `[[file\|alias]]` inside tables (still escaped), or markdown links to `.md` files. A target is looked up among the imported files first, then among the pages already in the wiki (by path, file name or title), so links between import batches resolve.
 - **One git commit** holds the whole import. Backlinks are updated for every new page.
 
-**Response:** `{total_files, imported_count, skipped_count, failed_count, success, skipped, failed}`. Each entry in `success` and `skipped` has `original_name` (the path inside the import), `final_path`, `title` and `notes`. The notes list what was changed or dropped (`dropped front matter: status`, `2 × converted callout`, `1 × link not found in this import (kept by name)`) or why a file was skipped.
+**Response:** `{total_files, imported_count, skipped_count, failed_count, success, skipped, failed}`. Each entry in `success` and `skipped` has `original_name` (the path inside the import), `final_path`, `title` and `notes`. The notes list what was changed or dropped (`dropped front matter: status`, `2 × converted callout`, `1 × link not found in this import or the wiki (kept by name)`) or why a file was skipped.
 
 ### MCP (Model Context Protocol)
 

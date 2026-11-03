@@ -47,6 +47,7 @@ A lightweight, self-hosted markdown wiki with Obsidian-style features in the bro
 - **Plain markdown on disk:** one `.md` file per page with YAML front matter, organised in folders. No database: easy to back up, easy to leave.
 - **Linked notes:** `[[wiki links]]` with backlinks, tags, full-text search and a quick switcher.
 - **Editor:** one page that switches between reading and editing in place (<kbd>Ctrl/Cmd</kbd> + <kbd>E</kbd>), with the markdown shown in the reading column and typography, a formatting toolbar, a focus mode, image uploads and page templates.
+- **Diagrams:** ` ```mermaid ` code blocks render as [Mermaid](https://mermaid.js.org) diagrams, with a switch to show the code. Mermaid loads only on pages that have a diagram.
 - **History:** every save is a git commit. Browse a page's versions and restore any of them, with optional backup to a GitHub repository.
 - **Sharing:** public read-only links that expire.
 - **Accounts:** passwordless login with passkeys (WebAuthn), invite links for new users, and an admin role for user management.

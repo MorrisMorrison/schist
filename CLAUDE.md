@@ -22,6 +22,7 @@ Schist is a self-hosted markdown wiki. A Go (Gin) API stores documents as plain 
 | `e2e/` | Playwright suite (`tests/`, page objects in `pages/`, `fixtures/`) |
 | `http/` | `.http` request files for every API area (REST Client / JetBrains) |
 | `docs/` | API, configuration, CI, design and development docs |
+| `docs-site/` | The docs website (Astro + Starlight, GitHub Pages). `scripts/sync-docs.mjs` builds its pages from `docs/*.md`, `README.md` and `CONTRIBUTING.md` |
 
 ## Commands
 Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCHAIN=auto` fetches it), Node 24 (what CI uses), and Docker for the e2e suite.
@@ -41,6 +42,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 | Secret scan | `make secret-scan` (gitleaks) |
 | README screenshots | `make screenshots` (builds the frontend, runs the backend against a demo wiki, writes `docs/screenshots/`; capture in `e2e/readme-screenshots/`) |
 | Clean artifacts | `make cleanup` (scoped `git clean` of build/test output only) |
+| Docs site | `cd docs-site && npm ci && npm run dev` (live preview at :4321/schist/); `npm run build` also checks internal links. Edit the Markdown in `docs/`, README or CONTRIBUTING, not the generated pages; a new doc needs an entry in `PAGES` (`scripts/sync-docs.mjs`) and the sidebar (`astro.config.mjs`) |
 
 ## Tests and how they isolate things
 - **Backend:** standard `go test`, table-driven where it helps. File and git services run against `t.TempDir()`; nothing touches a real data dir or the network. GitHub tests cover settings and sync state with no client configured; there's no fake GitHub remote, so keep push/pull logic thin and test what you can locally. Add tests next to the code (`*_test.go`).
@@ -63,7 +65,7 @@ Run from the repo root unless noted. Needs Go 1.25+ (`backend/go.mod`; `GOTOOLCH
 ## Workflow
 - Branch off `main`, open a PR (template in `.github/pull_request_template.md`), squash-merge after review.
 - Conventional-commit titles with a scope: `feat(frontend): …`, `fix(services): …`, `refactor(errors): …`, `test(e2e): …`, `ci: …`, `chore(deps): …`.
-- CI (`docs/CI.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs; publish `:latest` on `main` and `:X.Y.Z` on a `vX.Y.Z` tag, which never moves `:latest`), Release (`release.yml`: a `v*` tag creates the GitHub release, `v0.*` as a pre-release). README Screenshots (on frontend changes; on `main` it force-pushes the PNGs to the `screenshots` branch the README links to, so keep that branch unprotected). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
+- CI (`docs/CI.md`): Build, Backend Tests, Frontend Tests, E2E, Secret Scan, Docker (build + smoke test on PRs; publish `:latest` on `main` and `:X.Y.Z` on a `vX.Y.Z` tag, which never moves `:latest`), Release (`release.yml`: a `v*` tag creates the GitHub release, `v0.*` as a pre-release), Docs site (`docs.yml`: builds `docs-site/` on PRs, deploys to GitHub Pages on `main`). README Screenshots (on frontend changes; on `main` it force-pushes the PNGs to the `screenshots` branch the README links to, so keep that branch unprotected). Runner jobs use `${{ vars.RUNS_ON || 'ubuntu-latest' }}`. A red e2e: check which tests failed and why before treating it as a real regression (see the `triage-e2e` skill).
 - Dependabot opens grouped weekly PRs per ecosystem; held-back majors are listed in `.github/dependabot.yml`.
 
 ## Project skills

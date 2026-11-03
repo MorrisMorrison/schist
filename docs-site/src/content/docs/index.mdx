@@ -1,0 +1,88 @@
+---
+title: Self-hosted markdown wiki
+description: Schist is a lightweight, self-hosted markdown wiki. Your notes stay plain markdown files on disk, versioned with git. There's no database.
+template: splash
+hero:
+  title: Your wiki, as plain markdown files
+  tagline: Schist is a lightweight, self-hosted wiki with wiki links, backlinks, full-text search and version history. Your notes stay ordinary markdown files on disk, versioned with git. There's no database.
+  actions:
+    - text: Get started
+      link: /schist/getting-started/introduction/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/MorrisMorrison/schist
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<picture>
+	<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/document-dark.png" />
+	<img class="hero-shot" src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/document-light.png" alt="A wiki page with the folder tree on the left and rendered markdown: headings, a table, wiki links and code" />
+</picture>
+
+<CardGrid>
+	<Card title="Plain files, no database" icon="document">
+		One markdown file per page, with YAML front matter, in ordinary folders. Easy to back up and easy to leave.
+	</Card>
+	<Card title="Linked notes" icon="random">
+		`[[Wiki links]]` with backlinks, tags, full-text search and a quick switcher.
+	</Card>
+	<Card title="Every save is a commit" icon="seti:git">
+		Browse a page's versions and restore any of them, with optional backup to a GitHub repository.
+	</Card>
+	<Card title="Secure by default" icon="seti:lock">
+		Passkey sign-in, expiring share links, passkey-protected secrets, rate limiting and security headers.
+	</Card>
+</CardGrid>
+
+## See it in action
+
+<div class="shots">
+	<figure>
+		<img src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/editor-light.png" alt="A page in edit mode" loading="lazy" />
+		<figcaption>Editing in place</figcaption>
+	</figure>
+	<figure>
+		<img src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/quick-switcher-light.png" alt="The quick switcher searching pages" loading="lazy" />
+		<figcaption>Quick switcher</figcaption>
+	</figure>
+	<figure>
+		<img src="https://raw.githubusercontent.com/MorrisMorrison/schist/screenshots/version-history-light.png" alt="Version history of a page with restore buttons" loading="lazy" />
+		<figcaption>Version history</figcaption>
+	</figure>
+</div>
+
+## Up and running in minutes
+
+Schist is one container and one data folder.
+
+```bash
+docker run -d --name schist \
+  -p 8080:8080 \
+  -v "$(pwd)/data:/app/data" \
+  -e ENV=production \
+  -e SCHIST_JWT_SECRET="$(openssl rand -base64 48)" \
+  -e SCHIST_FRONTEND_URL=http://localhost:8080 \
+  ghcr.io/morrismorrison/schist:latest
+```
+
+Open http://localhost:8080 and create the admin account. The [introduction](/schist/getting-started/introduction/) covers Docker Compose and the settings you need, and the [quick start](/schist/getting-started/quick-start/) sets up a development checkout.
+
+## Learn more
+
+<CardGrid>
+	<Card title="Configuration" icon="setting">
+		Every `SCHIST_*` setting, security headers and logging. [Configure Schist](/schist/guides/configuration/)
+	</Card>
+	<Card title="REST API" icon="puzzle">
+		Documents, folders, search, versions and more. [Browse the API](/schist/reference/api/)
+	</Card>
+	<Card title="Development" icon="laptop">
+		Build, test and contribute. [Start developing](/schist/project/development/)
+	</Card>
+	<Card title="Design" icon="open-book">
+		The architecture and the decisions behind it. [Read the design](/schist/project/design/)
+	</Card>
+</CardGrid>

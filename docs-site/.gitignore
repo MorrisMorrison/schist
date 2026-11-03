@@ -1,0 +1,7 @@
+dist/
+.astro/
+# Generated from the repo's Markdown by scripts/sync-docs.mjs
+src/content/docs/getting-started/
+src/content/docs/guides/
+src/content/docs/reference/
+src/content/docs/project/

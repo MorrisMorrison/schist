@@ -7,6 +7,7 @@
 # Documentation
 *.md
 docs/
+docs-site/
 
 # Node modules
 node_modules/

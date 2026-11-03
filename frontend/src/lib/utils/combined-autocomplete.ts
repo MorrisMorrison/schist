@@ -40,7 +40,7 @@ async function wikiLinkCompletion(context: CompletionContext): Promise<Completio
 			type: 'text',
 			detail: doc.metaData?.path || '',
 			info:
-				doc.content && doc.content.length > 100 ? doc.content.slice(0, 100) + '...' : doc.content,
+				doc.excerpt && doc.excerpt.length > 100 ? doc.excerpt.slice(0, 100) + '...' : doc.excerpt,
 			apply: doc.metaData?.title || 'Untitled'
 		}));
 

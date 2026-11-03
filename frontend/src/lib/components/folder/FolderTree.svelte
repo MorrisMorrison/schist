@@ -8,7 +8,7 @@
 	import FolderTreeNode from './FolderTreeNode.svelte';
 	import FolderContextMenu from './FolderContextMenu.svelte';
 	import DocumentContextMenu from '../document/DocumentContextMenu.svelte';
-	import type { Folder as FolderType, Document } from '#lib/api/types.ts';
+	import type { Folder as FolderType, DocumentSummary } from '#lib/api/types.ts';
 	import {
 		foldersStore,
 		documentsStore,
@@ -35,17 +35,17 @@
 		storageKey?: string;
 		currentPath?: string;
 		onselect?: (event: { path: string; folder: FolderType }) => void;
-		ondocumentselect?: (event: { document: Document }) => void;
+		ondocumentselect?: (event: { document: DocumentSummary }) => void;
 		oncreate?: (event: { parentPath: string }) => void;
 		ondocumentcreate?: (event: { parentPath: string }) => void;
 		ondelete?: (event: { path: string; folder: FolderType }) => void;
 		onrename?: (event: { path: string; folder: FolderType }) => void;
-		ondocumentdelete?: (event: { document: Document }) => void;
-		ondocumentrename?: (event: { document: Document }) => void;
+		ondocumentdelete?: (event: { document: DocumentSummary }) => void;
+		ondocumentrename?: (event: { document: DocumentSummary }) => void;
 		onexpandall?: () => void;
 		oncollapseall?: () => void;
 		onfolderexport?: (event: { path: string; folder: FolderType }) => void;
-		ondocumentexport?: (event: { path: string; document: Document }) => void;
+		ondocumentexport?: (event: { path: string; document: DocumentSummary }) => void;
 		onexportall?: () => void;
 		/** Import documents; from a folder's menu with that folder as the target. */
 		onimport?: (event?: { path: string }) => void;
@@ -196,7 +196,7 @@
 	}
 
 	function pageMatchesFilters(
-		document: Document,
+		document: DocumentSummary,
 		textQuery: string,
 		tagFilters: string[]
 	): boolean {
@@ -218,7 +218,7 @@
 
 	function filterFoldersAndPages(
 		folders: FolderType[],
-		_allPages: Document[],
+		_allPages: DocumentSummary[],
 		query: string
 	): FolderType[] {
 		const { textQuery, tagFilters } = parseUnifiedQuery(query);
@@ -382,7 +382,7 @@
 		}
 	}
 
-	function handlePageContextMenu(event: MouseEvent | KeyboardEvent, page: Document) {
+	function handlePageContextMenu(event: MouseEvent | KeyboardEvent, page: DocumentSummary) {
 		if (!enableContextMenu) return;
 
 		event.preventDefault();
@@ -393,21 +393,21 @@
 		pageContextMenuOpen = page.metaData?.path || '';
 	}
 
-	function handleDeletePage(page: Document) {
+	function handleDeletePage(page: DocumentSummary) {
 		ondocumentdelete?.({ document: page });
 	}
 
-	function handleRenamePage(page: Document) {
+	function handleRenamePage(page: DocumentSummary) {
 		ondocumentrename?.({ document: page });
 	}
 
-	function handleDocumentExport(page: Document) {
+	function handleDocumentExport(page: DocumentSummary) {
 		if (ondocumentexport) {
 			ondocumentexport({ path: page.metaData.path, document: page });
 		}
 	}
 
-	function findPageByPath(path: string): Document | null {
+	function findPageByPath(path: string): DocumentSummary | null {
 		return documents.find((page) => page.metaData?.path === path) || null;
 	}
 

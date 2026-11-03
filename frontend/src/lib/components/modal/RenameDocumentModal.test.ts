@@ -3,15 +3,27 @@ import { render, screen, cleanup } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { waitForDialogFocus } from '#lib/test/dialog.ts';
 import { documentActions } from '#lib/stores/documents.svelte.ts';
-import type { Document, UpdateDocumentRequest } from '#lib/api/types.ts';
+import { apiClient } from '#lib/api/client.ts';
+import type { Document, DocumentSummary, UpdateDocumentRequest } from '#lib/api/types.ts';
 import RenameDocumentModal from './RenameDocumentModal.svelte';
 
 vi.mock('#lib/stores/documents.svelte.ts', () => ({
 	documentActions: { checkDocumentExists: vi.fn(), updateDocumentByPath: vi.fn() }
 }));
 
-const doc: Document = {
+vi.mock('#lib/api/client.ts', () => ({
+	apiClient: { getDocumentByPath: vi.fn() }
+}));
+
+// The sidebar hands the modal a document list entry, without content.
+const doc: DocumentSummary = {
 	metaData: { title: 'Old Title', path: '/notes/old-title', slug: 'old-title', tags: ['a'] },
+	excerpt: '# Old Title'
+};
+
+// What's on disk when the rename runs.
+const onDisk: Document = {
+	metaData: { ...doc.metaData, tags: ['a', 'b'] },
 	content: '# Old Title\n\nBody'
 };
 
@@ -37,6 +49,7 @@ describe('RenameDocumentModal', () => {
 
 	beforeEach(() => {
 		vi.mocked(documentActions.checkDocumentExists).mockResolvedValue(false);
+		vi.mocked(apiClient.getDocumentByPath).mockResolvedValue(onDisk);
 		vi.mocked(documentActions.updateDocumentByPath).mockImplementation(
 			async (_path: string, req: UpdateDocumentRequest) =>
 				({ metaData: req.metaData, content: req.content }) as Document
@@ -66,14 +79,16 @@ describe('RenameDocumentModal', () => {
 		await userEvent.type(titleInput(), 'New Title{Enter}');
 
 		expect(documentActions.checkDocumentExists).toHaveBeenCalledWith('/notes/new-title');
+		// Saves the page as it is on disk, so a rename never blanks or reverts it.
+		expect(apiClient.getDocumentByPath).toHaveBeenCalledWith('/notes/old-title');
 		expect(documentActions.updateDocumentByPath).toHaveBeenCalledWith('/notes/old-title', {
 			metaData: {
-				...doc.metaData,
+				...onDisk.metaData,
 				title: 'New Title',
 				slug: 'new-title',
 				path: '/notes/new-title'
 			},
-			content: doc.content
+			content: onDisk.content
 		});
 		await vi.waitFor(() =>
 			expect(onRenamed).toHaveBeenCalledWith('/notes/old-title', '/notes/new-title')
@@ -111,6 +126,19 @@ describe('RenameDocumentModal', () => {
 		await userEvent.type(titleInput(), 'Another');
 		await userEvent.click(renameButton());
 		expect(await screen.findByText('Disk full')).toBeInTheDocument();
+		expect(onRenamed).not.toHaveBeenCalled();
+	});
+
+	it('does not save when the page cannot be read', async () => {
+		vi.mocked(apiClient.getDocumentByPath).mockRejectedValue(
+			new Error(JSON.stringify({ error: 'Document not found' }))
+		);
+		await renderModal();
+		await userEvent.clear(titleInput());
+		await userEvent.type(titleInput(), 'Another');
+		await userEvent.click(renameButton());
+		expect(await screen.findByText('Document not found')).toBeInTheDocument();
+		expect(documentActions.updateDocumentByPath).not.toHaveBeenCalled();
 		expect(onRenamed).not.toHaveBeenCalled();
 	});
 

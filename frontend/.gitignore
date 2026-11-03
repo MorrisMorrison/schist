@@ -32,3 +32,4 @@ __screenshots__
 
 # Vitest browser-mode failure screenshots
 .vitest-attachments/
+.vitest/

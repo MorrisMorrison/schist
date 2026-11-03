@@ -19,8 +19,17 @@ export interface Document {
 	content: string;
 }
 
+/**
+ * A document list entry: metadata and the start of the content, not the
+ * whole page. Fetch the document for its content.
+ */
+export interface DocumentSummary {
+	metaData: DocumentMetaData;
+	excerpt?: string;
+}
+
 export interface DocumentListResponse {
-	documents: Document[];
+	documents: DocumentSummary[];
 	total: number;
 }
 

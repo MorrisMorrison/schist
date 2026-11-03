@@ -1,6 +1,7 @@
 import { apiClient } from '#lib/api/client.ts';
 import type {
 	Document,
+	DocumentSummary,
 	CreateDocumentRequest,
 	UpdateDocumentRequest,
 	Folder,
@@ -12,7 +13,7 @@ import { getErrorMessage } from '#lib/utils/error.ts';
 import { runAsync } from '#lib/stores/resource.svelte.ts';
 
 interface DocumentsState {
-	documents: Document[];
+	documents: DocumentSummary[];
 	currentDocument: Document | null;
 	loading: boolean;
 	error: string | null;

@@ -3,11 +3,11 @@
 	import { cn } from '#lib/utils.ts';
 	import TreeRowMenuTrigger from '../folder/TreeRowMenuTrigger.svelte';
 	import { sidebarNameClass } from '#lib/stores/settings.svelte.ts';
-	import type { Document } from '#lib/api/types.ts';
+	import type { DocumentSummary } from '#lib/api/types.ts';
 	import type { DragAndDrop } from '#lib/composables/useDragAndDrop.svelte.ts';
 
 	interface Props {
-		document: Document;
+		document: DocumentSummary;
 		depth: number;
 		isSelected: boolean;
 		isCurrent: boolean;

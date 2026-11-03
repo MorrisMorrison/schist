@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { Download, Edit, Trash2 } from '@lucide/svelte';
-	import type { Document } from '#lib/api/types.ts';
+	import type { DocumentSummary } from '#lib/api/types.ts';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.ts';
 
 	interface Props {
-		document: Document | null;
+		document: DocumentSummary | null;
 		position: { x: number; y: number };
 		isOpen: boolean;
 		onClose: () => void;
-		onRename: (document: Document) => void;
-		onDelete: (document: Document) => void;
-		onExport?: (document: Document) => void;
+		onRename: (document: DocumentSummary) => void;
+		onDelete: (document: DocumentSummary) => void;
+		onExport?: (document: DocumentSummary) => void;
 	}
 
 	let { document, position, isOpen, onClose, onRename, onDelete, onExport }: Props = $props();
 
 	// Choosing an item also closes the menu (through onOpenChange).
-	function select(action: ((document: Document) => void) | undefined) {
+	function select(action: ((document: DocumentSummary) => void) | undefined) {
 		if (document && action) {
 			action(document);
 		}

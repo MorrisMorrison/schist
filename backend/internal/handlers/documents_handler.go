@@ -11,6 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// documentExcerptLength is how many characters of a page's markdown the
+// document list includes, enough for a card preview or a link suggestion.
+const documentExcerptLength = 400
+
+// documentSummary is a document list entry: the metadata and the start of
+// the content, not the whole page. Clients fetch a page for its content.
+type documentSummary struct {
+	MetaData *models.DocumentMetaData `json:"metaData"`
+	Excerpt  string                   `json:"excerpt"`
+}
+
 func (h *APIHandler) listDocuments(c *gin.Context) {
 	documents, err := h.DocumentService.ListDocuments()
 	if err != nil {
@@ -18,10 +29,31 @@ func (h *APIHandler) listDocuments(c *gin.Context) {
 		return
 	}
 
+	summaries := make([]documentSummary, 0, len(documents))
+	for _, document := range documents {
+		summaries = append(summaries, documentSummary{
+			MetaData: document.MetaData,
+			Excerpt:  excerpt(document.Content, documentExcerptLength),
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"documents": documents,
-		"total":     len(documents),
+		"documents": summaries,
+		"total":     len(summaries),
 	})
+}
+
+// excerpt returns the first n characters of content, cut on a character
+// boundary.
+func excerpt(content string, n int) string {
+	count := 0
+	for i := range content {
+		if count == n {
+			return content[:i]
+		}
+		count++
+	}
+	return content
 }
 
 func (h *APIHandler) createDocument(c *gin.Context) {

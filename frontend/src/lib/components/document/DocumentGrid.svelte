@@ -7,11 +7,11 @@
 	import DocumentCard from './DocumentCard.svelte';
 	import LoadingSpinner from '../LoadingSpinner.svelte';
 	import ErrorAlert from '../ErrorAlert.svelte';
-	import type { Document } from '#lib/api/types.ts';
+	import type { DocumentSummary } from '#lib/api/types.ts';
 	import { documentActions } from '#lib/stores/documents.svelte.ts';
 
 	interface Props {
-		documents: Document[];
+		documents: DocumentSummary[];
 		loading?: boolean;
 		error?: string | null;
 		showTags?: boolean;

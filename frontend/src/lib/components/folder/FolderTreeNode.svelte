@@ -3,7 +3,7 @@
 	import { cn } from '#lib/utils.ts';
 	import TreeRowMenuTrigger from './TreeRowMenuTrigger.svelte';
 	import { sidebarNameClass } from '#lib/stores/settings.svelte.ts';
-	import type { Folder as FolderType, Document } from '#lib/api/types.ts';
+	import type { Folder as FolderType, DocumentSummary } from '#lib/api/types.ts';
 	import DocumentItem from '../document/DocumentItem.svelte';
 	import FolderTreeNode from './FolderTreeNode.svelte';
 	import type { DragAndDrop } from '#lib/composables/useDragAndDrop.svelte.ts';
@@ -18,7 +18,7 @@
 		showPages: boolean;
 		showPageCounts: boolean;
 		enableContextMenu: boolean;
-		filteredPages: Document[];
+		filteredPages: DocumentSummary[];
 		selectedPath: string;
 		currentPath: string;
 		dnd: DragAndDrop;
@@ -26,9 +26,9 @@
 		onToggleExpanded: (path: string) => void;
 		onFolderSelect: (folder: FolderType) => void;
 		onContextMenu: (event: MouseEvent | KeyboardEvent, folder: FolderType) => void;
-		onDocumentSelect?: (event: { document: Document }) => void;
-		onDocumentContextMenu?: (event: MouseEvent | KeyboardEvent, document: Document) => void;
-		getFilteredPagesForFolder: (folderPath: string) => Document[];
+		onDocumentSelect?: (event: { document: DocumentSummary }) => void;
+		onDocumentContextMenu?: (event: MouseEvent | KeyboardEvent, document: DocumentSummary) => void;
+		getFilteredPagesForFolder: (folderPath: string) => DocumentSummary[];
 		/** Render only the children, always expanded (used for the sidebar's root). */
 		hideRow?: boolean;
 	}

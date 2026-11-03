@@ -627,11 +627,25 @@ class SchistApiClient {
 	}
 
 	async exportDocument(path: string): Promise<void> {
-		const encodedPath = this.encodePath(path);
-		const url = `${this.baseUrl}/export/document${encodedPath}`;
+		await this.download(`/export/document${this.encodePath(path)}`, 'document.md');
+	}
 
+	async exportFolder(path: string): Promise<void> {
+		await this.download(`/export/folder${this.encodePath(path)}`, 'documents.zip');
+	}
+
+	async exportAll(): Promise<void> {
+		await this.download('/export/all', 'all-documents.zip');
+	}
+
+	/**
+	 * Fetches an export with the session token and saves it under the
+	 * server-provided file name. (Opening the URL in a new tab can't send the
+	 * Authorization header, so with auth on it got a 401 instead of a file.)
+	 */
+	private async download(endpoint: string, fallbackName: string): Promise<void> {
 		try {
-			const response = await fetch(url, {
+			const response = await fetch(`${this.baseUrl}${endpoint}`, {
 				method: 'GET',
 				headers: this.authHeaders()
 			});
@@ -641,7 +655,7 @@ class SchistApiClient {
 			}
 
 			const contentDisposition = response.headers.get('content-disposition');
-			let filename = 'document.md';
+			let filename = fallbackName;
 			if (contentDisposition) {
 				const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
 				if (matches != null && matches[1]) {
@@ -662,19 +676,6 @@ class SchistApiClient {
 			console.error('Export failed:', error);
 			throw error;
 		}
-	}
-
-	async exportFolder(path: string): Promise<void> {
-		const encodedPath = this.encodePath(path);
-		const url = `${this.baseUrl}/export/folder${encodedPath}`;
-
-		window.open(url, '_blank');
-	}
-
-	async exportAll(): Promise<void> {
-		const url = `${this.baseUrl}/export/all`;
-
-		window.open(url, '_blank');
 	}
 
 	// New separated GitHub API methods

@@ -278,7 +278,7 @@ describe('Sidebar', () => {
 		render(Sidebar);
 		expect(stubProps.ImportDocumentsModal.open).toBe(false);
 
-		// Import moved into the tree's "+" menu, which calls onimport.
+		// The tree calls onimport from its Import button and its "+" menu.
 		call('FolderTree', 'onimport');
 		expect(stubProps.ImportDocumentsModal.open).toBe(true);
 

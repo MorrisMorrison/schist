@@ -422,11 +422,16 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 | `update_document` | write | `path`, `content?`, `title?`, `tags?` | Replaces only the fields passed; the path doesn't change |
 | `append_to_document` | write | `path`, `content`, `heading?` | Adds at the end of the page, or at the end of the section under `heading` |
 | `edit_document` | write | `path`, `new_text`, and `old_text` (+ `replace_all?`) or `heading` | Replaces an exact snippet, or the section under `heading` up to the next heading of the same or a higher level (the heading line stays). Fails without writing if the snippet or heading is missing, or matches more than once and `replace_all` isn't set. Returns `replacements` and the `lines` where each change starts; an edit that changes nothing isn't committed |
+| `move_document` | write | `path`, `new_path` | Moves or renames a page; fails if `new_path` exists. Links keep working (they point at titles) |
+| `move_folder` | write | `path`, `new_path` | Moves or renames a folder with everything in it (a rename when the parent stays the same); fails if the target exists |
+| `delete_document` | write | `path` | **Destructive.** Moves the page to `/trash/<path>` (replacing an older copy there, which stays in git history) and returns `trashPath` and `linkedFrom`, the pages whose links now break. Pages already in the trash are refused |
+| `delete_folder` | write | `path` | **Destructive.** Moves the folder to `/trash/<path>`, or `/trash/<path>-<timestamp>` when that exists. The root and the trash are refused |
 | `import_documents` | write | `files` (`[{path, content}]`, at most 200 and 10 MB), `folder?`, `on_conflict?` | Imports markdown files with the same conversion as `POST /api/import/documents`. Existing pages are skipped unless `on_conflict` is `rename` or `overwrite`, so a re-run is safe |
 
 **How the tools behave:**
 - **Paths:** written like `/folder/page`, with no `.md`.
-- **Writes:** they go through the same services as the REST API. Each is a git commit, and backlinks are updated.
+- **Writes:** they go through the same services as the REST API. Each is a git commit (folder moves and deletes too), and backlinks are updated.
+- **Deletes:** unlike `DELETE /api/folders/...`, nothing is removed for good: pages and folders go to `/trash`, which is hidden from folders, search and links. Move them back to undo.
 - **Errors:** they come back as tool errors with a client-safe message.
 - **Secrets:** `{{secret:...}}` placeholders are returned as written and never resolved.
 

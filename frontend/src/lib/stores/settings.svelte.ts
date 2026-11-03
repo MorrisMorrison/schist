@@ -5,6 +5,8 @@ interface AppSettings {
 	alwaysOpenFullscreen: boolean;
 	/** Documents and the editor use the whole content area instead of a reading column. */
 	fullWidthDocuments: boolean;
+	/** Long page and folder names in the sidebar wrap onto two lines instead of being cut off. */
+	wrapSidebarNames: boolean;
 }
 
 interface Settings {
@@ -15,7 +17,8 @@ const defaultSettings: Settings = {
 	app: {
 		openDocumentsInEditMode: false,
 		alwaysOpenFullscreen: false,
-		fullWidthDocuments: false
+		fullWidthDocuments: false,
+		wrapSidebarNames: false
 	}
 };
 
@@ -62,6 +65,11 @@ export const settings = {
 		return settingsState.app;
 	}
 };
+
+/** Classes for a page or folder name in the sidebar: one line cut off, or two lines when wrapping. */
+export function sidebarNameClass(): string {
+	return settingsState.app.wrapSidebarNames ? 'line-clamp-2 break-words' : 'truncate';
+}
 
 /** The PageContainer width for document pages (view, edit, new, focus mode). */
 export function documentPageWidth(): 'reading' | 'full' {

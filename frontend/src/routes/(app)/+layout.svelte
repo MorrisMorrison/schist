@@ -2,6 +2,7 @@
 	import '../../app.css';
 	import Navigation from '#lib/components/Navigation.svelte';
 	import Sidebar from '#lib/components/Sidebar.svelte';
+	import SidebarResizeHandle from '#lib/components/SidebarResizeHandle.svelte';
 	import QuickSwitcher from '#lib/components/QuickSwitcher.svelte';
 	import KeyboardShortcutsModal from '#lib/components/modal/KeyboardShortcutsModal.svelte';
 	import { page } from '$app/state';
@@ -32,6 +33,8 @@
 	);
 
 	const sidebarVisible = $derived(showSidebarComponent && sidebar.isOpen);
+	/** While the sidebar is dragged wider or narrower, its transitions are off. */
+	let resizingSidebar = $state(false);
 
 	$effect(() => {
 		if (page.url) {
@@ -126,7 +129,12 @@
 <div class="bg-background flex min-h-screen flex-col border-0 transition-colors">
 	<Navigation isSidebarOpen={sidebar.isOpen} />
 
-	<div class="app-container flex-1 border-0" class:with-sidebar={sidebarVisible}>
+	<div
+		class="app-container flex-1 border-0"
+		class:with-sidebar={sidebarVisible}
+		class:resizing={resizingSidebar}
+		style:--sidebar-width="{sidebar.width}px"
+	>
 		<!-- Mobile backdrop -->
 		{#if showSidebarComponent && sidebar.isOpen}
 			<div
@@ -150,6 +158,12 @@
 				data-testid="sidebar"
 			>
 				<Sidebar />
+				{#if sidebar.isOpen}
+					<SidebarResizeHandle
+						class="absolute inset-y-0 -right-1 z-10 hidden md:block"
+						ondragchange={(dragging) => (resizingSidebar = dragging)}
+					/>
+				{/if}
 			</div>
 		{/if}
 
@@ -173,7 +187,7 @@
 	}
 
 	.sidebar-container {
-		width: 280px; /* w-70 = 17.5rem = 280px */
+		width: 280px; /* the mobile drawer; desktop uses the resizable width below */
 		height: calc(100vh - 4rem); /* Full viewport height minus the navigation */
 		position: sticky;
 		top: 4rem; /* Height of navigation */
@@ -184,7 +198,7 @@
 	/* Desktop sidebar behavior - dynamic space allocation based on sidebar visibility */
 	@media (min-width: 768px) {
 		.app-container.with-sidebar {
-			padding-left: 280px; /* Reserve space only when sidebar is visible */
+			padding-left: var(--sidebar-width); /* Reserve space only when sidebar is visible */
 		}
 
 		.app-container:not(.with-sidebar) {
@@ -195,6 +209,16 @@
 			position: fixed; /* Use fixed positioning to overlay the reserved space */
 			left: 0;
 			top: 4rem;
+			width: var(--sidebar-width); /* resizable, see SidebarResizeHandle */
+		}
+
+		.app-container.resizing .sidebar-container {
+			transition: none;
+		}
+
+		.app-container.resizing {
+			cursor: col-resize;
+			user-select: none;
 		}
 
 		.sidebar-container.sidebar-closed {

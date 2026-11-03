@@ -2,6 +2,7 @@
 	import { File } from '@lucide/svelte';
 	import { cn } from '#lib/utils.ts';
 	import TreeRowMenuTrigger from '../folder/TreeRowMenuTrigger.svelte';
+	import { sidebarNameClass } from '#lib/stores/settings.svelte.ts';
 	import type { Document } from '#lib/api/types.ts';
 	import type { DragAndDrop } from '#lib/composables/useDragAndDrop.svelte.ts';
 
@@ -74,7 +75,7 @@
 			data-testid="document-name-button"
 		>
 			<File class="text-muted-foreground h-4 w-4 flex-shrink-0" />
-			<span class="truncate text-left" title={document.metaData?.title || 'Untitled'}
+			<span class="{sidebarNameClass()} text-left" title={document.metaData?.title || 'Untitled'}
 				>{document.metaData?.title || 'Untitled'}</span
 			>
 		</button>

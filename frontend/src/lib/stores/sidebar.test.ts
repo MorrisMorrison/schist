@@ -61,3 +61,53 @@ describe('sidebar store', () => {
 		expect(localStorage.getItem('sidebarOpen')).toBe('false');
 	});
 });
+
+describe('sidebar width', () => {
+	afterEach(() => {
+		localStorage.removeItem('sidebarWidth');
+		vi.restoreAllMocks();
+	});
+
+	it('starts at the default and remembers a resize, clamped to the range', async () => {
+		const { sidebar, sidebarActions, SIDEBAR_WIDTH } = await loadSidebar();
+		expect(SIDEBAR_WIDTH).toEqual({ min: 220, max: 520, default: 280 });
+		expect(sidebar.width).toBe(280);
+
+		sidebarActions.setWidth(360.4);
+		expect(sidebar.width).toBe(360);
+		expect(localStorage.getItem('sidebarWidth')).toBe('360');
+
+		sidebarActions.setWidth(9999);
+		expect(sidebar.width).toBe(520);
+		sidebarActions.setWidth(10);
+		expect(sidebar.width).toBe(220);
+
+		sidebarActions.resetWidth();
+		expect(sidebar.width).toBe(280);
+		expect(localStorage.getItem('sidebarWidth')).toBe('280');
+	});
+
+	it('restores a stored width, ignoring junk and out-of-range values', async () => {
+		localStorage.setItem('sidebarWidth', '400');
+		expect((await loadSidebar()).sidebar.width).toBe(400);
+
+		localStorage.setItem('sidebarWidth', 'wide');
+		expect((await loadSidebar()).sidebar.width).toBe(280);
+
+		localStorage.setItem('sidebarWidth', '5000');
+		expect((await loadSidebar()).sidebar.width).toBe(520);
+	});
+
+	it('works when storage is unavailable', async () => {
+		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+			throw new Error('blocked');
+		});
+		vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new Error('blocked');
+		});
+		const { sidebar, sidebarActions } = await loadSidebar();
+		expect(sidebar.width).toBe(280);
+		sidebarActions.setWidth(300);
+		expect(sidebar.width).toBe(300);
+	});
+});

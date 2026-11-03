@@ -28,7 +28,7 @@ concurrency:
 jobs:
   build:
     name: Build All
-    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # repo variable, see docs/CI.md
+    runs-on: ${{ vars.RUNS_ON || 'ubuntu-latest' }}   # repo variable, see docs/development/ci-and-releases.md
     timeout-minutes: 20
     env:
       PUBLIC_API_URL: http://localhost:8080/api

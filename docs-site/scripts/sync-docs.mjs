@@ -1,4 +1,4 @@
-// Generates the Starlight pages from the repo's own Markdown (docs/*.md, README.md,
+// Generates the Starlight pages from the repo's own Markdown (docs/<section>/*.md and
 // CONTRIBUTING.md). Those files stay where they are and stay the single source of truth;
 // this script copies each one to a site route, takes its title from the first H1, adds
 // Starlight front matter, and rewrites relative links: links to a published file become
@@ -17,18 +17,31 @@ const REPO = 'https://github.com/MorrisMorrison/schist';
 const BASE = (process.env.DOCS_BASE ?? '/schist').replace(/\/$/, '');
 
 // Source file (repo-relative) → site route. `title` overrides the file's H1.
+// docs/<section>/<page>.md is published at <section>/<page>; CONTRIBUTING.md joins the
+// development section. Add new pages here and to the sidebar in astro.config.mjs.
+const DOCS = {
+	'getting-started': ['introduction', 'installation', 'first-steps'],
+	guides: [
+		'writing-and-linking',
+		'import-and-export',
+		'github-backup',
+		'sharing',
+		'secrets',
+		'ai-assistants',
+		'users-and-passkeys'
+	],
+	reference: ['configuration', 'rest-api', 'mcp-tools', 'error-codes', 'keyboard-shortcuts'],
+	'self-hosting': ['reverse-proxy', 'backups', 'upgrading'],
+	development: ['setup', 'architecture', 'testing', 'ci-and-releases', 'docs-site']
+};
 const PAGES = [
-	{ src: 'README.md', route: 'getting-started/introduction', title: 'Introduction' },
-	{ src: 'docs/QUICK_START.md', route: 'getting-started/quick-start', title: 'Quick start' },
-	{ src: 'docs/CONFIGURATION.md', route: 'guides/configuration' },
-	{ src: 'docs/API.md', route: 'reference/api', title: 'REST API' },
-	{ src: 'docs/DEVELOPMENT.md', route: 'project/development', title: 'Development' },
-	{ src: 'CONTRIBUTING.md', route: 'project/contributing', title: 'Contributing' },
-	{ src: 'docs/CI.md', route: 'project/ci', title: 'CI and releases' },
-	{ src: 'docs/DESIGN_DOC.md', route: 'project/design', title: 'Design document' }
+	...Object.entries(DOCS).flatMap(([section, pages]) =>
+		pages.map((page) => ({ src: `docs/${section}/${page}.md`, route: `${section}/${page}` }))
+	),
+	{ src: 'CONTRIBUTING.md', route: 'development/contributing' }
 ];
 // Generated route folders, cleared on every run (keep in sync with .gitignore).
-const GENERATED = ['getting-started', 'guides', 'reference', 'project'];
+const GENERATED = Object.keys(DOCS);
 
 const toPosix = (p) => p.split(sep).join('/');
 const routeBySrc = new Map(PAGES.map((p) => [p.src, p.route]));
@@ -106,11 +119,17 @@ for (const page of PAGES) {
 	const raw = readFileSync(join(repoRoot, page.src), 'utf8').replace(/\r\n/g, '\n');
 	// The first H1 is the page title (Starlight renders it); drop it from the body.
 	const h1 = raw.match(/^\s*#\s+(.+)\n+/);
-	let body = h1 ? raw.slice(h1[0].length) : raw;
-	// README badges are for GitHub; the site has its own header.
-	if (page.src === 'README.md') body = body.replace(/^(\[!\[[^\n]*\n)+\n*/, '');
+	const body = h1 ? raw.slice(h1[0].length) : raw;
 	const title = page.title ?? (h1 ? h1[1].trim() : page.route);
-	const fm = `---\ntitle: ${yaml(title)}\neditUrl: ${REPO}/edit/main/${page.src}\n---\n\n`;
+	// The purpose line under the H1 becomes the page description (search results, link previews).
+	const lead = body.split('\n\n')[0].trim();
+	const description = /^[A-Za-z]/.test(lead)
+		? lead.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[`*]/g, '').replace(/\s+/g, ' ')
+		: '';
+	const fm =
+		`---\ntitle: ${yaml(title)}\n` +
+		(description ? `description: ${yaml(description)}\n` : '') +
+		`editUrl: ${REPO}/edit/main/${page.src}\n---\n\n`;
 	const dest = join(contentDir, `${page.route}.md`);
 	mkdirSync(dirname(dest), { recursive: true });
 	writeFileSync(dest, fm + transformProse(body, page.src));

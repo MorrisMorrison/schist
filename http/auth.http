@@ -1,7 +1,7 @@
 ### Authentication & user management
 ### Routes: /api/auth/*
 ###
-### Auth is OPTIONAL. When SCHIST_AUTH_ENABLED=false (default) every endpoint is
+### Auth is ON by default. When SCHIST_AUTH_ENABLED=false every endpoint is
 ### open and the login flow is unnecessary. When enabled, protected endpoints
 ### expect an `Authorization: Bearer <jwt>` header (see {{authToken}} below).
 ###

@@ -5,7 +5,7 @@
 extension (or any compatible client, such as the JetBrains HTTP client).
 
 The files are organised one-per-resource and together cover every route registered
-in `backend/internal/handlers/api._handler.go`.
+in `backend/internal/handlers/api_handler.go`.
 
 ## Files
 

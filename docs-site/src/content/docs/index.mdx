@@ -7,7 +7,7 @@ hero:
   tagline: Schist is a lightweight, self-hosted wiki with wiki links, backlinks, full-text search and version history. Your notes stay ordinary markdown files on disk, versioned with git. There's no database.
   actions:
     - text: Get started
-      link: /schist/getting-started/introduction/
+      link: /schist/getting-started/installation/
       icon: right-arrow
     - text: View on GitHub
       link: https://github.com/MorrisMorrison/schist
@@ -68,21 +68,23 @@ docker run -d --name schist \
   ghcr.io/morrismorrison/schist:latest
 ```
 
-Open http://localhost:8080 and create the admin account. The [introduction](/schist/getting-started/introduction/) covers Docker Compose and the settings you need, and the [quick start](/schist/getting-started/quick-start/) sets up a development checkout.
+Open http://localhost:8080 and create the admin account. For a wiki you keep, the [installation guide](/schist/getting-started/installation/) uses Docker Compose, a fixed secret and a pinned release.
 
-## Learn more
+## Find your way
 
 <CardGrid>
-	<Card title="Configuration" icon="setting">
-		Every `SCHIST_*` setting, security headers and logging. [Configure Schist](/schist/guides/configuration/)
+	<Card title="Getting started" icon="rocket">
+		What Schist is, how to install it and a first tour. [Start here](/schist/getting-started/introduction/)
 	</Card>
-	<Card title="REST API" icon="puzzle">
-		Documents, folders, search, versions and more. [Browse the API](/schist/reference/api/)
+	<Card title="Guides" icon="open-book">
+		Linking, import from Obsidian, GitHub backup, sharing, secrets, AI assistants and users. [Read the guides](/schist/guides/writing-and-linking/)
 	</Card>
-	<Card title="Development" icon="laptop">
-		Build, test and contribute. [Start developing](/schist/project/development/)
+	<Card title="Reference" icon="setting">
+		Every setting, the REST API, the MCP tools and the error codes. [Look it up](/schist/reference/configuration/)
 	</Card>
-	<Card title="Design" icon="open-book">
-		The architecture and the decisions behind it. [Read the design](/schist/project/design/)
+	<Card title="Self-hosting" icon="laptop">
+		HTTPS behind a reverse proxy, backups and upgrades. [Run it well](/schist/self-hosting/reverse-proxy/)
 	</Card>
 </CardGrid>
+
+Want to help? [Development](/schist/development/setup/) covers the setup, the architecture and how to contribute.

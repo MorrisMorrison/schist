@@ -5,6 +5,11 @@ export interface DocumentMetaData {
 	created?: string;
 	updated?: string;
 	tags?: string[];
+	/**
+	 * Other front matter keys (status, owner, aliases…), kept as they are.
+	 * Left out on a save, the server keeps the stored ones; `{}` clears them.
+	 */
+	properties?: Record<string, unknown>;
 }
 
 export interface Document {

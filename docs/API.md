@@ -91,11 +91,14 @@ X-RateLimit-Reset: 1642694400
     "path": "/welcome-to-schist",
     "created": "2024-01-15T10:30:00Z",
     "updated": "2024-01-15T10:30:00Z",
-    "tags": ["welcome", "getting-started"]
+    "tags": ["welcome", "getting-started"],
+    "properties": { "status": "draft", "aliases": ["intro"] }
   },
   "content": "# Welcome to Schist\n\nMarkdown content here..."
 }
 ```
+
+`properties` holds every other front matter key of the page (strings, numbers, booleans, lists or objects), and is left out when there are none. Properties are written to the file after Schist's own keys and can never replace them. On a save (`POST`, `PUT`), sent `properties` replace the stored ones and `{}` clears them. A save without `properties` keeps the stored ones.
 
 ### Folder Object
 ```json
@@ -395,7 +398,7 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 **What the import does**
 - **Folders:** kept. Hidden folders lose their dot (`.agents` becomes `agents`), and folder names become slugs. Tool folders (`.obsidian`, `.git`, `.trash`) and hidden files are skipped. Other non-markdown files inside a folder or zip are skipped too.
 - **Page paths** come from the file name, as in Obsidian: `devices/router.md` becomes `/devices/router`, whatever its heading says. The title comes from the front matter `title`, else the first `# heading`, else the file name. Editing the page keeps that path until its heading changes.
-- **Front matter:** `title`, `tags` (a list or a string, with a leading `#` removed) and `created`/`updated` are kept. Other keys are dropped. Inline `#tags` in the note are added to its tags.
+- **Front matter:** `title`, `tags` (a list or a string, with a leading `#` removed) and `created`/`updated` become the page's fields. Every other key is kept as a property (see the Document Object). Inline `#tags` in the note are added to its tags.
 - **Removed plugin syntax:** Dataview, DataviewJS and Tasks queries, inline Dataview, Templater tags, `%% comments %%`, block IDs and Buttons or Meta Bind blocks.
 - **Converted:** callouts become a bold label in the quote. Note embeds `![[x]]` become links; embedded images and other files aren't imported.
 - **Links** are rewritten to `[[Title]]`, whether they're `[[file]]`, `[[folder/file]]`, `[[file#heading]]` (shown as `file › heading`), `[[file\|alias]]` inside tables (still escaped), or markdown links to `.md` files. A target is looked up among the imported files first, then among the pages already in the wiki (by path, file name or title), so links between import batches resolve.

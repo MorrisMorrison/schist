@@ -51,7 +51,6 @@ func TestImportFiles_ObsidianFolder(t *testing.T) {
 	assert.Equal(t, "/vault/homelab/devices/docki", ok["homelab/devices/docki.md"].FinalPath)
 	assert.Equal(t, "/vault/homelab/network", ok["homelab/network.md"].FinalPath)
 	assert.Equal(t, "/vault/agents/coach/progress", ok[".agents/coach/progress.md"].FinalPath, "hidden folders lose their dot")
-	assert.Contains(t, ok["homelab/devices/docki.md"].Notes, "dropped front matter: status")
 	assert.Contains(t, ok["homelab/network.md"].Notes, "1 × removed Dataview query")
 
 	skipped := byOriginal(result.Skipped)
@@ -64,6 +63,7 @@ func TestImportFiles_ObsidianFolder(t *testing.T) {
 	assert.Equal(t, "Docki host", docki.MetaData.Title)
 	assert.Equal(t, []string{"homelab"}, docki.MetaData.Tags)
 	assert.Equal(t, time.Date(2025, 3, 4, 0, 0, 0, 0, time.UTC), docki.MetaData.Created.UTC(), "dates are kept")
+	assert.Equal(t, map[string]any{"status": "active"}, docki.MetaData.Properties, "custom front matter is kept")
 	assert.Contains(t, docki.Content, "[[Network|the LAN]]")
 
 	network, err := ds.GetDocumentByPath("/vault/homelab/network")

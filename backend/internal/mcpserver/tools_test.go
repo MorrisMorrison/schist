@@ -332,7 +332,7 @@ func TestTools_ImportDocuments(t *testing.T) {
 	}
 	docki := byPath["/imported/vault/homelab/docki"]
 	assert.Equal(t, "vault/homelab/docki.md", docki.Source)
-	assert.Contains(t, docki.Notes, "dropped front matter: status")
+	assert.NotContains(t, docki.Notes, "dropped front matter: status", "custom front matter is kept (#305)")
 	assert.Contains(t, docki.Notes, "1 × removed Dataview query")
 	assert.Contains(t, text(res), "Imported 2, skipped 1, failed 0.")
 

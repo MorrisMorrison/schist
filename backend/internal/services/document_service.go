@@ -164,10 +164,16 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 	// Created is server-owned: keep the stored value rather than trusting the
 	// client, which typically omits it (zero time) on update.
 	now := time.Now()
-	if existing, err := d.GetDocumentByPath(document.MetaData.Path); err == nil && !existing.MetaData.Created.IsZero() {
+	existing, existingErr := d.GetDocumentByPath(document.MetaData.Path)
+	if existingErr == nil && !existing.MetaData.Created.IsZero() {
 		document.MetaData.Created = existing.MetaData.Created
 	} else if document.MetaData.Created.IsZero() {
 		document.MetaData.Created = now
+	}
+	// Custom front matter survives a save that doesn't send it (nil); sent
+	// properties replace it, and an empty object clears it.
+	if document.MetaData.Properties == nil && existingErr == nil {
+		document.MetaData.Properties = existing.MetaData.Properties
 	}
 	document.MetaData.Updated = now
 

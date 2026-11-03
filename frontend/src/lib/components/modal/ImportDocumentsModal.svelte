@@ -250,8 +250,9 @@
 								</p>
 							{/if}
 							<p class="text-muted-foreground text-xs">
-								Obsidian notes are converted: front matter keeps title, tags and dates; plugin
-								syntax (Dataview, Templater, comments) is removed; links between the files are kept.
+								Obsidian notes are converted: front matter is kept (title, tags, dates and other
+								properties); plugin syntax (Dataview, Templater, comments) is removed; links between
+								the files are kept.
 							</p>
 						</div>
 					</div>

@@ -99,10 +99,14 @@ func toolNames(t *testing.T, cs *mcp.ClientSession) []string {
 func TestTools_ReadOnlyServerHidesWriteTools(t *testing.T) {
 	svc := newTestServices(t)
 
-	assert.Equal(t, []string{"get_backlinks", "list_folder", "list_tags", "read_document", "search"},
-		toolNames(t, connect(t, svc, false)))
-	assert.Equal(t, []string{"append_to_document", "create_document", "delete_document", "delete_folder", "edit_document", "get_backlinks", "import_documents", "list_folder",
-		"list_tags", "move_document", "move_folder", "read_document", "search", "update_document"}, toolNames(t, connect(t, svc, true)))
+	readTools := []string{"diff_versions", "get_backlinks", "get_outgoing_links", "list_broken_links", "list_folder",
+		"list_tags", "list_versions", "read_document", "read_version", "search"}
+	assert.Equal(t, readTools, toolNames(t, connect(t, svc, false)))
+
+	all := append([]string{"append_to_document", "create_document", "delete_document", "delete_folder", "edit_document",
+		"import_documents", "move_document", "move_folder", "restore_version", "update_document"}, readTools...)
+	sort.Strings(all)
+	assert.Equal(t, all, toolNames(t, connect(t, svc, true)))
 }
 
 func TestTools_ReadToolsAreMarkedReadOnly(t *testing.T) {

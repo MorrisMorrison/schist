@@ -419,6 +419,11 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 | `list_folder` | read | `path?` | Subfolders and the pages directly in the folder. Each subfolder has `documentCount` (pages directly in it) and `totalDocumentCount` (including its subfolders) |
 | `get_backlinks` | read | `path` | Pages linking to `path` with `[[wiki links]]` |
 | `list_tags` | read | – | Tags with counts, most used first |
+| `list_versions` | read | `path` | The page's versions (git commits), newest first: `hash`, `short` (7 characters), `message`, `author`, `date` |
+| `read_version` | read | `path`, `version` | The page's title, tags and content at a version. `version` is a full hash or a unique prefix of at least 7 characters, here and below |
+| `diff_versions` | read | `path`, `from`, `to?` | A line diff of the page text from `from` to `to` (default the latest version): `+`/`-` lines with two lines of context, `additions`, `deletions`, and title or tag `changes` |
+| `get_outgoing_links` | read | `path` | The page's `[[wiki links]]`: `target`, `text`, the `path` it resolves to and `exists`, plus a `broken` count |
+| `list_broken_links` | read | – | Pages with links to pages that don't exist (the trash is skipped), sorted by path, with the broken `targets` and a `total` |
 | `create_document` | write | `path`, `content`, `title?`, `tags?` | New page; fails if it exists. The title defaults to one made from the path |
 | `update_document` | write | `path`, `content?`, `title?`, `tags?` | Replaces only the fields passed; the path doesn't change |
 | `append_to_document` | write | `path`, `content`, `heading?` | Adds at the end of the page, or at the end of the section under `heading` |
@@ -427,6 +432,7 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 | `move_folder` | write | `path`, `new_path` | Moves or renames a folder with everything in it (a rename when the parent stays the same); fails if the target exists |
 | `delete_document` | write | `path` | **Destructive.** Moves the page to `/trash/<path>` (replacing an older copy there, which stays in git history) and returns `trashPath` and `linkedFrom`, the pages whose links now break. Pages already in the trash are refused |
 | `delete_folder` | write | `path` | **Destructive.** Moves the folder to `/trash/<path>`, or `/trash/<path>-<timestamp>` when that exists. The root and the trash are refused |
+| `restore_version` | write | `path`, `version` | Restores the page to a version, saved as a new commit, so the content before the restore stays in history. Backlinks are updated |
 | `import_documents` | write | `files` (`[{path, content}]`, at most 200 and 10 MB), `folder?`, `on_conflict?` | Imports markdown files with the same conversion as `POST /api/import/documents`. Existing pages are skipped unless `on_conflict` is `rename` or `overwrite`, so a re-run is safe |
 
 **How the tools behave:**

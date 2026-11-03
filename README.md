@@ -139,6 +139,8 @@ Other clients that support remote MCP servers take the same URL and `Authorizati
 | `list_folder` | A folder's subfolders (with page counts, subfolders included) and pages |
 | `get_backlinks` | The pages linking to a page |
 | `list_tags` | Every tag with its count |
+| `list_versions`, `read_version`, `diff_versions` | A page's history: its versions, an old version, what changed between two |
+| `get_outgoing_links`, `list_broken_links` | A page's links, and every link to a page that doesn't exist |
 | `create_document` | Create a page |
 | `update_document` | Replace a page's content, title or tags |
 | `append_to_document` | Add text at the end of a page or of a section |
@@ -146,9 +148,10 @@ Other clients that support remote MCP servers take the same URL and `Authorizati
 | `move_document`, `move_folder` | Move or rename a page or a folder |
 | `delete_document`, `delete_folder` | Move a page or a folder to the trash (undo by moving it back) |
 | `import_documents` | Import markdown files (e.g. from an Obsidian vault), keeping folders and converting Obsidian syntax |
+| `restore_version` | Bring back an earlier version of a page (saved as a new version) |
 
 **Tokens:**
-- **Access level:** a *read-only* token only gets the first five tools; a *read and write* token gets all fourteen.
+- **Access level:** a *read-only* token only gets the first ten tools (reading, history and links); a *read and write* token gets all twenty.
 - **Git history:** every write is a git commit, so you can restore earlier versions.
 - **Deleting** moves pages and folders to `/trash`; nothing is removed for good over MCP.
 - **What tokens can't reach:** secrets, passkeys, users, shares and settings.

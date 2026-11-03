@@ -20,6 +20,8 @@ const instructions = `Schist is a markdown wiki. Every page is a markdown file i
 - Paths look like "/folder/page" (no ".md"); "/" is the root folder.
 - Start with "search" to find pages, then "read_document" for the full text.
 - Link pages with [[Page title]] wiki links; tags come from the "tags" list and inline #hashtags.
+- Other front matter keys (aliases, status...) are "properties": read_document returns them and
+  create_document / update_document take them.
 - To change an existing page, prefer "append_to_document" (add notes) or "edit_document" (replace an exact
   snippet or a section under a heading) over "update_document", which replaces the whole content.
 - "move_document" and "move_folder" move or rename; links keep working because they point at titles.

@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 
 	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/models"
+	"github.com/MorrisMorrison/schist/internal/serializer"
 	"github.com/MorrisMorrison/schist/internal/services"
 	"github.com/MorrisMorrison/schist/internal/utils"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -30,7 +32,7 @@ func (t *tools) registerRead(s *mcp.Server) {
 	}, t.search)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "read_document",
-		Description: "Read a page: its markdown content plus title, tags and dates.",
+		Description: "Read a page: its markdown content plus title, tags, dates and properties (other front matter keys, such as aliases).",
 		Annotations: read,
 	}, t.readDocument)
 	mcp.AddTool(s, &mcp.Tool{
@@ -54,12 +56,12 @@ func (t *tools) registerWrite(s *mcp.Server) {
 	notDestructive := false
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_document",
-		Description: "Create a new page. Fails if a page already exists at that path. The change is committed to git.",
+		Description: "Create a new page, optionally with properties (other front matter keys). Fails if a page already exists at that path. The change is committed to git.",
 		Annotations: &mcp.ToolAnnotations{DestructiveHint: &notDestructive},
 	}, t.createDocument)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_document",
-		Description: "Replace a page's content, title or tags (only the fields you pass). The previous version stays in git history.",
+		Description: "Replace a page's content, title, tags or properties (only the fields you pass; properties replace all existing ones, {} clears them). The previous version stays in git history.",
 		Annotations: &mcp.ToolAnnotations{IdempotentHint: true},
 	}, t.updateDocument)
 	mcp.AddTool(s, &mcp.Tool{
@@ -150,7 +152,9 @@ type documentOut struct {
 	Tags    []string `json:"tags,omitempty"`
 	Created string   `json:"created,omitempty"`
 	Updated string   `json:"updated,omitempty"`
-	Content string   `json:"content"`
+	// Properties are the page's other front matter keys (aliases, status…).
+	Properties map[string]any `json:"properties,omitempty" jsonschema:"other front matter keys, such as aliases or status"`
+	Content    string         `json:"content"`
 }
 
 func (t *tools) readDocument(_ context.Context, _ *mcp.CallToolRequest, in pathIn) (*mcp.CallToolResult, documentOut, error) {
@@ -159,12 +163,13 @@ func (t *tools) readDocument(_ context.Context, _ *mcp.CallToolRequest, in pathI
 		return nil, documentOut{}, toolError(err)
 	}
 	out := documentOut{
-		Path:    documentPath(in.Path),
-		Title:   doc.MetaData.Title,
-		Tags:    doc.MetaData.Tags,
-		Created: formatTime(doc.MetaData.Created),
-		Updated: formatTime(doc.MetaData.Updated),
-		Content: doc.Content,
+		Path:       documentPath(in.Path),
+		Title:      doc.MetaData.Title,
+		Tags:       doc.MetaData.Tags,
+		Created:    formatTime(doc.MetaData.Created),
+		Updated:    formatTime(doc.MetaData.Updated),
+		Properties: doc.MetaData.Properties,
+		Content:    doc.Content,
 	}
 	header := fmt.Sprintf("Title: %s\nPath: %s\n", out.Title, out.Path)
 	if len(out.Tags) > 0 {
@@ -173,6 +178,7 @@ func (t *tools) readDocument(_ context.Context, _ *mcp.CallToolRequest, in pathI
 	if out.Updated != "" {
 		header += "Updated: " + out.Updated + "\n"
 	}
+	header += propertiesText(out.Properties)
 	return textResult(header + "\n" + out.Content), out, nil
 }
 
@@ -316,10 +322,11 @@ func (t *tools) listTags(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) 
 // --- write tools ---
 
 type createIn struct {
-	Path    string   `json:"path" jsonschema:"new page path, e.g. /notes/meeting-2026-10-28"`
-	Title   string   `json:"title,omitempty" jsonschema:"page title; defaults to one made from the path"`
-	Content string   `json:"content" jsonschema:"markdown content"`
-	Tags    []string `json:"tags,omitempty"`
+	Path       string         `json:"path" jsonschema:"new page path, e.g. /notes/meeting-2026-10-28"`
+	Title      string         `json:"title,omitempty" jsonschema:"page title; defaults to one made from the path"`
+	Content    string         `json:"content" jsonschema:"markdown content"`
+	Tags       []string       `json:"tags,omitempty"`
+	Properties map[string]any `json:"properties,omitempty" jsonschema:"other front matter keys, e.g. {\"aliases\": [\"dh\"], \"status\": \"active\"}"`
 }
 
 type writeOut struct {
@@ -337,8 +344,11 @@ func (t *tools) createDocument(_ context.Context, _ *mcp.CallToolRequest, in cre
 	if title == "" {
 		title = titleFromPath(p)
 	}
+	if err := checkProperties(in.Properties); err != nil {
+		return nil, writeOut{}, err
+	}
 	doc := &models.Document{
-		MetaData: &models.DocumentMetaData{Title: title, Path: p, Tags: in.Tags},
+		MetaData: &models.DocumentMetaData{Title: title, Path: p, Tags: in.Tags, Properties: in.Properties},
 		Content:  in.Content,
 	}
 	if err := t.svc.DocumentService.CreateDocument(doc); err != nil {
@@ -353,11 +363,18 @@ type updateIn struct {
 	Content *string   `json:"content,omitempty" jsonschema:"new markdown content; replaces the whole page"`
 	Title   *string   `json:"title,omitempty"`
 	Tags    *[]string `json:"tags,omitempty" jsonschema:"new tag list; replaces the existing tags"`
+	// A pointer, so an omitted field (keep) differs from {} (clear).
+	Properties *map[string]any `json:"properties,omitempty" jsonschema:"other front matter keys; replaces all existing ones, {} clears them, omit to keep them"`
 }
 
 func (t *tools) updateDocument(_ context.Context, _ *mcp.CallToolRequest, in updateIn) (*mcp.CallToolResult, writeOut, error) {
-	if in.Content == nil && in.Title == nil && in.Tags == nil {
-		return nil, writeOut{}, errors.New("pass at least one of content, title or tags")
+	if in.Content == nil && in.Title == nil && in.Tags == nil && in.Properties == nil {
+		return nil, writeOut{}, errors.New("pass at least one of content, title, tags or properties")
+	}
+	if in.Properties != nil {
+		if err := checkProperties(*in.Properties); err != nil {
+			return nil, writeOut{}, err
+		}
 	}
 	doc, err := t.svc.DocumentService.GetDocumentByPath(documentPath(in.Path))
 	if err != nil {
@@ -374,6 +391,14 @@ func (t *tools) updateDocument(_ context.Context, _ *mcp.CallToolRequest, in upd
 	}
 	if in.Tags != nil {
 		doc.MetaData.Tags = *in.Tags
+	}
+	if in.Properties != nil {
+		// Non-nil even when empty: the service reads nil as "keep" and an
+		// empty map as "clear".
+		doc.MetaData.Properties = map[string]any{}
+		for key, value := range *in.Properties {
+			doc.MetaData.Properties[key] = value
+		}
 	}
 	return t.save(doc, "Updated ")
 }
@@ -564,6 +589,43 @@ func (t *tools) importDocuments(_ context.Context, _ *mcp.CallToolRequest, in im
 }
 
 // --- helpers ---
+
+// checkProperties refuses property keys that are Schist's own fields (title,
+// tags, path…), which have their own arguments, and empty keys.
+func checkProperties(properties map[string]any) error {
+	for key := range properties {
+		if strings.TrimSpace(key) == "" {
+			return errors.New("property names can't be empty")
+		}
+		if serializer.IsKnownField(key) {
+			return fmt.Errorf("%q is not a property: it's one of the page's own fields; use its own argument", key)
+		}
+	}
+	return nil
+}
+
+// propertiesText lists properties for a text result, sorted by name, with
+// each value as JSON.
+func propertiesText(properties map[string]any) string {
+	if len(properties) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(properties))
+	for key := range properties {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	var b strings.Builder
+	b.WriteString("Properties:\n")
+	for _, key := range keys {
+		value, err := json.Marshal(properties[key])
+		if err != nil {
+			value = []byte(fmt.Sprint(properties[key]))
+		}
+		fmt.Fprintf(&b, "  %s: %s\n", key, value)
+	}
+	return b.String()
+}
 
 // documentPath normalizes a page path from a client: a leading slash, no
 // ".md" suffix, no doubled slashes.

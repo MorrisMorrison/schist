@@ -136,14 +136,14 @@ Other clients that support remote MCP servers take the same URL and `Authorizati
 | Tool | Does |
 |---|---|
 | `search` | Full-text search with snippets and `tag:` filters |
-| `read_document` | A page's markdown, title, tags and dates |
+| `read_document` | A page's markdown, title, tags, dates and properties (other front matter, such as aliases) |
 | `list_folder` | A folder's subfolders (with page counts, subfolders included) and pages |
 | `get_backlinks` | The pages linking to a page |
 | `list_tags` | Every tag with its count |
 | `list_versions`, `read_version`, `diff_versions` | A page's history: its versions, an old version, what changed between two |
 | `get_outgoing_links`, `list_broken_links` | A page's links, and every link to a page that doesn't exist |
-| `create_document` | Create a page |
-| `update_document` | Replace a page's content, title or tags |
+| `create_document` | Create a page, with optional properties |
+| `update_document` | Replace a page's content, title, tags or properties |
 | `append_to_document` | Add text at the end of a page or of a section |
 | `edit_document` | Replace an exact snippet or a whole section, without resending the page |
 | `move_document`, `move_folder` | Move or rename a page or a folder |

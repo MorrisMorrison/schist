@@ -47,7 +47,7 @@ func TestImportFiles_ObsidianFolder(t *testing.T) {
 	assert.Equal(t, 3, result.SkippedCount)
 
 	ok := byOriginal(result.Success)
-	assert.Equal(t, "/vault/homelab/devices/docki-host", ok["homelab/devices/docki.md"].FinalPath)
+	assert.Equal(t, "/vault/homelab/devices/docki", ok["homelab/devices/docki.md"].FinalPath)
 	assert.Equal(t, "/vault/homelab/network", ok["homelab/network.md"].FinalPath)
 	assert.Equal(t, "/vault/agents/coach/progress", ok[".agents/coach/progress.md"].FinalPath, "hidden folders lose their dot")
 	assert.Contains(t, ok["homelab/devices/docki.md"].Notes, "dropped front matter: status")
@@ -58,7 +58,7 @@ func TestImportFiles_ObsidianFolder(t *testing.T) {
 	assert.Equal(t, []string{"not a markdown file"}, skipped["homelab/diagram.png"].Notes)
 	assert.Equal(t, []string{"hidden file"}, skipped["homelab/.gitkeep"].Notes)
 
-	docki, err := ds.GetDocumentByPath("/vault/homelab/devices/docki-host")
+	docki, err := ds.GetDocumentByPath("/vault/homelab/devices/docki")
 	require.NoError(t, err)
 	assert.Equal(t, "Docki host", docki.MetaData.Title)
 	assert.Equal(t, []string{"homelab"}, docki.MetaData.Tags)
@@ -81,8 +81,8 @@ func TestImportFiles_NamesWithinOneImportNeverCollide(t *testing.T) {
 	result, err := ds.ImportFiles(importFiles(map[string]string{
 		"a/readme.md": "# Readme",
 		"b/readme.md": "# Readme",
-		"one.md":      "# Same",
-		"two.md":      "# Same",
+		"a b.md":      "# One",
+		"a-b.md":      "# Two",
 	}), &models.ImportOptions{OverwriteMode: "overwrite"})
 	require.NoError(t, err)
 	require.Equal(t, 4, result.ImportedCount, "%+v", result.Failed)
@@ -90,7 +90,7 @@ func TestImportFiles_NamesWithinOneImportNeverCollide(t *testing.T) {
 	ok := byOriginal(result.Success)
 	assert.Equal(t, "/a/readme", ok["a/readme.md"].FinalPath)
 	assert.Equal(t, "/b/readme", ok["b/readme.md"].FinalPath)
-	assert.ElementsMatch(t, []string{"/same", "/same-1"}, []string{ok["one.md"].FinalPath, ok["two.md"].FinalPath},
+	assert.ElementsMatch(t, []string{"/a-b", "/a-b-1"}, []string{ok["a b.md"].FinalPath, ok["a-b.md"].FinalPath},
 		"overwrite mode never lets two files of one import replace each other")
 }
 
@@ -177,4 +177,49 @@ func TestImportFiles_OneCommitForTheWholeImport(t *testing.T) {
 		hashes[versions[0].Hash] = true
 	}
 	assert.Len(t, hashes, 1, "all three files are in the same commit")
+}
+
+func TestImportFiles_PathsComeFromFileNames(t *testing.T) {
+	ds, _ := newSafetyDocumentService(t)
+
+	result, err := ds.ImportFiles(importFiles(map[string]string{
+		"devices/router.md": "# router — main gateway\n\nBody.",
+	}), &models.ImportOptions{TargetPath: "/lab"})
+	require.NoError(t, err)
+	require.Len(t, result.Success, 1)
+	assert.Equal(t, "/lab/devices/router", result.Success[0].FinalPath)
+
+	router, err := ds.GetDocumentByPath("/lab/devices/router")
+	require.NoError(t, err)
+	assert.Equal(t, "router — main gateway", router.MetaData.Title, "the title still comes from the heading")
+}
+
+func TestImportFiles_TwoBatchesLinkToEachOther(t *testing.T) {
+	ds, _ := newSafetyDocumentService(t)
+	mustCreate(t, ds, "/notes/setup-guide", "Setting things up", "Written in the wiki.")
+	options := func() *models.ImportOptions { return &models.ImportOptions{TargetPath: "/lab"} }
+
+	first, err := ds.ImportFiles(importFiles(map[string]string{
+		"devices/router.md": "# router — main gateway\n\nUplink to [[switch]]. See [[setup guide]].",
+	}), options())
+	require.NoError(t, err)
+	require.Len(t, first.Success, 1)
+	assert.Contains(t, first.Success[0].Notes, "1 × link not found in this import or the wiki (kept by name)")
+
+	second, err := ds.ImportFiles(importFiles(map[string]string{
+		"devices/switch.md": "# switch — core\n\nBack to [[router]] and [[devices/router#Ports|the gateway]].",
+	}), options())
+	require.NoError(t, err)
+	require.Len(t, second.Success, 1)
+	assert.Empty(t, second.Success[0].Notes, "every link resolved")
+
+	router, err := ds.GetDocumentByPath("/lab/devices/router")
+	require.NoError(t, err)
+	assert.Equal(t, "# router — main gateway\n\nUplink to [[switch]]. See [[Setting things up]].", router.Content,
+		"a page already in the wiki is found by its file name")
+
+	switchPage, err := ds.GetDocumentByPath("/lab/devices/switch")
+	require.NoError(t, err)
+	assert.Equal(t, "# switch — core\n\nBack to [[router — main gateway]] and [[router — main gateway|the gateway]].",
+		switchPage.Content, "links into the earlier batch resolve")
 }

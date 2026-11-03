@@ -29,8 +29,10 @@ export function replaceLastPathSegment(path: string, segment: string): string {
 
 /**
  * The editable copy of a document: its text, dirty state, auto-save and save.
- * The title comes from the first heading, so a save can rename the document;
- * every later save (auto-save included) then targets the new path.
+ * The title comes from the first heading, so changing the heading renames the
+ * document; every later save (auto-save included) then targets the new path.
+ * While the heading stays the same the path is kept, even when it isn't the
+ * heading's slug (an imported note lives at its file name).
  */
 export function useDocumentDraft(options: DocumentDraftOptions) {
 	const delay = options.autoSaveDelayMs ?? AUTO_SAVE_DELAY_MS;
@@ -48,8 +50,15 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 
 	const title = $derived(extractTitleFromContent(content));
 	const isDirty = $derived(content !== savedContent);
-	/** Where the next save stores the document (the first heading's slug). */
-	const targetPath = $derived(replaceLastPathSegment(path, generateSlug(title)));
+	/** Where the next save stores the document. */
+	const targetPath = $derived(pathFor(content));
+
+	/** The path for text: the current one, or the new heading's slug once it changed. */
+	function pathFor(text: string): string {
+		const slug = generateSlug(extractTitleFromContent(text));
+		if (slug === generateSlug(extractTitleFromContent(savedContent))) return path;
+		return replaceLastPathSegment(path, slug);
+	}
 
 	function clearAutoSave() {
 		if (timer) clearTimeout(timer);
@@ -75,8 +84,8 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		}
 
 		const snapshot = content;
-		const slug = generateSlug(extractTitleFromContent(snapshot));
-		const newPath = replaceLastPathSegment(path, slug);
+		const newPath = pathFor(snapshot);
+		const slug = newPath.split('/').pop() ?? newPath;
 
 		isSaving = true;
 		error = '';

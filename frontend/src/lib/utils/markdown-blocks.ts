@@ -6,7 +6,7 @@ import { apiClient } from '#lib/api/client.ts';
 import { generateSlug } from '#lib/utils/path.ts';
 import { goto } from '$app/navigation';
 import { replaceWikiLinks } from './wiki-link-syntax';
-import { resolveWikiTarget } from './resolve-wiki-target';
+import { resolveWikiTarget, type LinkablePage } from './resolve-wiki-target';
 export interface BaseBlock {
 	type: string;
 	id: string;
@@ -139,11 +139,25 @@ async function postprocessAllWikiLinks(
 	const wikiLinks = getWikiLinksFromSession(sessionId);
 	if (wikiLinks.length === 0) return;
 
+	// One page list for every link on the page: resolveWikiTarget finds the
+	// target and whether it exists, so no linked page is fetched. (Resolving
+	// link by link cost two requests each and held the whole page back.)
+	const documents = await loadLinkablePages();
 	for (const link of wikiLinks) {
-		await processWikiLink(link, blocks);
+		replaceWikiLinkInBlocks(link.placeholder, createWikiLinkHtml(link, documents), blocks);
 	}
 
 	// Note: Session cleanup is now handled in parseMarkdownToBlocks finally block
+}
+
+/** The pages links resolve against, or null when the list can't be loaded. */
+async function loadLinkablePages(): Promise<LinkablePage[] | null> {
+	try {
+		return await apiClient.getDocuments();
+	} catch (error) {
+		console.warn('Failed to fetch documents for wiki link resolution:', error);
+		return null;
+	}
 }
 
 function extractSessionId(content: string): string | null {
@@ -165,38 +179,28 @@ function getWikiLinksFromSession(sessionId: string): Array<{
 	);
 }
 
-async function processWikiLink(
-	link: { placeholder: string; target: string; displayText: string },
-	blocks: MarkdownBlock[]
-): Promise<void> {
-	try {
-		const linkHtml = await createWikiLinkHtml(link);
-		replaceWikiLinkInBlocks(link.placeholder, linkHtml, blocks);
-	} catch (error) {
-		console.warn(`Failed to resolve wiki link "${link.target}":`, error);
-		const fallbackHtml = createBrokenLinkHtml(link);
-		replaceWikiLinkInBlocks(link.placeholder, fallbackHtml, blocks);
-	}
-}
+const LINK_CLASS = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
+const BROKEN_LINK_CLASS = 'wiki-link broken-link text-red-500 cursor-default';
 
-async function createWikiLinkHtml(link: { target: string; displayText: string }): Promise<string> {
-	const resolvedLink = await resolveWikiLink(link.target);
-	let linkClass = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
-	let title = `Go to ${resolvedLink.target}`;
+/**
+ * The link's HTML. With the page list it's resolved like the server's link
+ * index (title, root slug, alias, page name) and marked broken when nothing
+ * matches. Without the list it links to the root slug, unmarked, since whether
+ * the page exists isn't known.
+ */
+function createWikiLinkHtml(
+	link: { target: string; displayText: string },
+	documents: LinkablePage[] | null
+): string {
+	const resolved = documents
+		? resolveWikiTarget(link.target, documents)
+		: { path: `/${generateSlug(link.target)}`, exists: true };
+	const linkClass = resolved.exists ? LINK_CLASS : BROKEN_LINK_CLASS;
+	const title = resolved.exists
+		? `Go to ${link.target}`
+		: `Document "${link.target}" does not exist`;
 
-	try {
-		await apiClient.getDocumentByPath(resolvedLink.path);
-	} catch (_error) {
-		linkClass = 'wiki-link broken-link text-red-500 cursor-default';
-		title = `Document "${resolvedLink.target}" does not exist`;
-	}
-
-	return `<span class="${linkClass}" data-wiki-target="${escapeHtml(resolvedLink.path)}" title="${escapeHtml(title)}">${escapeHtml(link.displayText)}</span>`;
-}
-
-function createBrokenLinkHtml(link: { target: string; displayText: string }): string {
-	const slug = generateSlug(link.target);
-	return `<span class="wiki-link broken-link text-red-500 cursor-default" data-wiki-target="/${escapeHtml(slug)}" title="Failed to resolve link">${escapeHtml(link.displayText)}</span>`;
+	return `<span class="${linkClass}" data-wiki-target="${escapeHtml(resolved.path)}" title="${escapeHtml(title)}">${escapeHtml(link.displayText)}</span>`;
 }
 
 // Wiki link text and targets come straight from the document source, so they
@@ -459,28 +463,6 @@ function preprocessWikiLinks(content: string): string {
 	(globalThis as Record<string, unknown>)[sessionId] = wikiLinks;
 
 	return `${processed}\n<!-- WIKI_SESSION:${sessionId} -->`;
-}
-interface WikiLink {
-	target: string;
-	displayText: string;
-	path: string;
-}
-
-async function resolveWikiLink(target: string): Promise<WikiLink> {
-	try {
-		const documents = await apiClient.getDocuments();
-		const { path } = resolveWikiTarget(target, documents);
-		return { target, displayText: target, path };
-	} catch (error) {
-		console.warn('Failed to fetch documents for wiki link resolution:', error);
-	}
-
-	const slug = generateSlug(target);
-	return {
-		target,
-		displayText: target,
-		path: `/${slug}`
-	};
 }
 const INLINE_MARKDOWN_CACHE_SIZE = 200;
 const inlineMarkdownCache = new Map<string, Promise<string>>();

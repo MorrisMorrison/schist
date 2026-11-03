@@ -173,6 +173,12 @@
 	let graphViewMode = $state<'list' | 'graph'>('graph');
 	const backlinkLoader = useOptimizedLoading(200, 150);
 
+	// The links section sits below the text but often loads first; showing it
+	// before the text would put the graph right under the title and then push
+	// it down. So it waits until the text has rendered once (or there is none).
+	let contentRendered = $state(false);
+	const linksReady = $derived(contentRendered || !document.content);
+
 	let versionCount = $state<number | undefined>(undefined);
 	const versionLoader = useOptimizedLoading(200, 150);
 
@@ -492,7 +498,7 @@
 			<!-- Editing: the editor above takes the rendered content's place. -->
 		{:else if document.content}
 			<div bind:this={contentContainer} class="reading" data-testid="document-content">
-				<MarkdownRenderer content={processedContent} />
+				<MarkdownRenderer content={processedContent} onrendered={() => (contentRendered = true)} />
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">
@@ -505,7 +511,7 @@
 		{/if}
 	</main>
 
-	{#if mode === 'read' && ((linksStore.backlinks?.length || 0) > 0 || validOutgoingLinks.length > 0)}
+	{#if mode === 'read' && linksReady && ((linksStore.backlinks?.length || 0) > 0 || validOutgoingLinks.length > 0)}
 		<section class="border-border rounded-lg border p-6">
 			<div class="mb-4 flex items-center justify-between">
 				<div class="flex items-center gap-2">

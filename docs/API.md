@@ -418,7 +418,7 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 | Tool | Access | Arguments | Does |
 |---|---|---|---|
 | `search` | read | `query`, `limit?` | Full-text search (same as `/api/search`); snippets have matches in `**bold**` |
-| `read_document` | read | `path` | Markdown content, title, tags, created and updated times |
+| `read_document` | read | `path` | Markdown content, title, tags, created and updated times, and `properties` (the other front matter keys, such as `aliases` or `status`) |
 | `list_folder` | read | `path?` | Subfolders and the pages directly in the folder. Each subfolder has `documentCount` (pages directly in it) and `totalDocumentCount` (including its subfolders) |
 | `get_backlinks` | read | `path` | Pages linking to `path` with `[[wiki links]]` |
 | `list_tags` | read | – | Tags with counts, most used first |
@@ -427,8 +427,8 @@ Results are ranked: a title match comes before a heading, then a tag, then the b
 | `diff_versions` | read | `path`, `from`, `to?` | A line diff of the page text from `from` to `to` (default the latest version): `+`/`-` lines with two lines of context, `additions`, `deletions`, and title or tag `changes` |
 | `get_outgoing_links` | read | `path` | The page's `[[wiki links]]`: `target`, `text`, the `path` it resolves to and `exists`, plus a `broken` count |
 | `list_broken_links` | read | – | Pages with links to pages that don't exist (the trash is skipped), sorted by path, with the broken `targets` and a `total` |
-| `create_document` | write | `path`, `content`, `title?`, `tags?` | New page; fails if it exists. The title defaults to one made from the path |
-| `update_document` | write | `path`, `content?`, `title?`, `tags?` | Replaces only the fields passed; the path doesn't change |
+| `create_document` | write | `path`, `content`, `title?`, `tags?`, `properties?` | New page; fails if it exists. The title defaults to one made from the path |
+| `update_document` | write | `path`, `content?`, `title?`, `tags?`, `properties?` | Replaces only the fields passed; the path doesn't change. `properties` replaces all existing ones, `{}` clears them, and leaving it out keeps them. Keys that are the page's own fields (`title`, `tags`, `path`...) are refused in `properties` |
 | `append_to_document` | write | `path`, `content`, `heading?` | Adds at the end of the page, or at the end of the section under `heading` |
 | `edit_document` | write | `path`, `new_text`, and `old_text` (+ `replace_all?`) or `heading` | Replaces an exact snippet, or the section under `heading` up to the next heading of the same or a higher level (the heading line stays). Fails without writing if the snippet or heading is missing, or matches more than once and `replace_all` isn't set. Returns `replacements` and the `lines` where each change starts; an edit that changes nothing isn't committed |
 | `move_document` | write | `path`, `new_path` | Moves or renames a page; fails if `new_path` exists. Links keep working (they point at titles) |

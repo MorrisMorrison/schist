@@ -24,7 +24,9 @@ const instructions = `Schist is a markdown wiki. Every page is a markdown file i
   snippet or a section under a heading) over "update_document", which replaces the whole content.
 - "move_document" and "move_folder" move or rename; links keep working because they point at titles.
 - "delete_document" and "delete_folder" move things to /trash; undo by moving them back. Nothing is removed for good.
-- Every write is committed to git, so earlier versions can be restored in Schist.
+- Every write is committed to git: "list_versions", "read_version" and "diff_versions" show a page's history,
+  and "restore_version" brings an earlier version back as a new one.
+- "get_outgoing_links" checks a page's links; "list_broken_links" finds links to pages that don't exist.
 - Secret placeholders like {{secret:name}} are never resolved here; keep them as they are.`
 
 type writeAccessKey struct{}
@@ -60,6 +62,7 @@ func newMCPServer(t *tools, write bool) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "schist", Title: "Schist wiki", Version: version.Version},
 		&mcp.ServerOptions{Instructions: instructions})
 	t.registerRead(server)
+	t.registerHistory(server, write)
 	if write {
 		t.registerWrite(server)
 		t.registerManage(server)

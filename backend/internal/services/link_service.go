@@ -4,10 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
-	"strings"
-	"sync"
 
-	"github.com/MorrisMorrison/schist/internal/models"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
 
@@ -18,22 +15,17 @@ type WikiLink struct {
 	IsValid     bool   `json:"is_valid"`
 }
 
+// LinkService answers wiki link questions (outgoing links, backlinks, broken
+// links) from an in-memory link index that follows the files on disk.
 type LinkService struct {
 	documentService *DocumentService
-	ignoreService   *IgnoreService
-
-	// mu guards backlinks: handlers update and rebuild the index from
-	// concurrent requests, and an unguarded map write is a fatal runtime
-	// error that takes down the whole server.
-	mu        sync.Mutex
-	backlinks map[string][]string // map[targetPath][]sourcePaths
+	index           *linkIndex
 }
 
 func NewLinkService(documentService *DocumentService, ignoreService *IgnoreService) *LinkService {
 	return &LinkService{
 		documentService: documentService,
-		ignoreService:   ignoreService,
-		backlinks:       make(map[string][]string),
+		index:           newLinkIndex(documentService, ignoreService),
 	}
 }
 
@@ -42,99 +34,53 @@ var wikiLinkRegex = regexp.MustCompile(`\[\[([^\]|]+)(?:\|([^\]]+))?\]\]`)
 // ParseWikiLinks returns the wiki links in content, resolved against the
 // current documents.
 func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
-	return parseWikiLinks(content, l.newLinkResolver(nil))
-}
-
-func parseWikiLinks(content string, resolver *linkResolver) []*WikiLink {
-	matches := wikiLinkRegex.FindAllStringSubmatch(content, -1)
 	var links []*WikiLink
-
-	for _, match := range matches {
-		if len(match) < 2 {
-			continue
-		}
-
-		// In a table cell the alias pipe is escaped: [[Title\|alias]].
-		target := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(match[1]), `\`))
-		if target == "" {
-			continue
-		}
-
-		displayText := target
-		if len(match) > 2 && match[2] != "" {
-			displayText = strings.TrimSpace(match[2])
-		}
-
-		path, isValid := resolver.resolve(target)
-
-		links = append(links, &WikiLink{
-			Target:      target,
-			DisplayText: displayText,
-			Path:        path,
-			IsValid:     isValid,
-		})
+	if err := l.index.withFresh(func() error {
+		links = l.index.resolver.resolveAll(extractLinkTargets(content))
+		return nil
+	}); err != nil {
+		return resolverOfNothing().resolveAll(extractLinkTargets(content))
 	}
-
 	return links
 }
 
+// resolverOfNothing resolves every link as missing; used when the data dir
+// can't be read at all.
+func resolverOfNothing() *linkResolver {
+	return &linkResolver{byTitle: map[string]string{}, paths: map[string]bool{}}
+}
+
 func (l *LinkService) resolveTargetToPath(target string) string {
-	path, _ := l.newLinkResolver(nil).resolve(target)
-	return path
-}
-
-// linkResolver maps link targets to document paths from one listing of the
-// documents. Resolving each link by listing every document again made
-// importing or indexing a wiki with many links take seconds per page.
-type linkResolver struct {
-	l       *LinkService
-	byTitle map[string]string // lower-cased title -> path
-	paths   map[string]bool
-}
-
-// newLinkResolver builds a resolver from documents, or from a fresh listing
-// when documents is nil.
-func (l *LinkService) newLinkResolver(documents []*models.Document) *linkResolver {
-	if documents == nil {
-		documents, _ = l.documentService.ListDocuments()
+	links := l.ParseWikiLinks("[[" + target + "]]")
+	if len(links) == 0 {
+		return "/" + utils.GenerateSlug(target)
 	}
-	r := &linkResolver{l: l, byTitle: map[string]string{}, paths: map[string]bool{}}
-	for _, document := range documents {
-		r.paths[document.MetaData.Path] = true
-		key := strings.ToLower(document.MetaData.Title)
-		if _, taken := r.byTitle[key]; !taken {
-			r.byTitle[key] = document.MetaData.Path
-		}
-	}
-	return r
-}
-
-// resolve returns the path a link target points to (by title, else by slug)
-// and whether a document exists there.
-func (r *linkResolver) resolve(target string) (string, bool) {
-	if path, ok := r.byTitle[strings.ToLower(target)]; ok {
-		return path, true
-	}
-	path := "/" + utils.GenerateSlug(target)
-	if r.paths[path] {
-		return path, true
-	}
-	// Not in the listing (e.g. an ignored folder): check the file itself.
-	return path, r.l.documentExists(path)
-}
-
-func (l *LinkService) documentExists(path string) bool {
-	_, err := l.documentService.GetDocumentByPath(path)
-	return err == nil
+	return links[0].Path
 }
 
 func (l *LinkService) GetOutgoingLinks(pagePath string) ([]*WikiLink, error) {
-	page, err := l.documentService.GetDocumentByPath(pagePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get page: %w", err)
+	if err := utils.ValidatePath(pagePath); err != nil {
+		return nil, fmt.Errorf("invalid page path: %w", err)
 	}
 
-	return l.ParseWikiLinks(page.Content), nil
+	var links []*WikiLink
+	err := l.index.withFresh(func() error {
+		if entry := l.index.entryAt(pagePath); entry != nil {
+			links = l.index.resolver.resolveAll(entry.links)
+			return nil
+		}
+		// Not indexed (ignored or unreadable): read it to report why.
+		page, err := l.documentService.GetDocumentByPath(pagePath)
+		if err != nil {
+			return fmt.Errorf("failed to get page: %w", err)
+		}
+		links = l.index.resolver.resolveAll(extractLinkTargets(page.Content))
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return links, nil
 }
 
 func (l *LinkService) GetBacklinks(targetPath string) ([]string, error) {
@@ -142,22 +88,17 @@ func (l *LinkService) GetBacklinks(targetPath string) ([]string, error) {
 		return nil, fmt.Errorf("invalid target path: %w", err)
 	}
 
-	index, err := l.buildBacklinksIndex()
+	var result []string
+	err := l.index.withFresh(func() error {
+		result = slices.Clone(l.index.backlinks[targetPath])
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to rebuild backlinks index: %w", err)
+		return nil, fmt.Errorf("failed to refresh the link index: %w", err)
 	}
-
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.backlinks = index
-
-	backlinks := l.backlinks[targetPath]
-	if backlinks == nil {
-		return []string{}, nil
+	if result == nil {
+		result = []string{}
 	}
-
-	result := make([]string, len(backlinks))
-	copy(result, backlinks)
 	return result, nil
 }
 
@@ -165,65 +106,40 @@ func (l *LinkService) UpdateBacklinks(pagePath string) error {
 	return l.UpdateBacklinksFor(pagePath)
 }
 
-// UpdateBacklinksFor refreshes the backlinks contributed by each page, with
-// one listing of the documents for all of them (an import passes every new
-// page at once). The first error is returned after all pages are tried.
+// UpdateBacklinksFor tells the index that these pages changed. The index
+// notices changed files by itself; this also catches a save that kept the
+// file's size and modification time. It returns an error for an invalid path
+// or a page that no longer exists, after updating all the others.
 func (l *LinkService) UpdateBacklinksFor(pagePaths ...string) error {
-	resolver := l.newLinkResolver(nil)
 	var firstErr error
+	valid := make([]string, 0, len(pagePaths))
 	for _, pagePath := range pagePaths {
-		if err := l.updateBacklinks(pagePath, resolver); err != nil && firstErr == nil {
-			firstErr = err
+		if err := utils.ValidatePath(pagePath); err != nil {
+			if firstErr == nil {
+				firstErr = fmt.Errorf("invalid page path: %w", err)
+			}
+			continue
 		}
+		valid = append(valid, pagePath)
 	}
-	return firstErr
-}
+	l.index.markStale(valid...)
 
-func (l *LinkService) updateBacklinks(pagePath string, resolver *linkResolver) error {
-	if err := utils.ValidatePath(pagePath); err != nil {
-		return fmt.Errorf("invalid page path: %w", err)
-	}
-
-	page, err := l.documentService.GetDocumentByPath(pagePath)
-	var links []*WikiLink
-	if err == nil {
-		links = parseWikiLinks(page.Content, resolver)
-	}
-
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	l.removeBacklinksFromSource(pagePath)
-	if err != nil {
-		return fmt.Errorf("failed to get outgoing links: failed to get page: %w", err)
-	}
-
-	for _, link := range links {
-		if link.IsValid {
-			addBacklink(l.backlinks, link.Path, pagePath)
-		}
-	}
-
-	return nil
-}
-
-// removeBacklinksFromSource drops every backlink contributed by sourcePath.
-// Callers must hold l.mu.
-func (l *LinkService) removeBacklinksFromSource(sourcePath string) {
-	for targetPath, sources := range l.backlinks {
-		var newSources []string
-		for _, source := range sources {
-			if source != sourcePath {
-				newSources = append(newSources, source)
+	err := l.index.withFresh(func() error {
+		for _, pagePath := range valid {
+			if l.index.entryAt(pagePath) == nil && firstErr == nil {
+				_, err := l.documentService.GetDocumentByPath(pagePath)
+				if err == nil {
+					continue // exists but isn't indexed (ignored)
+				}
+				firstErr = fmt.Errorf("failed to get outgoing links: failed to get page: %w", err)
 			}
 		}
-
-		if len(newSources) == 0 {
-			delete(l.backlinks, targetPath)
-		} else {
-			l.backlinks[targetPath] = newSources
-		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
+	return firstErr
 }
 
 func addBacklink(index map[string][]string, targetPath, sourcePath string) {
@@ -233,60 +149,27 @@ func addBacklink(index map[string][]string, targetPath, sourcePath string) {
 	index[targetPath] = append(index[targetPath], sourcePath)
 }
 
-// buildBacklinksIndex computes a fresh backlinks index from all documents.
-// It does not touch l.backlinks, so it runs without holding l.mu.
-func (l *LinkService) buildBacklinksIndex() (map[string][]string, error) {
-	index := make(map[string][]string)
-
-	documents, err := l.documentService.ListDocuments()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list documents: %w", err)
-	}
-
-	resolver := l.newLinkResolver(documents)
-	for _, document := range documents {
-		if l.ignoreService.ShouldIgnore(document.MetaData.Path) {
-			continue
-		}
-
-		links := parseWikiLinks(document.Content, resolver)
-		for _, link := range links {
-			if link.IsValid {
-				addBacklink(index, link.Path, document.MetaData.Path)
+func (l *LinkService) GetBrokenLinks() (map[string][]*WikiLink, error) {
+	brokenLinks := make(map[string][]*WikiLink)
+	err := l.index.withFresh(func() error {
+		for _, entry := range l.index.entries {
+			if entry.ignored {
+				continue
+			}
+			var broken []*WikiLink
+			for _, link := range l.index.resolver.resolveAll(entry.links) {
+				if !link.IsValid {
+					broken = append(broken, link)
+				}
+			}
+			if len(broken) > 0 {
+				brokenLinks[entry.path] = broken
 			}
 		}
-	}
-
-	return index, nil
-}
-
-func (l *LinkService) GetBrokenLinks() (map[string][]*WikiLink, error) {
-	pages, err := l.documentService.ListDocuments()
+		return nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pages: %w", err)
 	}
-
-	brokenLinks := make(map[string][]*WikiLink)
-
-	resolver := l.newLinkResolver(pages)
-	for _, page := range pages {
-		if l.ignoreService.ShouldIgnore(page.MetaData.Path) {
-			continue
-		}
-
-		links := parseWikiLinks(page.Content, resolver)
-		var broken []*WikiLink
-
-		for _, link := range links {
-			if !link.IsValid {
-				broken = append(broken, link)
-			}
-		}
-
-		if len(broken) > 0 {
-			brokenLinks[page.MetaData.Path] = broken
-		}
-	}
-
 	return brokenLinks, nil
 }

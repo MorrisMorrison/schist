@@ -3,6 +3,7 @@ package services
 import (
 	"log"
 	"os"
+	"path"
 	"slices"
 	"sort"
 	"strings"
@@ -39,6 +40,7 @@ type linkIndex struct {
 type linkEntry struct {
 	path    string
 	title   string
+	aliases []string // from the aliases property
 	links   []linkTarget
 	ignored bool // listed, but never a link source
 	order   int  // position in the last walk; the first of two equal titles wins
@@ -140,6 +142,7 @@ func (x *linkIndex) buildEntry(fsPath, logicalPath string) (*linkEntry, error) {
 		// The front matter path is what links have always resolved to.
 		path:    document.MetaData.Path,
 		title:   document.MetaData.Title,
+		aliases: propertyStrings(document.MetaData.Properties["aliases"]),
 		links:   extractLinkTargets(document.Content),
 		ignored: x.ignoreService.ShouldIgnore(logicalPath),
 	}, nil
@@ -154,13 +157,22 @@ func (x *linkIndex) rebuildDerived() {
 	}
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].order < ordered[j].order })
 
-	resolver := &linkResolver{byTitle: map[string]string{}, paths: map[string]bool{}}
+	resolver := &linkResolver{
+		byTitle: map[string]string{},
+		byAlias: map[string]string{},
+		byBase:  map[string]string{},
+		paths:   map[string]bool{},
+	}
 	for _, entry := range ordered {
 		resolver.paths[entry.path] = true
 		key := strings.ToLower(entry.title)
 		if _, taken := resolver.byTitle[key]; !taken {
 			resolver.byTitle[key] = entry.path
 		}
+		for _, alias := range entry.aliases {
+			addUnique(resolver.byAlias, strings.ToLower(alias), entry.path)
+		}
+		addUnique(resolver.byBase, path.Base(entry.path), entry.path)
 	}
 
 	backlinks := map[string][]string{}
@@ -232,17 +244,66 @@ func extractLinkTargets(content string) []linkTarget {
 // linkResolver maps link targets to document paths.
 type linkResolver struct {
 	byTitle map[string]string // lower-cased title -> path
+	byAlias map[string]string // lower-cased alias -> path, or ambiguousName
+	byBase  map[string]string // page name (last path segment) -> path, or ambiguousName
 	paths   map[string]bool
 }
 
-// resolve returns the path a link target points to (by title, else by slug)
-// and whether a document exists there. It never touches the disk.
+// ambiguousName marks an alias or page name that more than one page has; a
+// link by it stays unresolved rather than picking one at random.
+const ambiguousName = ""
+
+func addUnique(names map[string]string, name, pagePath string) {
+	if name == "" {
+		return
+	}
+	if existing, taken := names[name]; taken && existing != pagePath {
+		names[name] = ambiguousName
+		return
+	}
+	names[name] = pagePath
+}
+
+// propertyStrings reads a property that holds one string or a list of them
+// (Obsidian writes aliases either way).
+func propertyStrings(value any) []string {
+	var out []string
+	switch v := value.(type) {
+	case string:
+		out = append(out, v)
+	case []any:
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+	}
+	for i := range out {
+		out[i] = strings.TrimSpace(out[i])
+	}
+	return out
+}
+
+// resolve returns the path a link target points to and whether a document
+// exists there: by title, then the page at the root slug, then a page's alias,
+// then a page's name (the last segment of its path, which is an imported
+// note's file name). It never touches the disk.
 func (r *linkResolver) resolve(target string) (string, bool) {
 	if path, ok := r.byTitle[strings.ToLower(target)]; ok {
 		return path, true
 	}
-	path := "/" + utils.GenerateSlug(target)
-	return path, r.paths[path]
+	slug := utils.GenerateSlug(target)
+	rootPath := "/" + slug
+	if r.paths[rootPath] {
+		return rootPath, true
+	}
+	if path := r.byAlias[strings.ToLower(strings.TrimSpace(target))]; path != ambiguousName {
+		return path, true
+	}
+	if path := r.byBase[slug]; path != ambiguousName {
+		return path, true
+	}
+	return rootPath, false
 }
 
 func (r *linkResolver) resolveAll(links []linkTarget) []*WikiLink {

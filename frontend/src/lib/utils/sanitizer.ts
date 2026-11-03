@@ -74,21 +74,8 @@ export function sanitizeHtml(dirty: string): string {
 		// Remove javascript: URLs
 		cleaned = cleaned.replace(/javascript\s*:/gi, '');
 
-		// In Node.js/test environment, we need to handle DOMPurify differently
-		if (typeof window === 'undefined') {
-			// For server-side rendering or testing, create a mock DOM environment
-			const createDOMPurify = DOMPurify as typeof DOMPurify &
-				((window: Window) => typeof DOMPurify);
-			if (typeof createDOMPurify === 'function') {
-				// DOMPurify factory function - create instance with JSDOM
-				// eslint-disable-next-line @typescript-eslint/no-require-imports
-				const { JSDOM } = require('jsdom');
-				const window = new JSDOM('').window;
-				const purify = createDOMPurify(window as Window);
-				return purify.sanitize(cleaned, componentSanitizerConfig);
-			}
-		}
-
+		// The app runs only in the browser (ssr = false) and the unit tests run
+		// in a real browser too, so DOMPurify always has a window here.
 		return DOMPurify.sanitize(cleaned, componentSanitizerConfig);
 	} catch (error) {
 		console.error('HTML sanitization failed:', error);

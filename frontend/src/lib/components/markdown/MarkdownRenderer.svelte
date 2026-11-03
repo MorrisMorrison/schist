@@ -6,6 +6,7 @@
 	import HeadingBlock from './HeadingBlock.svelte';
 	import ParagraphBlock from './ParagraphBlock.svelte';
 	import CodeBlock from './CodeBlock.svelte';
+	import MermaidBlock from './MermaidBlock.svelte';
 	import ListBlock from './ListBlock.svelte';
 	import BlockquoteBlock from './BlockquoteBlock.svelte';
 	import TableBlock from './TableBlock.svelte';
@@ -87,6 +88,8 @@
 				<HeadingBlock {block} />
 			{:else if block.type === 'paragraph'}
 				<ParagraphBlock {block} />
+			{:else if block.type === 'code' && block.language?.toLowerCase() === 'mermaid'}
+				<MermaidBlock {block} />
 			{:else if block.type === 'code'}
 				<CodeBlock {block} />
 			{:else if block.type === 'list'}

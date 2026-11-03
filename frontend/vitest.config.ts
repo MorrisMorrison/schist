@@ -32,7 +32,8 @@ export default defineConfig({
 			'@codemirror/language',
 			'@codemirror/autocomplete',
 			'@codemirror/lang-markdown',
-			'@lezer/highlight'
+			'@lezer/highlight',
+			'mermaid'
 		]
 	},
 	test: {

@@ -59,3 +59,28 @@ describe('MarkdownRenderer wiki link navigation', () => {
 		expect(goto).toHaveBeenCalledWith('/documents/projects/website-relaunch');
 	});
 });
+
+describe('MarkdownRenderer code blocks', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '';
+		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
+	});
+
+	it('draws mermaid blocks as diagrams and leaves other code as code', async () => {
+		const { container } = render(MarkdownRenderer, {
+			props: {
+				content: '```mermaid\ngraph LR\n  A[Beds] --> B[Compost]\n```\n\n```js\nconst a = 1;\n```'
+			}
+		});
+
+		await waitFor(
+			() => expect(container.querySelector('[data-testid="mermaid-diagram"] svg')).not.toBeNull(),
+			{ timeout: 10000 }
+		);
+		const blocks = container.querySelectorAll('.code-block-container');
+		expect(blocks).toHaveLength(2);
+		expect(blocks[0]).toHaveAttribute('data-testid', 'mermaid-block');
+		expect(blocks[1]).not.toHaveAttribute('data-testid', 'mermaid-block');
+		expect(blocks[1]).toHaveTextContent('const a = 1;');
+	});
+});

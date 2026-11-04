@@ -590,3 +590,16 @@ func TestUpdateConfiguration_BackupClearsTheTwoWayState(t *testing.T) {
 	require.NoError(t, f.gs.UpdateConfiguration(&GitHubConfigRequest{Mode: &mode}))
 	assert.Equal(t, string(apierrors.ErrCodeUnavailable), f.settings.GetGitHubSettings().LastSyncErrorCode)
 }
+
+func TestPull_HookGetsOnlyReadablePagesOnDisk(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	var got []string
+	f.gs.SetPullHook(func(pages []string) { got = pages })
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian"), "My Note.md": "just text\n",
+		"broken.md": "no front matter\n"}, "notes.md")
+
+	_, _, err := f.gs.pullOnce(nil, false)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"/plan"}, got)
+}

@@ -187,7 +187,7 @@ func (gs *GitHubService) pullOnce(resolutions map[string]syncplan.Resolution, dr
 	for _, c := range plan.Apply {
 		out.Applied = append(out.Applied, c.Path)
 	}
-	gs.notifyPulled(out.Applied)
+	gs.notifyPulled(out.Applied, out.Unreadable)
 	return out, &plan, nil
 }
 
@@ -347,16 +347,22 @@ func unreadableAt(repo *git.Repository, h plumbing.Hash) ([]string, error) {
 	return unreadablePages(repo, all), nil
 }
 
-// notifyPulled tells the link index which pages a pull changed.
-func (gs *GitHubService) notifyPulled(paths []string) {
+// notifyPulled tells the link index which pages a pull changed: those still
+// on disk that Schist can read (deleted and unreadable files have no page).
+func (gs *GitHubService) notifyPulled(paths, unreadable []string) {
 	if gs.onPulled == nil {
 		return
 	}
 	var pages []string
 	for _, p := range paths {
-		if isPagePath(p) {
-			pages = append(pages, "/"+strings.TrimSuffix(p, ".md"))
+		logical := "/" + strings.TrimSuffix(p, ".md")
+		if !isPagePath(p) || utils.ValidatePath(logical) != nil || slices.Contains(unreadable, p) {
+			continue
 		}
+		if _, err := os.Stat(filepath.Join(gs.gitService.dataDir, filepath.FromSlash(p))); err != nil {
+			continue
+		}
+		pages = append(pages, logical)
 	}
 	gs.onPulled(pages)
 }

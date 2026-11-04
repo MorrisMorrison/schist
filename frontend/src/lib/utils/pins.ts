@@ -13,13 +13,19 @@ export function isPinned(document: Pinnable): boolean {
 	return value === true || value === 'true';
 }
 
+/**
+ * Compares names the way people read them: ignoring case, and with numbers in
+ * order ("Service 2" before "Service 10").
+ */
+export function compareNames(a: string, b: string): number {
+	return a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+}
+
 /** The pinned pages, sorted by title. */
 export function pinnedDocuments<T extends Pinnable>(documents: readonly T[]): T[] {
-	return documents.filter(isPinned).sort((a, b) =>
-		(a.metaData.title ?? '').localeCompare(b.metaData.title ?? '', undefined, {
-			sensitivity: 'base'
-		})
-	);
+	return documents
+		.filter(isPinned)
+		.sort((a, b) => compareNames(a.metaData.title ?? '', b.metaData.title ?? ''));
 }
 
 /**

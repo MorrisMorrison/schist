@@ -12,19 +12,12 @@
 
 <svelte:head>
 	<title
-		>{data.isFolder
-			? `${data.folderName} - Folder`
-			: `${data.document?.metaData?.title || 'Document'}`} - Documentation</title
+		>{data.isFolder ? data.folderName : data.document?.metaData?.title || 'Document'} - Schist</title
 	>
 </svelte:head>
 
 {#if data.isFolder}
-	<FolderView
-		path={data.path}
-		showCreateButtons={true}
-		initialDocuments={data.documents || []}
-		initialFolders={data.folders || []}
-	/>
+	<FolderView path={data.path} showCreateButtons={true} />
 {:else if data.document}
 	<DocumentView document={data.document} />
 {:else}

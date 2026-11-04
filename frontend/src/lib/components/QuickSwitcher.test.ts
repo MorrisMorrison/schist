@@ -12,6 +12,7 @@ vi.mock('#lib/utils/markdown-cache.ts', () => ({
 import { goto } from '$app/navigation';
 import { apiClient } from '#lib/api/client.ts';
 import { getCachedDocuments } from '#lib/utils/markdown-cache.ts';
+import { getRecentDocumentPaths } from '#lib/utils/recent-documents.ts';
 import { pressOutsideDialog, waitForDialogFocus } from '#lib/test/dialog.ts';
 import QuickSwitcher from './QuickSwitcher.svelte';
 
@@ -178,9 +179,7 @@ describe('QuickSwitcher', () => {
 
 		expect(goto).toHaveBeenCalledWith('/documents/recipes/alphabet-soup');
 		expect(onClose).toHaveBeenCalled();
-		expect(JSON.parse(localStorage.getItem('recent-documents')!)).toContain(
-			'/recipes/alphabet-soup'
-		);
+		expect(getRecentDocumentPaths()).toContain('/recipes/alphabet-soup');
 	});
 
 	it('Enter with no results does nothing', async () => {

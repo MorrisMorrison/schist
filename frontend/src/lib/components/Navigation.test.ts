@@ -61,18 +61,21 @@ describe('Navigation', () => {
 
 		expect(screen.getByAltText('Schist Logo')).toBeInTheDocument();
 		expect(screen.getByTestId('nav-home')).toHaveClass('border-primary');
-		expect(screen.getByTestId('nav-recent')).not.toHaveClass('border-primary');
+		expect(screen.queryByTestId('nav-recent')).not.toBeInTheDocument();
 		expect(screen.getByTitle('Settings')).toHaveAttribute('href', '/settings');
 		expect(screen.queryByTestId('user-info')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('quick-unlock-button')).not.toBeInTheDocument();
 		expect(apiClient.getSecretsStatus).not.toHaveBeenCalled();
 	});
 
-	it('highlights Recent on the recent page', () => {
-		pageState.url = new URL('http://localhost/recent');
-		render(Navigation);
+	it('highlights Home on the folder browser too, and not on a page', () => {
+		pageState.url = new URL('http://localhost/folders');
+		const { unmount } = render(Navigation);
+		expect(screen.getByTestId('nav-home')).toHaveClass('border-primary');
+		unmount();
 
-		expect(screen.getByTestId('nav-recent')).toHaveClass('border-primary');
+		pageState.url = new URL('http://localhost/documents/notes/plan');
+		render(Navigation);
 		expect(screen.getByTestId('nav-home')).not.toHaveClass('border-primary');
 	});
 
@@ -171,10 +174,10 @@ describe('Navigation', () => {
 
 			await openMobileMenu();
 			expect(toggle).toHaveAttribute('aria-expanded', 'true');
-			expect(screen.getByTestId('nav-recent-mobile')).toBeInTheDocument();
+			expect(screen.getByTestId('nav-home-mobile')).toBeInTheDocument();
 
 			await openMobileMenu();
-			expect(screen.queryByTestId('nav-recent-mobile')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('nav-home-mobile')).not.toBeInTheDocument();
 		});
 
 		it('opens the quick switcher and closes the menu', async () => {
@@ -193,25 +196,25 @@ describe('Navigation', () => {
 		it('closes the menu from its links', async () => {
 			render(Navigation);
 			await openMobileMenu();
-			const recent = screen.getByTestId('nav-recent-mobile');
-			recent.addEventListener('click', (e) => e.preventDefault());
+			const home = screen.getByTestId('nav-home-mobile');
+			home.addEventListener('click', (e) => e.preventDefault());
 
-			await fireEvent.click(recent);
+			await fireEvent.click(home);
 
-			expect(screen.queryByTestId('nav-recent-mobile')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('nav-home-mobile')).not.toBeInTheDocument();
 		});
 
 		it('closes the menu from the settings link and highlights the current page', async () => {
-			pageState.url = new URL('http://localhost/recent');
+			pageState.url = new URL('http://localhost/');
 			render(Navigation);
 			await openMobileMenu();
-			expect(screen.getByTestId('nav-recent-mobile')).toHaveClass('border-primary');
+			expect(screen.getByTestId('nav-home-mobile')).toHaveClass('border-primary');
 			const settings = screen.getByText('Settings').closest('a')!;
 			settings.addEventListener('click', (e) => e.preventDefault());
 
 			await fireEvent.click(settings);
 
-			expect(screen.queryByTestId('nav-recent-mobile')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('nav-home-mobile')).not.toBeInTheDocument();
 		});
 
 		it('shows the signed-in user, logs out and unlocks', async () => {

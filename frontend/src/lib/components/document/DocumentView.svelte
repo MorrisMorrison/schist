@@ -12,10 +12,13 @@
 		History,
 		Link2,
 		Pencil,
+		Pin,
+		PinOff,
 		Share,
 		Tag,
 		Trash2
 	} from '@lucide/svelte';
+	import { isPinned, setPinned } from '#lib/utils/pins.ts';
 	import { tick } from 'svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
@@ -301,6 +304,24 @@
 		isDeleting = false;
 	}
 
+	// Pinning saves `pinned` in the page's front matter (shared with everyone);
+	// the saved page replaces this one, and Home and the sidebar reload.
+	const pinned = $derived(isPinned(document));
+	let pinning = $state(false);
+	async function togglePin() {
+		if (!documentPath || pinning) return;
+		pinning = true;
+		try {
+			const saved = await setPinned(documentPath, !pinned);
+			if (saved) onSaved(saved);
+			await documentActions.loadDocuments(true);
+		} catch (error) {
+			console.error('Failed to change the pin:', error);
+		} finally {
+			pinning = false;
+		}
+	}
+
 	async function handleVersionHistoryClick() {
 		if (!documentPath) return;
 
@@ -453,6 +474,13 @@
 					<Ellipsis class="h-4 w-4" />
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end" class="w-48">
+					<DropdownMenu.Item
+						onSelect={togglePin}
+						disabled={pinning}
+						data-testid="pin-document-menu-item"
+					>
+						{#if pinned}<PinOff /> Unpin{:else}<Pin /> Pin to Home{/if}
+					</DropdownMenu.Item>
 					<DropdownMenu.Item
 						onSelect={handleVersionHistoryClick}
 						data-testid="version-history-menu-item"

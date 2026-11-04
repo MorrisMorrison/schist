@@ -1,5 +1,34 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatDate, formatDateTime, formatLongDate, formatRelativeDate } from './date';
+import {
+	formatDate,
+	formatDateTime,
+	formatLongDate,
+	formatRelativeDate,
+	formatTimeAgo
+} from './date';
+
+describe('formatTimeAgo', () => {
+	const now = new Date('2026-06-15T12:00:00Z');
+	const before = (ms: number) => new Date(now.getTime() - ms).toISOString();
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(now);
+	});
+	afterEach(() => vi.useRealTimers());
+
+	it.each([
+		[undefined, ''],
+		['not a date', ''],
+		[before(20 * 1000), 'just now'],
+		[before(5 * 60 * 1000), '5 min ago'],
+		[before(60 * 60 * 1000), '1 h ago'],
+		[before(23 * 60 * 60 * 1000), '23 h ago'],
+		[before(30 * 60 * 60 * 1000), 'Yesterday'],
+		[before(3 * 24 * 60 * 60 * 1000), '3 days ago']
+	])('%s → %s', (input, expected) => {
+		expect(formatTimeAgo(input)).toBe(expected);
+	});
+});
 
 const NOW = new Date('2026-06-15T12:00:00Z');
 const HOUR = 60 * 60 * 1000;

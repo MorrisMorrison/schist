@@ -1,4 +1,22 @@
 /**
+ * How long ago something happened, down to minutes: "just now", "5 min ago",
+ * "3 h ago", then whole days ("Yesterday", "3 days ago", …) like
+ * formatRelativeDate. Empty for a missing or invalid date.
+ */
+export function formatTimeAgo(dateString?: string): string {
+	if (!dateString) return '';
+	const time = new Date(dateString).getTime();
+	if (Number.isNaN(time)) return '';
+
+	const minutes = Math.floor((Date.now() - time) / 60000);
+	if (minutes < 1) return 'just now';
+	if (minutes < 60) return `${minutes} min ago`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `${hours} h ago`;
+	return formatRelativeDate(dateString);
+}
+
+/**
  * Format a date string into a human-readable relative format
  * @param dateString - ISO date string to format
  * @returns Human-readable date string

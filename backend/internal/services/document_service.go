@@ -1,6 +1,8 @@
 package services
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -16,6 +18,12 @@ import (
 	"github.com/MorrisMorrison/schist/internal/serializer"
 	"github.com/MorrisMorrison/schist/internal/utils"
 )
+
+// contentVersion is a page's version: the hex sha256 of its file.
+func contentVersion(fileContent []byte) string {
+	sum := sha256.Sum256(fileContent)
+	return hex.EncodeToString(sum[:])
+}
 
 const MARKDOWN_FILE_ENDING = ".md"
 
@@ -191,6 +199,30 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 	return nil
 }
 
+// UpdateDocumentChecked saves document, which was read from oldPath (it may
+// move to document.MetaData.Path). With a baseVersion it first checks the page
+// at oldPath is still that version, and refuses the save with
+// DOCUMENT_CHANGED otherwise. The check and the save hold the write lock, so a
+// sync can't change the file in between.
+func (d *DocumentService) UpdateDocumentChecked(oldPath string, document *models.Document, saveType, baseVersion string) error {
+	if document == nil || document.MetaData == nil {
+		return errors.NewMissingRequiredFieldError("metaData")
+	}
+	unlock := d.gitService.LockWrites()
+	defer unlock()
+
+	if baseVersion != "" {
+		current, err := d.GetDocumentByPath(oldPath)
+		if err == nil && current.Version != baseVersion {
+			return errors.NewDocumentChangedError(current)
+		}
+	}
+	if err := d.MoveDocument(oldPath, document.MetaData.Path); err != nil {
+		return err
+	}
+	return d.UpdateDocumentWithSaveType(document, saveType)
+}
+
 func (d *DocumentService) DeleteDocument(path string) error {
 	documentPath := utils.EnsureLeadingSlash(strings.TrimSuffix(path, MARKDOWN_FILE_ENDING))
 	if err := validatePath(documentPath); err != nil {
@@ -328,6 +360,7 @@ func (d *DocumentService) GetDocumentByPath(path string) (*models.Document, erro
 	if err != nil {
 		return nil, fmt.Errorf("could not deserialize document at path %s: %w", path, err)
 	}
+	document.Version = contentVersion(fileContent)
 
 	return document, nil
 }

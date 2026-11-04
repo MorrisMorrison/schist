@@ -9,7 +9,7 @@ vi.mock('#lib/api/client.ts', () => ({
 }));
 
 import { apiClient } from '#lib/api/client.ts';
-import { isPinned, pinnedDocuments, setPinned } from './pins';
+import { compareNames, isPinned, pinnedDocuments, setPinned } from './pins';
 
 const summary = (title: string, path: string, properties?: Record<string, unknown>) =>
 	({ metaData: { title, path, slug: path.slice(1), properties } }) as unknown as DocumentSummary;
@@ -36,6 +36,16 @@ describe('pinnedDocuments', () => {
 			summary('Beta', '/b', { pinned: true })
 		];
 		expect(pinnedDocuments(docs).map((d) => d.metaData.title)).toEqual(['alpha', 'Beta', 'Zebra']);
+	});
+});
+
+describe('compareNames', () => {
+	it('orders numbers naturally and ignores case', () => {
+		expect(['Service 10', 'service 2', 'Service 1'].sort(compareNames)).toEqual([
+			'Service 1',
+			'service 2',
+			'Service 10'
+		]);
 	});
 });
 

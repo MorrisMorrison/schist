@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-	<title>All Folders - Documentation</title>
+	<title>All pages - Schist</title>
 </svelte:head>
 
 <FolderView path="" showCreateButtons={true} />

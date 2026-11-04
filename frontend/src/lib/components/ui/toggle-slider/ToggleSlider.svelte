@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { cn } from '#lib/utils.ts';
+	import type { HTMLButtonAttributes } from 'svelte/elements';
 
-	interface Props {
+	// Other button attributes (id, aria-label, data-*) go on the switch, so an
+	// aria-label or a <Label for> can name it ("Toggle switch" by default).
+	interface Props extends Omit<
+		HTMLButtonAttributes,
+		'type' | 'role' | 'onclick' | 'class' | 'disabled'
+	> {
 		checked?: boolean;
 		disabled?: boolean;
 		onCheckedChange?: (checked: boolean) => void;
@@ -14,7 +20,8 @@
 		disabled = false,
 		onCheckedChange,
 		class: className = '',
-		size = 'sm'
+		size = 'sm',
+		...restProps
 	}: Props = $props();
 
 	function handleToggle() {
@@ -43,11 +50,12 @@
 </script>
 
 <button
+	aria-label="Toggle switch"
+	{...restProps}
 	type="button"
 	role="switch"
 	aria-checked={checked}
 	aria-disabled={disabled}
-	aria-label="Toggle switch"
 	{disabled}
 	class={cn(
 		'focus-visible:ring-ring focus-visible:ring-offset-background inline-flex shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',

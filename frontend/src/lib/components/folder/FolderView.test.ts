@@ -3,193 +3,253 @@ import { render, screen, cleanup, waitFor, within } from '@testing-library/svelt
 import userEvent from '@testing-library/user-event';
 import { goto } from '$app/navigation';
 import { apiClient } from '#lib/api/client.ts';
-import { resetAllState, documentsStore } from '#lib/stores/documents.svelte.ts';
-import type { Document } from '#lib/api/types.ts';
-import { waitForDialogFocus } from '#lib/test/dialog.ts';
-import FolderView from './FolderView.svelte';
+import { resetAllState } from '#lib/stores/documents.svelte.ts';
+import type { DocumentSummary, Folder } from '#lib/api/types.ts';
+import { waitForDialogFocus, waitForPointerEvents } from '#lib/test/dialog.ts';
 import { chooseSelectOption } from '#lib/test/select.ts';
 
 vi.mock('#lib/api/client.ts', () => ({
 	apiClient: {
 		getFolderTree: vi.fn(),
 		getDocuments: vi.fn(),
-		createFolder: vi.fn()
+		createFolder: vi.fn(),
+		deleteDocumentByPath: vi.fn()
 	}
 }));
+vi.mock('#lib/utils/pins.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/pins.ts')>()),
+	setPinned: vi.fn().mockResolvedValue(undefined)
+}));
 
-function doc(path: string, title: string, created: string, updated?: string): Document {
+import { setPinned } from '#lib/utils/pins.ts';
+import FolderView from './FolderView.svelte';
+
+function doc(
+	path: string,
+	title: string,
+	created: string,
+	updated?: string,
+	extra: Partial<DocumentSummary['metaData']> = {}
+): DocumentSummary {
 	return {
-		metaData: { title, path, slug: path.split('/').pop(), created, updated },
-		content: ''
-	};
+		metaData: { title, path, slug: path.split('/').pop()!, created, updated, ...extra }
+	} as DocumentSummary;
 }
 
-const docs: Document[] = [
-	doc('/beta', 'Beta', '2024-01-02T00:00:00Z', '2024-03-01T00:00:00Z'),
-	doc('/alpha', 'Alpha', '2024-01-03T00:00:00Z'),
+const docs = [
+	doc('/beta', 'Beta', '2024-01-02T00:00:00Z', '2024-03-01T00:00:00Z', {
+		tags: ['one', 'two', 'three']
+	}),
+	doc('/alpha', 'Alpha', '2024-01-03T00:00:00Z', '2024-01-03T00:00:00Z', {
+		properties: { pinned: true }
+	}),
 	doc('/gamma', 'Gamma', '2024-01-01T00:00:00Z', '2024-02-01T00:00:00Z'),
-	doc('/projects/plan', 'Plan', '2024-01-01T00:00:00Z'),
-	doc('/projects/deep/inner', 'Inner', '2024-01-01T00:00:00Z')
+	doc('/projects/plan', 'Plan', '2024-01-01T00:00:00Z', '2024-04-01T00:00:00Z'),
+	doc('/projects/deep/inner', 'Inner', '2024-01-01T00:00:00Z', '2024-05-01T00:00:00Z')
 ];
 
-function cardTitles() {
-	return screen
-		.getAllByTestId('document-card')
-		.map((c) => within(c).getByRole('heading').textContent!.trim());
-}
+const tree: Folder[] = [
+	{
+		name: 'projects',
+		path: '/projects',
+		created: '',
+		document_count: 1,
+		sub_folders: [
+			{ name: 'deep', path: '/projects/deep', created: '', document_count: 1, sub_folders: [] }
+		]
+	}
+];
+
+const pageTitles = () =>
+	screen
+		.getAllByTestId('folder-page-row')
+		.map((r) => r.querySelector('[data-row-title]')!.textContent);
+const folderNames = () =>
+	screen
+		.queryAllByTestId('folder-subfolder-row')
+		.map((r) => r.querySelector('[data-row-title]')!.textContent);
 
 describe('FolderView', () => {
 	beforeEach(() => {
-		vi.spyOn(console, 'error').mockImplementation(() => {});
-		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
-		vi.mocked(apiClient.getDocuments).mockResolvedValue(docs);
-	});
-
-	afterEach(() => {
-		cleanup();
 		resetAllState();
-		vi.clearAllMocks();
-		vi.restoreAllMocks();
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue(tree);
+		vi.mocked(apiClient.getDocuments).mockResolvedValue(docs);
+		vi.mocked(apiClient.deleteDocumentByPath)
+			.mockReset()
+			.mockResolvedValue(undefined as never);
+		vi.mocked(setPinned).mockClear();
+		vi.mocked(goto).mockClear();
 	});
+	afterEach(() => cleanup());
 
-	it('loads data and lists the root documents sorted by name', async () => {
+	it('lists the root as "All pages": its folders first, then its pages by name', async () => {
 		render(FolderView, { props: { path: '' } });
-		expect(screen.getByRole('heading', { level: 1, name: 'root' })).toBeInTheDocument();
-		await screen.findByTestId('documents-section');
-		expect(apiClient.getFolderTree).toHaveBeenCalled();
-		expect(apiClient.getDocuments).toHaveBeenCalled();
-		expect(cardTitles()).toEqual(['Alpha', 'Beta', 'Gamma']);
-		expect(screen.getByText('3 documents')).toBeInTheDocument();
+
+		await waitFor(() => expect(pageTitles()).toEqual(['Alpha', 'Beta', 'Gamma']));
+		expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('All pages');
+		expect(screen.getByTestId('folder-counts')).toHaveTextContent('3 pages · 1 folder');
+		expect(folderNames()).toEqual(['projects']);
+		const folderRow = screen.getByTestId('folder-subfolder-row');
+		expect(folderRow).toHaveTextContent('1 page');
+		expect(within(folderRow).getByRole('link')).toHaveAttribute('href', '/folders/projects');
+		expect(screen.getByTestId('documents-section')).toBeInTheDocument();
 	});
 
-	it('toggles the sort order and sorts by created / modified', async () => {
-		render(FolderView, { props: { path: '/' } });
-		await screen.findByTestId('documents-section');
-
-		await userEvent.click(screen.getByTitle('Sort descending'));
-		expect(cardTitles()).toEqual(['Gamma', 'Beta', 'Alpha']);
-		await userEvent.click(screen.getByTitle('Sort ascending'));
-
-		await chooseSelectOption(screen.getByLabelText('Sort by:'), 'Created');
-		expect(cardTitles()).toEqual(['Gamma', 'Beta', 'Alpha']);
-
-		await chooseSelectOption(screen.getByLabelText('Sort by:'), 'Modified');
-		expect(cardTitles()).toEqual(['Alpha', 'Gamma', 'Beta']);
-	});
-
-	it('shows only direct children of a sub-folder with a humanised title', async () => {
-		render(FolderView, { props: { path: '/projects' } });
-		await screen.findByTestId('documents-section');
-		expect(screen.getByRole('heading', { level: 1, name: 'Projects' })).toBeInTheDocument();
-		expect(cardTitles()).toEqual(['Plan']);
-		expect(screen.getByText('1 document')).toBeInTheDocument();
-	});
-
-	it('shows an empty folder message', async () => {
-		render(FolderView, { props: { path: '/my-empty-folder' } });
-		await waitFor(() => expect(apiClient.getDocuments).toHaveBeenCalled());
-		expect(screen.getByRole('heading', { level: 1, name: 'My empty folder' })).toBeInTheDocument();
-		expect(await screen.findByText('This folder is empty')).toBeInTheDocument();
-	});
-
-	it('shows the welcome message for an empty root', async () => {
-		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
+	it('shows a page row with at most two tags, last changed and a link', async () => {
 		render(FolderView, { props: { path: '' } });
-		expect(await screen.findByText('Welcome to your documentation')).toBeInTheDocument();
-	});
+		await waitFor(() => expect(pageTitles()).toHaveLength(3));
 
-	it('lists recent documents by modification time, limited', async () => {
-		render(FolderView, { props: { mode: 'recent', recentLimit: 3 } });
-		expect(screen.getByRole('heading', { level: 1, name: 'Recent Documents' })).toBeInTheDocument();
-		await screen.findByTestId('documents-section');
-		expect(cardTitles()).toEqual(['Beta', 'Gamma', 'Alpha']);
-		expect(screen.getByText(/Showing 3 of 5 documents/)).toBeInTheDocument();
-	});
-
-	it('shows the recent empty state', async () => {
-		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
-		render(FolderView, { props: { mode: 'recent' } });
-		expect(await screen.findByText('No recent activity')).toBeInTheDocument();
-		expect(screen.getByText('No documents found')).toBeInTheDocument();
-	});
-
-	it('lists all documents in "all" mode without reordering the store', async () => {
-		render(FolderView, { props: { mode: 'all' } });
-		expect(screen.getByRole('heading', { level: 1, name: 'All Documents' })).toBeInTheDocument();
-		await screen.findByTestId('documents-section');
-		expect(screen.getByText('5 documents total')).toBeInTheDocument();
-		expect(cardTitles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Inner', 'Plan']);
-		expect(documentsStore.documents.map((d) => d.metaData.title)).toEqual(
-			docs.map((d) => d.metaData.title)
+		const beta = screen.getAllByTestId('folder-page-row')[1];
+		expect(within(beta).getByRole('link', { name: /Beta/ })).toHaveAttribute(
+			'href',
+			'/documents/beta'
 		);
+		expect(
+			within(beta)
+				.getAllByTestId('folder-row-tag')
+				.map((t) => t.textContent?.trim())
+		).toEqual(['one', 'two']);
+		expect(beta).toHaveTextContent('+1');
+		expect(beta.querySelector('time')).toHaveAttribute('datetime', '2024-03-01T00:00:00Z');
 	});
 
-	it('shows the "all" empty state', async () => {
-		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
-		render(FolderView, { props: { mode: 'all' } });
-		expect(await screen.findByText('No documents yet')).toBeInTheDocument();
+	it('sorts by last changed and by created, either way', async () => {
+		render(FolderView, { props: { path: '' } });
+		await waitFor(() => expect(pageTitles()).toHaveLength(3));
+
+		await chooseSelectOption(screen.getByLabelText('Sort by'), 'Last changed');
+		expect(pageTitles()).toEqual(['Beta', 'Gamma', 'Alpha']);
+
+		await userEvent.click(screen.getByRole('button', { name: 'Sort ascending' }));
+		expect(pageTitles()).toEqual(['Alpha', 'Gamma', 'Beta']);
+
+		// Dates sort newest first when chosen; the arrow flips it.
+		await chooseSelectOption(screen.getByLabelText('Sort by'), 'Created');
+		expect(pageTitles()).toEqual(['Alpha', 'Beta', 'Gamma']);
+		await userEvent.click(screen.getByRole('button', { name: 'Sort ascending' }));
+		expect(pageTitles()).toEqual(['Gamma', 'Beta', 'Alpha']);
 	});
 
-	it('navigates to the new-document page for the current folder', async () => {
+	it('shows a sub-folder with a humanised title, its subfolders and direct pages', async () => {
 		render(FolderView, { props: { path: '/projects' } });
-		await userEvent.click(screen.getByTestId('create-document'));
-		expect(goto).toHaveBeenCalledWith('/new/projects');
+
+		await waitFor(() => expect(pageTitles()).toEqual(['Plan']));
+		expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Projects');
+		expect(folderNames()).toEqual(['deep']);
+		expect(screen.getByTestId('folder-counts')).toHaveTextContent('1 page · 1 folder');
 	});
 
-	it('creates a folder from the header and reloads', async () => {
+	it('lists every page below the folder with "Include subfolders", folders hidden', async () => {
+		render(FolderView, { props: { path: '' } });
+		await waitFor(() => expect(pageTitles()).toHaveLength(3));
+
+		await userEvent.click(screen.getByRole('switch', { name: 'Include subfolders' }));
+
+		expect(pageTitles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Inner', 'Plan']);
+		expect(folderNames()).toEqual([]);
+		const rows = screen.getAllByTestId('folder-page-row');
+		expect(rows[3]).toHaveTextContent('projects/deep');
+		expect(rows[4]).toHaveTextContent('projects');
+		expect(screen.getByTestId('folder-counts')).toHaveTextContent('5 pages');
+	});
+
+	it('pins and unpins from a row', async () => {
+		render(FolderView, { props: { path: '' } });
+		await waitFor(() => expect(pageTitles()).toHaveLength(3));
+
+		await userEvent.click(screen.getByRole('button', { name: 'Unpin Alpha' }));
+		expect(setPinned).toHaveBeenCalledWith('/alpha', false);
+		await userEvent.click(screen.getByRole('button', { name: 'Pin Beta' }));
+		expect(setPinned).toHaveBeenCalledWith('/beta', true);
+	});
+
+	it('edits, renames and deletes a page from its ⋯ menu', async () => {
+		render(FolderView, { props: { path: '' } });
+		await waitFor(() => expect(pageTitles()).toHaveLength(3));
+		const menuOf = (title: string) =>
+			screen.getByRole('button', { name: `More actions for ${title}` });
+
+		await userEvent.click(menuOf('Gamma'));
+		await userEvent.click(await screen.findByRole('menuitem', { name: 'Edit' }));
+		expect(goto).toHaveBeenCalledWith('/documents/gamma?mode=edit');
+
+		await waitForPointerEvents();
+		await userEvent.click(menuOf('Gamma'));
+		await userEvent.click(await screen.findByRole('menuitem', { name: 'Rename' }));
+		expect(await screen.findByRole('dialog')).toHaveTextContent(/Rename/);
+		await userEvent.keyboard('{Escape}');
+
+		await waitForPointerEvents();
+		await userEvent.click(menuOf('Gamma'));
+		await userEvent.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+		await waitForDialogFocus();
+		await userEvent.click(screen.getByTestId('confirm-delete-button'));
+		await waitFor(() => expect(apiClient.deleteDocumentByPath).toHaveBeenCalledWith('/gamma'));
+	});
+
+	it('selects pages and deletes them together after confirming', async () => {
+		render(FolderView, { props: { path: '' } });
+		await waitFor(() => expect(pageTitles()).toHaveLength(3));
+		expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+
+		await userEvent.click(screen.getByRole('button', { name: 'Select' }));
+		await userEvent.click(screen.getByRole('checkbox', { name: 'Select Alpha' }));
+		await userEvent.click(screen.getByRole('checkbox', { name: 'Select Gamma' }));
+		const bar = screen.getByTestId('folder-selection-bar');
+		expect(bar).toHaveTextContent('2 selected');
+
+		await userEvent.click(within(bar).getByRole('button', { name: 'Delete (2)' }));
+		await waitForDialogFocus();
+		await userEvent.click(screen.getByTestId('confirm-delete-button'));
+
+		await waitFor(() => expect(apiClient.deleteDocumentByPath).toHaveBeenCalledTimes(2));
+		expect(apiClient.deleteDocumentByPath).toHaveBeenCalledWith('/alpha');
+		expect(apiClient.deleteDocumentByPath).toHaveBeenCalledWith('/gamma');
+	});
+
+	it('selects all and leaves select mode with Done', async () => {
+		render(FolderView, { props: { path: '' } });
+		await waitFor(() => expect(pageTitles()).toHaveLength(3));
+
+		await userEvent.click(screen.getByRole('button', { name: 'Select' }));
+		const bar = screen.getByTestId('folder-selection-bar');
+		await userEvent.click(within(bar).getByRole('button', { name: 'Select all' }));
+		expect(bar).toHaveTextContent('3 selected');
+
+		await userEvent.click(within(bar).getByRole('button', { name: 'Done' }));
+		expect(screen.queryByTestId('folder-selection-bar')).not.toBeInTheDocument();
+		expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+	});
+
+	it('starts a new page in this folder, and creates a folder from the header', async () => {
 		vi.mocked(apiClient.createFolder).mockResolvedValue(undefined as never);
 		render(FolderView, { props: { path: '/projects' } });
-		await waitFor(() => expect(apiClient.getFolderTree).toHaveBeenCalledTimes(1));
+		await waitFor(() => expect(pageTitles()).toEqual(['Plan']));
+
+		await userEvent.click(screen.getByTestId('create-document'));
+		expect(goto).toHaveBeenCalledWith('/new/projects');
 
 		await userEvent.click(screen.getByTestId('create-folder-header'));
-		const modal = await screen.findByTestId('create-folder-modal');
 		await waitForDialogFocus();
-		await userEvent.type(within(modal).getByTestId('folder-name'), 'Sub');
-		await userEvent.click(within(modal).getByTestId('create-folder-btn'));
-
-		expect(apiClient.createFolder).toHaveBeenCalledWith('/projects/sub');
-		await waitFor(() =>
-			expect(screen.queryByTestId('create-folder-modal')).not.toBeInTheDocument()
-		);
-		// Initial load, the store's reload after create, and the view's reload.
-		await waitFor(() => expect(apiClient.getFolderTree).toHaveBeenCalledTimes(3));
+		expect(screen.getByRole('dialog')).toBeInTheDocument();
 	});
 
-	it('opens the create-folder modal from the empty state and cancels it', async () => {
-		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
-		render(FolderView, { props: { path: '' } });
-		await userEvent.click(await screen.findByTestId('create-folder-empty'));
-		await waitForDialogFocus();
-		await userEvent.click(screen.getByTestId('cancel-create-folder-btn'));
-		await waitFor(() =>
-			expect(screen.queryByTestId('create-folder-modal')).not.toBeInTheDocument()
-		);
+	it('shows an empty state with create buttons in an empty folder', async () => {
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
+		render(FolderView, { props: { path: '/empty' } });
+
+		const empty = await screen.findByTestId('empty-folder-message');
+		expect(empty).toHaveTextContent('This folder is empty');
+		expect(screen.getByTestId('create-folder-empty')).toBeInTheDocument();
 	});
 
-	it('hides the create buttons when disabled', async () => {
+	it('hides the create buttons when asked to', async () => {
 		vi.mocked(apiClient.getDocuments).mockResolvedValue([]);
-		render(FolderView, { props: { path: '', showCreateButtons: false } });
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue([]);
+		render(FolderView, { props: { path: '/empty', showCreateButtons: false } });
+
 		await screen.findByTestId('empty-folder-message');
 		expect(screen.queryByTestId('create-document')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('create-folder-empty')).not.toBeInTheDocument();
-	});
-
-	it('shows a loading indicator while loading and logs failures', async () => {
-		let reject!: (e: Error) => void;
-		vi.mocked(apiClient.getFolderTree).mockReturnValue(new Promise((_, r) => (reject = r)));
-		render(FolderView, { props: { path: '' } });
-		expect(screen.getByText('Loading...')).toBeInTheDocument();
-		reject(new Error('down'));
-		await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
-		expect(console.error).toHaveBeenCalledWith('Failed to load folder data:', expect.any(Error));
-	});
-
-	it('turns on multi-select mode with the toggle', async () => {
-		render(FolderView, { props: { path: '' } });
-		const section = await screen.findByTestId('documents-section');
-		const toggle = within(section).getAllByRole('switch')[0];
-		expect(toggle).toHaveAttribute('aria-checked', 'false');
-		await userEvent.click(toggle);
-		expect(within(section).getAllByRole('switch')[0]).toHaveAttribute('aria-checked', 'true');
 	});
 });

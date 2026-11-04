@@ -268,6 +268,8 @@ export interface ImportResult {
 export type ExportType = 'document' | 'folder' | 'all';
 
 // GitHub integration types
+export type GitHubSyncMode = 'backup' | 'two-way';
+
 export interface GitHubSettings {
 	enabled: boolean;
 	owner: string;
@@ -286,6 +288,14 @@ export interface GitHubSettings {
 	auto_sync_interval_minutes?: number;
 	/** How many minutes after the last edit "back up after the last edit" runs. */
 	sync_delay_minutes?: number;
+	/** Empty means backup. */
+	mode?: GitHubSyncMode | '';
+	/** Pages a paused two-way sync waits on the user to resolve. */
+	sync_conflicts?: string[];
+	/** The GitHub head the paused conflicts were found against. */
+	paused_remote_head?: string;
+	/** Files the last two-way sync could not read. */
+	unreadable?: string[];
 }
 
 export interface GitHubConnectionStatus {
@@ -317,6 +327,7 @@ export interface GitHubConfigRequest {
 	sync_on_save?: boolean;
 	sync_delay_minutes?: number;
 	branch?: string;
+	mode?: GitHubSyncMode;
 }
 
 export interface GitHubConnectionTest {
@@ -330,6 +341,33 @@ export interface GitHubConnectionTest {
 export interface GitHubSyncOptions {
 	/** Replace a diverged GitHub branch with the wiki's history (force push). Ask first. */
 	replaceRemote?: boolean;
+	/** Per-page choices for conflicts; needs `remoteHead` from the preview. */
+	resolutions?: Record<string, 'local' | 'remote'>;
+	remoteHead?: string;
+}
+
+export interface PreviewChange {
+	path: string;
+	action: 'add' | 'change' | 'delete';
+	/** True for pages, false for other files. */
+	page: boolean;
+}
+
+export interface SyncPreview {
+	/** Files that change in the wiki. */
+	incoming: PreviewChange[];
+	/** Local changes that go to GitHub. */
+	outgoing: string[];
+	conflicts: string[];
+	unreadable: string[];
+	remote_head: string;
+}
+
+export interface ConflictVersions {
+	path: string;
+	local: string;
+	remote: string;
+	diff: DiffResult;
 }
 
 export interface GitHubRepoInfo {

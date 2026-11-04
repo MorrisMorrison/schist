@@ -34,6 +34,8 @@ import type {
 	GitHubConnectionTest,
 	GitHubStatus,
 	GitHubSyncOptions,
+	SyncPreview,
+	ConflictVersions,
 	User,
 	LoginResponse,
 	AppConfig,
@@ -713,8 +715,25 @@ class SchistApiClient {
 	}
 
 	async syncToGitHub(options: GitHubSyncOptions = {}): Promise<GitHubSyncResult> {
-		const body = options.replaceRemote ? { replace_remote: true } : undefined;
-		return this.send<GitHubSyncResult>('POST', '/github/sync', body);
+		const body: Record<string, unknown> = {};
+		if (options.replaceRemote) body.replace_remote = true;
+		if (options.resolutions) {
+			body.resolutions = options.resolutions;
+			body.remote_head = options.remoteHead;
+		}
+		return this.send<GitHubSyncResult>(
+			'POST',
+			'/github/sync',
+			Object.keys(body).length ? body : undefined
+		);
+	}
+
+	async previewGitHubSync(): Promise<SyncPreview> {
+		return this.send<SyncPreview>('POST', '/github/sync/preview');
+	}
+
+	async getGitHubSyncConflict(path: string): Promise<ConflictVersions> {
+		return this.request<ConflictVersions>(`/github/sync/conflict?path=${encodeURIComponent(path)}`);
 	}
 
 	async disconnectGitHub(): Promise<{ message: string; status: GitHubStatus }> {

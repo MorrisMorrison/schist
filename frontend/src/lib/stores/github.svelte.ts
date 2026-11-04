@@ -10,7 +10,9 @@ import type {
 	GitHubSetupRequest,
 	GitHubConnectionTest,
 	GitHubConfigRequest,
-	GitHubSyncOptions
+	GitHubSyncOptions,
+	SyncPreview,
+	ConflictVersions
 } from '../api/types';
 
 interface GitHubState {
@@ -238,6 +240,14 @@ export const githubActions = {
 				// Keep the settings we have; the sync's own result is what matters here.
 			}
 		}
+	},
+
+	async previewSync(): Promise<SyncPreview> {
+		return apiClient.previewGitHubSync();
+	},
+
+	async loadConflict(path: string): Promise<ConflictVersions> {
+		return apiClient.getGitHubSyncConflict(path);
 	},
 
 	async disconnect() {

@@ -8,6 +8,8 @@ vi.mock('#lib/api/client.ts', () => ({
 		updateGitHubSettings: vi.fn(),
 		testGitHubConnection: vi.fn(),
 		syncToGitHub: vi.fn(),
+		previewGitHubSync: vi.fn(),
+		getGitHubSyncConflict: vi.fn(),
 		disconnectGitHub: vi.fn(),
 		checkGitHealth: vi.fn(),
 		repairGitRepository: vi.fn(),
@@ -122,6 +124,25 @@ describe('github store', () => {
 
 			githubActions.clearConnectionTest();
 			expect(githubStore.connectionTest).toBeNull();
+		});
+	});
+
+	describe('two-way sync reads', () => {
+		it('previews the sync and loads a conflict through the client', async () => {
+			const preview = {
+				incoming: [],
+				outgoing: [],
+				conflicts: [],
+				unreadable: [],
+				remote_head: 'h'
+			};
+			api.previewGitHubSync.mockResolvedValueOnce(preview);
+			expect(await githubActions.previewSync()).toEqual(preview);
+
+			const versions = { path: 'a.md', local: 'l', remote: 'r', diff: {} } as never;
+			api.getGitHubSyncConflict.mockResolvedValueOnce(versions);
+			expect(await githubActions.loadConflict('a.md')).toEqual(versions);
+			expect(api.getGitHubSyncConflict).toHaveBeenCalledWith('a.md');
 		});
 	});
 

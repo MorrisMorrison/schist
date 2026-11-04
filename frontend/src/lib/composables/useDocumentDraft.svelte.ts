@@ -153,16 +153,21 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	/** Takes the page as it is now; my text goes to the clipboard first. */
 	async function loadCurrent() {
 		if (!conflict) return;
+		let copyFailed = false;
 		try {
 			await navigator.clipboard?.writeText(content);
 		} catch {
-			// No clipboard (permissions): best effort.
+			copyFailed = true;
 		}
 		document = conflict;
 		path = routePath(conflict.metaData.path);
 		content = conflict.content;
 		savedContent = conflict.content;
 		conflict = null;
+		error = copyFailed
+			? "Couldn't copy your text to the clipboard; it was replaced by the newer version."
+			: '';
+		options.onSaved?.(document);
 	}
 
 	/** Saves my text over the newer page; the other version stays in history. */

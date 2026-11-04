@@ -155,6 +155,10 @@ func TestUpdateDocument_StaleBaseVersionIs409(t *testing.T) {
 	assert.Equal(t, "DOCUMENT_CHANGED", resp["code"])
 	current := resp["details"].(map[string]any)["document"].(map[string]any)
 	assert.Equal(t, "# Plan\n\nv2", current["content"])
+
+	// A save without baseVersion is never refused.
+	w = env.do(t, http.MethodPut, "/api/documents/plan", body("# Plan\n\nforced", ""), "")
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestDocuments_PathTraversalRejected(t *testing.T) {

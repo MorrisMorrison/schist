@@ -318,4 +318,54 @@ describe('useDocumentDraft', () => {
 		expect(draft.isDirty).toBe(false);
 		expect(draft.conflict).toBeNull();
 	});
+
+	it('loadCurrent tells the parent about the current page', async () => {
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText: vi.fn().mockResolvedValue(undefined) },
+			configurable: true
+		});
+		const current = { ...makeDoc('# Plan\n\nFrom GitHub'), version: 'v9' };
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'changed',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: current }
+				})
+			)
+		);
+		const onSaved = vi.fn();
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' }, onSaved });
+
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.loadCurrent();
+
+		expect(onSaved).toHaveBeenCalledWith(current);
+	});
+
+	it('loadCurrent still loads the page and says so when the clipboard fails', async () => {
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+			configurable: true
+		});
+		const current = { ...makeDoc('# Plan\n\nFrom GitHub'), version: 'v9' };
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'changed',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: current }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.loadCurrent();
+
+		expect(draft.content).toBe('# Plan\n\nFrom GitHub');
+		expect(draft.error).toContain("Couldn't copy your text");
+	});
 });

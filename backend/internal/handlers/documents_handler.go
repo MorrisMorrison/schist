@@ -139,11 +139,12 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	}
 
 	// Answer with the page as stored, so the client gets its new version.
-	if saved, err := h.DocumentService.GetDocumentByPath(updatedDocument.MetaData.Path); err == nil {
-		c.JSON(http.StatusOK, saved)
+	saved, err := h.DocumentService.GetDocumentByPath(updatedDocument.MetaData.Path)
+	if err != nil {
+		HandleError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, updatedDocument)
+	c.JSON(http.StatusOK, saved)
 }
 
 func (h *APIHandler) deleteDocumentByPath(c *gin.Context) {

@@ -202,11 +202,77 @@ func TestPull_FileChangedOnDiskSinceThePlanAborts(t *testing.T) {
 	_, push := obsidianClone(t)
 	push(map[string]string{"plan.md": page("Plan", "obsidian")})
 	f.gs.beforeApply = func() { writeNote(t, f.dataDir, "plan.md", page("Plan", "mcp edit")) }
+	before, _ := f.gs.gitService.repository.Head()
 
 	_, _, err := f.gs.pullOnce(nil, false)
 	assert.ErrorIs(t, err, errHeadMoved)
 	got, _ := os.ReadFile(filepath.Join(f.dataDir, "plan.md"))
 	assert.Contains(t, string(got), "mcp edit")
+	after, _ := f.gs.gitService.repository.Head()
+	assert.Equal(t, before.Hash(), after.Hash(), "nothing recorded")
+}
+
+func TestPull_ChecksAndApplyHoldTheCommitLock(t *testing.T) {
+	// Writers that skip the write lock still commit under commitMu; holding
+	// it from the HEAD check to our commit keeps their commits out of the gap.
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian")})
+	held := false
+	f.gs.beforeApply = func() {
+		held = !f.gs.gitService.commitMu.TryLock()
+		if !held {
+			f.gs.gitService.commitMu.Unlock()
+		}
+	}
+
+	_, _, err := f.gs.pullOnce(nil, false)
+	require.NoError(t, err)
+	assert.True(t, held, "commitMu is held before the HEAD and on-disk checks")
+}
+
+func TestPull_DryRunTouchesNothing(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian"), "new.md": page("New", "x")})
+	before, _ := f.gs.gitService.repository.Head()
+
+	out, plan, err := f.gs.pullOnce(nil, true)
+	require.NoError(t, err)
+	var paths []string
+	for _, c := range plan.Apply {
+		paths = append(paths, c.Path)
+	}
+	assert.ElementsMatch(t, []string{"plan.md", "new.md"}, paths, "the plan is reported")
+	assert.Empty(t, out.Applied)
+	after, _ := f.gs.gitService.repository.Head()
+	assert.Equal(t, before.Hash(), after.Hash())
+	got, _ := os.ReadFile(filepath.Join(f.dataDir, "plan.md"))
+	assert.Contains(t, string(got), "v1")
+	_, statErr := os.Stat(filepath.Join(f.dataDir, "new.md"))
+	assert.True(t, os.IsNotExist(statErr))
+	assertCleanWorktree(t, f)
+}
+
+func TestPull_IgnoredLocalFileInTheWayNamesThePath(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"scratch.md": page("Scratch", "from obsidian")})
+	gitignore := filepath.Join(f.dataDir, ".gitignore")
+	existing, err := os.ReadFile(gitignore)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(gitignore, append(existing, []byte("\nscratch.md\n")...), 0o644))
+	writeNote(t, f.dataDir, "scratch.md", "local scratch\n")
+	_, err = f.gs.gitService.CommitPendingChanges("ignore scratch")
+	require.NoError(t, err)
+
+	_, _, err = f.gs.pullOnce(nil, false)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, errIgnoredFileInTheWay)
+	assert.NotErrorIs(t, err, errHeadMoved, "planning again would never help")
+	assert.Contains(t, err.Error(), "scratch.md")
+	got, _ := os.ReadFile(filepath.Join(f.dataDir, "scratch.md"))
+	assert.Equal(t, "local scratch\n", string(got))
 }
 
 func TestPull_UnreadableNotesAreListed(t *testing.T) {

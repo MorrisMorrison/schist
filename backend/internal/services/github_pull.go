@@ -25,6 +25,10 @@ import (
 // errHeadMoved means the wiki changed while a sync was applying; plan again.
 var errHeadMoved = stderrors.New("local history moved during the sync")
 
+// errIgnoredFileInTheWay means GitHub has a file at a path where the wiki
+// folder holds a file git ignores; it must be moved before the pull can apply.
+var errIgnoredFileInTheWay = stderrors.New("a file ignored by git is in the way of a file from GitHub; move it out of the wiki folder")
+
 // pullOutcome is what one pull did, or would do (dry run).
 type pullOutcome struct {
 	RemoteHead plumbing.Hash
@@ -201,25 +205,35 @@ func (gs *GitHubService) applyPlan(repo *git.Repository, plan syncplan.Result, l
 	} else if committed {
 		return errHeadMoved
 	}
+	// From here until the commit or reset, hold commitMu: writers that skip
+	// writeMu (MCP, imports, moves) still commit through it, so no commit can
+	// land between the checks below and ours. Nothing below takes it again.
+	gs.gitService.commitMu.Lock()
+	defer gs.gitService.commitMu.Unlock()
 	if gs.beforeApply != nil {
 		gs.beforeApply()
 	}
 	if head, err := repo.Head(); err != nil || head.Hash() != local {
 		return errHeadMoved
 	}
-	dataDir := gs.gitService.dataDir
-	for _, c := range plan.Apply {
-		if changedOnDisk(filepath.Join(dataDir, filepath.FromSlash(c.Path)), localTree[c.Path]) {
-			return errHeadMoved
-		}
-	}
-
-	gs.gitService.commitMu.Lock()
-	defer gs.gitService.commitMu.Unlock()
 	wt, err := repo.Worktree()
 	if err != nil {
 		return err
 	}
+	dataDir := gs.gitService.dataDir
+	for _, c := range plan.Apply {
+		full := filepath.Join(dataDir, filepath.FromSlash(c.Path))
+		if !changedOnDisk(full, localTree[c.Path]) {
+			continue
+		}
+		if _, tracked := localTree[c.Path]; !tracked && gitIgnores(wt, c.Path) {
+			// CommitPendingChanges can't pick it up, so planning again
+			// would never help.
+			return fmt.Errorf("%w: %s", errIgnoredFileInTheWay, c.Path)
+		}
+		return errHeadMoved
+	}
+
 	for _, c := range plan.Apply {
 		full := filepath.Join(dataDir, filepath.FromSlash(c.Path))
 		if c.Delete {
@@ -258,6 +272,17 @@ func (gs *GitHubService) applyPlan(repo *git.Repository, plan syncplan.Result, l
 		AllowEmptyCommits: true,
 	})
 	return err
+}
+
+// gitIgnores reports whether an untracked file on disk is one git ignores
+// (an untracked file git sees shows up in the status; an ignored one doesn't).
+func gitIgnores(wt *git.Worktree, path string) bool {
+	status, err := wt.Status()
+	if err != nil {
+		return false
+	}
+	_, seen := status[path]
+	return !seen
 }
 
 // changedOnDisk reports whether the file no longer matches the blob the plan

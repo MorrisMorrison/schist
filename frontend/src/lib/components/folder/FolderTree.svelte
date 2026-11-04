@@ -18,6 +18,7 @@
 	} from '#lib/stores/documents.svelte.ts';
 	import { cn } from '#lib/utils.ts';
 	import { isDirectChild } from '#lib/utils/path.ts';
+	import { compareNames } from '#lib/utils/pins.ts';
 	import { useDragAndDrop } from '#lib/composables/useDragAndDrop.svelte.ts';
 	import { authService } from '#lib/auth/auth-service.ts';
 	import { useOptimizedLoading } from '#lib/composables/useOptimizedLoading.svelte.ts';
@@ -93,14 +94,23 @@
 
 	const documents = $derived(documentsStore.documents || []);
 
+	// Natural order ("Service 2" before "Service 10"), the same as the folder view.
+	function sortFolders(folders: FolderType[]): FolderType[] {
+		return [...folders]
+			.sort((a, b) => compareNames(a.name, b.name))
+			.map((f) => (f.sub_folders?.length ? { ...f, sub_folders: sortFolders(f.sub_folders) } : f));
+	}
+
 	const filteredFolders = $derived(
-		unifiedSearchQuery.trim()
-			? filterFoldersAndPages(
-					foldersStore.folders || [],
-					documents,
-					unifiedSearchQuery.toLowerCase()
-				)
-			: foldersStore.folders || []
+		sortFolders(
+			unifiedSearchQuery.trim()
+				? filterFoldersAndPages(
+						foldersStore.folders || [],
+						documents,
+						unifiedSearchQuery.toLowerCase()
+					)
+				: foldersStore.folders || []
+		)
 	);
 
 	// Top-level pages count as results too: without this, a search that only
@@ -255,7 +265,9 @@
 	}
 
 	function getPagesForFolder(folderPath: string) {
-		return documents.filter((page) => isDirectChild(page.metaData?.path || '', folderPath));
+		return documents
+			.filter((page) => isDirectChild(page.metaData?.path || '', folderPath))
+			.sort((a, b) => compareNames(a.metaData?.title || '', b.metaData?.title || ''));
 	}
 
 	function getFilteredPagesForFolder(folderPath: string) {

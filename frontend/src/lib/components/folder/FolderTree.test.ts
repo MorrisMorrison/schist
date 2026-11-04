@@ -351,6 +351,36 @@ describe('FolderTree', () => {
 		expect(screen.queryByRole('treeitem')).not.toBeInTheDocument();
 	});
 
+	it('sorts folders and pages naturally: numbers in order, case ignored', async () => {
+		const numbered = [
+			folder('/f10'),
+			folder('/F2', [folder('/F2/s10'), folder('/F2/s9')]),
+			folder('/f1')
+		];
+		const services = [
+			doc('/service-10', 'Service 10'),
+			doc('/service-2', 'service 2'),
+			doc('/service-1', 'Service 1')
+		];
+		vi.mocked(apiClient.getFolderTree).mockResolvedValue(numbered);
+		vi.mocked(apiClient.getDocuments).mockResolvedValue(services);
+		setFoldersState({ folders: numbered });
+		setDocumentsState({ documents: services });
+		renderTree({ showPages: true });
+
+		const names = treeItemNames();
+		expect(names.filter((n) => /^f\d|^F\d/.test(n))).toEqual(['f1', 'F2', 'f10']);
+		const pages = screen.getAllByText(/^Service \d+$/i).map((e) => e.textContent?.trim());
+		expect(pages).toEqual(['Service 1', 'service 2', 'Service 10']);
+
+		await userEvent.click(
+			within(folderItem('F2') as HTMLElement).getByRole('button', { name: 'Expand folder' })
+		);
+		await waitFor(() =>
+			expect(treeItemNames().filter((n) => /^s\d/.test(n))).toEqual(['s9', 's10'])
+		);
+	});
+
 	it('shows pinned pages at the top of the page tree, under the filter', async () => {
 		const pinnedDoc = {
 			...doc('/notes/alpha', 'Alpha'),

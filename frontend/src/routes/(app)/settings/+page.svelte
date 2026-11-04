@@ -76,7 +76,7 @@
 	<ApiTokensSection {authEnabled} {mcpEnabled} />
 
 	<!-- GitHub Integration Section -->
-	<Card>
+	<Card id="github">
 		<CardHeader>
 			<CardTitle class="flex items-center gap-3">
 				<Github class="h-6 w-6 text-(--muted-foreground)" />

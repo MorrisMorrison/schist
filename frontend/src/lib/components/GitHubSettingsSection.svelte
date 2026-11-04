@@ -10,6 +10,7 @@
 	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
 	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
 	import SyncModeSetting from '#lib/components/github/SyncModeSetting.svelte';
+	import SyncConflicts from '#lib/components/github/SyncConflicts.svelte';
 	import PasskeyUnlockModal from '#lib/components/modal/PasskeyUnlockModal.svelte';
 	import DeleteConfirmModal from '#lib/components/modal/DeleteConfirmModal.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
@@ -54,6 +55,15 @@
 			autoSync = githubStore.settings.auto_sync;
 			syncDelayMinutes = githubStore.settings.sync_delay_minutes ?? DEFAULT_SYNC_DELAY;
 			tokenChanged = false;
+		}
+	});
+
+	// A paused sync waits for a decision on the sync tab: open it there.
+	let pausedTabShown = false;
+	$effect(() => {
+		if (!pausedTabShown && isConnected && githubStore.settings?.sync_conflicts?.length) {
+			pausedTabShown = true;
+			activeTab = 'sync';
 		}
 	});
 
@@ -576,6 +586,7 @@
 
 				{#if isConnected}
 					<SyncModeSetting />
+					<SyncConflicts />
 
 					<div class="space-y-4 rounded-lg border p-4">
 						<div class="flex items-center justify-between">

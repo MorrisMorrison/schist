@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures';
 
 /**
  * Wiki links between pages: [[Title]] finds the page, the page lists who links
- * to it, and a link to a page that doesn't exist yet opens the editor for it.
+ * to it, and a link to a page that doesn't exist is marked broken and inert.
  */
 test.describe('Wiki links', () => {
 	test('a link opens its page, which lists the linking page as a backlink', async ({
@@ -46,10 +46,9 @@ test.describe('Wiki links', () => {
 		await documentViewPage.verifyDocumentLoaded(source.title);
 	});
 
-	test('a link to a missing page is marked and offers to create it', async ({
+	test('a link to a missing page is marked broken and goes nowhere', async ({
 		apiHelper,
 		documentViewPage,
-		editorPage,
 		testId,
 		page
 	}) => {
@@ -64,11 +63,11 @@ test.describe('Wiki links', () => {
 			hasText: `Missing ${testId}`
 		});
 		await expect(link).toHaveClass(/broken-link/);
+		await expect(link).toHaveAttribute('title', `Document "Missing ${testId}" does not exist`);
 
+		// A broken link is inert: clicking it leaves the reader where they are.
 		await link.click();
-		await documentViewPage.verifyDocumentNotFound();
-		await page.getByRole('button', { name: 'Create this Document' }).click();
-		await expect(page).toHaveURL(/\/new\?title=/);
-		await expect(editorPage.contentEditor).toBeVisible();
+		await expect(page).toHaveURL(new RegExp(`/documents${source.path}$`));
+		await expect(documentViewPage.documentTitle).toHaveText(source.title);
 	});
 });

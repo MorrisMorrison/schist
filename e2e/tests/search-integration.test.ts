@@ -166,7 +166,7 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await expect(folderTree.getByText('empty-folder-no-matches')).toHaveCount(0);
 	});
 
-	test('should handle search with no results gracefully', async ({ folderPage, page }) => {
+	test('should handle search with no results gracefully', async ({ folderPage }) => {
 		await folderPage.navigateToRoot();
 
 		const searchInput = folderPage.treeFilter;
@@ -176,16 +176,9 @@ test.describe.serial('Search Integration with Folder Tree', () => {
 		await searchInput.fill('nonexistent-content-xyz-123');
 		await expect(searchInput).toHaveValue('nonexistent-content-xyz-123');
 
-		// Should show empty state or message
-		const { folderTree } = folderPage;
-		const emptyMessage = page.getByText(/no.*match|no.*found|empty/i);
-
-		// Either empty tree or explicit message
-		const hasResults = await folderTree.locator('[role="treeitem"]').count();
-		const hasEmptyMessage = await emptyMessage.isVisible().catch(() => false);
-
-		// Should either have no results or show empty message
-		expect(hasResults === 0 || hasEmptyMessage).toBe(true);
+		// The tree gives way to the empty-search message.
+		await expect(folderPage.page.getByText('No folders match your search.')).toBeVisible();
+		await expect(folderPage.folderTree.getByRole('treeitem')).toHaveCount(0);
 	});
 
 	test('should support prefix matching for tags', async ({ folderPage, apiHelper, testId }) => {

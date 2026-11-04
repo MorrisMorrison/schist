@@ -74,7 +74,7 @@ test.describe('Version History Functionality', () => {
 		await closeVersionHistory(page);
 	});
 
-	test('should handle version restoration workflow', async ({
+	test('should cancel a restore without changing anything', async ({
 		documentViewPage,
 		editorPage,
 		withSimpleTestDocument: testDocument,
@@ -86,7 +86,7 @@ test.describe('Version History Functionality', () => {
 		await appendAndSave(documentViewPage, editorPage, '\n\nSecond edit.');
 
 		const history = await openVersionHistory(page);
-		await expect(history.restoreButtons.nth(1)).toBeVisible();
+		await expect(history.restoreButtons).toHaveCount(3);
 
 		// Restore asks for confirmation in place of the list...
 		await history.restoreButtons.last().click();
@@ -95,9 +95,42 @@ test.describe('Version History Functionality', () => {
 		// ...and cancelling returns to the list without restoring anything.
 		await history.dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
 		await expect(history.title).toHaveText('Version History');
+		await expect(history.restoreButtons).toHaveCount(3);
 
 		await closeVersionHistory(page);
 		await documentViewPage.verifyContentContains('Second edit.');
+	});
+
+	test('should restore an earlier version as a new version', async ({
+		documentViewPage,
+		editorPage,
+		withSimpleTestDocument: testDocument,
+		apiHelper,
+		page
+	}) => {
+		await documentViewPage.openDocument(testDocument);
+
+		await appendAndSave(documentViewPage, editorPage, '\n\nFirst edit.');
+		await appendAndSave(documentViewPage, editorPage, '\n\nSecond edit.');
+
+		// Creation + two saves, newest first: the last row is the original.
+		let history = await openVersionHistory(page);
+		await expect(history.restoreButtons).toHaveCount(3);
+		await history.restoreButtons.last().click();
+		await expect(history.title).toHaveText('Restore Version');
+		await history.dialog.getByRole('button', { name: 'Restore', exact: true }).click();
+
+		// The page reloads with the original content back...
+		await documentViewPage.verifyContentContains('minimal content');
+		await expect(documentViewPage.documentContent).not.toContainText('First edit.');
+		await expect(documentViewPage.documentContent).not.toContainText('Second edit.');
+		const saved = await apiHelper.getDocument(testDocument.path!);
+		expect(saved.data?.content).not.toContain('Second edit.');
+
+		// ...and the restore is a new version on top, so nothing was lost.
+		history = await openVersionHistory(page);
+		await expect(history.restoreButtons).toHaveCount(4);
+		await closeVersionHistory(page);
 	});
 
 	test('should handle version comparison workflow', async ({

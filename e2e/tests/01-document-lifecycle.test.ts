@@ -81,6 +81,30 @@ test.describe.serial('Document Lifecycle', () => {
 		await documentViewPage.verifyDocumentNotFound();
 	});
 
+	test('should move a deleted document to the trash, and delete it from there for good', async ({
+		documentViewPage,
+		apiHelper,
+		withSimpleTestDocument: document
+	}) => {
+		const trashPath = `/trash${document.path}`;
+
+		// Deleting moves the page into /trash...
+		await documentViewPage.openDocument(document);
+		await documentViewPage.deleteDocument();
+		expect((await apiHelper.getDocument(document.path!)).status).toBe(404);
+		expect((await apiHelper.getDocument(trashPath)).status).toBe(200);
+
+		await documentViewPage.navigateToDocument(trashPath);
+		await documentViewPage.verifyDocumentLoaded(document.title);
+		await documentViewPage.verifyContentContains('minimal content');
+
+		// ...and deleting it there removes it for good.
+		await documentViewPage.deleteDocument();
+		expect((await apiHelper.getDocument(trashPath)).status).toBe(404);
+		await documentViewPage.navigateToDocument(trashPath);
+		await documentViewPage.verifyDocumentNotFound();
+	});
+
 	test('should handle viewing non-existent document', async ({ documentViewPage, testId }) => {
 		// Try to navigate to a document that doesn't exist
 		const nonExistentPath = `/non-existent-document-${testId}`;

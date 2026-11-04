@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { documentPageWidth } from '#lib/stores/settings.svelte.ts';
+	import { documentPageWidth, settings } from '#lib/stores/settings.svelte.ts';
 	import { PageContainer } from '#lib/components/ui/page-container/index.ts';
 	import { formatLongDate } from '#lib/utils/date.ts';
 	import {
@@ -170,14 +170,17 @@
 
 	let processedContent = $state('');
 
-	let graphViewMode = $state<'list' | 'graph'>('graph');
+	// Starts in the preferred view (Settings); the toggle switches it for this page.
+	let graphViewMode = $state<'list' | 'graph'>(settings.app.preferLinksList ? 'list' : 'graph');
 	const backlinkLoader = useOptimizedLoading(200, 150);
 
 	// The links section sits below the text but often loads first; showing it
 	// before the text would put the graph right under the title and then push
 	// it down. So it waits until the text has rendered once (or there is none).
+	// It's off entirely when Settings hides it; nothing is loaded then.
+	const showLinks = $derived(settings.app.showDocumentLinks);
 	let contentRendered = $state(false);
-	const linksReady = $derived(contentRendered || !document.content);
+	const linksReady = $derived(showLinks && (contentRendered || !document.content));
 
 	let versionCount = $state<number | undefined>(undefined);
 	const versionLoader = useOptimizedLoading(200, 150);
@@ -237,7 +240,7 @@
 	});
 
 	$effect(() => {
-		if (documentPath) {
+		if (documentPath && showLinks) {
 			backlinkLoader.startLoading();
 			documentActions.loadBacklinks(documentPath).finally(() => {
 				backlinkLoader.stopLoading();

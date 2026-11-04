@@ -27,6 +27,17 @@
 			label: 'Wrap long names in the sidebar',
 			description:
 				'Long page and folder names show on two lines instead of being cut off (the full name is also in the tooltip)'
+		},
+		{
+			key: 'showDocumentLinks',
+			label: 'Show links below pages',
+			description: 'The Links section with backlinks and outgoing links, below the page text'
+		},
+		{
+			key: 'preferLinksList',
+			label: 'Show links as a list',
+			description:
+				'The Links section opens as a list instead of the graph (the toggle above it still switches)'
 		}
 	];
 </script>

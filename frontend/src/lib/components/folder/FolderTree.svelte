@@ -22,6 +22,7 @@
 	import { authService } from '#lib/auth/auth-service.ts';
 	import { useOptimizedLoading } from '#lib/composables/useOptimizedLoading.svelte.ts';
 	import { onDestroy } from 'svelte';
+	import PinnedPages from '../home/PinnedPages.svelte';
 
 	interface Props {
 		selectedPath?: string;
@@ -565,6 +566,14 @@
 				}}
 			/>
 		</div>
+	{/if}
+
+	<!-- Pinned pages head the page tree; while filtering, only the matches show. -->
+	{#if showPages && !unifiedSearchQuery.trim()}
+		<PinnedPages
+			{documents}
+			currentPath={decodeURIComponent(currentPath.replace(/^\/documents/, ''))}
+		/>
 	{/if}
 
 	{#if foldersStore.error}

@@ -255,7 +255,9 @@ func (gs *GitHubService) applyPlan(repo *git.Repository, plan syncplan.Result, l
 		if err := os.WriteFile(full, data, 0o644); err != nil {
 			return err
 		}
-		if _, err := wt.Add(c.Path); err != nil {
+		// SkipStatus: a full status per file would scan the whole wiki
+		// while both locks are held.
+		if err := wt.AddWithOptions(&git.AddOptions{Path: c.Path, SkipStatus: true}); err != nil {
 			return fmt.Errorf("failed to stage %s: %w", c.Path, err)
 		}
 	}

@@ -20,16 +20,21 @@
 		choices = Object.fromEntries(conflicts.map((p) => [p, side]));
 	}
 
+	let requested = '';
 	async function toggleDiff(path: string) {
 		if (open?.path === path) {
 			open = null;
+			requested = '';
 			return;
 		}
+		requested = path;
 		try {
 			error = '';
-			open = await githubActions.loadConflict(path);
+			const versions = await githubActions.loadConflict(path);
+			// An older request resolving last must not replace the page asked for since.
+			if (requested === path) open = versions;
 		} catch (err) {
-			error = getErrorMessage(err, 'Could not load both versions');
+			if (requested === path) error = getErrorMessage(err, 'Could not load both versions');
 		}
 	}
 
@@ -41,13 +46,19 @@
 				resolutions: { ...choices },
 				remoteHead: githubStore.settings?.paused_remote_head
 			});
-		} catch (err) {
-			// GitHub changed a page meanwhile: the sync paused again, and the
-			// refreshed list below already shows it.
-			if (parseError(err).code !== 'SYNC_CONFLICT') error = getErrorMessage(err, 'Sync failed');
-		} finally {
 			choices = {};
 			open = null;
+		} catch (err) {
+			if (parseError(err).code === 'SYNC_CONFLICT') {
+				// GitHub changed a page meanwhile: the sync paused again, and the
+				// refreshed list below already shows it; the old picks are void.
+				choices = {};
+				open = null;
+			} else {
+				// Keep the picks so the user can just try again.
+				error = getErrorMessage(err, 'Sync failed');
+			}
+		} finally {
 			busy = false;
 		}
 	}

@@ -182,7 +182,8 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 
 	async function copyToClipboard(text: string): Promise<boolean> {
 		try {
-			await navigator.clipboard?.writeText(text);
+			if (!navigator.clipboard?.writeText) return false;
+			await navigator.clipboard.writeText(text);
 			return true;
 		} catch {
 			return false;
@@ -192,18 +193,34 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	/** The page is gone (or unreadable): my text goes to the clipboard, the editor is left clean. */
 	async function discardMine() {
 		if (!stale) return;
-		const copied = await copyToClipboard(content);
+		if (!(await copyToClipboard(content))) {
+			// Never throw the text away unless it is safe somewhere else.
+			error =
+				"Couldn't copy your text to the clipboard, so nothing was discarded. Copy it yourself first, or keep yours.";
+			return;
+		}
 		clearAutoSave();
 		savedContent = content;
 		stale = null;
-		error = copied ? '' : "Couldn't copy your text to the clipboard.";
+		error = '';
 	}
 
 	/** Saves my text over the newer page; the other version stays in history. */
 	async function keepMine(): Promise<boolean> {
 		if (!stale) return true;
-		// A deleted or unreadable page has no version to base on: save without one.
-		document = { ...document, version: stale.current?.version };
+		const { current, reason } = stale;
+		if (reason !== 'changed') {
+			// The old page is gone or unreadable, so there is nothing to move: write
+			// straight to where the text belongs (the same path when the title is
+			// unchanged), and without a version to base on.
+			const target = pathFor(content);
+			if (target !== path && (await documentActions.checkDocumentExists(target))) {
+				error = `A document already exists at "${target}". Please choose a different title.`;
+				return false;
+			}
+			path = target;
+		}
+		document = { ...document, version: current?.version };
 		stale = null;
 		return save('manual');
 	}

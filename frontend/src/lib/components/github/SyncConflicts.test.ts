@@ -92,6 +92,43 @@ describe('SyncConflicts', () => {
 		expect(await screen.findByRole('alert')).toBeVisible();
 	});
 
+	it('keeps the picks after a failed resume', async () => {
+		vi.mocked(githubActions.syncToGitHub).mockRejectedValueOnce(new Error('boom'));
+		render(SyncConflicts);
+		await userEvent.click(screen.getByRole('button', { name: 'All Schist' }));
+		await userEvent.click(screen.getByRole('button', { name: 'Resume sync' }));
+		expect(await screen.findByRole('alert')).toBeVisible();
+		expect(screen.getByRole('button', { name: 'Resume sync' })).toBeEnabled();
+	});
+
+	it('ignores a diff that resolves after a later request', async () => {
+		const diff = (path: string) => ({
+			path,
+			local: '',
+			remote: '',
+			diff: {
+				path: '/x',
+				hash1: 'schist',
+				hash2: 'github',
+				lines: [],
+				summary: { additions: 0, deletions: 0, modifications: 0 }
+			}
+		});
+		let resolveFirst: (v: ReturnType<typeof diff>) => void = () => {};
+		vi.mocked(githubActions.loadConflict)
+			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)) as never)
+			.mockResolvedValueOnce(diff('notes/a.md') as never);
+		render(SyncConflicts);
+		await userEvent.click(screen.getByRole('button', { name: 'plan.md' }));
+		await userEvent.click(screen.getByRole('button', { name: 'notes/a.md' }));
+		expect(await screen.findByTestId('sync-conflict-diff')).toBeVisible();
+		resolveFirst(diff('plan.md'));
+		await new Promise((r) => setTimeout(r, 20));
+		const rows = screen.getAllByTestId('sync-conflict-row');
+		expect(within(rows[0]).queryByTestId('sync-conflict-diff')).toBeNull();
+		expect(within(rows[1]).getByTestId('sync-conflict-diff')).toBeVisible();
+	});
+
 	it('lists notes Schist cannot read', () => {
 		render(SyncConflicts);
 		expect(screen.getByText('My Note.md')).toBeVisible();

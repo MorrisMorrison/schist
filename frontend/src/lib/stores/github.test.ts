@@ -8,6 +8,8 @@ vi.mock('#lib/api/client.ts', () => ({
 		updateGitHubSettings: vi.fn(),
 		testGitHubConnection: vi.fn(),
 		syncToGitHub: vi.fn(),
+		previewGitHubSync: vi.fn(),
+		getGitHubSyncConflict: vi.fn(),
 		disconnectGitHub: vi.fn(),
 		checkGitHealth: vi.fn(),
 		repairGitRepository: vi.fn(),
@@ -125,6 +127,25 @@ describe('github store', () => {
 		});
 	});
 
+	describe('two-way sync reads', () => {
+		it('previews the sync and loads a conflict through the client', async () => {
+			const preview = {
+				incoming: [],
+				outgoing: [],
+				conflicts: [],
+				unreadable: [],
+				remote_head: 'h'
+			};
+			api.previewGitHubSync.mockResolvedValueOnce(preview);
+			expect(await githubActions.previewSync()).toEqual(preview);
+
+			const versions = { path: 'a.md', local: 'l', remote: 'r', diff: {} } as never;
+			api.getGitHubSyncConflict.mockResolvedValueOnce(versions);
+			expect(await githubActions.loadConflict('a.md')).toEqual(versions);
+			expect(api.getGitHubSyncConflict).toHaveBeenCalledWith('a.md');
+		});
+	});
+
 	describe('syncToGitHub', () => {
 		it('stores the result and refreshes the status', async () => {
 			const result = { success: true, message: 'Synced' } as never;
@@ -145,6 +166,17 @@ describe('github store', () => {
 			api.syncToGitHub.mockRejectedValueOnce(apiError('down', 'SERVICE_UNAVAILABLE'));
 			await expect(githubActions.syncToGitHub()).rejects.toThrow();
 			expect(api.getGitHubSettings).toHaveBeenCalledTimes(2);
+		});
+
+		it('does not treat a paused sync (SYNC_CONFLICT) as an error', async () => {
+			api.syncToGitHub.mockResolvedValueOnce({ success: true, message: 'Synced' } as never);
+			await githubActions.syncToGitHub();
+			api.syncToGitHub.mockRejectedValueOnce(apiError('paused', 'SYNC_CONFLICT'));
+			await expect(githubActions.syncToGitHub()).rejects.toThrow();
+			expect(githubStore.error).toBeNull();
+			expect(githubStore.syncErrorCode).toBe('SYNC_CONFLICT');
+			// An earlier success must not show next to the paused list.
+			expect(githubStore.lastSyncResult).toBeNull();
 		});
 
 		it('passes replaceRemote through', async () => {

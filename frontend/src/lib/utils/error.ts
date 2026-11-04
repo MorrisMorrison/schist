@@ -19,7 +19,8 @@ export type ErrorCode =
 	| 'INVALID_STATE'
 	| 'SECRETS_LOCKED'
 	| 'SYNC_REMOTE_DIVERGED'
-	| 'DOCUMENT_CHANGED';
+	| 'DOCUMENT_CHANGED'
+	| 'SYNC_CONFLICT';
 
 export interface APIErrorResponse {
 	error: string;

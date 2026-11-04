@@ -131,6 +131,8 @@
 			>
 				{#if draft.isSaving}
 					Saving…
+				{:else if draft.stalePaused}
+					<span data-testid="save-paused">Saving paused – this page changed elsewhere</span>
 				{:else if draft.isDirty}
 					<span data-testid="unsaved-indicator">Unsaved changes</span>
 				{:else if draft.lastSaved}
@@ -202,7 +204,12 @@
 />
 
 <StaleDocumentDialog
-	open={draft.conflict !== null}
+	open={draft.staleOpen}
+	error={draft.error}
+	busy={draft.resolving}
+	onBack={() => draft.dismissStale()}
+	reason={draft.staleReason ?? 'changed'}
 	onLoadCurrent={() => void loadCurrent()}
 	onKeepMine={() => void draft.keepMine()}
+	onDiscard={() => void draft.discardMine()}
 />

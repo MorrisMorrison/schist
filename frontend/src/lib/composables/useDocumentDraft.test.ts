@@ -291,6 +291,216 @@ describe('useDocumentDraft', () => {
 		expect(draft.conflict).toBeNull();
 	});
 
+	it.each([
+		['deleted', { document: null, deleted: true }],
+		['unreadable', { document: null, unreadable: true }]
+	] as const)(
+		'on a %s page opens the conflict, and keepMine saves again without a baseVersion',
+		async (reason, details) => {
+			vi.useFakeTimers();
+			update.mockRejectedValueOnce(
+				new Error(JSON.stringify({ error: 'gone', code: 'DOCUMENT_CHANGED', details }))
+			);
+			const draft = useDocumentDraft({
+				document: { ...makeDoc(), version: 'v1' },
+				autoSaveDelayMs: 100
+			});
+
+			draft.setContent('# Plan\n\nMine');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(draft.staleReason).toBe(reason);
+			expect(draft.conflict).toBeNull();
+			expect(draft.error).toBe('');
+
+			draft.setContent('# Plan\n\nMine, more');
+			await vi.advanceTimersByTimeAsync(1000);
+			expect(update).toHaveBeenCalledTimes(1);
+
+			await draft.keepMine();
+			expect(update).toHaveBeenCalledTimes(2);
+			expect(update.mock.calls[1][1].baseVersion).toBeUndefined();
+			expect(draft.staleReason).toBeNull();
+		}
+	);
+
+	it('keepMine on a deleted page with a new title saves straight to the new path', async () => {
+		exists.mockResolvedValue(false);
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+
+		draft.setContent('# Other\n\nMine');
+		await draft.keepMine();
+		expect(update.mock.calls[1][0]).toBe('notes/other');
+		expect(update.mock.calls[1][1].baseVersion).toBeUndefined();
+	});
+
+	it('keepMine on a deleted page keeps the decision open when the save fails', async () => {
+		update
+			.mockRejectedValueOnce(
+				new Error(
+					JSON.stringify({
+						error: 'gone',
+						code: 'DOCUMENT_CHANGED',
+						details: { document: null, deleted: true }
+					})
+				)
+			)
+			.mockRejectedValueOnce(new Error('Network down'));
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+
+		expect(await draft.keepMine()).toBe(false);
+		expect(draft.error).toContain('Network down');
+		// Still waiting on the decision: no later save goes out without a base version.
+		expect(draft.staleReason).toBe('deleted');
+		expect(await draft.save('manual')).toBe(false);
+		expect(update).toHaveBeenCalledTimes(2);
+
+		await draft.keepMine();
+		expect(update).toHaveBeenCalledTimes(3);
+		expect(update.mock.calls[2][1].baseVersion).toBeUndefined();
+		expect(draft.staleReason).toBeNull();
+	});
+
+	it('keepMine on a deleted page with the same title keeps the path', async () => {
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.keepMine();
+		expect(update.mock.calls[1][0]).toBe('notes/plan');
+	});
+
+	it('discardMine without a clipboard discards nothing and says so', async () => {
+		Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.discardMine();
+
+		expect(draft.isDirty).toBe(true);
+		expect(draft.staleReason).toBe('deleted');
+		expect(draft.error).toContain('nothing was discarded');
+		expect(draft.error).toContain('Back to editor');
+	});
+
+	it('loadCurrent reports a missing clipboard', async () => {
+		Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+		const current = { ...makeDoc('# Plan\n\nFrom GitHub'), version: 'v9' };
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'changed',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: current }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.loadCurrent();
+		expect(draft.content).toBe('# Plan\n\nFrom GitHub');
+		expect(draft.error).toContain("Couldn't copy");
+	});
+
+	it('Back to editor hides the dialog; the next save shows it again without a request', async () => {
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		expect(draft.staleOpen).toBe(true);
+
+		draft.dismissStale();
+		expect(draft.staleOpen).toBe(false);
+		expect(draft.staleReason).toBe('deleted');
+
+		expect(await draft.save('manual')).toBe(false);
+		expect(update).toHaveBeenCalledTimes(1);
+		expect(draft.staleOpen).toBe(true);
+	});
+
+	it('ignores a second keepMine while one is running', async () => {
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+
+		const first = draft.keepMine();
+		expect(draft.resolving).toBe(true);
+		expect(await draft.keepMine()).toBe(false);
+		await first;
+		expect(update).toHaveBeenCalledTimes(2);
+		expect(draft.resolving).toBe(false);
+	});
+
+	it('discardMine copies my text to the clipboard and leaves the editor clean', async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.discardMine();
+
+		expect(writeText).toHaveBeenCalledWith('# Plan\n\nMine');
+		expect(draft.isDirty).toBe(false);
+		expect(draft.staleReason).toBeNull();
+	});
+
 	it('loadCurrent copies my text to the clipboard and loads the current page', async () => {
 		const writeText = vi.fn().mockResolvedValue(undefined);
 		Object.defineProperty(navigator, 'clipboard', {

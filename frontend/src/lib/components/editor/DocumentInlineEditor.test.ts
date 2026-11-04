@@ -111,6 +111,28 @@ describe('DocumentInlineEditor', () => {
 		expect(component.isDirty()).toBe(true);
 	});
 
+	it('says saving is paused once a stale page is dismissed with Back to editor', async () => {
+		vi.mocked(apiClient.updateDocumentByPath).mockRejectedValue(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const { component } = render(DocumentInlineEditor, { props: { document: doc } });
+		await type('!');
+		await component.save();
+
+		await fireEvent.click(await screen.findByRole('button', { name: 'Back to editor' }));
+
+		expect(await screen.findByTestId('save-paused')).toHaveTextContent(
+			'Saving paused – this page changed elsewhere'
+		);
+		expect(screen.queryByTestId('unsaved-indicator')).toBeNull();
+	});
+
 	it('warns while the title would rename onto an existing document', async () => {
 		vi.mocked(apiClient.checkDocumentExists).mockResolvedValue(true);
 		render(DocumentInlineEditor, { props: { document: doc } });

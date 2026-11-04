@@ -46,6 +46,7 @@
 	import LazyDocumentGraphView from './LazyDocumentGraphView.svelte';
 	import DocumentGraphToggle from './DocumentGraphToggle.svelte';
 	import ModeToggle from '../editor/ModeToggle.svelte';
+	import SyncConflictBanner from '../github/SyncConflictBanner.svelte';
 	import { documentActions, linksStore } from '#lib/stores/documents.svelte.ts';
 	import type { DocumentMode } from '#lib/types/editor.ts';
 	import type DocumentInlineEditorComponent from '../editor/DocumentInlineEditor.svelte';
@@ -509,6 +510,8 @@
 			</DropdownMenu.Root>
 		</div>
 	</header>
+
+	<SyncConflictBanner path={documentPath} />
 
 	<main>
 		{#if editorModule}

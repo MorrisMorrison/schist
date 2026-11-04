@@ -334,6 +334,15 @@ describe('GitHubSettingsSection', () => {
 			});
 		});
 
+		it('keeps the interval backup on in two-way mode', async () => {
+			await seedConnected({ mode: 'two-way', auto_sync: true });
+			render(GitHubSettingsSection);
+			const interval = screen.getByLabelText('Back up every 15 minutes');
+			expect(interval).toBeChecked();
+			expect(interval).toBeDisabled();
+			expect(screen.getByText(/Two-way sync needs this/)).toBeVisible();
+		});
+
 		it('sets how many minutes after the last edit the backup runs', async () => {
 			await seedConnected({ sync_on_save: true, sync_delay_minutes: 2 });
 			vi.mocked(apiClient.updateGitHubSettings).mockResolvedValue(undefined as never);
@@ -406,6 +415,21 @@ describe('GitHubSettingsSection', () => {
 			await userEvent.click(input('github-replace-remote-button'));
 			await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
 			expect(apiClient.syncToGitHub).not.toHaveBeenCalled();
+		});
+
+		it('shows a paused sync as the conflicts list, not as a failure', async () => {
+			await seedConnected({
+				mode: 'two-way',
+				sync_conflicts: ['plan.md'],
+				paused_remote_head: 'abc',
+				last_sync_error: 'Sync paused: 1 page changed in both.',
+				last_sync_error_code: 'SYNC_CONFLICT'
+			});
+			render(GitHubSettingsSection);
+			expect(await screen.findByTestId('sync-conflicts')).toBeInTheDocument();
+			expect(screen.queryByTestId('github-last-sync-error')).not.toBeInTheDocument();
+			expect(screen.queryByText(/Last sync failed/)).not.toBeInTheDocument();
+			expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 		});
 
 		it('logs when updating fails', async () => {

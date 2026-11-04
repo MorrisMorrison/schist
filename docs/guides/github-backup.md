@@ -1,6 +1,6 @@
 # GitHub backup
 
-Push the wiki's git history to a GitHub repository, by hand, after every change or on an interval. Backup is push-only: Schist never pulls from GitHub.
+Push the wiki's git history to a GitHub repository, by hand, after every change or on an interval. By default backup is push-only: Schist never pulls from GitHub. [Two-way sync](#two-way-sync) is an option that also brings in changes made there.
 
 ## Set it up
 
@@ -19,11 +19,46 @@ Every change counts: autosaves while you type, saves, API and MCP writes, import
 
 **Status** in Settings shows the last successful sync and the last error, including errors from background syncs.
 
+## Two-way sync
+
+Two-way sync also brings in changes made on GitHub or in a clone of the repository, for example edits in Obsidian. Backup stays the default.
+
+### Turn it on
+
+1. Set up backup as described above.
+2. Under **Settings → GitHub**, open the **Sync** tab and choose **Two-way sync** as the **Sync mode**.
+3. Schist shows a preview of the first sync: what comes into the wiki (new, changed and deleted files), what goes to GitHub, pages changed in both places, and notes it can't read yet. Read it, then confirm.
+
+Turning it on also turns on automatic sync. The default interval is 5 minutes. Set `SCHIST_GITHUB_AUTO_SYNC_MINUTES` to change it. Choosing **Backup only** again goes back to push-only. After that, edits pushed to GitHub (from Obsidian, say) make the branch diverge, and backups stop until you replace the GitHub branch or switch back to two-way sync.
+
+### The rules
+
+- Changes to different pages merge on their own.
+- If the same page changed in both places, the sync pauses. Nothing is applied and nothing is pushed until you decide. Under **Settings → GitHub** you see both versions of each page and pick a side per page: **Keep Schist's** or **Take GitHub's**. The version you don't pick stays in the page's history.
+- Only pages can conflict. Files that aren't pages, such as attachments, take GitHub's version when both sides changed them. The `.obsidian/` folder is never shown in the wiki.
+- If the wiki or GitHub changes again while a sync runs, Schist plans again, up to 3 times. If it still can't settle, it stops and tries on the next sync.
+- If a file in the wiki folder that git ignores sits where a file from GitHub should go, the sync stops and names the path. Move that file out of the wiki folder and sync again.
+- **Replace GitHub branch** isn't offered in this mode.
+
+### Notes Schist can't read yet
+
+A note created in Obsidian without front matter, or with a file name that has spaces or other characters Schist doesn't allow, is kept but not shown. It stays in the repository and isn't deleted. It is listed in **Settings → GitHub** as not readable. Add front matter or rename the file, and it appears after the next sync.
+
+### When a page changes while you edit it
+
+If a sync brings in a new version of the page you have open, saving shows **This page changed since you opened it**. Autosave pauses. You can:
+
+- **Load the new version.** Your text is copied to the clipboard first.
+- **Keep mine.** Your text is saved over the new version, which stays in history.
+- **Back to editor.** The dialog closes so you can copy or fix things by hand. The editor says that saving is paused, and the next save asks again.
+
+If the page was deleted on GitHub, or changed so that Schist can't read it, the dialog says so. You can keep yours, which saves it as the page again, or **Discard my changes**, which copies your text to the clipboard first. The same dialog appears when another user or the API changed the page. See [`DOCUMENT_CHANGED`](../reference/error-codes.md).
+
 ## When the branch has other commits
 
 If the GitHub branch has commits the wiki doesn't have (a README created with the repository, or a push from somewhere else), a normal sync stops with `SYNC_REMOTE_DIVERGED` and leaves GitHub alone. You can then:
 
-- click **Replace GitHub branch** in Settings, which force-pushes the wiki's history once after you confirm; or
+- click **Replace GitHub branch** in Settings (backup mode only), which force-pushes the wiki's history once after you confirm; or
 - point the backup at an empty repository or a new branch.
 
 ## How the token is stored

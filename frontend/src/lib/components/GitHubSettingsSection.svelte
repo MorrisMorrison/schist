@@ -9,6 +9,8 @@
 	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
 	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
 	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
+	import SyncModeSetting from '#lib/components/github/SyncModeSetting.svelte';
+	import SyncConflicts from '#lib/components/github/SyncConflicts.svelte';
 	import PasskeyUnlockModal from '#lib/components/modal/PasskeyUnlockModal.svelte';
 	import DeleteConfirmModal from '#lib/components/modal/DeleteConfirmModal.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
@@ -56,9 +58,20 @@
 		}
 	});
 
+	// A paused sync waits for a decision on the sync tab: open it there.
+	let pausedTabShown = false;
+	$effect(() => {
+		if (!pausedTabShown && isConnected && githubStore.settings?.sync_conflicts?.length) {
+			pausedTabShown = true;
+			activeTab = 'sync';
+		}
+	});
+
 	const isConnected = $derived(githubStore.connectionStatus?.connected ?? false);
 	const canTestConnection = $derived(token.trim() && owner.trim() && repository.trim());
 	const intervalMinutes = $derived(githubStore.settings?.auto_sync_interval_minutes ?? 15);
+	// Two-way sync brings in GitHub's changes with the interval sync, so it stays on.
+	const twoWay = $derived(githubStore.settings?.mode === 'two-way');
 	const hasChanges = $derived(
 		githubStore.connectionStatus && githubStore.connectionStatus.connected && githubStore.settings
 			? branch !== githubStore.settings.branch ||
@@ -67,7 +80,12 @@
 					syncDelayMinutes !== (githubStore.settings.sync_delay_minutes ?? DEFAULT_SYNC_DELAY)
 			: canTestConnection
 	);
-	const lastSyncFailed = $derived(Boolean(githubStore.settings?.last_sync_error));
+	// A paused two-way sync records SYNC_CONFLICT as its outcome; that is not a failure
+	// (the paused-sync list says what to do), so it gets no red alert.
+	const lastSyncFailed = $derived(
+		Boolean(githubStore.settings?.last_sync_error) &&
+			githubStore.settings?.last_sync_error_code !== 'SYNC_CONFLICT'
+	);
 
 	onMount(() => {
 		if (!githubStore.settings && !githubStore.connectionStatus) {
@@ -199,7 +217,7 @@
 		if (!validateSettingsUpdate()) return;
 		try {
 			await githubActions.updateSettings({
-				auto_sync: autoSync,
+				auto_sync: autoSync || twoWay,
 				sync_on_save: syncOnSave,
 				sync_delay_minutes: syncDelayMinutes ?? DEFAULT_SYNC_DELAY,
 				branch: branch.trim()
@@ -271,7 +289,7 @@
 </script>
 
 {#snippet divergedNotice()}
-	{#if isConnected && githubStore.remoteDiverged}
+	{#if isConnected && githubStore.remoteDiverged && githubStore.settings?.mode !== 'two-way'}
 		<Alert variant="warning" data-testid="github-diverged-notice">
 			<AlertCircle />
 			<AlertTitle>The GitHub branch has other commits</AlertTitle>
@@ -425,9 +443,18 @@
 						</p>
 
 						<label class="flex items-center space-x-2">
-							<Checkbox checked={autoSync} onCheckedChange={(checked) => (autoSync = checked)} />
+							<Checkbox
+								checked={autoSync}
+								disabled={twoWay}
+								onCheckedChange={(checked) => (autoSync = checked)}
+							/>
 							<span class="text-sm">Back up every {intervalMinutes} minutes</span>
 						</label>
+						{#if twoWay}
+							<p class="text-muted-foreground -mt-1 pl-6 text-xs">
+								Two-way sync needs this: it brings in changes from GitHub at each interval sync.
+							</p>
+						{/if}
 					</div>
 				</div>
 
@@ -574,6 +601,9 @@
 				{/if}
 
 				{#if isConnected}
+					<SyncModeSetting />
+					<SyncConflicts />
+
 					<div class="space-y-4 rounded-lg border p-4">
 						<div class="flex items-center justify-between">
 							<h4 class="font-medium">Git Repository Health</h4>

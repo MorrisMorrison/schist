@@ -10,7 +10,9 @@ import type {
 	GitHubSetupRequest,
 	GitHubConnectionTest,
 	GitHubConfigRequest,
-	GitHubSyncOptions
+	GitHubSyncOptions,
+	SyncPreview,
+	ConflictVersions
 } from '../api/types';
 
 interface GitHubState {
@@ -222,8 +224,13 @@ export const githubActions = {
 		} catch (error) {
 			const { code } = parseError(error);
 			githubState.syncErrorCode = code ?? null;
+			// An earlier success must not show next to the pages a pause waits on.
+			if (code === 'SYNC_CONFLICT') githubState.lastSyncResult = null;
+			// A paused sync is not a failure: the settings list the pages waiting for a side.
 			githubState.error =
-				(code && syncErrorMessages[code]) || getErrorMessage(error, 'Failed to sync to GitHub');
+				code === 'SYNC_CONFLICT'
+					? null
+					: (code && syncErrorMessages[code]) || getErrorMessage(error, 'Failed to sync to GitHub');
 			if (code === 'SECRETS_LOCKED') {
 				await secretStore.loadStatus().catch(() => {});
 			}
@@ -238,6 +245,14 @@ export const githubActions = {
 				// Keep the settings we have; the sync's own result is what matters here.
 			}
 		}
+	},
+
+	async previewSync(): Promise<SyncPreview> {
+		return apiClient.previewGitHubSync();
+	},
+
+	async loadConflict(path: string): Promise<ConflictVersions> {
+		return apiClient.getGitHubSyncConflict(path);
 	},
 
 	async disconnect() {

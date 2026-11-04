@@ -436,6 +436,25 @@ describe('SchistApiClient', () => {
 		});
 	});
 
+	describe('two-way sync', () => {
+		it('sends resolutions with the remote head', async () => {
+			await client.syncToGitHub({ resolutions: { 'plan.md': 'local' }, remoteHead: 'abc' });
+			expect(lastCall().url).toBe('/api/github/sync');
+			expect(JSON.parse(lastCall().init.body as string)).toEqual({
+				resolutions: { 'plan.md': 'local' },
+				remote_head: 'abc'
+			});
+		});
+
+		it('previews and reads conflicts', async () => {
+			await client.previewGitHubSync();
+			expect(lastCall().url).toBe('/api/github/sync/preview');
+			expect(lastCall().init.method).toBe('POST');
+			await client.getGitHubSyncConflict('notes/plan.md');
+			expect(lastCall().url).toBe('/api/github/sync/conflict?path=notes%2Fplan.md');
+		});
+	});
+
 	describe('endpoint routing', () => {
 		type Case = [
 			name: string,

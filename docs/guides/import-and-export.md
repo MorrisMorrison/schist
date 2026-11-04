@@ -37,6 +37,7 @@ The report lists every file with what was converted or dropped, and why a file w
 ### What is removed or skipped
 
 - Plugin syntax: Dataview and DataviewJS queries, inline Dataview, Tasks queries, Templater tags, Buttons and Meta Bind blocks.
+- An inline Dataview query (`` `= this.file.mtime` ``) leaves no dangling label. A line that is only a label and the query, like `Last updated: <query>`, is dropped. A query inside a sentence becomes `(Dataview value)`.
 - `%% comments %%` and block IDs (`^abc123`).
 - Tool folders (`.obsidian`, `.git`, `.trash`), hidden files and files that aren't markdown. Embedded images aren't imported.
 

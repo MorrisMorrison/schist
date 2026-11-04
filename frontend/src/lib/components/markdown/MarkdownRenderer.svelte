@@ -16,9 +16,12 @@
 
 	let {
 		content = '',
+		sourcePath,
 		onrendered
 	}: {
 		content: string;
+		/** The page the content belongs to: a title several pages share links to the nearest. */
+		sourcePath?: string;
 		/** Called each time non-empty content is on screen (parsed and rendered, or failed). */
 		onrendered?: () => void;
 	} = $props();
@@ -41,7 +44,7 @@
 		// result if newer content arrived meanwhile so it cannot overwrite it.
 		let stale = false;
 
-		parseMarkdownToBlocks(content)
+		parseMarkdownToBlocks(content, sourcePath)
 			.then((parsedBlocks) => {
 				if (!stale) blocks = parsedBlocks;
 			})

@@ -201,7 +201,14 @@ test.describe('Import and export', () => {
 		expect(overwritten.imported_count).toBe(3);
 		expectNotesAt(overwritten, target);
 		const after = await apiHelper.getDocument(`/${target}/vault/notes/readme`);
-		expect(after.data?.content).toBe(original.data?.content);
+		// The renamed copy (router-1) shares the router's title, so the link is now
+		// written by path to the router it means (#333); otherwise it's unchanged.
+		expect(after.data?.content).toBe(
+			original.data?.content?.replace(
+				'[[router — main gateway]]',
+				`[[/${target}/vault/devices/router|router — main gateway]]`
+			)
+		);
 		// Overwriting doesn't add pages: three originals plus the three renamed copies.
 		const folder = await apiHelper.getFolder(`/${target}/vault/devices`);
 		expect(JSON.stringify(folder.data)).not.toContain('router-2');

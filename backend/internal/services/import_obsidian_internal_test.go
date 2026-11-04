@@ -110,9 +110,9 @@ func TestConvertObsidianMarkdown(t *testing.T) {
 
 func TestRewriteImportLinks(t *testing.T) {
 	idx := importLinkIndex{}
-	idx.add("homelab/devices/docki.md", "Docki host")
-	idx.add("homelab/network.md", "Network")
-	idx.add("guides/setup guide.md", "Setup guide")
+	idx.add("homelab/devices/docki.md", "Docki host", "/homelab/devices/docki")
+	idx.add("homelab/network.md", "Network", "/homelab/network")
+	idx.add("guides/setup guide.md", "Setup guide", "/guides/setup-guide")
 
 	body := strings.Join([]string{
 		"See [[docki]], [[homelab/devices/docki|the host]] and [[docki#Disks]].",
@@ -124,7 +124,7 @@ func TestRewriteImportLinks(t *testing.T) {
 		"```",
 	}, "\n")
 
-	out, unresolved := rewriteImportLinks(body, "homelab/devices", idx)
+	out, unresolved := rewriteImportLinks(body, "homelab/devices", "/homelab/devices/docki", idx)
 
 	assert.Equal(t, strings.Join([]string{
 		"See [[Docki host]], [[Docki host|the host]] and [[Docki host|docki › Disks]].",
@@ -151,9 +151,9 @@ func TestImportFolderPathAndSkips(t *testing.T) {
 
 func TestRewriteImportLinks_EscapedPipeInTables(t *testing.T) {
 	idx := importLinkIndex{}
-	idx.add("homelab/zot.md", "Zot registry")
+	idx.add("homelab/zot.md", "Zot registry", "/homelab/zot")
 
-	out, unresolved := rewriteImportLinks(`| [[zot\|Zot]] | [[zot\|Zot registry]] | [[missing\|x]] |`, "homelab", idx)
+	out, unresolved := rewriteImportLinks(`| [[zot\|Zot]] | [[zot\|Zot registry]] | [[missing\|x]] |`, "homelab", "/homelab/page", idx)
 
 	assert.Equal(t, `| [[Zot registry\|Zot]] | [[Zot registry]] | [[missing\|x]] |`, out,
 		"the pipe stays escaped so the table cell isn't split")
@@ -185,7 +185,7 @@ func TestImportPageSlug(t *testing.T) {
 
 func TestRewriteImportLinks_FallsBackToTheWiki(t *testing.T) {
 	batch := importLinkIndex{}
-	batch.add("devices/switch.md", "switch — core")
+	batch.add("devices/switch.md", "switch — core", "/lab/devices/switch")
 
 	wiki := importLinkIndex{}
 	wiki.addPage("/lab/devices/router", "router — main gateway", "/lab")
@@ -195,11 +195,33 @@ func TestRewriteImportLinks_FallsBackToTheWiki(t *testing.T) {
 	out, unresolved := rewriteImportLinks(strings.Join([]string{
 		"[[router]] [[devices/router|gateway]] [[/lab/devices/router]]",
 		"[[Setup Guide]] [[setting things up]] [[switch]] [[nowhere]]",
-	}, "\n"), "devices", batch, wiki)
+	}, "\n"), "devices", "/lab/devices/page", batch, wiki)
 
 	assert.Equal(t, strings.Join([]string{
 		"[[router — main gateway]] [[router — main gateway|gateway]] [[router — main gateway]]",
 		"[[Setting things up]] [[Setting things up]] [[switch — core]] [[nowhere]]",
 	}, "\n"), out, "the import's own files win over pages already in the wiki")
 	assert.Equal(t, 1, unresolved)
+}
+
+// #333: a title other pages also have stays a title link when it finds the
+// page from where it's written (the nearest folder), and becomes a path link,
+// with the text as written (or the title) as its label, when it doesn't.
+func TestRewriteImportLinks_DuplicateTitlesBecomePathLinks(t *testing.T) {
+	batch := importLinkIndex{}
+	batch.add("a/overview.md", "Overview", "/second/a/overview")
+	batch.add("switch.md", "Core switch", "/second/switch")
+	wiki := importLinkIndex{}
+	wiki.addPage("/second/b/overview", "Overview", "/second")
+	markDuplicateTitles(batch, wiki)
+	links := "[[a/overview]] [[a/overview|start]] [[switch]] [o](a/overview.md)"
+
+	near, _ := rewriteImportLinks(links, "", "/second/a/plan", batch, wiki)
+	assert.Equal(t, "[[Overview]] [[Overview|start]] [[Core switch]] [[Overview|o]]", near,
+		"from /second/a the title finds /second/a/overview")
+
+	far, unresolved := rewriteImportLinks(links, "", "/second/c/plan", batch, wiki)
+	assert.Equal(t, "[[/second/a/overview|Overview]] [[/second/a/overview|start]] [[Core switch]] [[/second/a/overview|o]]", far,
+		"from /second/c both overviews are as near")
+	assert.Equal(t, 0, unresolved)
 }

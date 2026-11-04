@@ -97,7 +97,14 @@ let blockIdCounter = 0;
 function generateBlockId(): string {
 	return `block-${Date.now()}-${++blockIdCounter}`;
 }
-export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBlock[]> {
+/**
+ * Parses markdown into blocks. sourcePath is the path of the page the content
+ * belongs to, so a title several pages share links to the nearest one.
+ */
+export async function parseMarkdownToBlocks(
+	content: string,
+	sourcePath?: string
+): Promise<MarkdownBlock[]> {
 	const processedContent = preprocessWikiLinks(content);
 	let sessionId: string | null = null;
 
@@ -118,7 +125,7 @@ export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBl
 			}
 		}
 
-		await postprocessAllWikiLinks(blocks, processedContent);
+		await postprocessAllWikiLinks(blocks, processedContent, sourcePath);
 
 		return blocks;
 	} finally {
@@ -131,7 +138,8 @@ export async function parseMarkdownToBlocks(content: string): Promise<MarkdownBl
 
 async function postprocessAllWikiLinks(
 	blocks: MarkdownBlock[],
-	originalContent: string
+	originalContent: string,
+	sourcePath?: string
 ): Promise<void> {
 	const sessionId = extractSessionId(originalContent);
 	if (!sessionId) return;
@@ -144,7 +152,11 @@ async function postprocessAllWikiLinks(
 	// link by link cost two requests each and held the whole page back.)
 	const documents = await loadLinkablePages();
 	for (const link of wikiLinks) {
-		replaceWikiLinkInBlocks(link.placeholder, createWikiLinkHtml(link, documents), blocks);
+		replaceWikiLinkInBlocks(
+			link.placeholder,
+			createWikiLinkHtml(link, documents, sourcePath),
+			blocks
+		);
 	}
 
 	// Note: Session cleanup is now handled in parseMarkdownToBlocks finally block
@@ -192,10 +204,11 @@ const BROKEN_LINK_CLASS = 'wiki-link broken-link';
  */
 function createWikiLinkHtml(
 	link: { target: string; displayText: string },
-	documents: LinkablePage[] | null
+	documents: LinkablePage[] | null,
+	sourcePath?: string
 ): string {
 	const resolved = documents
-		? resolveWikiTarget(link.target, documents)
+		? resolveWikiTarget(link.target, documents, sourcePath)
 		: { path: `/${generateSlug(link.target)}`, exists: true };
 	const linkClass = resolved.exists ? LINK_CLASS : BROKEN_LINK_CLASS;
 	const title = resolved.exists

@@ -195,16 +195,17 @@ func (d *DocumentService) ImportFiles(files []models.ImportFile, options *models
 		if !target.shouldSkip {
 			// A skipped file keeps the page already there; links find that
 			// page through the wiki index.
-			links.add(relPath, note.title)
+			links.add(relPath, note.title, target.finalPath)
 		}
 		queue = append(queue, pending{relPath: relPath, note: note, target: target})
 	}
+	markDuplicateTitles(links, wikiLinks)
 
 	// Pass 2: rewrite links against the whole import, then write.
 	var written []string
 	for _, p := range queue {
 		imported := models.ImportedDocument{OriginalName: p.relPath, FinalPath: p.target.finalPath, Title: p.note.title}
-		body, unresolved := rewriteImportLinks(p.note.body, slashpath.Dir(p.relPath), links, wikiLinks)
+		body, unresolved := rewriteImportLinks(p.note.body, slashpath.Dir(p.relPath), p.target.finalPath, links, wikiLinks)
 		imported.Notes = p.note.notes
 		if unresolved > 0 {
 			imported.Notes = append(imported.Notes, plural(unresolved, "link not found in this import or the wiki (kept by name)"))

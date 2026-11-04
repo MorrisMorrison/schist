@@ -9,12 +9,19 @@ import { findWikiLinkMatches } from '#lib/utils/wiki-link-syntax.ts';
 import { resolveWikiTarget } from '#lib/utils/resolve-wiki-target.ts';
 import { asyncDecorations, autocompleteTheme } from './async-decorations';
 
+/** The page being edited, from the URL, so a shared title links to the nearest page. */
+function editedPagePath(): string | undefined {
+	const match = window.location.pathname.match(/^\/(?:documents|edit)(\/.+)$/);
+	return match ? decodeURIComponent(match[1]) : undefined;
+}
+
 const existsCache = new Map<string, { exists: boolean; time: number }>();
 const EXISTS_CACHE_DURATION = 30000;
 
 async function documentExists(documentName: string): Promise<boolean> {
 	const now = Date.now();
-	const cacheKey = documentName.toLowerCase();
+	const from = editedPagePath();
+	const cacheKey = `${from ?? ''}\u0000${documentName.toLowerCase()}`;
 
 	const cached = existsCache.get(cacheKey);
 	if (cached && now - cached.time < EXISTS_CACHE_DURATION) {
@@ -23,7 +30,7 @@ async function documentExists(documentName: string): Promise<boolean> {
 
 	try {
 		const documents = await getCachedDocuments();
-		const { exists } = resolveWikiTarget(documentName, documents);
+		const { exists } = resolveWikiTarget(documentName, documents, from);
 
 		existsCache.set(cacheKey, { exists, time: now });
 
@@ -35,7 +42,7 @@ async function documentExists(documentName: string): Promise<boolean> {
 }
 
 async function resolveDocumentPath(documentName: string): Promise<string> {
-	return resolveWikiTarget(documentName, await getCachedDocuments()).path;
+	return resolveWikiTarget(documentName, await getCachedDocuments(), editedPagePath()).path;
 }
 
 class WikiLinkWidget extends WidgetType {

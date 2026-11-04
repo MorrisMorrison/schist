@@ -528,7 +528,11 @@
 			<!-- Editing: the editor above takes the rendered content's place. -->
 		{:else if document.content}
 			<div bind:this={contentContainer} class="reading" data-testid="document-content">
-				<MarkdownRenderer content={processedContent} onrendered={() => (contentRendered = true)} />
+				<MarkdownRenderer
+					content={processedContent}
+					sourcePath={documentPath}
+					onrendered={() => (contentRendered = true)}
+				/>
 			</div>
 		{:else}
 			<div class="flex flex-col items-center justify-center py-12 text-center">

@@ -158,17 +158,19 @@ func (x *linkIndex) rebuildDerived() {
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].order < ordered[j].order })
 
 	resolver := &linkResolver{
-		byTitle: map[string]string{},
-		byAlias: map[string]string{},
-		byBase:  map[string]string{},
-		paths:   map[string]bool{},
+		byTitle:    map[string]string{},
+		byAlias:    map[string]string{},
+		byBase:     map[string]string{},
+		byPath:     map[string]string{},
+		titlePaths: map[string][]string{},
+		paths:      map[string]bool{},
 	}
 	for _, entry := range ordered {
 		resolver.paths[entry.path] = true
-		key := strings.ToLower(entry.title)
-		if _, taken := resolver.byTitle[key]; !taken {
-			resolver.byTitle[key] = entry.path
-		}
+		resolver.byPath[strings.ToLower(entry.path)] = entry.path
+		titleKey := strings.ToLower(strings.TrimSpace(entry.title))
+		addUnique(resolver.byTitle, titleKey, entry.path)
+		resolver.titlePaths[titleKey] = append(resolver.titlePaths[titleKey], entry.path)
 		for _, alias := range entry.aliases {
 			addUnique(resolver.byAlias, strings.ToLower(alias), entry.path)
 		}
@@ -181,7 +183,7 @@ func (x *linkIndex) rebuildDerived() {
 			continue
 		}
 		for _, link := range entry.links {
-			if path, ok := resolver.resolve(link.target); ok {
+			if path, ok := resolver.resolve(link.target, entry.path); ok {
 				addBacklink(backlinks, path, entry.path)
 			}
 		}
@@ -243,14 +245,47 @@ func extractLinkTargets(content string) []linkTarget {
 
 // linkResolver maps link targets to document paths.
 type linkResolver struct {
-	byTitle map[string]string // lower-cased title -> path
+	byTitle map[string]string // lower-cased title -> path, or ambiguousName
 	byAlias map[string]string // lower-cased alias -> path, or ambiguousName
 	byBase  map[string]string // page name (last path segment) -> path, or ambiguousName
-	paths   map[string]bool
+	byPath  map[string]string // lower-cased path -> path
+	// titlePaths lists every page with a title, to pick the nearest one when
+	// several pages share it.
+	titlePaths map[string][]string
+	paths      map[string]bool
 }
 
-// ambiguousName marks an alias or page name that more than one page has; a
-// link by it stays unresolved rather than picking one at random.
+// nearestPath picks, among pages that share a title, the one in the folder
+// closest to the linking page: the deepest common folder, if exactly one page
+// has it. So [[Overview]] in /projects/a/plan finds /projects/a/overview, and
+// a copy of an imported folder links within itself.
+func nearestPath(from string, candidates []string) (string, bool) {
+	if from == "" {
+		return "", false
+	}
+	fromDir := strings.Split(strings.Trim(path.Dir(from), "/"), "/")
+	best, bestDepth, tie := "", -1, false
+	for _, candidate := range candidates {
+		dir := strings.Split(strings.Trim(path.Dir(candidate), "/"), "/")
+		depth := 0
+		for depth < len(fromDir) && depth < len(dir) && fromDir[depth] == dir[depth] && dir[depth] != "" {
+			depth++
+		}
+		switch {
+		case depth > bestDepth:
+			best, bestDepth, tie = candidate, depth, false
+		case depth == bestDepth:
+			tie = true
+		}
+	}
+	if tie || best == "" {
+		return "", false
+	}
+	return best, true
+}
+
+// ambiguousName marks a title, alias or page name that more than one page
+// has; a link by it stays unresolved rather than picking one at random.
 const ambiguousName = ""
 
 func addUnique(names map[string]string, name, pagePath string) {
@@ -285,15 +320,31 @@ func propertyStrings(value any) []string {
 }
 
 // resolve returns the path a link target points to and whether a document
-// exists there: by title, then the page at the root slug, then a page's alias,
-// then a page's name (the last segment of its path, which is an imported
-// note's file name). It never touches the disk.
-func (r *linkResolver) resolve(target string) (string, bool) {
-	if path, ok := r.byTitle[strings.ToLower(target)]; ok {
-		return path, true
-	}
+// exists there: by title, then by path ([[/folder/page]] or [[folder/page]]),
+// then the page at the root slug, then a page's alias, then a page's name
+// (the last segment of its path, which is an imported note's file name). A
+// title several pages share resolves to the one nearest the linking page
+// (from; see nearestPath), else to none of them unless the target is also a
+// path. It never touches the disk.
+func (r *linkResolver) resolve(target, from string) (string, bool) {
 	slug := utils.GenerateSlug(target)
 	rootPath := "/" + slug
+	titleKey := strings.ToLower(strings.TrimSpace(target))
+	title, titled := r.byTitle[titleKey]
+	if titled && title != ambiguousName {
+		return title, true
+	}
+	if titled {
+		if nearest, ok := nearestPath(from, r.titlePaths[titleKey]); ok {
+			return nearest, true
+		}
+	}
+	if path, ok := r.resolvePath(target); ok {
+		return path, true
+	}
+	if titled { // a shared title, no page nearer than the others
+		return rootPath, false
+	}
 	if r.paths[rootPath] {
 		return rootPath, true
 	}
@@ -306,10 +357,33 @@ func (r *linkResolver) resolve(target string) (string, bool) {
 	return rootPath, false
 }
 
-func (r *linkResolver) resolveAll(links []linkTarget) []*WikiLink {
+// resolvePath matches a target written as a page path: with or without the
+// leading slash and ".md", case-insensitive, segments as written or as slugs.
+func (r *linkResolver) resolvePath(target string) (string, bool) {
+	t := strings.TrimSpace(target)
+	if !strings.Contains(t, "/") {
+		return "", false
+	}
+	t = strings.Trim(strings.TrimSuffix(t, ".md"), "/")
+	segments := strings.Split(t, "/")
+	slugs := make([]string, len(segments))
+	for i, segment := range segments {
+		slugs[i] = utils.GenerateSlug(segment)
+	}
+	for _, candidate := range []string{t, strings.Join(slugs, "/")} {
+		if path, ok := r.byPath["/"+strings.ToLower(candidate)]; ok {
+			return path, true
+		}
+	}
+	return "", false
+}
+
+// resolveAll resolves the links of the page at from ("" when the links aren't
+// on a page).
+func (r *linkResolver) resolveAll(links []linkTarget, from string) []*WikiLink {
 	resolved := make([]*WikiLink, 0, len(links))
 	for _, link := range links {
-		path, valid := r.resolve(link.target)
+		path, valid := r.resolve(link.target, from)
 		resolved = append(resolved, &WikiLink{
 			Target:      link.target,
 			DisplayText: link.display,

@@ -334,6 +334,19 @@ func unreadablePages(repo *git.Repository, apply []syncplan.Change) []string {
 	return out
 }
 
+// unreadableAt lists the pages in commit h that Schist can't show, sorted.
+func unreadableAt(repo *git.Repository, h plumbing.Hash) ([]string, error) {
+	tree, err := commitTree(repo, h)
+	if err != nil {
+		return nil, err
+	}
+	all := make([]syncplan.Change, 0, len(tree))
+	for p, blob := range tree {
+		all = append(all, syncplan.Change{Path: p, Blob: blob})
+	}
+	return unreadablePages(repo, all), nil
+}
+
 // notifyPulled tells the link index which pages a pull changed.
 func (gs *GitHubService) notifyPulled(paths []string) {
 	if gs.onPulled == nil {

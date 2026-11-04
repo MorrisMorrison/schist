@@ -677,7 +677,7 @@ func (gs *GitHubService) sync(opts GitHubSyncOptions) (*GitHubSyncResult, error)
 	}
 	if githubSettings.TwoWay() {
 		// Replacing GitHub's history settles any paused conflicts.
-		gs.recordPause(nil, "", nil)
+		gs.recordSettled()
 	}
 
 	return &GitHubSyncResult{
@@ -713,7 +713,7 @@ func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, 
 			return nil, err
 		}
 		if len(out.Conflicts) > 0 {
-			gs.recordPause(out.Conflicts, out.RemoteHead.String(), out.Unreadable)
+			gs.recordPause(out.Conflicts, out.RemoteHead.String())
 			return nil, apierrors.NewSyncConflictError(out.Conflicts, out.RemoteHead.String())
 		}
 		err = gs.pushToGitHub(false)
@@ -728,7 +728,7 @@ func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, 
 			}
 			return nil, err
 		}
-		gs.recordPause(nil, "", out.Unreadable)
+		gs.recordSettled()
 		return &GitHubSyncResult{Success: true, Message: "GitHub sync completed successfully",
 			Timestamp: time.Now().Format(time.RFC3339)}, nil
 	}
@@ -791,11 +791,35 @@ func (gs *GitHubService) resolutionsFor(opts GitHubSyncOptions) (map[string]sync
 	return out, nil
 }
 
-// recordPause stores (or, with no conflicts, clears) the paused state.
-func (gs *GitHubService) recordPause(conflicts []string, remoteHead string, unreadable []string) {
+// recordPause stores the paused state. The unreadable list stays as the last
+// completed sync left it: the paused plan wasn't applied.
+func (gs *GitHubService) recordPause(conflicts []string, remoteHead string) {
 	if err := gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
 		st.GitHub.SyncConflicts = conflicts
 		st.GitHub.PausedRemoteHead = remoteHead
+		return nil
+	}); err != nil {
+		log.Printf("[GitHubService] Warning: failed to record the sync pause: %v", err)
+	}
+}
+
+// recordSettled clears the paused state after a completed sync and lists
+// the pages in the wiki Schist can't read.
+func (gs *GitHubService) recordSettled() {
+	var unreadable []string
+	repo, err := gs.localRepository()
+	if err == nil {
+		var head *plumbing.Reference
+		if head, err = repo.Head(); err == nil {
+			unreadable, err = unreadableAt(repo, head.Hash())
+		}
+	}
+	if err != nil {
+		log.Printf("[GitHubService] Warning: failed to list the unreadable pages: %v", err)
+	}
+	if err := gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
+		st.GitHub.SyncConflicts = nil
+		st.GitHub.PausedRemoteHead = ""
 		st.GitHub.Unreadable = unreadable
 		return nil
 	}); err != nil {

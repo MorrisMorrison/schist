@@ -473,6 +473,40 @@ func TestSync_ResolutionsNeedTheRemoteHeadTheyWereDecidedAgainst(t *testing.T) {
 	assert.Contains(t, err.Error(), "fetched")
 }
 
+func TestSync_UnreadableListsEveryUnreadablePageUntilItIsGone(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"My Note.md": "just text\n"})
+
+	_, err := f.gs.SyncToGitHub()
+	require.NoError(t, err)
+	assert.Equal(t, []string{"My Note.md"}, f.settings.GetGitHubSettings().Unreadable)
+
+	_, err = f.gs.SyncToGitHub() // nothing new: still there, still unreadable
+	require.NoError(t, err)
+	assert.Equal(t, []string{"My Note.md"}, f.settings.GetGitHubSettings().Unreadable)
+
+	push(nil, "My Note.md")
+	_, err = f.gs.SyncToGitHub()
+	require.NoError(t, err)
+	assert.Empty(t, f.settings.GetGitHubSettings().Unreadable)
+}
+
+func TestSync_APauseKeepsTheUnreadableList(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	require.NoError(t, f.settings.Update(f.dataDir, func(st *appconfig.Settings) error {
+		st.GitHub.Unreadable = []string{"Old.md"}
+		return nil
+	}))
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian"), "My Note.md": "just text\n"})
+	writeNote(t, f.dataDir, "plan.md", page("Plan", "schist"))
+
+	_, err := f.gs.SyncToGitHub()
+	require.Equal(t, apierrors.ErrCodeSyncConflict, errorCode(err))
+	assert.Equal(t, []string{"Old.md"}, f.settings.GetGitHubSettings().Unreadable, "the unapplied plan isn't reported")
+}
+
 func TestPreviewSync_ShowsWhatTheFirstSyncWouldDo(t *testing.T) {
 	f, _ := twoWayFixture(t)
 	_, push := obsidianClone(t)

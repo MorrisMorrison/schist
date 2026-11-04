@@ -202,7 +202,9 @@
 />
 
 <StaleDocumentDialog
-	open={draft.conflict !== null}
+	open={draft.staleReason !== null}
+	reason={draft.staleReason ?? 'changed'}
 	onLoadCurrent={() => void loadCurrent()}
 	onKeepMine={() => void draft.keepMine()}
+	onDiscard={() => void draft.discardMine()}
 />

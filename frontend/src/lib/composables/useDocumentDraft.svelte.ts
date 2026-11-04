@@ -7,6 +7,7 @@ import { generateSlug } from '#lib/utils/path.ts';
 export const AUTO_SAVE_DELAY_MS = 10_000;
 
 export type SaveKind = 'manual' | 'auto';
+export type StaleReason = 'changed' | 'deleted' | 'unreadable';
 
 interface DocumentDraftOptions {
 	document: Document;
@@ -43,8 +44,12 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	let savedContent = $state(document.content);
 	let isSaving = $state(false);
 	let error = $state('');
-	/** The page as it is now, when a save was refused because it changed. */
-	let conflict = $state<Document | null>(null);
+	/**
+	 * Set when a save was refused because the page is no longer the one the
+	 * editor opened: changed (`current` is the page as it is now), deleted or
+	 * unreadable (no current page).
+	 */
+	let stale = $state<{ current: Document | null; reason: StaleReason } | null>(null);
 	let lastSaved = $state<Date | null>(null);
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	// Saves run one at a time; a save requested meanwhile waits for the running one.
@@ -70,7 +75,7 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	function setContent(next: string) {
 		content = next;
 		clearAutoSave();
-		if (content !== savedContent && !conflict) {
+		if (content !== savedContent && !stale) {
 			timer = setTimeout(() => {
 				timer = null;
 				void save('auto');
@@ -122,11 +127,20 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 			return true;
 		} catch (err) {
 			const parsed = parseError(err);
-			const current = parsed.details?.document as Document | undefined;
-			if (parsed.code === 'DOCUMENT_CHANGED' && current) {
-				clearAutoSave();
-				conflict = current;
-				return false;
+			if (parsed.code === 'DOCUMENT_CHANGED') {
+				const current = parsed.details?.document as Document | null | undefined;
+				const reason: StaleReason | null = current
+					? 'changed'
+					: parsed.details?.deleted
+						? 'deleted'
+						: parsed.details?.unreadable
+							? 'unreadable'
+							: null;
+				if (reason) {
+					clearAutoSave();
+					stale = { current: current ?? null, reason };
+					return false;
+				}
 			}
 			error = getErrorMessage(
 				err,
@@ -152,29 +166,45 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 
 	/** Takes the page as it is now; my text goes to the clipboard first. */
 	async function loadCurrent() {
-		if (!conflict) return;
-		let copyFailed = false;
-		try {
-			await navigator.clipboard?.writeText(content);
-		} catch {
-			copyFailed = true;
-		}
-		document = conflict;
-		path = routePath(conflict.metaData.path);
-		content = conflict.content;
-		savedContent = conflict.content;
-		conflict = null;
+		const current = stale?.current;
+		if (!current) return;
+		const copyFailed = !(await copyToClipboard(content));
+		document = current;
+		path = routePath(current.metaData.path);
+		content = current.content;
+		savedContent = current.content;
+		stale = null;
 		error = copyFailed
 			? "Couldn't copy your text to the clipboard; it was replaced by the newer version."
 			: '';
 		options.onSaved?.(document);
 	}
 
+	async function copyToClipboard(text: string): Promise<boolean> {
+		try {
+			await navigator.clipboard?.writeText(text);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	/** The page is gone (or unreadable): my text goes to the clipboard, the editor is left clean. */
+	async function discardMine() {
+		if (!stale) return;
+		const copied = await copyToClipboard(content);
+		clearAutoSave();
+		savedContent = content;
+		stale = null;
+		error = copied ? '' : "Couldn't copy your text to the clipboard.";
+	}
+
 	/** Saves my text over the newer page; the other version stays in history. */
 	async function keepMine(): Promise<boolean> {
-		if (!conflict) return true;
-		document = { ...document, version: conflict.version };
-		conflict = null;
+		if (!stale) return true;
+		// A deleted or unreadable page has no version to base on: save without one.
+		document = { ...document, version: stale.current?.version };
+		stale = null;
 		return save('manual');
 	}
 
@@ -212,10 +242,16 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		set error(message: string) {
 			error = message;
 		},
+		/** The page as it is now, when a save was refused because it changed. */
 		get conflict() {
-			return conflict;
+			return stale?.current ?? null;
+		},
+		/** Why a save was refused as stale, or null while nothing is. */
+		get staleReason(): StaleReason | null {
+			return stale?.reason ?? null;
 		},
 		loadCurrent,
+		discardMine,
 		keepMine,
 		setContent,
 		save,

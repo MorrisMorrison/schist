@@ -291,6 +291,61 @@ describe('useDocumentDraft', () => {
 		expect(draft.conflict).toBeNull();
 	});
 
+	it.each([
+		['deleted', { document: null, deleted: true }],
+		['unreadable', { document: null, unreadable: true }]
+	] as const)(
+		'on a %s page opens the conflict, and keepMine saves again without a baseVersion',
+		async (reason, details) => {
+			vi.useFakeTimers();
+			update.mockRejectedValueOnce(
+				new Error(JSON.stringify({ error: 'gone', code: 'DOCUMENT_CHANGED', details }))
+			);
+			const draft = useDocumentDraft({
+				document: { ...makeDoc(), version: 'v1' },
+				autoSaveDelayMs: 100
+			});
+
+			draft.setContent('# Plan\n\nMine');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(draft.staleReason).toBe(reason);
+			expect(draft.conflict).toBeNull();
+			expect(draft.error).toBe('');
+
+			draft.setContent('# Plan\n\nMine, more');
+			await vi.advanceTimersByTimeAsync(1000);
+			expect(update).toHaveBeenCalledTimes(1);
+
+			await draft.keepMine();
+			expect(update).toHaveBeenCalledTimes(2);
+			expect(update.mock.calls[1][1].baseVersion).toBeUndefined();
+			expect(draft.staleReason).toBeNull();
+		}
+	);
+
+	it('discardMine copies my text to the clipboard and leaves the editor clean', async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.discardMine();
+
+		expect(writeText).toHaveBeenCalledWith('# Plan\n\nMine');
+		expect(draft.isDirty).toBe(false);
+		expect(draft.staleReason).toBeNull();
+	});
+
 	it('loadCurrent copies my text to the clipboard and loads the current page', async () => {
 		const writeText = vi.fn().mockResolvedValue(undefined);
 		Object.defineProperty(navigator, 'clipboard', {

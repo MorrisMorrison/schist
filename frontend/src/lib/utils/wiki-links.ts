@@ -126,13 +126,16 @@ export function wikiLinksExtension() {
 		...asyncDecorations(findWikiLinks, 'wiki link'),
 		wikiLinkHighlight,
 		EditorView.theme({
+			// The same theme tokens as wiki links in the reading view (app.css).
 			'.cm-wiki-link': {
-				color: '#2563eb !important',
-				textDecoration: 'underline',
+				color: 'var(--link) !important',
+				textDecoration: 'underline dotted',
+				textUnderlineOffset: '3px',
 				cursor: 'pointer'
 			},
 			'.cm-wiki-link-broken': {
-				color: '#dc2626 !important'
+				color: 'var(--link-broken) !important',
+				textDecorationStyle: 'dashed'
 			}
 		}),
 		autocompleteTheme

@@ -7,8 +7,8 @@ import { HASHTAG_REGEX } from './hashtag-constants';
  * comment is code, not a tag, and HTML injected there shows up as text.
  */
 export function processHashtags(text: string): string {
-	const badgeClasses = badgeVariants({ variant: 'secondary' });
-	const badge = `<span class="${badgeClasses} font-semibold text-xs border border-border/60" style="background-color: var(--secondary); color: var(--primary); border-radius: 6px; padding: 2px 6px;" title="Tag: $1">#$1</span>`;
+	const badgeClasses = badgeVariants({ variant: 'tag' });
+	const badge = `<span class="${badgeClasses}" title="Tag: $1">#$1</span>`;
 
 	return mapProse(text, (prose) => prose.replace(HASHTAG_REGEX, badge));
 }

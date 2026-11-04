@@ -7,6 +7,12 @@ function badges(markdown: string): string[] {
 }
 
 describe('processHashtags', () => {
+	it('renders tags in the brand tag style, without inline colours', () => {
+		const html = processHashtags('Notes on #homelab');
+		expect(html).toContain('bg-[var(--tag-bg)]');
+		expect(html).not.toContain('style=');
+	});
+
 	it('turns tags in prose into badges', () => {
 		const html = processHashtags('Notes on #go and #rust-lang.');
 		expect(badges('Notes on #go and #rust-lang.')).toEqual(['go', 'rust-lang']);

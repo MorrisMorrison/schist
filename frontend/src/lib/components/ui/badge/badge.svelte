@@ -10,7 +10,9 @@
 					'bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90 border-transparent',
 				destructive:
 					'bg-destructive [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/70 border-transparent text-white',
-				outline: 'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground'
+				outline: 'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+				// Page tags and #hashtags: the brand blue as a tint (see --tag-* in app.css).
+				tag: 'border-[var(--tag-border)] bg-[var(--tag-bg)] text-[var(--tag-fg)] [a&]:hover:border-[var(--tag-fg)]'
 			}
 		},
 		defaultVariants: {

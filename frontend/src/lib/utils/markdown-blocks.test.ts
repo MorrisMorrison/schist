@@ -188,6 +188,17 @@ describe('parseMarkdownToBlocks', () => {
 			expect(broken).toEqual(['Missing page']);
 		});
 
+		it('styles links through the theme, not hard-coded colour classes', async () => {
+			const [block] = (await parseMarkdownToBlocks(
+				'[[Writing style]] and [[Missing page]]'
+			)) as ParagraphBlock[];
+			const doc = new DOMParser().parseFromString(block.text, 'text/html');
+			const [ok, broken] = Array.from(doc.querySelectorAll('.wiki-link'));
+
+			expect(ok.className).toBe('wiki-link');
+			expect(broken.className).toBe('wiki-link broken-link');
+		});
+
 		it('still renders the text when the page list fails', async () => {
 			vi.mocked(apiClient.getDocuments).mockRejectedValue(new Error('offline'));
 			const [block] = (await parseMarkdownToBlocks(

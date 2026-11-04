@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Card } from '#lib/components/ui/card/index.ts';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import TagBadge from '#lib/components/TagBadge.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Edit, Trash2, Move, FileText, Clock, Folder } from '@lucide/svelte';
 	import type { DocumentSummary } from '#lib/api/types.ts';
@@ -164,12 +165,7 @@
 				{#if showTags && document.metaData.tags && document.metaData.tags.length > 0}
 					<div class="mt-3 flex flex-wrap gap-1.5">
 						{#each document.metaData.tags.slice(0, 3) as tag (tag)}
-							<Badge
-								variant="outline"
-								class="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 h-6 px-2.5 py-0.5 text-xs font-medium"
-							>
-								{tag}
-							</Badge>
+							<TagBadge {tag} class="h-6 px-2.5" />
 						{/each}
 						{#if document.metaData.tags.length > 3}
 							<Badge

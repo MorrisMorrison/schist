@@ -6,7 +6,7 @@
 	import { addToRecentDocuments, getRecentDocumentPaths } from '#lib/utils/recent-documents.ts';
 	import { getCachedDocuments } from '#lib/utils/markdown-cache.ts';
 	import LoadingSpinner from '#lib/components/LoadingSpinner.svelte';
-	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import TagBadge from '#lib/components/TagBadge.svelte';
 	import { Dialog, DialogContent, DialogTitle } from '#lib/components/ui/dialog/index.ts';
 
 	interface Props {
@@ -238,7 +238,7 @@
 						{#if item.tags.length > 0}
 							<div class="flex gap-1 self-start">
 								{#each item.tags.slice(0, 2) as tag (tag)}
-									<Badge variant="secondary">{tag}</Badge>
+									<TagBadge {tag} />
 								{/each}
 								{#if item.tags.length > 2}
 									<span class="text-muted-foreground text-xs">+{item.tags.length - 2}</span>

@@ -179,8 +179,10 @@ function getWikiLinksFromSession(sessionId: string): Array<{
 	);
 }
 
-const LINK_CLASS = 'wiki-link text-blue-600 hover:text-blue-800 hover:underline cursor-pointer';
-const BROKEN_LINK_CLASS = 'wiki-link broken-link text-red-500 cursor-default';
+// Colours, underline and cursor come from .wiki-link / .broken-link in app.css
+// (theme tokens --link and --link-broken), so links follow the theme.
+const LINK_CLASS = 'wiki-link';
+const BROKEN_LINK_CLASS = 'wiki-link broken-link';
 
 /**
  * The link's HTML. With the page list it's resolved like the server's link

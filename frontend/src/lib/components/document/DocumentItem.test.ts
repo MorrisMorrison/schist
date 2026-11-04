@@ -65,6 +65,17 @@ describe('DocumentItem', () => {
 		expect(item).toHaveAttribute('data-document-path', '/test/document.md');
 	});
 
+	it('marks the open page with the brand colour', () => {
+		const { container } = render(DocumentItem, {
+			props: { ...defaultProps, isCurrent: true }
+		});
+		const row = container.querySelector('[role="treeitem"]') as HTMLElement;
+
+		expect(row.className).toContain('bg-[var(--nav-active)]');
+		expect(row.className).toContain('shadow-[inset_2px_0_0_var(--primary)]');
+		expect(row).toHaveAttribute('aria-current', 'page');
+	});
+
 	it('displays document title or "Untitled"', () => {
 		const { container } = render(DocumentItem, {
 			props: defaultProps

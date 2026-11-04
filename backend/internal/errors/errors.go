@@ -44,6 +44,10 @@ const (
 	// ErrCodeSyncRemoteDiverged: the GitHub branch has commits the wiki's
 	// history doesn't contain, so a normal push would lose them.
 	ErrCodeSyncRemoteDiverged ErrorCode = "SYNC_REMOTE_DIVERGED"
+
+	// ErrCodeDocumentChanged: a save carried a baseVersion that no longer
+	// matches the page (it changed through a sync or another user).
+	ErrCodeDocumentChanged ErrorCode = "DOCUMENT_CHANGED"
 )
 
 type APIError struct {
@@ -203,6 +207,14 @@ func NewSyncRemoteDivergedError(branch string) *APIError {
 		"history, or use an empty repository or a new branch.", branch)
 	return NewAPIError(ErrCodeSyncRemoteDiverged, message, http.StatusConflict).
 		WithDetails("branch", branch)
+}
+
+// NewDocumentChangedError refuses a save made from an older version of the
+// page. current is the page as it is now, for the client to offer.
+func NewDocumentChangedError(current any) *APIError {
+	return NewAPIError(ErrCodeDocumentChanged,
+		"This page changed since you opened it (on GitHub or by someone else).", http.StatusConflict).
+		WithDetails("document", current)
 }
 
 func WrapError(err error) *APIError {

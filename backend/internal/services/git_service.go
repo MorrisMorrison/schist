@@ -42,6 +42,16 @@ func classifyVersionLookupError(hash, what string, err error) error {
 	return fmt.Errorf("%s: %w", what, err)
 }
 
+// LockWrites holds the wiki's write lock until the returned func is called.
+// A nil GitService (tests without git) locks nothing.
+func (gs *GitService) LockWrites() func() {
+	if gs == nil {
+		return func() {}
+	}
+	gs.writeMu.Lock()
+	return gs.writeMu.Unlock
+}
+
 type GitService struct {
 	dataDir    string
 	repository *git.Repository
@@ -50,6 +60,9 @@ type GitService struct {
 	// background GitHub sync commit from different goroutines, and go-git's
 	// index isn't safe for concurrent writers.
 	commitMu sync.Mutex
+	// writeMu keeps a checked page save and a sync applying pulled files
+	// from interleaving. Take it before commitMu, never the other way round.
+	writeMu sync.Mutex
 	// onCommit, if set, runs after each document commit (see SetCommitHook).
 	onCommit func()
 }

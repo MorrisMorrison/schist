@@ -7,6 +7,7 @@
 	import LazyProseEditor from './LazyProseEditor.svelte';
 	import EditorToolbar from './EditorToolbar.svelte';
 	import UploadStatus from './UploadStatus.svelte';
+	import StaleDocumentDialog from './StaleDocumentDialog.svelte';
 	import UnsavedChangesModal from '#lib/components/modal/UnsavedChangesModal.svelte';
 	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
 	import { useUnsavedChangesGuard } from '#lib/composables/useUnsavedChangesGuard.svelte.ts';
@@ -56,6 +57,12 @@
 		else existence.reset();
 		return () => existence.cleanup();
 	});
+
+	/** The editor owns its text once mounted, so a loaded page is pushed into it. */
+	async function loadCurrent() {
+		await draft.loadCurrent();
+		editor?.setContent(draft.content);
+	}
 
 	export function save(kind: SaveKind = 'manual'): Promise<boolean> {
 		return draft.save(kind);
@@ -192,4 +199,10 @@
 	onDiscard={guard.handleDiscard}
 	onCancel={guard.handleCancel}
 	isSaving={guard.isSaving}
+/>
+
+<StaleDocumentDialog
+	open={draft.conflict !== null}
+	onLoadCurrent={() => void loadCurrent()}
+	onKeepMine={() => void draft.keepMine()}
 />

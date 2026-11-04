@@ -241,4 +241,131 @@ describe('useDocumentDraft', () => {
 
 		expect(update).not.toHaveBeenCalled();
 	});
+
+	it('sends the version it started from as baseVersion, then the saved one', async () => {
+		update.mockImplementationOnce(async (_p, request) => ({
+			metaData: { ...request.metaData, updated: '2024-02-01T00:00:00Z' },
+			content: request.content,
+			version: 'v2'
+		}));
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+
+		draft.setContent('# Plan\n\nOne');
+		await draft.save('manual');
+		expect(update.mock.calls[0][1].baseVersion).toBe('v1');
+
+		draft.setContent('# Plan\n\nTwo');
+		await draft.save('manual');
+		expect(update.mock.calls[1][1].baseVersion).toBe('v2');
+	});
+
+	it('on DOCUMENT_CHANGED keeps the text, stops autosave and offers both ways out', async () => {
+		vi.useFakeTimers();
+		const current = { ...makeDoc('# Plan\n\nFrom GitHub'), version: 'v9' };
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'changed',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: current }
+				})
+			)
+		);
+		const draft = useDocumentDraft({
+			document: { ...makeDoc(), version: 'v1' },
+			autoSaveDelayMs: 100
+		});
+
+		draft.setContent('# Plan\n\nMine');
+		await vi.advanceTimersByTimeAsync(100);
+		expect(draft.conflict?.content).toBe('# Plan\n\nFrom GitHub');
+		expect(draft.content).toBe('# Plan\n\nMine');
+
+		draft.setContent('# Plan\n\nMine, more');
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(update).toHaveBeenCalledTimes(1); // no autosave while the conflict is open
+
+		await draft.keepMine();
+		expect(update).toHaveBeenCalledTimes(2);
+		expect(update.mock.calls[1][1].baseVersion).toBe('v9');
+		expect(draft.conflict).toBeNull();
+	});
+
+	it('loadCurrent copies my text to the clipboard and loads the current page', async () => {
+		const writeText = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText },
+			configurable: true
+		});
+		const current = { ...makeDoc('# Plan\n\nFrom GitHub'), version: 'v9' };
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'changed',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: current }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.loadCurrent();
+
+		expect(writeText).toHaveBeenCalledWith('# Plan\n\nMine');
+		expect(draft.content).toBe('# Plan\n\nFrom GitHub');
+		expect(draft.isDirty).toBe(false);
+		expect(draft.conflict).toBeNull();
+	});
+
+	it('loadCurrent tells the parent about the current page', async () => {
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText: vi.fn().mockResolvedValue(undefined) },
+			configurable: true
+		});
+		const current = { ...makeDoc('# Plan\n\nFrom GitHub'), version: 'v9' };
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'changed',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: current }
+				})
+			)
+		);
+		const onSaved = vi.fn();
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' }, onSaved });
+
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.loadCurrent();
+
+		expect(onSaved).toHaveBeenCalledWith(current);
+	});
+
+	it('loadCurrent still loads the page and says so when the clipboard fails', async () => {
+		Object.defineProperty(navigator, 'clipboard', {
+			value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+			configurable: true
+		});
+		const current = { ...makeDoc('# Plan\n\nFrom GitHub'), version: 'v9' };
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'changed',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: current }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		await draft.loadCurrent();
+
+		expect(draft.content).toBe('# Plan\n\nFrom GitHub');
+		expect(draft.error).toContain("Couldn't copy your text");
+	});
 });

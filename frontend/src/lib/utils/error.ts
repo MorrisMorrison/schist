@@ -18,7 +18,8 @@ export type ErrorCode =
 	| 'OPERATION_FAILED'
 	| 'INVALID_STATE'
 	| 'SECRETS_LOCKED'
-	| 'SYNC_REMOTE_DIVERGED';
+	| 'SYNC_REMOTE_DIVERGED'
+	| 'DOCUMENT_CHANGED';
 
 export interface APIErrorResponse {
 	error: string;

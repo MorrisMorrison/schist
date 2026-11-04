@@ -5,6 +5,10 @@ import "time"
 type Document struct {
 	MetaData *DocumentMetaData `json:"metaData"`
 	Content  string            `json:"content"`
+	// Version is a hash of the page file as stored (set on read, never
+	// written). A save that sends it back as baseVersion is refused when the
+	// file changed since, so an editor can't overwrite a newer page.
+	Version string `json:"version,omitempty"`
 }
 
 type DocumentMetaData struct {

@@ -126,6 +126,41 @@ func TestDocuments_CRUDOverHTTP(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code, w.Body.String())
 }
 
+func TestUpdateDocument_StaleBaseVersionIs409(t *testing.T) {
+	env := newAPIEnv(t, apiEnvOptions{})
+	w := env.do(t, http.MethodPost, "/api/documents", map[string]any{
+		"metaData": map[string]any{"title": "Plan", "path": "/plan"},
+		"content":  "# Plan\n\nv1",
+	}, "")
+	require.Equal(t, http.StatusCreated, w.Code)
+
+	w = env.do(t, http.MethodGet, "/api/documents/plan", nil, "")
+	v1 := decode(t, w)["version"].(string)
+	require.NotEmpty(t, v1)
+
+	body := func(content, base string) map[string]any {
+		return map[string]any{
+			"metaData": map[string]any{"title": "Plan", "path": "/plan"},
+			"content":  content, "baseVersion": base, "saveType": "manual",
+		}
+	}
+	w = env.do(t, http.MethodPut, "/api/documents/plan", body("# Plan\n\nv2", v1), "")
+	require.Equal(t, http.StatusOK, w.Code)
+	v2 := decode(t, w)["version"].(string)
+	assert.NotEqual(t, v1, v2, "the response carries the new version")
+
+	w = env.do(t, http.MethodPut, "/api/documents/plan", body("# Plan\n\nstale", v1), "")
+	assert.Equal(t, http.StatusConflict, w.Code)
+	resp := decode(t, w)
+	assert.Equal(t, "DOCUMENT_CHANGED", resp["code"])
+	current := resp["details"].(map[string]any)["document"].(map[string]any)
+	assert.Equal(t, "# Plan\n\nv2", current["content"])
+
+	// A save without baseVersion is never refused.
+	w = env.do(t, http.MethodPut, "/api/documents/plan", body("# Plan\n\nforced", ""), "")
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestDocuments_PathTraversalRejected(t *testing.T) {
 	env := newAPIEnv(t, apiEnvOptions{})
 	w := env.do(t, http.MethodPost, "/api/documents", map[string]any{

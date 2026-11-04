@@ -62,7 +62,7 @@ with status `429` and a `Retry-After` header.
 | `GET` | `/api/documents` | Every page outside `/trash`: metadata and an `excerpt` (the first 400 characters), not the content. `{documents, total}` |
 | `GET` | `/api/documents/{path}` | One page with its content |
 | `POST` | `/api/documents` | Create a page |
-| `PUT` | `/api/documents/{path}` | Update a page. A different `metaData.path` moves it |
+| `PUT` | `/api/documents/{path}` | Update a page. A different `metaData.path` moves it. Optional `baseVersion`: see below |
 | `DELETE` | `/api/documents/{path}` | Move the page to `/trash` |
 | `POST` | `/api/documents/move` | Move a page: `{"oldPath", "newPath"}` |
 
@@ -83,6 +83,8 @@ A page:
 }
 ```
 
+- **Version:** every page read returns `version`, which identifies the stored text.
+- **Update:** `PUT` accepts an optional `baseVersion`. When the page changed since that version, the save is refused with `409 DOCUMENT_CHANGED` and `details.document` holds the current page. Without `baseVersion` the save works as before. The response is the stored page, including its new `version`.
 - **Create:** send `metaData.title` and `content`; `path` and `tags` are optional. The path defaults to the slug of the title. Answers `{"message", "path"}`.
 - **Tags:** inline `#tags` in the content are added to `tags` on every save, by any route (create, update, move, import, MCP). Code is skipped, and a tag must start a word.
 - **Properties:** every other front matter key, left out when there are none. Sent `properties` replace the stored ones, `{}` clears them, and a save without `properties` keeps them. They can't replace Schist's own fields.

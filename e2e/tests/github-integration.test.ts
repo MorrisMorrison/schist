@@ -69,4 +69,18 @@ test.describe('GitHub Integration', () => {
 			await expect(settingsPage.githubSyncTab).toBeDisabled();
 		});
 	});
+
+	// A real sync needs GitHub, which CI can't reach; the server-side guard is
+	// what e2e can check: nothing syncs until backup is set up.
+	test.describe('Sync', () => {
+		test('should refuse to sync before GitHub backup is set up', async ({ apiHelper }) => {
+			const config = await apiHelper.request('GET', '/github/config');
+			expect(config.status).toBe(200);
+			expect(config.data).toMatchObject({ enabled: false });
+
+			const sync = await apiHelper.request('POST', '/github/sync');
+			expect(sync.status).toBe(409);
+			expect(JSON.stringify(sync.data)).toContain('GitHub backup is not set up');
+		});
+	});
 });

@@ -39,7 +39,7 @@ func newTestScheduler(t *testing.T, p *schedulerProbe, debounce, maxWait, interv
 		autoSync:   p.auto.Load,
 		debounce:   func() time.Duration { return debounce },
 		maxWait:    maxWait,
-		interval:   interval,
+		interval:   func() time.Duration { return interval },
 	})
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)

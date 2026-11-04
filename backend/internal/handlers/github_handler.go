@@ -108,6 +108,26 @@ func (h *APIHandler) syncToGitHub(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// previewGitHubSync shows what a two-way sync would do, changing nothing.
+func (h *APIHandler) previewGitHubSync(c *gin.Context) {
+	preview, err := h.GitHubService.PreviewSync()
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, preview)
+}
+
+// getGitHubSyncConflict returns both versions of a page a paused sync waits on.
+func (h *APIHandler) getGitHubSyncConflict(c *gin.Context) {
+	versions, err := h.GitHubService.ConflictVersions(c.Query("path"))
+	if err != nil {
+		HandleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, versions)
+}
+
 func (h *APIHandler) updateGitHubConfig(c *gin.Context) {
 	var req services.GitHubConfigRequest
 	if !bindJSON(c, &req) {

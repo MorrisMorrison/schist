@@ -17,6 +17,8 @@ import (
 	gitconfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/client"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -147,9 +149,45 @@ func installLocalRemote(t *testing.T, owner, repo string) string {
 
 	ep, err := transport.NewEndpoint("https://github.com/" + owner + "/" + repo + ".git")
 	require.NoError(t, err)
-	client.InstallProtocol("https", server.NewClient(server.MapLoader{ep.String(): bare.Storer}))
+	client.InstallProtocol("https", ignoreUnknownHaves{
+		Transport: server.NewClient(server.MapLoader{ep.String(): bare.Storer}),
+		objects:   bare.Storer,
+	})
 	t.Cleanup(func() { client.InstallProtocol("https", githttp.DefaultClient) })
 	return remoteDir
+}
+
+// ignoreUnknownHaves makes go-git's in-process server behave like GitHub on
+// fetch: a client advertises the commits it has ("haves"), including local
+// ones the server has never seen. Real servers skip those; go-git's
+// upload-pack fails with "object not found", so they are filtered out here.
+type ignoreUnknownHaves struct {
+	transport.Transport
+	objects storer.EncodedObjectStorer
+}
+
+func (t ignoreUnknownHaves) NewUploadPackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.UploadPackSession, error) {
+	s, err := t.Transport.NewUploadPackSession(ep, auth)
+	if err != nil {
+		return nil, err
+	}
+	return knownHavesSession{UploadPackSession: s, objects: t.objects}, nil
+}
+
+type knownHavesSession struct {
+	transport.UploadPackSession
+	objects storer.EncodedObjectStorer
+}
+
+func (s knownHavesSession) UploadPack(ctx context.Context, req *packp.UploadPackRequest) (*packp.UploadPackResponse, error) {
+	known := req.Haves[:0:0]
+	for _, h := range req.Haves {
+		if s.objects.HasEncodedObject(h) == nil {
+			known = append(known, h)
+		}
+	}
+	req.Haves = known
+	return s.UploadPackSession.UploadPack(ctx, req)
 }
 
 func remoteBranchHash(t *testing.T, remoteDir, branch string) plumbing.Hash {
@@ -693,4 +731,19 @@ func TestGitHubService_DisconnectClearsClientAndToken(t *testing.T) {
 		f.gs.dataDir = filepath.Join(t.TempDir(), "missing")
 		assert.ErrorContains(t, f.gs.Disconnect(), "failed to clear GitHub settings")
 	})
+}
+
+func TestGitHubSettings_ModeAndPauseRoundTrip(t *testing.T) {
+	gh := enabledSettings()
+	gh.Mode = appconfig.GitHubModeTwoWay
+	gh.SyncConflicts = []string{"plan.md"}
+	gh.PausedRemoteHead = "abc"
+	f := newGitHubFixture(t, gh)
+
+	view := f.gs.GetGitHubSettings()
+	assert.Equal(t, "two-way", view.Mode)
+	assert.Equal(t, []string{"plan.md"}, view.SyncConflicts)
+	assert.Equal(t, "abc", view.PausedRemoteHead)
+	assert.True(t, f.settings.GetGitHubSettings().TwoWay())
+	assert.True(t, NewIgnoreService("").ShouldIgnore("/.obsidian/workspace.json"))
 }

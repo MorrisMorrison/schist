@@ -193,7 +193,7 @@ The answer is `{total_files, imported_count, skipped_count, failed_count, succes
 
 | Method | Endpoint | Does |
 |---|---|---|
-| `POST` | `/api/shares` | Create a share: `{"document_path", "expiry_days"}`. `0` or no `expiry_days` uses the default; the maximum is capped. Answers `201 {id, document_path, token, share_url, created_at, expires_at, created_by}` |
+| `POST` | `/api/shares` | Create a share: `{"document_path", "expiry_days"}`. `0`, a negative value or no `expiry_days` uses the default; the maximum is capped. Every share expires. Answers `201 {id, document_path, token, share_url, created_at, expires_at, created_by}` |
 | `GET` | `/api/shares` | Your shares: `{shares, total}` |
 | `GET` | `/api/shares/{token}` | **Public.** The shared page, or `404` when unknown or expired |
 | `DELETE` | `/api/shares/{id}` | Revoke a share |

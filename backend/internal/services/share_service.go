@@ -73,24 +73,15 @@ func (s *ShareService) CreateShare(documentPath, createdBy string, expiryDays in
 	}
 	id := hex.EncodeToString(idBytes)
 
-	// Set default expiry if not provided and validate limits
-	if expiryDays == 0 {
+	// Every share expires: no (or a non-positive) expiry means the default,
+	// and nothing goes past the maximum.
+	if expiryDays <= 0 {
 		expiryDays = s.config.ShareDefaultExpiryDays
 	}
-
-	// Validate expiry limits (0 means never expires)
-	if expiryDays > 0 && expiryDays > s.config.ShareMaxExpiryDays {
+	if expiryDays > s.config.ShareMaxExpiryDays {
 		expiryDays = s.config.ShareMaxExpiryDays
 	}
-
-	// Calculate expiry
-	var expiresAt time.Time
-	if expiryDays <= 0 {
-		// Never expires (set to far future)
-		expiresAt = time.Now().AddDate(100, 0, 0)
-	} else {
-		expiresAt = time.Now().AddDate(0, 0, expiryDays)
-	}
+	expiresAt := time.Now().AddDate(0, 0, expiryDays)
 
 	shareToken := &ShareToken{
 		ID:           id,

@@ -5,7 +5,7 @@ import { waitForDialogFocus } from '#lib/test/dialog.ts';
 import { apiClient } from '#lib/api/client.ts';
 import type { ShareToken } from '#lib/api/types.ts';
 import ShareDocumentModal from './ShareDocumentModal.svelte';
-import { chooseSelectOption } from '#lib/test/select.ts';
+import { chooseSelectOption, selectOptionLabels } from '#lib/test/select.ts';
 
 vi.mock('#lib/api/client.ts', () => ({
 	apiClient: { listShares: vi.fn(), createShare: vi.fn(), revokeShare: vi.fn() }
@@ -95,6 +95,17 @@ describe('ShareDocumentModal', () => {
 		await renderModal();
 		expect(await screen.findByText('No share links created yet')).toBeInTheDocument();
 		expect(screen.queryByText('Failed to load shares')).not.toBeInTheDocument();
+	});
+
+	it('offers only expiring links, up to 3 months (#338)', async () => {
+		await renderModal();
+		await screen.findByText('No share links created yet');
+		expect(await selectOptionLabels(screen.getByLabelText('Expiry'))).toEqual([
+			'1 day',
+			'1 week',
+			'1 month',
+			'3 months'
+		]);
 	});
 
 	it('creates a share with the selected expiry', async () => {

@@ -107,15 +107,15 @@ func TestShareService_CreateShare(t *testing.T) {
 		assert.WithinDuration(t, expectedExpiry, share.ExpiresAt, time.Minute)
 	})
 
-	t.Run("creates share with never expires when negative days", func(t *testing.T) {
+	t.Run("every share expires: negative days get the default expiry", func(t *testing.T) {
 		share, err := shareService.CreateShare("/test-share-doc", "admin", -1)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, share)
 
-		// Should be set far in the future (100 years)
-		farFuture := time.Now().AddDate(100, 0, 0)
-		assert.WithinDuration(t, farFuture, share.ExpiresAt, time.Hour*24) // Allow 1 day variance
+		// There is no never-expiring share: <= 0 means the default (7 days).
+		expectedExpiry := time.Now().AddDate(0, 0, 7)
+		assert.WithinDuration(t, expectedExpiry, share.ExpiresAt, time.Minute)
 	})
 
 	t.Run("fails for non-existent document", func(t *testing.T) {

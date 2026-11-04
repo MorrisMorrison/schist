@@ -48,6 +48,9 @@ const (
 	// ErrCodeDocumentChanged: a save carried a baseVersion that no longer
 	// matches the page (it changed through a sync or another user).
 	ErrCodeDocumentChanged ErrorCode = "DOCUMENT_CHANGED"
+	// ErrCodeSyncConflict: two-way sync found pages changed differently in the
+	// wiki and on GitHub; it is paused until a side is picked for each.
+	ErrCodeSyncConflict ErrorCode = "SYNC_CONFLICT"
 )
 
 type APIError struct {
@@ -234,4 +237,13 @@ func IsAPIError(err error) bool {
 func HasCode(err error, code ErrorCode) bool {
 	var apiErr *APIError
 	return stderrors.As(err, &apiErr) && apiErr.Code == code
+}
+
+// NewSyncConflictError pauses a two-way sync on pages changed on both sides.
+func NewSyncConflictError(conflicts []string, remoteHead string) *APIError {
+	message := fmt.Sprintf("Sync paused: %d page(s) changed both in Schist and on GitHub. "+
+		"Pick a side for each in Settings → GitHub.", len(conflicts))
+	return NewAPIError(ErrCodeSyncConflict, message, http.StatusConflict).
+		WithDetails("conflicts", conflicts).
+		WithDetails("remote_head", remoteHead)
 }

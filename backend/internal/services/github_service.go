@@ -67,6 +67,13 @@ type GitHubSettings struct {
 	LastSyncAttempt   time.Time `json:"last_sync_attempt,omitempty"`
 	LastSyncError     string    `json:"last_sync_error,omitempty"`
 	LastSyncErrorCode string    `json:"last_sync_error_code,omitempty"`
+	// Mode is "backup" or "two-way"; empty is reported as is (the UI treats
+	// it as backup). SyncConflicts, PausedRemoteHead and Unreadable describe
+	// a paused or partly unreadable two-way sync.
+	Mode             string   `json:"mode,omitempty"`
+	SyncConflicts    []string `json:"sync_conflicts,omitempty"`
+	PausedRemoteHead string   `json:"paused_remote_head,omitempty"`
+	Unreadable       []string `json:"unreadable,omitempty"`
 	// AutoSyncIntervalMinutes is the server's automatic backup interval
 	// (SCHIST_GITHUB_AUTO_SYNC_MINUTES).
 	AutoSyncIntervalMinutes int `json:"auto_sync_interval_minutes"`
@@ -435,6 +442,10 @@ func (gs *GitHubService) GetGitHubSettings() *GitHubSettings {
 		LastSyncAttempt:         githubSettings.LastSyncAttempt,
 		LastSyncError:           githubSettings.LastSyncError,
 		LastSyncErrorCode:       githubSettings.LastSyncErrorCode,
+		Mode:                    githubSettings.Mode,
+		SyncConflicts:           githubSettings.SyncConflicts,
+		PausedRemoteHead:        githubSettings.PausedRemoteHead,
+		Unreadable:              githubSettings.Unreadable,
 		AutoSyncIntervalMinutes: int(gs.autoSyncInterval() / time.Minute),
 		SyncDelayMinutes:        int(gs.backupDelay() / time.Minute),
 	}

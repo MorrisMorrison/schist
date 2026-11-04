@@ -54,7 +54,26 @@ type GitHubSettings struct {
 	// (empty after a success): a user-facing message and the API error code.
 	LastSyncError     string `json:"last_sync_error,omitempty"`
 	LastSyncErrorCode string `json:"last_sync_error_code,omitempty"`
+	// Mode is "backup" (push only, the default when empty) or "two-way"
+	// (every sync also pulls changes made outside Schist).
+	Mode string `json:"mode,omitempty"`
+	// SyncConflicts lists pages changed differently in the wiki and on GitHub;
+	// while it is set, two-way sync is paused. PausedRemoteHead is the GitHub
+	// commit they were found against.
+	SyncConflicts    []string `json:"sync_conflicts,omitempty"`
+	PausedRemoteHead string   `json:"paused_remote_head,omitempty"`
+	// Unreadable lists .md files pulled from GitHub that Schist can't show as
+	// pages (no front matter, or a file name that isn't a valid page path).
+	Unreadable []string `json:"unreadable,omitempty"`
 }
+
+const (
+	GitHubModeBackup = "backup"
+	GitHubModeTwoWay = "two-way"
+)
+
+// TwoWay reports whether syncs pull as well as push.
+func (s *GitHubSettings) TwoWay() bool { return s != nil && s.Mode == GitHubModeTwoWay }
 
 type UISettings struct {
 	Theme string `json:"theme"` // "light", "dark", "auto"

@@ -694,3 +694,18 @@ func TestGitHubService_DisconnectClearsClientAndToken(t *testing.T) {
 		assert.ErrorContains(t, f.gs.Disconnect(), "failed to clear GitHub settings")
 	})
 }
+
+func TestGitHubSettings_ModeAndPauseRoundTrip(t *testing.T) {
+	gh := enabledSettings()
+	gh.Mode = appconfig.GitHubModeTwoWay
+	gh.SyncConflicts = []string{"plan.md"}
+	gh.PausedRemoteHead = "abc"
+	f := newGitHubFixture(t, gh)
+
+	view := f.gs.GetGitHubSettings()
+	assert.Equal(t, "two-way", view.Mode)
+	assert.Equal(t, []string{"plan.md"}, view.SyncConflicts)
+	assert.Equal(t, "abc", view.PausedRemoteHead)
+	assert.True(t, f.settings.GetGitHubSettings().TwoWay())
+	assert.True(t, NewIgnoreService("").ShouldIgnore("/.obsidian/workspace.json"))
+}

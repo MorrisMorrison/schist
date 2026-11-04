@@ -17,6 +17,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/storage"
 
 	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/serializer"
@@ -53,8 +54,15 @@ func remoteTrackingRef(branch string) plumbing.ReferenceName {
 	return plumbing.NewRemoteReferenceName("origin", branch)
 }
 
+// looseObjectStorer hides the storage's optional interfaces, PackfileWriter
+// among them, so a fetch stores what it receives as loose objects. The
+// filesystem storage's packfile writer adds the new pack to its index map
+// without a lock, while saves and version reads go through that map.
+type looseObjectStorer struct{ storage.Storer }
+
 // fetchRemote fetches the branch and returns its head, or the zero hash when
-// the branch (or the repository) is empty.
+// the branch (or the repository) is empty. It fetches through
+// looseObjectStorer, into the same .git as repo.
 func (gs *GitHubService) fetchRemote(repo *git.Repository) (plumbing.Hash, error) {
 	s := gs.settings.GetGitHubSettings()
 	token, err := gs.getToken()
@@ -65,7 +73,11 @@ func (gs *GitHubService) fetchRemote(repo *git.Repository) (plumbing.Hash, error
 	ctx, cancel := context.WithTimeout(gs.ctx, githubPushTimeout)
 	defer cancel()
 
-	remote, err := repo.Remote("origin")
+	fetchRepo, err := git.Open(looseObjectStorer{repo.Storer}, nil)
+	if err != nil {
+		return plumbing.ZeroHash, fmt.Errorf("failed to open the repository for fetching: %w", err)
+	}
+	remote, err := fetchRepo.Remote("origin")
 	if err != nil {
 		return plumbing.ZeroHash, fmt.Errorf("failed to get remote: %w", err)
 	}
@@ -77,7 +89,7 @@ func (gs *GitHubService) fetchRemote(repo *git.Repository) (plumbing.Hash, error
 		return plumbing.ZeroHash, nil
 	}
 	spec := config.RefSpec(fmt.Sprintf("+refs/heads/%s:%s", s.Branch, remoteTrackingRef(s.Branch)))
-	err = repo.FetchContext(ctx, &git.FetchOptions{RemoteName: "origin", RefSpecs: []config.RefSpec{spec}, Auth: auth})
+	err = fetchRepo.FetchContext(ctx, &git.FetchOptions{RemoteName: "origin", RefSpecs: []config.RefSpec{spec}, Auth: auth})
 	if err != nil && !stderrors.Is(err, git.NoErrAlreadyUpToDate) {
 		return plumbing.ZeroHash, gitTransportError(err, s)
 	}

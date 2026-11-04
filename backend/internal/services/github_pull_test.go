@@ -612,3 +612,28 @@ func TestPull_HookGetsOnlyReadablePagesOnDisk(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"/plan"}, got)
 }
+
+func TestFetchRemote_WritesLooseObjectsTheRepositoryCanRead(t *testing.T) {
+	// A packfile write updates the object storage's pack index map without a
+	// lock while saves read it; the fetch must not write packs.
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian"), "new.md": page("New", "x")})
+	packs := func() []string {
+		m, _ := filepath.Glob(filepath.Join(f.dataDir, ".git", "objects", "pack", "*.pack"))
+		return m
+	}
+	before := packs()
+	repo := f.gs.gitService.repository
+
+	head, err := f.gs.fetchRemote(repo)
+	require.NoError(t, err)
+	assert.Equal(t, before, packs(), "no packfile written")
+	commit, err := repo.CommitObject(head)
+	require.NoError(t, err, "the fetched commit is readable from the main repository")
+	file, err := commit.File("new.md")
+	require.NoError(t, err)
+	content, err := file.Contents()
+	require.NoError(t, err)
+	assert.Equal(t, page("New", "x"), content)
+}

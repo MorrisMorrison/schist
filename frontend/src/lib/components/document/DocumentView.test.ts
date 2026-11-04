@@ -101,6 +101,8 @@ describe('DocumentView', () => {
 
 	afterEach(() => {
 		cleanup();
+		settingsActions.updateAppSetting('showDocumentLinks', true);
+		settingsActions.updateAppSetting('preferLinksList', false);
 		resetAllState();
 		secretStore.reset();
 		for (const key of Object.keys(stubProps)) delete stubProps[key];
@@ -440,6 +442,27 @@ describe('DocumentView', () => {
 			);
 			expect(stubProps.GraphView.backlinks).toEqual([backlink]);
 			expect(stubProps.GraphView.outgoingLinks).toEqual(outgoing);
+		});
+
+		it('hides the links section and loads no links when the setting is off', async () => {
+			settingsActions.updateAppSetting('showDocumentLinks', false);
+			render(DocumentView, { props: { document: makeDoc() } });
+
+			await vi.waitFor(() =>
+				expect(screen.getByTestId('document-content')).toHaveTextContent('Hello world')
+			);
+			await new Promise((r) => setTimeout(r, 50));
+			expect(screen.queryByRole('heading', { name: 'Links' })).not.toBeInTheDocument();
+			expect(apiClient.getDocumentBacklinks).not.toHaveBeenCalled();
+			expect(apiClient.getDocumentOutgoingLinks).not.toHaveBeenCalled();
+		});
+
+		it('opens the links as a list when that is the preferred view', async () => {
+			settingsActions.updateAppSetting('preferLinksList', true);
+			render(DocumentView, { props: { document: makeDoc() } });
+
+			expect(await screen.findByText('Backlinks (1)')).toBeInTheDocument();
+			expect(stubProps.GraphView).toBeUndefined();
 		});
 
 		it('shows the links section only after the page text has rendered', async () => {

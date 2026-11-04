@@ -7,6 +7,10 @@ interface AppSettings {
 	fullWidthDocuments: boolean;
 	/** Long page and folder names in the sidebar wrap onto two lines instead of being cut off. */
 	wrapSidebarNames: boolean;
+	/** Show the Links section (backlinks and outgoing links) below each page. */
+	showDocumentLinks: boolean;
+	/** The Links section opens as a list instead of the graph. */
+	preferLinksList: boolean;
 }
 
 interface Settings {
@@ -18,7 +22,9 @@ const defaultSettings: Settings = {
 		openDocumentsInEditMode: false,
 		alwaysOpenFullscreen: false,
 		fullWidthDocuments: false,
-		wrapSidebarNames: false
+		wrapSidebarNames: false,
+		showDocumentLinks: true,
+		preferLinksList: false
 	}
 };
 

@@ -11,6 +11,8 @@ describe('EditorSettingsSection', () => {
 		settingsActions.updateAppSetting('alwaysOpenFullscreen', false);
 		settingsActions.updateAppSetting('fullWidthDocuments', false);
 		settingsActions.updateAppSetting('wrapSidebarNames', false);
+		settingsActions.updateAppSetting('showDocumentLinks', true);
+		settingsActions.updateAppSetting('preferLinksList', false);
 		localStorage.removeItem('schist_settings');
 	});
 
@@ -31,6 +33,25 @@ describe('EditorSettingsSection', () => {
 		expect(fullWidth).toHaveAttribute('aria-checked', 'false');
 		expect(screen.getByText('Wrap long names in the sidebar')).toBeInTheDocument();
 		expect(switches()[3]).toHaveAttribute('aria-checked', 'false');
+	});
+
+	it('shows the links settings: links on, graph by default', () => {
+		render(EditorSettingsSection);
+		expect(screen.getByText('Show links below pages')).toBeInTheDocument();
+		expect(screen.getByText('Show links as a list')).toBeInTheDocument();
+		expect(switches()[4]).toHaveAttribute('aria-checked', 'true');
+		expect(switches()[5]).toHaveAttribute('aria-checked', 'false');
+	});
+
+	it('toggles the links settings and persists them', async () => {
+		render(EditorSettingsSection);
+		await userEvent.click(switches()[4]);
+		await userEvent.click(switches()[5]);
+		expect(settings.app.showDocumentLinks).toBe(false);
+		expect(settings.app.preferLinksList).toBe(true);
+		const stored = JSON.parse(localStorage.getItem('schist_settings')!).app;
+		expect(stored.showDocumentLinks).toBe(false);
+		expect(stored.preferLinksList).toBe(true);
 	});
 
 	it('toggles "wrap long names in the sidebar"', async () => {

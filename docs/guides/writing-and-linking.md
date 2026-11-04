@@ -41,6 +41,8 @@ Links point at titles, not paths, so moving a page or a folder keeps them workin
 
 **Backlinks** under each page list the pages that link to it. The **graph** view shows a page's links as a network.
 
+Two settings under **Settings → Editor Settings** control this section: **Show links below pages** hides it entirely, and **Show links as a list** opens it as a list instead of the graph. The toggle above the section still switches for the page you're on. Settings are kept per browser.
+
 ## Tags
 
 Tags come from two places, and Schist merges them:

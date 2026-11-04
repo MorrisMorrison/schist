@@ -22,7 +22,9 @@ describe('settings store', () => {
 			openDocumentsInEditMode: false,
 			alwaysOpenFullscreen: false,
 			fullWidthDocuments: false,
-			wrapSidebarNames: false
+			wrapSidebarNames: false,
+			showDocumentLinks: true,
+			preferLinksList: false
 		});
 	});
 
@@ -38,7 +40,9 @@ describe('settings store', () => {
 			openDocumentsInEditMode: false,
 			alwaysOpenFullscreen: true,
 			fullWidthDocuments: false,
-			wrapSidebarNames: false
+			wrapSidebarNames: false,
+			showDocumentLinks: true,
+			preferLinksList: false
 		});
 	});
 
@@ -56,7 +60,9 @@ describe('settings store', () => {
 			openDocumentsInEditMode: false,
 			alwaysOpenFullscreen: true,
 			fullWidthDocuments: false,
-			wrapSidebarNames: false
+			wrapSidebarNames: false,
+			showDocumentLinks: true,
+			preferLinksList: false
 		});
 	});
 
@@ -79,14 +85,18 @@ describe('settings store', () => {
 			openDocumentsInEditMode: true,
 			alwaysOpenFullscreen: false,
 			fullWidthDocuments: false,
-			wrapSidebarNames: false
+			wrapSidebarNames: false,
+			showDocumentLinks: true,
+			preferLinksList: false
 		});
 		expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual({
 			app: {
 				openDocumentsInEditMode: true,
 				alwaysOpenFullscreen: false,
 				fullWidthDocuments: false,
-				wrapSidebarNames: false
+				wrapSidebarNames: false,
+				showDocumentLinks: true,
+				preferLinksList: false
 			}
 		});
 	});

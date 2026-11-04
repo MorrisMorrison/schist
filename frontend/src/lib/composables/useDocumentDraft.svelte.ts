@@ -224,7 +224,7 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		if (!(await copyToClipboard(content))) {
 			// Never throw the text away unless it is safe somewhere else.
 			error =
-				"Couldn't copy your text to the clipboard, so nothing was discarded. Copy it yourself first, or keep yours.";
+				"Couldn't copy your text to the clipboard, so nothing was discarded. Use “Back to editor” to copy it yourself, then leave the page and choose Discard — or keep yours.";
 			return;
 		}
 		clearAutoSave();
@@ -309,6 +309,10 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		/** Whether the stale dialog should show: stale, and not closed by the user. */
 		get staleOpen() {
 			return stale !== null && !staleDismissed;
+		},
+		/** Stale, with the dialog closed by the user: saving stays paused. */
+		get stalePaused() {
+			return stale !== null && staleDismissed;
 		},
 		get resolving() {
 			return resolving;

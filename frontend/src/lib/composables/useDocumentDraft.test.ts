@@ -380,6 +380,7 @@ describe('useDocumentDraft', () => {
 		expect(draft.isDirty).toBe(true);
 		expect(draft.staleReason).toBe('deleted');
 		expect(draft.error).toContain('nothing was discarded');
+		expect(draft.error).toContain('Back to editor');
 	});
 
 	it('loadCurrent reports a missing clipboard', async () => {

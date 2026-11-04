@@ -131,6 +131,8 @@
 			>
 				{#if draft.isSaving}
 					Saving…
+				{:else if draft.stalePaused}
+					<span data-testid="save-paused">Saving paused – this page changed elsewhere</span>
 				{:else if draft.isDirty}
 					<span data-testid="unsaved-indicator">Unsaved changes</span>
 				{:else if draft.lastSaved}

@@ -294,15 +294,69 @@ func plural(n int, label string) string {
 	return fmt.Sprintf("%d × %s", n, label)
 }
 
-// importLinkIndex finds the Schist title of a link target: by relative path,
+// importLinkIndex finds the Schist page of a link target: by relative path,
 // file name or title, all case-insensitive. One index holds the files of the
 // import, another the pages already in the wiki (see rewriteImportLinks).
-type importLinkIndex map[string]string
+type importLinkIndex map[string]*importTarget
 
-// add indexes a file of the import by its path inside the import.
-func (idx importLinkIndex) add(relPath, title string) {
+// importTarget is a page a rewritten link points to. A link names it by its
+// title, or by its path when other pages have the same title and the title
+// wouldn't find this one from the linking page (#333).
+type importTarget struct {
+	title, path string
+	// sameTitle lists every page with this title, when there are several.
+	sameTitle []string
+}
+
+// link is the [[...]] text for this page as linked from the page at from,
+// with an optional label.
+func (t *importTarget) link(label, sep, from string) string {
+	name := t.title
+	if len(t.sameTitle) > 1 && t.path != "" {
+		if nearest, ok := nearestPath(from, t.sameTitle); !ok || nearest != t.path {
+			name = "/" + strings.Trim(t.path, "/")
+			if label == "" {
+				label = t.title
+			}
+		}
+	}
+	if label == "" || label == name {
+		return "[[" + name + "]]"
+	}
+	return "[[" + name + sep + label + "]]"
+}
+
+// markDuplicateTitles records, on every page whose title another page (in any
+// of the indexes) also has, the paths of all of them.
+func markDuplicateTitles(indexes ...importLinkIndex) {
+	paths := map[string][]string{}
+	seen := map[string]bool{}
+	for _, idx := range indexes {
+		for _, t := range idx {
+			p := "/" + strings.Trim(t.path, "/")
+			if t.path == "" || seen[p] {
+				continue
+			}
+			seen[p] = true
+			key := strings.ToLower(strings.TrimSpace(t.title))
+			paths[key] = append(paths[key], p)
+		}
+	}
+	for _, idx := range indexes {
+		for _, t := range idx {
+			if same := paths[strings.ToLower(strings.TrimSpace(t.title))]; len(same) > 1 {
+				t.sameTitle = same
+			}
+		}
+	}
+}
+
+// add indexes a file of the import by its path inside the import and the
+// page path it's written to.
+func (idx importLinkIndex) add(relPath, title, pagePath string) {
 	noExt := strings.ToLower(strings.TrimSuffix(relPath, path.Ext(relPath)))
-	idx.addKeys(title, noExt, path.Base(noExt), utils.GenerateSlug(path.Base(noExt)), strings.ToLower(title))
+	idx.addKeys(&importTarget{title: title, path: pagePath},
+		noExt, path.Base(noExt), utils.GenerateSlug(path.Base(noExt)), strings.ToLower(title))
 }
 
 // addPage indexes a page already in the wiki by its full path, its path
@@ -314,37 +368,37 @@ func (idx importLinkIndex) addPage(pagePath, title, targetPath string) {
 		keys = append(keys, strings.TrimPrefix(full, target+"/"))
 	}
 	keys = append(keys, path.Base(full), strings.ToLower(title))
-	idx.addKeys(title, keys...)
+	idx.addKeys(&importTarget{title: title, path: pagePath}, keys...)
 }
 
-func (idx importLinkIndex) addKeys(title string, keys ...string) {
+func (idx importLinkIndex) addKeys(page *importTarget, keys ...string) {
 	for _, key := range keys {
 		if _, taken := idx[key]; !taken && key != "" {
-			idx[key] = title
+			idx[key] = page
 		}
 	}
 }
 
-func (idx importLinkIndex) lookup(target string) (string, bool) {
+func (idx importLinkIndex) lookup(target string) (*importTarget, bool) {
 	t := strings.ToLower(strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(target), ".md")))
 	t = strings.TrimPrefix(t, "/")
 	for _, key := range []string{t, path.Base(t), utils.GenerateSlug(path.Base(t))} {
-		if title, ok := idx[key]; ok {
-			return title, true
+		if page, ok := idx[key]; ok {
+			return page, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 // lookupImportLink asks each index in turn, so the import's own files win
 // over pages already in the wiki.
-func lookupImportLink(indexes []importLinkIndex, target string) (string, bool) {
+func lookupImportLink(indexes []importLinkIndex, target string) (*importTarget, bool) {
 	for _, idx := range indexes {
-		if title, ok := idx.lookup(target); ok {
-			return title, true
+		if page, ok := idx.lookup(target); ok {
+			return page, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 var (
@@ -353,10 +407,12 @@ var (
 )
 
 // rewriteImportLinks turns [[file#heading|alias]] and [text](file.md) links
-// into [[Title|text]] links that resolve in Schist. relDir is the directory of
-// the note inside the import, for relative markdown links. Inline code and
+// into [[Title|text]] links that resolve in Schist ([[/path|text]] when the
+// title isn't unique and wouldn't find the page from fromPath, the page being
+// written; call markDuplicateTitles first). relDir is the directory of the
+// note inside the import, for relative markdown links. Inline code and
 // fenced code are left alone. Targets are looked up in indexes in order.
-func rewriteImportLinks(body, relDir string, indexes ...importLinkIndex) (string, int) {
+func rewriteImportLinks(body, relDir, fromPath string, indexes ...importLinkIndex) (string, int) {
 	unresolved := 0
 	var out strings.Builder
 	for _, seg := range splitFences(body) {
@@ -383,18 +439,15 @@ func rewriteImportLinks(body, relDir string, indexes ...importLinkIndex) (string
 				}
 				return strings.TrimSpace(heading)
 			}
-			title, ok := lookupImportLink(indexes, target)
+			page, ok := lookupImportLink(indexes, target)
 			if !ok {
 				unresolved++
-				title = path.Base(target)
+				page = &importTarget{title: path.Base(target)}
 			}
 			if alias == "" && heading != "" {
 				alias = path.Base(target) + " › " + strings.TrimSpace(heading)
 			}
-			if alias == "" || alias == title {
-				return "[[" + title + "]]"
-			}
-			return "[[" + title + sep + alias + "]]"
+			return page.link(alias, sep, fromPath)
 		})
 
 		text = importMdLink.ReplaceAllStringFunc(text, func(m string) string {
@@ -405,19 +458,15 @@ func rewriteImportLinks(body, relDir string, indexes ...importLinkIndex) (string
 			}
 			target = strings.ReplaceAll(target, "%20", " ")
 			resolved := path.Clean(path.Join(relDir, target))
-			title, ok := lookupImportLink(indexes, resolved)
+			page, ok := lookupImportLink(indexes, resolved)
 			if !ok {
-				title, ok = lookupImportLink(indexes, target)
+				page, ok = lookupImportLink(indexes, target)
 			}
 			if !ok {
 				unresolved++
 				return m
 			}
-			label := strings.TrimSpace(p[1])
-			if label == "" || label == title {
-				return "[[" + title + "]]"
-			}
-			return "[[" + title + "|" + label + "]]"
+			return page.link(strings.TrimSpace(p[1]), "|", fromPath)
 		})
 
 		out.WriteString(unmaskInlineCode(text, masked))

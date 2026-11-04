@@ -31,13 +31,14 @@ Paths use letters, digits, `-`, `_` and `/`, at most 10 levels deep.
 Write `[[Page title]]` to link to a page. Show other text with `[[Page title|text]]`. A `[[target]]` resolves, in this order, to:
 
 1. the page with that title (any case);
-2. the page at the root path `/<slug of target>`;
-3. the page that lists it in its `aliases` property;
-4. the page whose name (the last part of its path) is the target's slug. So `[[router]]` finds `/lab/devices/router`.
+2. the page at that path, for a target with a `/`: `[[/lab/devices/router]]`, `[[lab/devices/router]]` or `[[lab/devices/Router.md]]`;
+3. the page at the root path `/<slug of target>`;
+4. the page that lists it in its `aliases` property;
+5. the page whose name (the last part of its path) is the target's slug. So `[[router]]` finds `/lab/devices/router`.
 
-An alias or name that more than one page has doesn't resolve: the link shows as broken instead of guessing. Click a broken link to create the page.
+When several pages have the same title, a link finds the one nearest to the page it's on: the one sharing the deepest folder. So `[[Overview]]` in `/projects/a/plan` finds `/projects/a/overview`. If none is nearer than the others, the link doesn't resolve. An alias or name that more than one page has doesn't resolve either. Such a link shows as broken (and in `list_broken_links`) instead of guessing; link the page by its path, e.g. `[[/projects/a/overview|Overview]]`. Click a broken link to create the page.
 
-Links point at titles, not paths, so moving a page or a folder keeps them working.
+Title links keep working when you move a page or a folder; path links don't, since the path changes.
 
 **Backlinks** under each page list the pages that link to it. The **graph** view shows a page's links as a network.
 

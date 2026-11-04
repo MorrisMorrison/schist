@@ -293,7 +293,7 @@ func (h *APIHandler) getDocumentBacklinks(c *gin.Context) {
 		return
 	}
 
-	var backlinkDocuments []*models.Document
+	backlinkDocuments := []*models.Document{}
 	for _, backlinkPath := range backlinks {
 		document, err := h.DocumentService.GetDocumentByPath(backlinkPath)
 		if err == nil {

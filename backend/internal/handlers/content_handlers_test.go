@@ -354,6 +354,11 @@ func TestLinks_OverHTTP(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	assert.Contains(t, w.Body.String(), "/source")
 
+	// A page nobody links to has an empty list, not null (#333).
+	w = env.do(t, http.MethodGet, "/api/links/backlinks/source", nil, "")
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	assert.Equal(t, []any{}, decode(t, w)["backlinks"])
+
 	w = env.do(t, http.MethodGet, "/api/links/broken", nil, "")
 	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
 	assert.Contains(t, w.Body.String(), "nowhere")

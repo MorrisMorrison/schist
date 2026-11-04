@@ -36,10 +36,10 @@ var wikiLinkRegex = regexp.MustCompile(`\[\[([^\]|]+)(?:\|([^\]]+))?\]\]`)
 func (l *LinkService) ParseWikiLinks(content string) []*WikiLink {
 	var links []*WikiLink
 	if err := l.index.withFresh(func() error {
-		links = l.index.resolver.resolveAll(extractLinkTargets(content))
+		links = l.index.resolver.resolveAll(extractLinkTargets(content), "")
 		return nil
 	}); err != nil {
-		return resolverOfNothing().resolveAll(extractLinkTargets(content))
+		return resolverOfNothing().resolveAll(extractLinkTargets(content), "")
 	}
 	return links
 }
@@ -66,7 +66,7 @@ func (l *LinkService) GetOutgoingLinks(pagePath string) ([]*WikiLink, error) {
 	var links []*WikiLink
 	err := l.index.withFresh(func() error {
 		if entry := l.index.entryAt(pagePath); entry != nil {
-			links = l.index.resolver.resolveAll(entry.links)
+			links = l.index.resolver.resolveAll(entry.links, entry.path)
 			return nil
 		}
 		// Not indexed (ignored or unreadable): read it to report why.
@@ -74,7 +74,7 @@ func (l *LinkService) GetOutgoingLinks(pagePath string) ([]*WikiLink, error) {
 		if err != nil {
 			return fmt.Errorf("failed to get page: %w", err)
 		}
-		links = l.index.resolver.resolveAll(extractLinkTargets(page.Content))
+		links = l.index.resolver.resolveAll(extractLinkTargets(page.Content), pagePath)
 		return nil
 	})
 	if err != nil {
@@ -157,7 +157,7 @@ func (l *LinkService) GetBrokenLinks() (map[string][]*WikiLink, error) {
 				continue
 			}
 			var broken []*WikiLink
-			for _, link := range l.index.resolver.resolveAll(entry.links) {
+			for _, link := range l.index.resolver.resolveAll(entry.links, entry.path) {
 				if !link.IsValid {
 					broken = append(broken, link)
 				}

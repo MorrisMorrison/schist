@@ -30,7 +30,7 @@ The report lists every file with what was converted or dropped, and why a file w
 
 ### What is converted
 
-- **Links** become `[[Title]]` links: `[[file]]`, `[[folder/file]]`, `[[file#heading]]`, `[[file|alias]]` (also escaped inside tables) and markdown links to `.md` files. A target is looked up in the import first, then among the pages already in the wiki, so links between import batches resolve.
+- **Links** become `[[Title]]` links: `[[file]]`, `[[folder/file]]`, `[[file#heading]]`, `[[file|alias]]` (also escaped inside tables) and markdown links to `.md` files. A target is looked up in the import first, then among the pages already in the wiki, so links between import batches resolve. When other pages have the same title (a folder imported twice, or many notes called "Overview"), the link stays a title link if that finds the right page from where it's written (the nearest one), and is written by path otherwise, `[[/folder/page|text]]`, so it can't land on the wrong page.
 - **Callouts** (`> [!note] Title`) become a bold label in the quote.
 - **Note embeds** `![[note]]` become links.
 

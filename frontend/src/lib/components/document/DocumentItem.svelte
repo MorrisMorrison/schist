@@ -43,7 +43,9 @@
 		'group relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
 		'hover:bg-accent hover:text-accent-foreground',
 		isSelected && 'bg-accent text-accent-foreground',
-		isCurrent && 'bg-accent font-medium',
+		// The open page: a brand tint and a 2px brand edge (an inset shadow, so
+		// the name doesn't shift).
+		isCurrent && 'bg-[var(--nav-active)] font-medium shadow-[inset_2px_0_0_var(--primary)]',
 		isBeingDragged && 'opacity-50',
 		isDropTarget && 'bg-primary/10 ring-primary ring-2',
 		isDragOver && 'bg-primary/20'
@@ -59,6 +61,7 @@
 	role="treeitem"
 	aria-label={`Document: ${document.metaData?.title || 'Untitled'}`}
 	aria-selected={isSelected}
+	aria-current={isCurrent ? 'page' : undefined}
 	tabindex="-1"
 	data-testid="document-item"
 	data-document-path={document.metaData.path}

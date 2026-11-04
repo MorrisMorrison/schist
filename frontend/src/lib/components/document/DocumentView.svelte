@@ -19,6 +19,7 @@
 	import { tick } from 'svelte';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.ts';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import TagBadge from '#lib/components/TagBadge.svelte';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.ts';
 	import Breadcrumbs from '../Breadcrumbs.svelte';
 	import DeleteConfirmModal from '../modal/DeleteConfirmModal.svelte';
@@ -400,9 +401,7 @@
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each documentTags as tag (tag)}
-								<Badge variant="secondary" class="text-xs font-medium" data-testid="document-tag"
-									>{tag}</Badge
-								>
+								<TagBadge {tag} data-testid="document-tag" />
 							{/each}
 						</div>
 					</div>

@@ -76,6 +76,16 @@
 	--input: var(--gray-200);
 	--ring: var(--ocean-blue);
 
+	/* Brand colour for links, tags and the open page (from the logo blue,
+	   --ocean-blue #0e7fe9). Text pairs pass WCAG AA (4.5:1) in both themes. */
+	--link: #0a66c2;
+	--link-broken: #c4312a;
+	--tag-bg: #e7f2fd;
+	--tag-fg: #0a5aa8;
+	--tag-prefix: #456c92;
+	--tag-border: #b9d9f8;
+	--nav-active: color-mix(in srgb, var(--ocean-blue) 8%, transparent);
+
 	/* Sidebar Variables */
 	--sidebar: var(--pure-white);
 	--sidebar-foreground: var(--gray-900);
@@ -129,6 +139,14 @@
 	--border: var(--medium-gray);
 	--input: var(--medium-gray);
 	--ring: var(--accent-blue);
+
+	--link: #58a9f8;
+	--link-broken: #f2867c;
+	--tag-bg: color-mix(in srgb, var(--accent-blue) 15%, transparent);
+	--tag-fg: #8cc4fa;
+	--tag-prefix: #5f8fbd;
+	--tag-border: color-mix(in srgb, var(--accent-blue) 35%, transparent);
+	--nav-active: color-mix(in srgb, var(--accent-blue) 12%, transparent);
 
 	/* Sidebar Minimal Dark */
 	--sidebar: var(--true-black);
@@ -301,6 +319,41 @@
 		@apply text-primary/80 underline;
 	}
 
+	/* Links in page text. Wiki links (spans the renderer resolves) get a
+	   dotted underline, broken ones a dashed one in --link-broken; ordinary
+	   links a solid underline, and external ones a ↗. */
+	.wiki-link {
+		color: var(--link);
+		text-decoration: underline dotted;
+		text-decoration-color: color-mix(in srgb, var(--link) 55%, transparent);
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+	.wiki-link:hover {
+		text-decoration-style: solid;
+		text-decoration-color: currentColor;
+	}
+	.wiki-link.broken-link {
+		color: var(--link-broken);
+		text-decoration-style: dashed;
+		text-decoration-color: color-mix(in srgb, var(--link-broken) 55%, transparent);
+		cursor: default;
+	}
+	.reading a:not(.wiki-link) {
+		color: var(--link);
+		text-decoration: underline;
+		text-decoration-color: color-mix(in srgb, var(--link) 55%, transparent);
+		text-underline-offset: 3px;
+	}
+	.reading a:not(.wiki-link):hover {
+		text-decoration-color: currentColor;
+	}
+	.reading a[href^='http']:not(:has(img))::after {
+		content: '\2197';
+		margin-left: 0.1em;
+		font-size: 0.8em;
+	}
+
 	/* Code font stack */
 	code,
 	pre,
@@ -415,11 +468,12 @@
 	}
 
 	.prose a {
-		@apply text-blue-600 underline;
+		color: var(--link);
+		@apply underline underline-offset-[3px];
 	}
 
 	.prose a:hover {
-		@apply text-blue-800;
+		@apply decoration-current;
 	}
 
 	.prose strong {
@@ -477,14 +531,6 @@
 	/* Dark mode styles */
 	.dark .prose {
 		@apply text-gray-100;
-	}
-
-	.dark .prose a {
-		@apply text-blue-400;
-	}
-
-	.dark .prose a:hover {
-		@apply text-blue-300;
 	}
 
 	.dark .prose code {

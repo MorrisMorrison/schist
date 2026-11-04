@@ -102,8 +102,13 @@ test.describe.serial('Folder Creation', () => {
 		await folderPage.createFolder(emptyRootTestFolderName);
 		await folderPage.verifyContainsFolder(emptyRootTestFolderName);
 
-		// Root should be empty (showing empty message) after proper cleanup from previous tests
-		// Creating folders doesn't add documents, so empty message should still be visible
-		await expect(folderPage.emptyFolderMessage).toBeVisible();
+		// The folder view lists subfolders as rows, so the new folder shows up in
+		// the root view too, and the root is no longer "empty".
+		await expect(
+			folderPage.page
+				.getByTestId('folder-subfolder-row')
+				.filter({ hasText: emptyRootTestFolderName })
+		).toBeVisible();
+		await expect(folderPage.emptyFolderMessage).toHaveCount(0);
 	});
 });

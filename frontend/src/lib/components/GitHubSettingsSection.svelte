@@ -9,6 +9,7 @@
 	import { Alert, AlertDescription, AlertTitle } from '#lib/components/ui/alert/index.ts';
 	import ErrorAlert from '#lib/components/ErrorAlert.svelte';
 	import Checkbox from '#lib/components/ui/checkbox/checkbox.svelte';
+	import SyncModeSetting from '#lib/components/github/SyncModeSetting.svelte';
 	import PasskeyUnlockModal from '#lib/components/modal/PasskeyUnlockModal.svelte';
 	import DeleteConfirmModal from '#lib/components/modal/DeleteConfirmModal.svelte';
 	import { AlertCircle, CheckCircle, Loader2, Settings, RefreshCw } from '@lucide/svelte';
@@ -271,7 +272,7 @@
 </script>
 
 {#snippet divergedNotice()}
-	{#if isConnected && githubStore.remoteDiverged}
+	{#if isConnected && githubStore.remoteDiverged && githubStore.settings?.mode !== 'two-way'}
 		<Alert variant="warning" data-testid="github-diverged-notice">
 			<AlertCircle />
 			<AlertTitle>The GitHub branch has other commits</AlertTitle>
@@ -574,6 +575,8 @@
 				{/if}
 
 				{#if isConnected}
+					<SyncModeSetting />
+
 					<div class="space-y-4 rounded-lg border p-4">
 						<div class="flex items-center justify-between">
 							<h4 class="font-medium">Git Repository Health</h4>

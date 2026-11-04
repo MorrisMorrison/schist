@@ -78,7 +78,12 @@
 					syncDelayMinutes !== (githubStore.settings.sync_delay_minutes ?? DEFAULT_SYNC_DELAY)
 			: canTestConnection
 	);
-	const lastSyncFailed = $derived(Boolean(githubStore.settings?.last_sync_error));
+	// A paused two-way sync records SYNC_CONFLICT as its outcome; that is not a failure
+	// (the paused-sync list says what to do), so it gets no red alert.
+	const lastSyncFailed = $derived(
+		Boolean(githubStore.settings?.last_sync_error) &&
+			githubStore.settings?.last_sync_error_code !== 'SYNC_CONFLICT'
+	);
 
 	onMount(() => {
 		if (!githubStore.settings && !githubStore.connectionStatus) {

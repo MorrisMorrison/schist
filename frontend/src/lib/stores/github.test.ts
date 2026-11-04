@@ -168,6 +168,13 @@ describe('github store', () => {
 			expect(api.getGitHubSettings).toHaveBeenCalledTimes(2);
 		});
 
+		it('does not treat a paused sync (SYNC_CONFLICT) as an error', async () => {
+			api.syncToGitHub.mockRejectedValueOnce(apiError('paused', 'SYNC_CONFLICT'));
+			await expect(githubActions.syncToGitHub()).rejects.toThrow();
+			expect(githubStore.error).toBeNull();
+			expect(githubStore.syncErrorCode).toBe('SYNC_CONFLICT');
+		});
+
 		it('passes replaceRemote through', async () => {
 			api.syncToGitHub.mockResolvedValueOnce({ success: true } as never);
 			await githubActions.syncToGitHub({ replaceRemote: true });

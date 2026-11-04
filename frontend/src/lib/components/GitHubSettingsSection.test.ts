@@ -408,6 +408,21 @@ describe('GitHubSettingsSection', () => {
 			expect(apiClient.syncToGitHub).not.toHaveBeenCalled();
 		});
 
+		it('shows a paused sync as the conflicts list, not as a failure', async () => {
+			await seedConnected({
+				mode: 'two-way',
+				sync_conflicts: ['plan.md'],
+				paused_remote_head: 'abc',
+				last_sync_error: 'Sync paused: 1 page changed in both.',
+				last_sync_error_code: 'SYNC_CONFLICT'
+			});
+			render(GitHubSettingsSection);
+			expect(await screen.findByTestId('sync-conflicts')).toBeInTheDocument();
+			expect(screen.queryByTestId('github-last-sync-error')).not.toBeInTheDocument();
+			expect(screen.queryByText(/Last sync failed/)).not.toBeInTheDocument();
+			expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+		});
+
 		it('logs when updating fails', async () => {
 			vi.mocked(apiClient.updateGitHubSettings).mockRejectedValue(new Error('nope'));
 			render(GitHubSettingsSection);

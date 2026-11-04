@@ -224,8 +224,11 @@ export const githubActions = {
 		} catch (error) {
 			const { code } = parseError(error);
 			githubState.syncErrorCode = code ?? null;
+			// A paused sync is not a failure: the settings list the pages waiting for a side.
 			githubState.error =
-				(code && syncErrorMessages[code]) || getErrorMessage(error, 'Failed to sync to GitHub');
+				code === 'SYNC_CONFLICT'
+					? null
+					: (code && syncErrorMessages[code]) || getErrorMessage(error, 'Failed to sync to GitHub');
 			if (code === 'SECRETS_LOCKED') {
 				await secretStore.loadStatus().catch(() => {});
 			}

@@ -9,7 +9,7 @@ test.describe('Home page', () => {
 		await page.goto(`/documents${withTestDocument.path}`);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText(withTestDocument.title);
 
-		await page.getByTestId('nav-home').click();
+		await page.getByTestId('nav-logo').click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
 		const row = page.getByTestId('recent-row').filter({ hasText: withTestDocument.title });
@@ -38,7 +38,7 @@ test.describe('Home page', () => {
 			page.getByTestId('sidebar-pinned-link').filter({ hasText: withTestDocument.title })
 		).toBeVisible();
 
-		await page.getByTestId('nav-home').click();
+		await page.getByTestId('nav-logo').click();
 		const tile = page.getByTestId('pinned-tile').filter({ hasText: withTestDocument.title });
 		await expect(tile).toBeVisible();
 		await expect(tile).toHaveAttribute('href', `/documents${withTestDocument.path}`);

@@ -82,10 +82,18 @@ describe('SyncModeSetting', () => {
 		expect(githubActions.updateSettings).toHaveBeenCalledWith({ mode: 'backup' });
 	});
 
-	it("names the server's sync interval", () => {
-		state.settings.auto_sync_interval_minutes = 30;
+	it("names the server's sync interval in two-way mode", () => {
+		state.settings.mode = 'two-way';
+		state.settings.auto_sync_interval_minutes = 5;
 		render(SyncModeSetting);
-		expect(screen.getByText(/every 30 minutes/)).toBeVisible();
+		expect(screen.getByText(/every 5 minutes/)).toBeVisible();
+	});
+
+	it("doesn't name the backup interval before two-way is on", () => {
+		state.settings.auto_sync_interval_minutes = 15;
+		render(SyncModeSetting);
+		expect(screen.queryByText(/every 15 minutes/)).toBeNull();
+		expect(screen.getByText(/every few minutes/)).toBeVisible();
 	});
 
 	it('says "every few minutes" when the interval is unknown', () => {

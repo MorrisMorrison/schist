@@ -10,9 +10,11 @@
 	import type { PreviewChange, SyncPreview } from '#lib/api/types.ts';
 
 	const twoWay = $derived(githubStore.settings?.mode === 'two-way');
-	// The server's interval (SCHIST_GITHUB_AUTO_SYNC_MINUTES), when it says.
+	// The server's interval, once in two-way mode. In backup mode the server
+	// reports the backup interval (15 minutes by default), not the 5 minutes
+	// two-way would use, so don't name a number there.
 	const every = $derived.by(() => {
-		const minutes = githubStore.settings?.auto_sync_interval_minutes;
+		const minutes = twoWay ? githubStore.settings?.auto_sync_interval_minutes : undefined;
 		if (!minutes) return 'every few minutes';
 		return minutes === 1 ? 'every minute' : `every ${minutes} minutes`;
 	});

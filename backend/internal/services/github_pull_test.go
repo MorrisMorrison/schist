@@ -400,6 +400,30 @@ func TestSync_TwoWayRetriesWhenTheRemoteMovesDuringPush(t *testing.T) {
 	assert.NoError(t, statErr)
 }
 
+func TestSync_TwoWayRetriesWhenTheRemoteMovesAfterThePushCheck(t *testing.T) {
+	// Obsidian pushes between pushToGitHub's listing and the push itself, so
+	// the push (not the listing) is what fails.
+	f, remoteDir := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	moved := false
+	f.gs.beforePushRef = func() {
+		if !moved {
+			moved = true
+			push(map[string]string{"race.md": page("Race", "pushed meanwhile")})
+		}
+	}
+	writeNote(t, f.dataDir, "notes.md", page("Notes", "local"))
+
+	_, err := f.gs.SyncToGitHub()
+	require.NoError(t, err)
+	assert.True(t, moved)
+	assert.Contains(t, remoteFiles(t, remoteDir, "main"), "race.md")
+	_, statErr := os.Stat(filepath.Join(f.dataDir, "race.md"))
+	assert.NoError(t, statErr)
+	head, _ := f.gs.gitService.repository.Head()
+	assert.Equal(t, head.Hash(), remoteBranchHash(t, remoteDir, "main"), "pushed")
+}
+
 func TestPreviewSync_ShowsWhatTheFirstSyncWouldDo(t *testing.T) {
 	f, _ := twoWayFixture(t)
 	_, push := obsidianClone(t)

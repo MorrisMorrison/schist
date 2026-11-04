@@ -56,10 +56,12 @@ type GitHubService struct {
 
 	// onPulled, if set, gets the page paths a pull changed (wired to the link
 	// index). beforeApply is a test hook that runs just before applying;
-	// beforePush is one that runs at the start of each push.
-	onPulled    func(pages []string)
-	beforeApply func()
-	beforePush  func()
+	// beforePush is one that runs at the start of each push, and
+	// beforePushRef one that runs between the remote check and the push.
+	onPulled      func(pages []string)
+	beforeApply   func()
+	beforePush    func()
+	beforePushRef func()
 }
 
 // SetPullHook registers fn to run with the pages a pull changed.
@@ -717,6 +719,11 @@ func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, 
 			continue // GitHub moved since the fetch: pull again
 		}
 		if err != nil {
+			// GitHub may have moved after pushToGitHub's own check, so the
+			// push itself was refused: pull again then too.
+			if now, listErr := gs.remoteHeadNow(); listErr == nil && now != out.RemoteHead {
+				continue
+			}
 			return nil, err
 		}
 		gs.recordPause(nil, "", out.Unreadable)
@@ -724,6 +731,26 @@ func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, 
 			Timestamp: time.Now().Format(time.RFC3339)}, nil
 	}
 	return nil, apierrors.NewUnavailableError("GitHub (the branch kept changing during the sync; it retries on the next sync)")
+}
+
+// remoteHeadNow lists the remote branch's head (zero when it is empty).
+func (gs *GitHubService) remoteHeadNow() (plumbing.Hash, error) {
+	repo, err := gs.localRepository()
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	s := gs.settings.GetGitHubSettings()
+	token, err := gs.getToken()
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	remote, err := repo.Remote("origin")
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	ctx, cancel := gs.requestContext()
+	defer cancel()
+	return remoteBranchHead(ctx, remote, &githttp.BasicAuth{Username: s.Owner, Password: token}, s.Branch)
 }
 
 // resolutionsFor turns the request's choices into planner resolutions, each
@@ -1061,6 +1088,9 @@ func (gs *GitHubService) pushToGitHub(replaceRemote bool) error {
 		refSpec = "+" + refSpec
 	}
 
+	if gs.beforePushRef != nil {
+		gs.beforePushRef()
+	}
 	err = repo.PushContext(ctx, &git.PushOptions{
 		RemoteName: "origin",
 		RefSpecs:   []config.RefSpec{config.RefSpec(refSpec)},

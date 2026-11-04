@@ -1,7 +1,7 @@
 import type { Document } from '#lib/api/types.ts';
 import { documentActions } from '#lib/stores/documents.svelte.ts';
 import { extractHashtagsFromContent, extractTitleFromContent } from '#lib/utils/content-parser.ts';
-import { getErrorMessage } from '#lib/utils/error.ts';
+import { getErrorMessage, parseError } from '#lib/utils/error.ts';
 import { generateSlug } from '#lib/utils/path.ts';
 
 export const AUTO_SAVE_DELAY_MS = 10_000;
@@ -43,6 +43,8 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	let savedContent = $state(document.content);
 	let isSaving = $state(false);
 	let error = $state('');
+	/** The page as it is now, when a save was refused because it changed. */
+	let conflict = $state<Document | null>(null);
 	let lastSaved = $state<Date | null>(null);
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	// Saves run one at a time; a save requested meanwhile waits for the running one.
@@ -68,7 +70,7 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	function setContent(next: string) {
 		content = next;
 		clearAutoSave();
-		if (content !== savedContent) {
+		if (content !== savedContent && !conflict) {
 			timer = setTimeout(() => {
 				timer = null;
 				void save('auto');
@@ -106,7 +108,8 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 						title: extractTitleFromContent(snapshot).trim(),
 						tags: extractHashtagsFromContent(snapshot)
 					},
-					content: snapshot.trim()
+					content: snapshot.trim(),
+					baseVersion: document.version
 				},
 				kind
 			);
@@ -118,6 +121,13 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 			options.onSaved?.(document);
 			return true;
 		} catch (err) {
+			const parsed = parseError(err);
+			const current = parsed.details?.document as Document | undefined;
+			if (parsed.code === 'DOCUMENT_CHANGED' && current) {
+				clearAutoSave();
+				conflict = current;
+				return false;
+			}
 			error = getErrorMessage(
 				err,
 				kind === 'auto' ? 'Failed to auto-save page' : 'Failed to save document'
@@ -138,6 +148,29 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		} finally {
 			running = null;
 		}
+	}
+
+	/** Takes the page as it is now; my text goes to the clipboard first. */
+	async function loadCurrent() {
+		if (!conflict) return;
+		try {
+			await navigator.clipboard?.writeText(content);
+		} catch {
+			// No clipboard (permissions): best effort.
+		}
+		document = conflict;
+		path = routePath(conflict.metaData.path);
+		content = conflict.content;
+		savedContent = conflict.content;
+		conflict = null;
+	}
+
+	/** Saves my text over the newer page; the other version stays in history. */
+	async function keepMine(): Promise<boolean> {
+		if (!conflict) return true;
+		document = { ...document, version: conflict.version };
+		conflict = null;
+		return save('manual');
 	}
 
 	/** Forgets unsaved edits without saving (the document is being deleted). */
@@ -174,6 +207,11 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		set error(message: string) {
 			error = message;
 		},
+		get conflict() {
+			return conflict;
+		},
+		loadCurrent,
+		keepMine,
 		setContent,
 		save,
 		discard,

@@ -108,6 +108,9 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 	type UpdateDocumentRequest struct {
 		*models.Document
 		SaveType string `json:"saveType,omitempty"` // "manual" or "auto", defaults to "manual"
+		// BaseVersion is the version the editor started from; the save is
+		// refused with DOCUMENT_CHANGED when the page changed since.
+		BaseVersion string `json:"baseVersion,omitempty"`
 	}
 
 	var req UpdateDocumentRequest
@@ -126,12 +129,7 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 		return
 	}
 
-	if err := h.DocumentService.MoveDocument(path, updatedDocument.MetaData.Path); err != nil {
-		HandleError(c, err)
-		return
-	}
-
-	if err := h.DocumentService.UpdateDocumentWithSaveType(updatedDocument, saveType); err != nil {
+	if err := h.DocumentService.UpdateDocumentChecked(path, updatedDocument, saveType, req.BaseVersion); err != nil {
 		HandleError(c, err)
 		return
 	}
@@ -140,6 +138,11 @@ func (h *APIHandler) updateDocumentByPath(c *gin.Context) {
 		log.Printf("Warning: failed to update backlinks for updated document %s: %v", updatedDocument.MetaData.Path, err)
 	}
 
+	// Answer with the page as stored, so the client gets its new version.
+	if saved, err := h.DocumentService.GetDocumentByPath(updatedDocument.MetaData.Path); err == nil {
+		c.JSON(http.StatusOK, saved)
+		return
+	}
 	c.JSON(http.StatusOK, updatedDocument)
 }
 

@@ -17,6 +17,8 @@ export interface DocumentMetaData {
 export interface Document {
 	metaData: DocumentMetaData;
 	content: string;
+	/** Identifies the stored text; send it back as `baseVersion` when saving. */
+	version?: string;
 }
 
 /**
@@ -46,6 +48,8 @@ export interface CreateDocumentResponse {
 export interface UpdateDocumentRequest {
 	metaData: Omit<DocumentMetaData, 'created' | 'updated'> & { path?: string };
 	content: string;
+	/** The version the editor started from; a changed page refuses the save. */
+	baseVersion?: string;
 }
 
 /** A piece of a search snippet; `match` marks a query hit. */

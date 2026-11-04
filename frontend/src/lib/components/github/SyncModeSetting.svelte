@@ -10,6 +10,12 @@
 	import type { PreviewChange, SyncPreview } from '#lib/api/types.ts';
 
 	const twoWay = $derived(githubStore.settings?.mode === 'two-way');
+	// The server's interval (SCHIST_GITHUB_AUTO_SYNC_MINUTES), when it says.
+	const every = $derived.by(() => {
+		const minutes = githubStore.settings?.auto_sync_interval_minutes;
+		if (!minutes) return 'every few minutes';
+		return minutes === 1 ? 'every minute' : `every ${minutes} minutes`;
+	});
 	let preview = $state<SyncPreview | null>(null);
 	let busy = $state(false);
 	let error = $state('');
@@ -111,8 +117,7 @@
 			<Label for="sync-mode-two-way" class="block font-normal">
 				<span class="font-medium">Two-way sync</span>
 				<span class="text-muted-foreground block text-sm">
-					Also brings in changes made on GitHub or in a clone (for example Obsidian), every 5
-					minutes.
+					Also brings in changes made on GitHub or in a clone (for example Obsidian), {every}.
 				</span>
 			</Label>
 		</div>

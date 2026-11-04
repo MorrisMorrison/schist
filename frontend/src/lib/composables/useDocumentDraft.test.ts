@@ -344,6 +344,35 @@ describe('useDocumentDraft', () => {
 		expect(update.mock.calls[1][1].baseVersion).toBeUndefined();
 	});
 
+	it('keepMine on a deleted page keeps the decision open when the save fails', async () => {
+		update
+			.mockRejectedValueOnce(
+				new Error(
+					JSON.stringify({
+						error: 'gone',
+						code: 'DOCUMENT_CHANGED',
+						details: { document: null, deleted: true }
+					})
+				)
+			)
+			.mockRejectedValueOnce(new Error('Network down'));
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+
+		expect(await draft.keepMine()).toBe(false);
+		expect(draft.error).toContain('Network down');
+		// Still waiting on the decision: no later save goes out without a base version.
+		expect(draft.staleReason).toBe('deleted');
+		expect(await draft.save('manual')).toBe(false);
+		expect(update).toHaveBeenCalledTimes(2);
+
+		await draft.keepMine();
+		expect(update).toHaveBeenCalledTimes(3);
+		expect(update.mock.calls[2][1].baseVersion).toBeUndefined();
+		expect(draft.staleReason).toBeNull();
+	});
+
 	it('keepMine on a deleted page with the same title keeps the path', async () => {
 		update.mockRejectedValueOnce(
 			new Error(

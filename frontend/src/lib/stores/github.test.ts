@@ -169,10 +169,14 @@ describe('github store', () => {
 		});
 
 		it('does not treat a paused sync (SYNC_CONFLICT) as an error', async () => {
+			api.syncToGitHub.mockResolvedValueOnce({ success: true, message: 'Synced' } as never);
+			await githubActions.syncToGitHub();
 			api.syncToGitHub.mockRejectedValueOnce(apiError('paused', 'SYNC_CONFLICT'));
 			await expect(githubActions.syncToGitHub()).rejects.toThrow();
 			expect(githubStore.error).toBeNull();
 			expect(githubStore.syncErrorCode).toBe('SYNC_CONFLICT');
+			// An earlier success must not show next to the paused list.
+			expect(githubStore.lastSyncResult).toBeNull();
 		});
 
 		it('passes replaceRemote through', async () => {

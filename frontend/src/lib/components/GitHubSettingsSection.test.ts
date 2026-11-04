@@ -334,6 +334,15 @@ describe('GitHubSettingsSection', () => {
 			});
 		});
 
+		it('keeps the interval backup on in two-way mode', async () => {
+			await seedConnected({ mode: 'two-way', auto_sync: true });
+			render(GitHubSettingsSection);
+			const interval = screen.getByLabelText('Back up every 15 minutes');
+			expect(interval).toBeChecked();
+			expect(interval).toBeDisabled();
+			expect(screen.getByText(/Two-way sync needs this/)).toBeVisible();
+		});
+
 		it('sets how many minutes after the last edit the backup runs', async () => {
 			await seedConnected({ sync_on_save: true, sync_delay_minutes: 2 });
 			vi.mocked(apiClient.updateGitHubSettings).mockResolvedValue(undefined as never);

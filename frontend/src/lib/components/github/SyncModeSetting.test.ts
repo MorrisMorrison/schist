@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 
-const state = vi.hoisted(() => ({ settings: { mode: 'backup', enabled: true } }));
+const state = vi.hoisted(() => ({
+	settings: {
+		mode: 'backup',
+		enabled: true,
+		auto_sync_interval_minutes: undefined as number | undefined
+	}
+}));
 
 vi.mock('#lib/stores/github.svelte.ts', () => ({
 	githubStore: state,
@@ -20,6 +26,7 @@ describe('SyncModeSetting', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		state.settings.mode = 'backup';
+		state.settings.auto_sync_interval_minutes = undefined;
 	});
 	afterEach(() => cleanup());
 
@@ -73,6 +80,17 @@ describe('SyncModeSetting', () => {
 		await userEvent.click(screen.getByTestId('sync-mode-backup'));
 		expect(githubActions.previewSync).not.toHaveBeenCalled();
 		expect(githubActions.updateSettings).toHaveBeenCalledWith({ mode: 'backup' });
+	});
+
+	it("names the server's sync interval", () => {
+		state.settings.auto_sync_interval_minutes = 30;
+		render(SyncModeSetting);
+		expect(screen.getByText(/every 30 minutes/)).toBeVisible();
+	});
+
+	it('says "every few minutes" when the interval is unknown', () => {
+		render(SyncModeSetting);
+		expect(screen.getByText(/every few minutes/)).toBeVisible();
 	});
 
 	it('shows an error when the preview fails', async () => {

@@ -108,12 +108,14 @@
 		size="sm"
 		variant={choices[path] === 'local' ? 'default' : 'outline'}
 		aria-pressed={choices[path] === 'local'}
+		aria-label="Keep Schist's version of {path}"
 		onclick={() => (choices = { ...choices, [path]: 'local' })}>Keep Schist's</Button
 	>
 	<Button
 		size="sm"
 		variant={choices[path] === 'remote' ? 'default' : 'outline'}
 		aria-pressed={choices[path] === 'remote'}
+		aria-label="Take GitHub's version of {path}"
 		onclick={() => (choices = { ...choices, [path]: 'remote' })}>Take GitHub's</Button
 	>
 {/snippet}
@@ -141,8 +143,11 @@
 			{#each conflicts as path (path)}
 				<li class="rounded border p-2" data-testid="sync-conflict-row">
 					<div class="flex flex-wrap items-center gap-2">
-						<button class="font-mono text-sm underline" onclick={() => toggleDiff(path)}
-							>{path}</button
+						<button
+							type="button"
+							class="font-mono text-sm underline"
+							aria-expanded={open?.path === path}
+							onclick={() => toggleDiff(path)}>{path}</button
 						>
 						<span class="flex-1"></span>
 						{@render sides(path)}
@@ -166,7 +171,12 @@
 			{/each}
 		</ul>
 		{#if error}<p class="text-destructive text-sm" role="alert">{error}</p>{/if}
-		<Button onclick={resume} disabled={!ready || busy}>Resume sync</Button>
+		<div class="flex flex-wrap items-center gap-3">
+			<Button onclick={resume} disabled={!ready || busy}>Resume sync</Button>
+			{#if !ready}
+				<p class="text-muted-foreground text-sm">Pick a side for every page to resume.</p>
+			{/if}
+		</div>
 	</section>
 {/if}
 

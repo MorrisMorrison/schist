@@ -224,6 +224,8 @@ export const githubActions = {
 		} catch (error) {
 			const { code } = parseError(error);
 			githubState.syncErrorCode = code ?? null;
+			// An earlier success must not show next to the pages a pause waits on.
+			if (code === 'SYNC_CONFLICT') githubState.lastSyncResult = null;
 			// A paused sync is not a failure: the settings list the pages waiting for a side.
 			githubState.error =
 				code === 'SYNC_CONFLICT'

@@ -75,9 +75,15 @@ describe('SyncConflicts', () => {
 		expect(resume).toBeDisabled();
 
 		const rows = screen.getAllByTestId('sync-conflict-row');
-		await userEvent.click(within(rows[0]).getByRole('button', { name: "Keep Schist's" }));
-		await userEvent.click(within(rows[1]).getByRole('button', { name: "Take GitHub's" }));
+		expect(screen.getByText('Pick a side for every page to resume.')).toBeVisible();
+		await userEvent.click(
+			within(rows[0]).getByRole('button', { name: "Keep Schist's version of plan.md" })
+		);
+		await userEvent.click(
+			within(rows[1]).getByRole('button', { name: "Take GitHub's version of notes/a.md" })
+		);
 		expect(resume).toBeEnabled();
+		expect(screen.queryByText('Pick a side for every page to resume.')).toBeNull();
 		await userEvent.click(resume);
 
 		expect(githubActions.syncToGitHub).toHaveBeenCalledWith({
@@ -98,9 +104,13 @@ describe('SyncConflicts', () => {
 
 	it('shows the diff of a page on click', async () => {
 		render(SyncConflicts);
-		await userEvent.click(screen.getByRole('button', { name: 'plan.md' }));
+		const toggle = screen.getByRole('button', { name: 'plan.md' });
+		expect(toggle).toHaveAttribute('type', 'button');
+		expect(toggle).toHaveAttribute('aria-expanded', 'false');
+		await userEvent.click(toggle);
 		expect(githubActions.loadConflict).toHaveBeenCalledWith('plan.md');
 		expect(await screen.findByTestId('sync-conflict-diff')).toBeVisible();
+		expect(toggle).toHaveAttribute('aria-expanded', 'true');
 	});
 
 	it('does not show a new pause as an error, but shows other failures', async () => {

@@ -247,7 +247,9 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 
 	async function doKeepMine(): Promise<boolean> {
 		if (!stale) return true;
-		const { current, reason } = stale;
+		const decision = stale;
+		const { current, reason } = decision;
+		const before = { path, version: document.version };
 		if (reason !== 'changed') {
 			// The old page is gone or unreadable, so there is nothing to move: write
 			// straight to where the text belongs (the same path when the title is
@@ -261,7 +263,15 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		}
 		document = { ...document, version: current?.version };
 		stale = null;
-		return save('manual');
+		const saved = await save('manual');
+		if (!saved && !stale) {
+			// The save failed (network...): keep the decision open, so no later
+			// save goes out on the version meant only for this one.
+			path = before.path;
+			document = { ...document, version: before.version };
+			stale = decision;
+		}
+		return saved;
 	}
 
 	/** Forgets unsaved edits without saving (the document is being deleted). */

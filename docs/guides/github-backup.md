@@ -12,10 +12,10 @@ Push the wiki's git history to a GitHub repository, by hand, after every change 
    | Option | When it pushes |
    |---|---|
    | *(neither)* | Only when you click **Sync** on the **Sync** tab. |
-   | **Back up after every change** | 30 seconds after the last change, and at most 5 minutes after the first unpushed one. A burst of edits makes one push. |
-   | **Back up every N minutes** | On a fixed interval, set by `SCHIST_GITHUB_AUTO_SYNC_MINUTES` (default 15). |
+   | **Back up N minutes after the last edit** (recommended) | N minutes after you stop editing (1 to 60, default 2). Every edit restarts the countdown, so a writing session makes one push. While you keep editing, a backup still runs at least every 30 minutes. |
+   | **Back up every N minutes** | On a fixed interval, set by `SCHIST_GITHUB_AUTO_SYNC_MINUTES` (default 15). Can be combined with the option above. |
 
-Every change counts: edits in the app, API and MCP writes, imports, moves and deletes. Backups run in the background and never slow down or fail a save.
+Every change counts: autosaves while you type, saves, API and MCP writes, imports, moves and deletes. A backup first commits anything that's only been autosaved, then pushes. Backups run in the background and never slow down or fail a save.
 
 **Status** in Settings shows the last successful sync and the last error, including errors from background syncs.
 

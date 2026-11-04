@@ -22,6 +22,9 @@
 	let branch = $state('main');
 	let syncOnSave = $state(false);
 	let autoSync = $state(false);
+	// Minutes after the last edit that "back up after the last edit" waits.
+	const DEFAULT_SYNC_DELAY = 2;
+	let syncDelayMinutes = $state<number | null>(DEFAULT_SYNC_DELAY);
 	let formError = $state('');
 	let tokenChanged = $state(false);
 
@@ -48,6 +51,7 @@
 			branch = githubStore.settings.branch || 'main';
 			syncOnSave = githubStore.settings.sync_on_save;
 			autoSync = githubStore.settings.auto_sync;
+			syncDelayMinutes = githubStore.settings.sync_delay_minutes ?? DEFAULT_SYNC_DELAY;
 			tokenChanged = false;
 		}
 	});
@@ -59,7 +63,8 @@
 		githubStore.connectionStatus && githubStore.connectionStatus.connected && githubStore.settings
 			? branch !== githubStore.settings.branch ||
 					syncOnSave !== githubStore.settings.sync_on_save ||
-					autoSync !== githubStore.settings.auto_sync
+					autoSync !== githubStore.settings.auto_sync ||
+					syncDelayMinutes !== (githubStore.settings.sync_delay_minutes ?? DEFAULT_SYNC_DELAY)
 			: canTestConnection
 	);
 	const lastSyncFailed = $derived(Boolean(githubStore.settings?.last_sync_error));
@@ -140,6 +145,15 @@
 			formError = 'Branch name is required';
 			return false;
 		}
+		if (
+			syncDelayMinutes === null ||
+			!Number.isInteger(syncDelayMinutes) ||
+			syncDelayMinutes < 1 ||
+			syncDelayMinutes > 60
+		) {
+			formError = 'The backup delay must be 1 to 60 minutes.';
+			return false;
+		}
 
 		formError = '';
 		return true;
@@ -170,7 +184,8 @@
 			repo: repository.trim(),
 			branch: branch.trim(),
 			auto_sync: autoSync,
-			sync_on_save: syncOnSave
+			sync_on_save: syncOnSave,
+			sync_delay_minutes: syncDelayMinutes ?? DEFAULT_SYNC_DELAY
 		};
 
 		try {
@@ -186,6 +201,7 @@
 			await githubActions.updateSettings({
 				auto_sync: autoSync,
 				sync_on_save: syncOnSave,
+				sync_delay_minutes: syncDelayMinutes ?? DEFAULT_SYNC_DELAY,
 				branch: branch.trim()
 			});
 		} catch {
@@ -298,8 +314,11 @@
 	<!-- Only the active panel is rendered, so the hidden one keeps no stale results. -->
 	<Tabs.Content value="setup">
 		{#if activeTab === 'setup'}
+			<!-- novalidate: validateForm / validateSettingsUpdate check every field
+			     and show the app's own message instead of a browser tooltip. -->
 			<form
 				class="space-y-6"
+				novalidate
 				onsubmit={(e) => {
 					e.preventDefault();
 					if (isConnected) {
@@ -379,13 +398,31 @@
 							tab.
 						</p>
 
-						<label class="flex items-center space-x-2">
+						<div class="flex flex-wrap items-center gap-2">
 							<Checkbox
+								id="github-sync-on-save"
 								checked={syncOnSave}
 								onCheckedChange={(checked) => (syncOnSave = checked)}
+								aria-label="Back up after the last edit"
 							/>
-							<span class="text-sm">Back up after every change</span>
-						</label>
+							<Label for="github-sync-on-save" class="text-sm font-normal">Back up</Label>
+							<Input
+								type="number"
+								min="1"
+								max="60"
+								step="1"
+								inputmode="numeric"
+								class="h-8 w-16"
+								bind:value={syncDelayMinutes}
+								aria-label="Minutes after the last edit"
+								data-testid="github-sync-delay-input"
+							/>
+							<span class="text-sm">minutes after the last edit</span>
+						</div>
+						<p class="text-muted-foreground -mt-1 pl-6 text-xs">
+							Every edit, autosaves included, restarts the countdown. While you keep editing, a
+							backup still runs at least every 30 minutes.
+						</p>
 
 						<label class="flex items-center space-x-2">
 							<Checkbox checked={autoSync} onCheckedChange={(checked) => (autoSync = checked)} />

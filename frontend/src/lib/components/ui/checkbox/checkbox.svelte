@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { cn } from '#lib/utils.ts';
+	import type { HTMLButtonAttributes } from 'svelte/elements';
 
-	interface Props {
+	// Other button attributes (id, aria-label, aria-describedby, data-*) go on
+	// the button, so a <Label for> or an aria-label names the checkbox.
+	interface Props extends Omit<
+		HTMLButtonAttributes,
+		'type' | 'role' | 'value' | 'onclick' | 'class' | 'disabled'
+	> {
 		checked?: boolean;
 		disabled?: boolean;
 		required?: boolean;
@@ -20,7 +26,8 @@
 		value,
 		class: className = '',
 		onCheckedChange,
-		onclick
+		onclick,
+		...restProps
 	}: Props = $props();
 
 	function handleChange() {
@@ -31,6 +38,8 @@
 </script>
 
 <button
+	data-testid="checkbox"
+	{...restProps}
 	type="button"
 	role="checkbox"
 	aria-checked={checked}
@@ -42,7 +51,6 @@
 		className
 	)}
 	data-state={checked ? 'checked' : 'unchecked'}
-	data-testid="checkbox"
 	onclick={(e) => {
 		onclick?.(e);
 		handleChange();

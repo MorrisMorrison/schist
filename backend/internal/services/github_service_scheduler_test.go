@@ -37,7 +37,7 @@ func newTestScheduler(t *testing.T, p *schedulerProbe, debounce, maxWait, interv
 		},
 		syncOnSave: p.onSave.Load,
 		autoSync:   p.auto.Load,
-		debounce:   debounce,
+		debounce:   func() time.Duration { return debounce },
 		maxWait:    maxWait,
 		interval:   interval,
 	})

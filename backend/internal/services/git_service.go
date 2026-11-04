@@ -57,10 +57,19 @@ type GitService struct {
 // SetCommitHook registers fn to run after every successful document commit
 // (saves, moves, deletes, restores, imports: everything that goes through
 // CommitDocuments). Call it once while wiring services, before serving
-// requests. fn must return quickly and can't fail the commit; GitHub's sync
-// on save uses it to schedule a push.
+// requests. fn must return quickly and can't fail the commit; GitHub's backup
+// after edits uses it to schedule a push. NotifyChanged calls it too.
 func (gs *GitService) SetCommitHook(fn func()) {
 	gs.onCommit = fn
+}
+
+// NotifyChanged reports a document change that isn't committed (an editor
+// autosave), so backup after edits restarts its countdown; the backup's own
+// commit picks the change up.
+func (gs *GitService) NotifyChanged() {
+	if gs != nil && gs.onCommit != nil {
+		gs.onCommit()
+	}
 }
 
 type DocumentVersion struct {

@@ -90,7 +90,10 @@
 				{:else}
 					<div class="space-y-2">
 						{#each passkeyStore.passkeys as passkey (passkey.id)}
-							<div class="flex items-center justify-between rounded-lg border p-3">
+							<div
+								class="flex items-center justify-between rounded-lg border p-3"
+								data-testid="passkey-item"
+							>
 								<div class="flex-1">
 									<div class="flex items-center space-x-2">
 										<Key class="text-primary h-4 w-4" />

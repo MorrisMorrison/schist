@@ -26,10 +26,10 @@ Two-way sync also brings in changes made on GitHub or in a clone of the reposito
 ### Turn it on
 
 1. Set up backup as described above.
-2. Under **Settings → GitHub**, choose **Two-way sync** as the **Sync mode**.
+2. Under **Settings → GitHub**, open the **Sync** tab and choose **Two-way sync** as the **Sync mode**.
 3. Schist shows a preview of the first sync: what comes into the wiki (new, changed and deleted files), what goes to GitHub, pages changed in both places, and notes it can't read yet. Read it, then confirm.
 
-Turning it on also turns on automatic sync. The default interval is 5 minutes. Set `SCHIST_GITHUB_AUTO_SYNC_MINUTES` to change it. Choosing **Backup only** again goes back to push-only.
+Turning it on also turns on automatic sync. The default interval is 5 minutes. Set `SCHIST_GITHUB_AUTO_SYNC_MINUTES` to change it. Choosing **Backup only** again goes back to push-only. After that, edits pushed to GitHub (from Obsidian, say) make the branch diverge, and backups stop until you replace the GitHub branch or switch back to two-way sync.
 
 ### The rules
 

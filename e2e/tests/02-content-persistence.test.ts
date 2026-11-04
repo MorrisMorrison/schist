@@ -41,13 +41,24 @@ test.describe('Content Persistence and Data Integrity', () => {
 		await editorPage.typeContent('\n\nChanges from Editor 1');
 		await editorPage.save();
 		await editorPage2.typeContent('\n\nChanges from Editor 2');
-		await editorPage2.save();
 
+		// Editor 2 opened the page before editor 1 saved, so its save is refused
+		// instead of silently overwriting editor 1's change.
+		await editorPage2.contentEditor.press('Control+s');
+		const dialog = page2.getByTestId('stale-document-dialog');
+		await expect(dialog).toBeVisible();
 		await documentViewPage.openDocument(testDocument);
+		expect(await documentViewPage.getDocumentContent()).toContain('Changes from Editor 1');
 
-		// Last save wins: the second editor's change is what's stored.
-		const content = await documentViewPage.getDocumentContent();
-		expect(content).toContain('Changes from Editor 2');
+		// Keeping editor 2's text is an explicit choice; it is then what's stored.
+		await dialog.getByRole('button', { name: 'Keep mine' }).click();
+		await expect(dialog).toBeHidden();
+		await expect
+			.poll(async () => {
+				await documentViewPage.openDocument(testDocument);
+				return documentViewPage.getDocumentContent();
+			})
+			.toContain('Changes from Editor 2');
 
 		await page2.close();
 	});

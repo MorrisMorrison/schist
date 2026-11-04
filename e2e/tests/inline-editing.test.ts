@@ -87,7 +87,7 @@ test.describe('In-place editing', () => {
 		await documentViewPage.editDocument();
 		await editorPage.appendContent('\n\nNot meant to be kept.');
 		// An in-app link, so SvelteKit's navigation guard (not beforeunload) runs.
-		await page.getByRole('link', { name: 'Home' }).first().click();
+		await page.getByTestId('nav-logo').click();
 
 		const dialog = page.getByTestId('unsaved-changes-dialog');
 		await expect(dialog).toBeVisible();

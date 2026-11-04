@@ -108,7 +108,7 @@ setup('authenticate', async ({ page, request }) => {
 		await expect(page).toHaveURL(BASE_URL, { timeout: 45000 });
 
 		// Verify authenticated state
-		await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
+		await expect(page.locator('[data-testid="nav-logo"]').first()).toBeVisible();
 
 		// Save authentication state
 		await page.context().storageState({ path: authFile });

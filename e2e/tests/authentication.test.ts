@@ -76,12 +76,12 @@ test.describe('Passkey Authentication System', () => {
 			// protected pages directly (no redirect to login)...
 			await page.goto(BASE_URL);
 			await expect(page).toHaveURL(BASE_URL);
-			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
+			await expect(page.locator('[data-testid="nav-logo"]').first()).toBeVisible();
 
 			// ...and survive a reload
 			await page.reload();
 			await expect(page).toHaveURL(BASE_URL);
-			await expect(page.locator('[data-testid="nav-home"]').first()).toBeVisible();
+			await expect(page.locator('[data-testid="nav-logo"]').first()).toBeVisible();
 		});
 
 		test('should protect API endpoints when authentication is enabled', async ({ apiHelper }) => {

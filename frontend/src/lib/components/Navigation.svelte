@@ -75,17 +75,19 @@
 		}
 	});
 
+	interface NavLink {
+		href: string;
+		label: string;
+		active: boolean;
+		testId: string;
+		mobileTestId: string;
+	}
+
 	// The page links, shown in the bar on desktop and in the menu on mobile.
-	// Recent lives on Home now (the Recent list), so Home is the only link.
-	const navLinks = $derived([
-		{
-			href: '/',
-			label: 'Home',
-			active: page.url.pathname === '/' || page.url.pathname.startsWith('/folders'),
-			testId: 'nav-home',
-			mobileTestId: 'nav-home-mobile'
-		}
-	]);
+	// Empty for now: Home is the only page and the logo already links to it.
+	// Kept so a future page only needs an entry here, e.g.
+	// { href: '/x', label: 'X', active: page.url.pathname.startsWith('/x'), testId: 'nav-x', mobileTestId: 'nav-x-mobile' }
+	const navLinks: NavLink[] = [];
 
 	// Load secrets status on mount and whenever the auth state changes
 	$effect(() => {
@@ -118,7 +120,12 @@
 						<PanelLeftOpen class="size-5" />
 					{/if}
 				</Button>
-				<a href="/" class="flex items-center gap-1 no-underline hover:no-underline">
+				<a
+					href="/"
+					class="flex items-center gap-1 no-underline hover:no-underline"
+					title="Home"
+					data-testid="nav-logo"
+				>
 					<img src="/icon-128x128.png" alt="Schist Logo" class="h-8 w-8 object-contain" />
 					<span class="text-foreground text-lg font-semibold tracking-tight">Schist</span>
 				</a>

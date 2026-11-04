@@ -19,9 +19,24 @@
 		reason?: 'changed' | 'deleted' | 'unreadable';
 		/** For a deleted or unreadable page: drop my edits (copied to the clipboard first). */
 		onDiscard?: () => void;
+		/** Why the last choice did not go through (it is hidden behind the dialog otherwise). */
+		error?: string;
+		/** A choice is running: the buttons wait. */
+		busy?: boolean;
+		/** Closes the dialog to fix something by hand; the next save asks again. */
+		onBack?: () => void;
 	}
 
-	let { open, onLoadCurrent, onKeepMine, reason = 'changed', onDiscard }: Props = $props();
+	let {
+		open,
+		onLoadCurrent,
+		onKeepMine,
+		reason = 'changed',
+		onDiscard,
+		error = '',
+		busy = false,
+		onBack
+	}: Props = $props();
 </script>
 
 <Dialog {open}>
@@ -53,12 +68,18 @@
 				</DialogDescription>
 			{/if}
 		</DialogHeader>
+		{#if error}
+			<p class="text-destructive text-sm" role="alert">{error}</p>
+		{/if}
 		<DialogFooter>
-			<Button variant="outline" onclick={onKeepMine}>Keep mine</Button>
+			{#if onBack}
+				<Button variant="ghost" disabled={busy} onclick={onBack}>Back to editor</Button>
+			{/if}
+			<Button variant="outline" disabled={busy} onclick={onKeepMine}>Keep mine</Button>
 			{#if reason === 'changed'}
-				<Button onclick={onLoadCurrent}>Load the new version</Button>
+				<Button disabled={busy} onclick={onLoadCurrent}>Load the new version</Button>
 			{:else}
-				<Button onclick={() => onDiscard?.()}>Discard my changes</Button>
+				<Button disabled={busy} onclick={() => onDiscard?.()}>Discard my changes</Button>
 			{/if}
 		</DialogFooter>
 	</DialogContent>

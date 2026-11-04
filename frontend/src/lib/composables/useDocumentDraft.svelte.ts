@@ -50,6 +50,10 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	 * unreadable (no current page).
 	 */
 	let stale = $state<{ current: Document | null; reason: StaleReason } | null>(null);
+	/** The user closed the stale dialog to fix something by hand; the next save reopens it. */
+	let staleDismissed = $state(false);
+	/** A way out of the stale state (keep, load, discard) is running. */
+	let resolving = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	// Saves run one at a time; a save requested meanwhile waits for the running one.
@@ -139,6 +143,7 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 				if (reason) {
 					clearAutoSave();
 					stale = { current: current ?? null, reason };
+					staleDismissed = false;
 					return false;
 				}
 			}
@@ -155,6 +160,11 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	/** Saves if there is anything to save. Resolves false when it could not. */
 	async function save(kind: SaveKind = 'manual'): Promise<boolean> {
 		clearAutoSave();
+		if (stale) {
+			// Still waiting for a decision: ask again instead of sending a doomed request.
+			staleDismissed = false;
+			return false;
+		}
 		while (running) await running;
 		running = doSave(kind);
 		try {
@@ -167,7 +177,16 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 	/** Takes the page as it is now; my text goes to the clipboard first. */
 	async function loadCurrent() {
 		const current = stale?.current;
-		if (!current) return;
+		if (!current || resolving) return;
+		resolving = true;
+		try {
+			await doLoadCurrent(current);
+		} finally {
+			resolving = false;
+		}
+	}
+
+	async function doLoadCurrent(current: Document) {
 		const copyFailed = !(await copyToClipboard(content));
 		document = current;
 		path = routePath(current.metaData.path);
@@ -192,7 +211,16 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 
 	/** The page is gone (or unreadable): my text goes to the clipboard, the editor is left clean. */
 	async function discardMine() {
-		if (!stale) return;
+		if (!stale || resolving) return;
+		resolving = true;
+		try {
+			await doDiscardMine();
+		} finally {
+			resolving = false;
+		}
+	}
+
+	async function doDiscardMine() {
 		if (!(await copyToClipboard(content))) {
 			// Never throw the text away unless it is safe somewhere else.
 			error =
@@ -207,6 +235,17 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 
 	/** Saves my text over the newer page; the other version stays in history. */
 	async function keepMine(): Promise<boolean> {
+		if (resolving) return false;
+		if (!stale) return true;
+		resolving = true;
+		try {
+			return await doKeepMine();
+		} finally {
+			resolving = false;
+		}
+	}
+
+	async function doKeepMine(): Promise<boolean> {
 		if (!stale) return true;
 		const { current, reason } = stale;
 		if (reason !== 'changed') {
@@ -266,6 +305,17 @@ export function useDocumentDraft(options: DocumentDraftOptions) {
 		/** Why a save was refused as stale, or null while nothing is. */
 		get staleReason(): StaleReason | null {
 			return stale?.reason ?? null;
+		},
+		/** Whether the stale dialog should show: stale, and not closed by the user. */
+		get staleOpen() {
+			return stale !== null && !staleDismissed;
+		},
+		get resolving() {
+			return resolving;
+		},
+		/** Closes the stale dialog without deciding; the next save asks again. */
+		dismissStale() {
+			if (stale) staleDismissed = true;
 		},
 		loadCurrent,
 		discardMine,

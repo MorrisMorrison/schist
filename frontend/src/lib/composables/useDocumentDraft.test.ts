@@ -402,6 +402,52 @@ describe('useDocumentDraft', () => {
 		expect(draft.error).toContain("Couldn't copy");
 	});
 
+	it('Back to editor hides the dialog; the next save shows it again without a request', async () => {
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+		expect(draft.staleOpen).toBe(true);
+
+		draft.dismissStale();
+		expect(draft.staleOpen).toBe(false);
+		expect(draft.staleReason).toBe('deleted');
+
+		expect(await draft.save('manual')).toBe(false);
+		expect(update).toHaveBeenCalledTimes(1);
+		expect(draft.staleOpen).toBe(true);
+	});
+
+	it('ignores a second keepMine while one is running', async () => {
+		update.mockRejectedValueOnce(
+			new Error(
+				JSON.stringify({
+					error: 'gone',
+					code: 'DOCUMENT_CHANGED',
+					details: { document: null, deleted: true }
+				})
+			)
+		);
+		const draft = useDocumentDraft({ document: { ...makeDoc(), version: 'v1' } });
+		draft.setContent('# Plan\n\nMine');
+		await draft.save('manual');
+
+		const first = draft.keepMine();
+		expect(draft.resolving).toBe(true);
+		expect(await draft.keepMine()).toBe(false);
+		await first;
+		expect(update).toHaveBeenCalledTimes(2);
+		expect(draft.resolving).toBe(false);
+	});
+
 	it('discardMine copies my text to the clipboard and leaves the editor clean', async () => {
 		const writeText = vi.fn().mockResolvedValue(undefined);
 		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });

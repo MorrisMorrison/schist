@@ -202,7 +202,10 @@
 />
 
 <StaleDocumentDialog
-	open={draft.staleReason !== null}
+	open={draft.staleOpen}
+	error={draft.error}
+	busy={draft.resolving}
+	onBack={() => draft.dismissStale()}
 	reason={draft.staleReason ?? 'changed'}
 	onLoadCurrent={() => void loadCurrent()}
 	onKeepMine={() => void draft.keepMine()}

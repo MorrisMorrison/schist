@@ -41,6 +41,31 @@ describe('StaleDocumentDialog', () => {
 		expect(screen.getByRole('button', { name: 'Discard my changes' })).toBeVisible();
 	});
 
+	it('shows why a choice did not go through, and can step back to the editor', async () => {
+		const onBack = vi.fn();
+		render(StaleDocumentDialog, {
+			props: {
+				open: true,
+				reason: 'deleted',
+				error: 'nothing was discarded',
+				onLoadCurrent: vi.fn(),
+				onKeepMine: vi.fn(),
+				onBack
+			}
+		});
+		expect(await screen.findByRole('alert')).toHaveTextContent('nothing was discarded');
+		await userEvent.click(screen.getByRole('button', { name: 'Back to editor' }));
+		expect(onBack).toHaveBeenCalledOnce();
+	});
+
+	it('disables the choices while one is running', async () => {
+		render(StaleDocumentDialog, {
+			props: { open: true, busy: true, onLoadCurrent: vi.fn(), onKeepMine: vi.fn() }
+		});
+		expect(await screen.findByRole('button', { name: 'Keep mine' })).toBeDisabled();
+		expect(screen.getByRole('button', { name: 'Load the new version' })).toBeDisabled();
+	});
+
 	it('renders nothing while closed', () => {
 		render(StaleDocumentDialog, {
 			props: { open: false, onLoadCurrent: vi.fn(), onKeepMine: vi.fn() }

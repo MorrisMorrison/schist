@@ -34,13 +34,20 @@ test.describe('Markdown Features', () => {
 		const preview = await previewNewDocument(editorPage, '# Test Wiki Links\n\n[[Test Document]]');
 		await expect(preview.locator('.wiki-link')).toBeVisible();
 
-		// Wiki link should be red (broken link) initially
+		// The page doesn't exist yet, so the link is broken. Its look comes from the
+		// theme (--link-broken, a dashed underline), so check the rendered style
+		// rather than class names.
 		const wikiLink = preview.locator('.wiki-link');
 		await expect(wikiLink).toHaveClass(/broken-link/);
-		await expect(wikiLink).toHaveClass(/text-red-500/);
+		await expect(wikiLink).toHaveCSS('text-decoration-style', 'dashed');
+		const colours = await wikiLink.evaluate((el) => ({
+			link: getComputedStyle(el).color,
+			text: getComputedStyle(el.parentElement!).color
+		}));
+		expect(colours.link).not.toBe(colours.text);
 
 		// Broken links should not be clickable
-		await expect(wikiLink).toHaveClass(/cursor-default/);
+		await expect(wikiLink).toHaveCSS('cursor', 'default');
 	});
 
 	test('image rendering works in preview', async ({ editorPage }) => {

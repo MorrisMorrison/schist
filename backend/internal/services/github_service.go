@@ -20,6 +20,7 @@ import (
 
 	appconfig "github.com/MorrisMorrison/schist/internal/config"
 	apierrors "github.com/MorrisMorrison/schist/internal/errors"
+	"github.com/MorrisMorrison/schist/internal/syncplan"
 )
 
 const (
@@ -53,9 +54,11 @@ type GitHubService struct {
 	scheduler *syncScheduler
 
 	// onPulled, if set, gets the page paths a pull changed (wired to the link
-	// index). beforeApply is a test hook that runs just before applying.
+	// index). beforeApply is a test hook that runs just before applying;
+	// beforePush is one that runs at the start of each push.
 	onPulled    func(pages []string)
 	beforeApply func()
+	beforePush  func()
 }
 
 // SetPullHook registers fn to run with the pages a pull changed.
@@ -121,6 +124,12 @@ type GitHubSyncOptions struct {
 	// the two have diverged (a force push). The user confirms it for one sync;
 	// it is never stored.
 	ReplaceRemote bool `json:"replace_remote,omitempty"`
+
+	// Resolutions picks a side ("local" or "remote") for pages a paused
+	// two-way sync found changed on both sides; RemoteHead is the GitHub
+	// commit they were decided against.
+	Resolutions map[string]string `json:"resolutions,omitempty"`
+	RemoteHead  string            `json:"remote_head,omitempty"`
 }
 
 // GitHubConnectionTestResult describes a successful connection test.
@@ -636,6 +645,10 @@ func (gs *GitHubService) sync(opts GitHubSyncOptions) (*GitHubSyncResult, error)
 			WithCause(err)
 	}
 
+	if githubSettings.TwoWay() && !opts.ReplaceRemote {
+		return gs.syncTwoWay(opts)
+	}
+
 	// The stored ForcePush (not settable through the API) still applies, for
 	// anyone who set it by hand in config.json.
 	if err := gs.pushToGitHub(opts.ReplaceRemote || githubSettings.ForcePush); err != nil {
@@ -647,6 +660,88 @@ func (gs *GitHubService) sync(opts GitHubSyncOptions) (*GitHubSyncResult, error)
 		Message:   "GitHub sync completed successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}, nil
+}
+
+// maxTwoWayAttempts bounds how often a sync re-pulls when GitHub moves
+// while it pushes (Obsidian pushing at the same moment).
+const maxTwoWayAttempts = 3
+
+// syncTwoWay pulls, then pushes. It pauses on pages changed on both sides
+// unless opts resolves them, and starts over when the wiki or GitHub moved.
+func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, error) {
+	resolutions, err := gs.resolutionsFor(opts)
+	if err != nil {
+		return nil, err
+	}
+	for attempt := 0; attempt < maxTwoWayAttempts; attempt++ {
+		out, _, err := gs.pullOnce(resolutions, false)
+		if stderrors.Is(err, errHeadMoved) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if len(out.Conflicts) > 0 {
+			gs.recordPause(out.Conflicts, out.RemoteHead.String(), out.Unreadable)
+			return nil, apierrors.NewSyncConflictError(out.Conflicts, out.RemoteHead.String())
+		}
+		err = gs.pushToGitHub(false)
+		if errorCodeOf(err) == apierrors.ErrCodeSyncRemoteDiverged {
+			continue // GitHub moved since the fetch: pull again
+		}
+		if err != nil {
+			return nil, err
+		}
+		gs.recordPause(nil, "", out.Unreadable)
+		return &GitHubSyncResult{Success: true, Message: "GitHub sync completed successfully",
+			Timestamp: time.Now().Format(time.RFC3339)}, nil
+	}
+	return nil, apierrors.NewUnavailableError("GitHub (the branch kept changing during the sync; it retries on the next sync)")
+}
+
+// resolutionsFor turns the request's choices into planner resolutions, each
+// tied to the page's blob at the GitHub commit the user decided against.
+func (gs *GitHubService) resolutionsFor(opts GitHubSyncOptions) (map[string]syncplan.Resolution, error) {
+	if len(opts.Resolutions) == 0 {
+		return nil, nil
+	}
+	repo, err := gs.localRepository()
+	if err != nil {
+		return nil, err
+	}
+	decidedTree, err := commitTree(repo, plumbing.NewHash(opts.RemoteHead))
+	if err != nil {
+		return nil, apierrors.NewValidationError("remote_head is not a commit this wiki has fetched").WithCause(err)
+	}
+	out := map[string]syncplan.Resolution{}
+	for path, side := range opts.Resolutions {
+		if side != string(syncplan.SideLocal) && side != string(syncplan.SideRemote) {
+			return nil, apierrors.NewValidationError(fmt.Sprintf("resolution for %s must be local or remote", path))
+		}
+		out[path] = syncplan.Resolution{Side: syncplan.Side(side), RemoteBlob: decidedTree[path]}
+	}
+	return out, nil
+}
+
+// recordPause stores (or, with no conflicts, clears) the paused state.
+func (gs *GitHubService) recordPause(conflicts []string, remoteHead string, unreadable []string) {
+	if err := gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
+		st.GitHub.SyncConflicts = conflicts
+		st.GitHub.PausedRemoteHead = remoteHead
+		st.GitHub.Unreadable = unreadable
+		return nil
+	}); err != nil {
+		log.Printf("[GitHubService] Warning: failed to record the sync pause: %v", err)
+	}
+}
+
+// errorCodeOf is the API error code of err, or "" for other errors.
+func errorCodeOf(err error) apierrors.ErrorCode {
+	var apiErr *apierrors.APIError
+	if stderrors.As(err, &apiErr) {
+		return apiErr.Code
+	}
+	return ""
 }
 
 // recordSyncOutcome stores when the sync ran and how it ended. Only the sync
@@ -889,6 +984,9 @@ func (gs *GitHubService) pushToGitHub(replaceRemote bool) error {
 	repo, err := gs.localRepository()
 	if err != nil {
 		return err
+	}
+	if gs.beforePush != nil {
+		gs.beforePush()
 	}
 
 	githubSettings := gs.settings.GetGitHubSettings()

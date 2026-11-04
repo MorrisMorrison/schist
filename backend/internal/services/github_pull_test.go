@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	appconfig "github.com/MorrisMorrison/schist/internal/config"
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/syncplan"
 )
 
@@ -292,4 +293,60 @@ func remoteBlob(t *testing.T, f *githubFixture, head plumbing.Hash, path string)
 	tree, err := commitTree(f.gs.gitService.repository, head)
 	require.NoError(t, err)
 	return tree[path]
+}
+
+func TestSync_TwoWayPausesThenResumesWithResolutions(t *testing.T) {
+	f, remoteDir := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian")})
+	writeNote(t, f.dataDir, "plan.md", page("Plan", "schist"))
+
+	_, err := f.gs.SyncToGitHub()
+	assert.Equal(t, apierrors.ErrCodeSyncConflict, errorCode(err))
+	s := f.settings.GetGitHubSettings()
+	assert.Equal(t, []string{"plan.md"}, s.SyncConflicts)
+	require.NotEmpty(t, s.PausedRemoteHead)
+
+	_, err = f.gs.Sync(GitHubSyncOptions{
+		Resolutions: map[string]string{"plan.md": "local"}, RemoteHead: s.PausedRemoteHead,
+	})
+	require.NoError(t, err)
+	s = f.settings.GetGitHubSettings()
+	assert.Empty(t, s.SyncConflicts)
+	assert.Empty(t, s.PausedRemoteHead)
+	head, _ := f.gs.gitService.repository.Head()
+	assert.Equal(t, head.Hash(), remoteBranchHash(t, remoteDir, "main"), "pushed")
+}
+
+func TestSync_BackupModeUnchanged(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	require.NoError(t, f.settings.Update(f.dataDir, func(st *appconfig.Settings) error {
+		st.GitHub.Mode = ""
+		return nil
+	}))
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian")})
+	writeNote(t, f.dataDir, "notes.md", page("Notes", "local"))
+
+	_, err := f.gs.SyncToGitHub()
+	assert.Equal(t, apierrors.ErrCodeSyncRemoteDiverged, errorCode(err))
+}
+
+func TestSync_TwoWayRetriesWhenTheRemoteMovesDuringPush(t *testing.T) {
+	f, remoteDir := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	moved := false
+	f.gs.beforePush = func() {
+		if !moved {
+			moved = true
+			push(map[string]string{"race.md": page("Race", "pushed meanwhile")})
+		}
+	}
+	writeNote(t, f.dataDir, "notes.md", page("Notes", "local"))
+
+	_, err := f.gs.SyncToGitHub()
+	require.NoError(t, err)
+	assert.Contains(t, remoteFiles(t, remoteDir, "main"), "race.md")
+	_, statErr := os.Stat(filepath.Join(f.dataDir, "race.md"))
+	assert.NoError(t, statErr)
 }

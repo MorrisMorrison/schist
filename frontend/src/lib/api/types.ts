@@ -280,6 +280,8 @@ export interface GitHubSettings {
 	last_sync_error_code?: ErrorCode;
 	/** The server's automatic backup interval (SCHIST_GITHUB_AUTO_SYNC_MINUTES). */
 	auto_sync_interval_minutes?: number;
+	/** How many minutes after the last edit "back up after the last edit" runs. */
+	sync_delay_minutes?: number;
 }
 
 export interface GitHubConnectionStatus {
@@ -303,11 +305,13 @@ export interface GitHubSetupRequest {
 	branch?: string;
 	auto_sync?: boolean;
 	sync_on_save?: boolean;
+	sync_delay_minutes?: number;
 }
 
 export interface GitHubConfigRequest {
 	auto_sync?: boolean;
 	sync_on_save?: boolean;
+	sync_delay_minutes?: number;
 	branch?: string;
 }
 

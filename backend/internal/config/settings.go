@@ -39,6 +39,9 @@ type GitHubSettings struct {
 	Branch     string                 `json:"branch"`
 	AutoSync   bool                   `json:"auto_sync"`
 	SyncOnSave bool                   `json:"sync_on_save"`
+	// SyncDelayMinutes is how long backup after edits waits after the last
+	// edit (1 to 60; 0 means the default).
+	SyncDelayMinutes int `json:"sync_delay_minutes,omitempty"`
 	// ForcePush opts in to force-pushing to the remote branch. It is false by
 	// default, keeping the safe fast-forward-only push behavior. Only enable it
 	// when you knowingly accept that remote history may be overwritten.

@@ -186,6 +186,8 @@ func (d *DocumentService) UpdateDocumentWithSaveType(document *models.Document, 
 		return d.commitDocumentChange(fmt.Sprintf("Update document: %s", document.MetaData.Path), document.MetaData.Path)
 	}
 
+	// An autosave isn't committed, but it still restarts the backup countdown.
+	d.gitService.NotifyChanged()
 	return nil
 }
 

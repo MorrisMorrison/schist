@@ -218,9 +218,9 @@ The secret store must be unlocked (with a passkey, `POST /api/passkeys/unlock`) 
 | Method | Endpoint | Does |
 |---|---|---|
 | `POST` | `/api/github/test` | Test a token and repository without saving: `{token, owner, repo, branch}`. `branch_exists: false` is fine; the first sync creates it |
-| `POST` | `/api/github/setup` | Save the backup: `{token, owner, repo, branch, auto_sync, sync_on_save}` |
-| `GET` | `/api/github/config` | The settings (never the token), the last sync, the last error and its code, and `auto_sync_interval_minutes` |
-| `PUT` | `/api/github/config` | Change `auto_sync`, `sync_on_save` or `branch` |
+| `POST` | `/api/github/setup` | Save the backup: `{token, owner, repo, branch, auto_sync, sync_on_save, sync_delay_minutes}` |
+| `GET` | `/api/github/config` | The settings (never the token), the last sync, the last error and its code, `auto_sync_interval_minutes` and `sync_delay_minutes` |
+| `PUT` | `/api/github/config` | Change `auto_sync`, `sync_on_save` (back up after the last edit), `sync_delay_minutes` (1 to 60, default 2; else `VALIDATION_ERROR`) or `branch` |
 | `GET` | `/api/github/connection-status` | `{connected, tokenExists, pendingChanges}` |
 | `POST` | `/api/github/sync` | Push now. `{"replace_remote": true}` force-pushes once over a diverged branch; send it only after the user confirms |
 | `POST` | `/api/github/disconnect` | Remove the backup settings and token |

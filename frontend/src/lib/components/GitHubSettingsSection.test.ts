@@ -176,7 +176,7 @@ describe('GitHubSettingsSection', () => {
 			await fillSetupForm();
 			await userEvent.clear(input('github-branch-input'));
 			await userEvent.type(input('github-branch-input'), 'docs');
-			await userEvent.click(screen.getByLabelText('Back up after every change'));
+			await userEvent.click(screen.getByLabelText('Back up after the last edit'));
 			await userEvent.click(screen.getByLabelText('Back up every 15 minutes'));
 			await userEvent.click(input('github-setup-button'));
 
@@ -186,7 +186,8 @@ describe('GitHubSettingsSection', () => {
 				repo: 'wiki',
 				branch: 'docs',
 				auto_sync: true,
-				sync_on_save: true
+				sync_on_save: true,
+				sync_delay_minutes: 2
 			});
 			expect(await screen.findByTestId('github-status-connected')).toBeInTheDocument();
 			expect(input('github-setup-button')).toHaveTextContent('Update Settings');
@@ -322,14 +323,48 @@ describe('GitHubSettingsSection', () => {
 			vi.mocked(apiClient.updateGitHubSettings).mockResolvedValue(undefined as never);
 			render(GitHubSettingsSection);
 			await userEvent.click(screen.getByLabelText('Back up every 30 minutes'));
-			await userEvent.click(screen.getByLabelText('Back up after every change'));
+			await userEvent.click(screen.getByLabelText('Back up after the last edit'));
 			expect(input('github-setup-button')).toBeEnabled();
 			await userEvent.click(input('github-setup-button'));
 			expect(apiClient.updateGitHubSettings).toHaveBeenCalledWith({
 				auto_sync: true,
 				sync_on_save: true,
+				sync_delay_minutes: 2,
 				branch: 'main'
 			});
+		});
+
+		it('sets how many minutes after the last edit the backup runs', async () => {
+			await seedConnected({ sync_on_save: true, sync_delay_minutes: 2 });
+			vi.mocked(apiClient.updateGitHubSettings).mockResolvedValue(undefined as never);
+			render(GitHubSettingsSection);
+
+			const delay = input('github-sync-delay-input');
+			expect(delay).toHaveValue(2);
+			expect(input('github-setup-button')).toBeDisabled();
+
+			await userEvent.clear(delay);
+			await userEvent.type(delay, '5');
+			expect(input('github-setup-button')).toBeEnabled();
+			await userEvent.click(input('github-setup-button'));
+			expect(apiClient.updateGitHubSettings).toHaveBeenCalledWith({
+				auto_sync: false,
+				sync_on_save: true,
+				sync_delay_minutes: 5,
+				branch: 'main'
+			});
+		});
+
+		it('refuses a delay outside 1 to 60 minutes', async () => {
+			await seedConnected({ sync_on_save: true, sync_delay_minutes: 2 });
+			render(GitHubSettingsSection);
+
+			const delay = input('github-sync-delay-input');
+			await userEvent.clear(delay);
+			await userEvent.type(delay, '90');
+			await userEvent.click(input('github-setup-button'));
+			expect(apiClient.updateGitHubSettings).not.toHaveBeenCalled();
+			expect(await screen.findByText(/1 to 60 minutes/)).toBeInTheDocument();
 		});
 
 		it('offers to replace a diverged branch only after confirming', async () => {

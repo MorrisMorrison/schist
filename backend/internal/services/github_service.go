@@ -70,6 +70,9 @@ type GitHubSettings struct {
 	// AutoSyncIntervalMinutes is the server's automatic backup interval
 	// (SCHIST_GITHUB_AUTO_SYNC_MINUTES).
 	AutoSyncIntervalMinutes int `json:"auto_sync_interval_minutes"`
+	// SyncDelayMinutes is how long backup after edits waits after the last
+	// edit (the setting, or the default).
+	SyncDelayMinutes int `json:"sync_delay_minutes"`
 }
 
 type GitHubConnectionStatus struct {
@@ -85,12 +88,16 @@ type GitHubSetupRequest struct {
 	Branch     string `json:"branch,omitempty"`
 	AutoSync   bool   `json:"auto_sync,omitempty"`
 	SyncOnSave bool   `json:"sync_on_save,omitempty"`
+	// SyncDelayMinutes is how long backup after edits waits (1 to 60).
+	SyncDelayMinutes *int `json:"sync_delay_minutes,omitempty"`
 }
 
 type GitHubConfigRequest struct {
 	AutoSync   *bool   `json:"auto_sync,omitempty"`
 	SyncOnSave *bool   `json:"sync_on_save,omitempty"`
 	Branch     *string `json:"branch,omitempty"`
+	// SyncDelayMinutes sets how long backup after edits waits (1 to 60).
+	SyncDelayMinutes *int `json:"sync_delay_minutes,omitempty"`
 }
 
 // GitHubSyncOptions changes how one sync pushes.
@@ -150,8 +157,8 @@ func NewGitHubService(
 		},
 		syncOnSave: service.ShouldSyncOnSave,
 		autoSync:   service.ShouldAutoSync,
-		debounce:   syncOnSaveDebounce,
-		maxWait:    syncOnSaveMaxWait,
+		debounce:   service.backupDelay,
+		maxWait:    syncAfterEditMaxWait,
 		interval:   service.autoSyncInterval(),
 	})
 
@@ -338,6 +345,9 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 	if err := validateRepoFields(req.Token, req.Owner, req.Repo); err != nil {
 		return nil, err
 	}
+	if err := validateBackupDelay(req.SyncDelayMinutes); err != nil {
+		return nil, err
+	}
 
 	// The token is stored encrypted: with the server key there's nothing to
 	// unlock; without one, setup needs the unlocked store. Check first: the
@@ -366,6 +376,9 @@ func (gs *GitHubService) SetupRepository(req *GitHubSetupRequest) (*GitHubRepoIn
 		Branch:     branch,
 		AutoSync:   req.AutoSync,
 		SyncOnSave: req.SyncOnSave,
+	}
+	if req.SyncDelayMinutes != nil {
+		githubSettings.SyncDelayMinutes = *req.SyncDelayMinutes
 	}
 
 	if err := gs.secretManager.SetGitHubToken(req.Token); err != nil {
@@ -423,7 +436,27 @@ func (gs *GitHubService) GetGitHubSettings() *GitHubSettings {
 		LastSyncError:           githubSettings.LastSyncError,
 		LastSyncErrorCode:       githubSettings.LastSyncErrorCode,
 		AutoSyncIntervalMinutes: int(gs.autoSyncInterval() / time.Minute),
+		SyncDelayMinutes:        int(gs.backupDelay() / time.Minute),
 	}
+}
+
+// validateBackupDelay accepts no value (keep the current one) or 1 to 60.
+func validateBackupDelay(minutes *int) error {
+	if minutes != nil && (*minutes < minBackupDelayMinutes || *minutes > maxBackupDelayMinutes) {
+		return apierrors.NewValidationError(fmt.Sprintf(
+			"The backup delay must be %d to %d minutes.", minBackupDelayMinutes, maxBackupDelayMinutes))
+	}
+	return nil
+}
+
+// backupDelay is how long backup after edits waits after the last edit: the
+// saved setting within its bounds, or the default.
+func (gs *GitHubService) backupDelay() time.Duration {
+	minutes := gs.settings.GetGitHubSettings().SyncDelayMinutes
+	if minutes < minBackupDelayMinutes || minutes > maxBackupDelayMinutes {
+		return defaultBackupDelay
+	}
+	return time.Duration(minutes) * time.Minute
 }
 
 // autoSyncInterval is the configured automatic backup interval.
@@ -485,6 +518,9 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 	if !githubSettings.Enabled {
 		return errGitHubNotEnabled()
 	}
+	if err := validateBackupDelay(req.SyncDelayMinutes); err != nil {
+		return err
+	}
 
 	// A branch that doesn't exist yet is fine (the next sync creates it);
 	// only a failed lookup stops the change.
@@ -508,6 +544,9 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 		}
 		if req.SyncOnSave != nil {
 			st.GitHub.SyncOnSave = *req.SyncOnSave
+		}
+		if req.SyncDelayMinutes != nil {
+			st.GitHub.SyncDelayMinutes = *req.SyncDelayMinutes
 		}
 		if req.Branch != nil && *req.Branch != "" {
 			st.GitHub.Branch = *req.Branch

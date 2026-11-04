@@ -8,13 +8,22 @@ import (
 )
 
 const (
-	// syncOnSaveDebounce is how long sync on save waits after the last
-	// commit, so a burst of saves (an import, a few quick edits) makes one push.
-	syncOnSaveDebounce = 30 * time.Second
-	// syncOnSaveMaxWait caps the wait while saves keep coming, so steady
+	// defaultBackupDelay is how long backup after edits waits after the last
+	// edit when no delay is set, like Obsidian Git's "after stopping edits".
+	defaultBackupDelay = 2 * time.Minute
+	// minBackupDelayMinutes and maxBackupDelayMinutes bound the setting.
+	minBackupDelayMinutes = 1
+	maxBackupDelayMinutes = 60
+	// syncAfterEditMaxWait caps the wait while edits keep coming, so steady
 	// editing still gets backed up.
-	syncOnSaveMaxWait = 5 * time.Minute
+	syncAfterEditMaxWait = 30 * time.Minute
 )
+
+// backupMaxWait is the longest backup after edits waits while edits keep
+// coming: the cap, or the delay itself when that is longer.
+func backupMaxWait(delay time.Duration) time.Duration {
+	return max(syncAfterEditMaxWait, delay)
+}
 
 type syncSchedulerConfig struct {
 	// sync runs one sync; its error is only logged (the sync records it).
@@ -23,7 +32,10 @@ type syncSchedulerConfig struct {
 	syncOnSave func() bool
 	autoSync   func() bool
 
-	debounce time.Duration
+	// debounce is the wait after the last change, read at each change so a
+	// changed setting applies to the next edit.
+	debounce func() time.Duration
+	// maxWait caps the wait while changes keep coming (never below debounce).
 	maxWait  time.Duration
 	interval time.Duration
 }
@@ -49,9 +61,9 @@ func newSyncScheduler(cfg syncSchedulerConfig) *syncScheduler {
 	return &syncScheduler{cfg: cfg}
 }
 
-// Notify reports a commit. When sync on save is on, it (re)starts the
-// debounce timer, firing no later than maxWait after the first unsynced
-// commit.
+// Notify reports a change (a commit or an autosave). When backup after edits
+// is on, it (re)starts the debounce timer, firing no later than maxWait after
+// the first unsynced change.
 func (s *syncScheduler) Notify() {
 	if !s.cfg.syncOnSave() {
 		return
@@ -66,8 +78,8 @@ func (s *syncScheduler) Notify() {
 	if s.firstPending.IsZero() {
 		s.firstPending = now
 	}
-	delay := s.cfg.debounce
-	if deadline := s.firstPending.Add(s.cfg.maxWait); now.Add(delay).After(deadline) {
+	delay := s.cfg.debounce()
+	if deadline := s.firstPending.Add(max(s.cfg.maxWait, delay)); now.Add(delay).After(deadline) {
 		delay = max(deadline.Sub(now), 0)
 	}
 	if s.timer != nil {

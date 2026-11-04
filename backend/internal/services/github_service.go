@@ -51,7 +51,15 @@ type GitHubService struct {
 	// share the local repository and the remote branch.
 	syncMu    sync.Mutex
 	scheduler *syncScheduler
+
+	// onPulled, if set, gets the page paths a pull changed (wired to the link
+	// index). beforeApply is a test hook that runs just before applying.
+	onPulled    func(pages []string)
+	beforeApply func()
 }
+
+// SetPullHook registers fn to run with the pages a pull changed.
+func (gs *GitHubService) SetPullHook(fn func(pages []string)) { gs.onPulled = fn }
 
 type GitHubSettings struct {
 	Enabled    bool      `json:"enabled"`

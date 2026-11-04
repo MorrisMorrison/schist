@@ -120,6 +120,8 @@ func (h *APIHandler) SetupAPIRoutes(routerGroup *gin.RouterGroup) {
 		github.GET("/config", h.getGitHubConfig)                      // Non-sensitive config (no secret unlock required)
 		github.GET("/connection-status", h.getGitHubConnectionStatus) // Connection status (requires secret unlock)
 		github.POST("/sync", h.syncToGitHub)
+		github.POST("/sync/preview", h.previewGitHubSync)
+		github.GET("/sync/conflict", h.getGitHubSyncConflict)
 		github.PUT("/config", h.updateGitHubConfig)
 		github.POST("/disconnect", h.disconnectGitHub)
 

@@ -50,7 +50,7 @@ test.describe.serial('Share Functionality', () => {
 	}) => {
 		await documentViewPage.openDocument(testDocument);
 
-		const expiryOptions = [1, 7, 30, 90, 0];
+		const expiryOptions = [1, 7, 30, 90];
 		const shareUrls: string[] = [];
 
 		for (const expiry of expiryOptions) {

@@ -28,7 +28,8 @@ Every API error has the same shape. Clients should branch on `code`, never on th
 | `RESOURCE_CONFLICT` | 409 | The change conflicts with the current state. |
 | `INVALID_STATE` | 409 | The operation isn't possible right now, e.g. a GitHub sync before backup is set up, or a saved GitHub token that can no longer be read ("set up GitHub backup again"). |
 | `SYNC_REMOTE_DIVERGED` | 409 | The GitHub branch has commits the wiki doesn't have. Retry `POST /api/github/sync` with `{"replace_remote": true}` only after the user confirms. |
-| `DOCUMENT_CHANGED` | 409 | A save sent a `baseVersion` and the page changed since; `details.document` is the current page. |
+| `DOCUMENT_CHANGED` | 409 | A save sent a `baseVersion` and the page changed since; `details.document` is the current page. If the page was deleted since, `details` is `{document: null, deleted: true}`; if it can no longer be read, `{unreadable: true}`. |
+| `SYNC_CONFLICT` | 409 | A two-way GitHub sync paused because pages changed both in the wiki and on GitHub. `details.conflicts` lists the paths and `details.remote_head` is the GitHub commit to send back with `resolutions` on `POST /api/github/sync`. Nothing was applied or pushed. |
 | `SECRETS_LOCKED` | 423 | The request needs the unlocked secret store. Unlock with a passkey and retry. A server restart locks the store again. |
 | `INTERNAL_ERROR` | 500 | An unexpected error, such as a failed disk write. The server log has the cause. |
 | `SERVICE_UNAVAILABLE` | 503 | A service Schist depends on, such as GitHub, isn't reachable. |

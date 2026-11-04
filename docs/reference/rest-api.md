@@ -84,7 +84,7 @@ A page:
 ```
 
 - **Version:** every page read returns `version`, which identifies the stored text.
-- **Update:** `PUT` accepts an optional `baseVersion`. When the page changed since that version, the save is refused with `409 DOCUMENT_CHANGED` and `details.document` holds the current page. Without `baseVersion` the save works as before. The response is the stored page, including its new `version`.
+- **Update:** `PUT` accepts an optional `baseVersion`. When the page changed since that version, the save is refused with `409 DOCUMENT_CHANGED` and `details.document` holds the current page. When the page was deleted since then, `details` is `{document: null, deleted: true}`; when it can no longer be read, `{unreadable: true}`. Without `baseVersion` the save works as before. The response is the stored page, including its new `version`.
 - **Create:** send `metaData.title` and `content`; `path` and `tags` are optional. The path defaults to the slug of the title. Answers `{"message", "path"}`.
 - **Tags:** inline `#tags` in the content are added to `tags` on every save, by any route (create, update, move, import, MCP). Code is skipped, and a tag must start a word.
 - **Properties:** every other front matter key, left out when there are none. Sent `properties` replace the stored ones, `{}` clears them, and a save without `properties` keeps them. They can't replace Schist's own fields.
@@ -221,13 +221,17 @@ The secret store must be unlocked (with a passkey, `POST /api/passkeys/unlock`) 
 |---|---|---|
 | `POST` | `/api/github/test` | Test a token and repository without saving: `{token, owner, repo, branch}`. `branch_exists: false` is fine; the first sync creates it |
 | `POST` | `/api/github/setup` | Save the backup: `{token, owner, repo, branch, auto_sync, sync_on_save, sync_delay_minutes}` |
-| `GET` | `/api/github/config` | The settings (never the token), the last sync, the last error and its code, `auto_sync_interval_minutes` and `sync_delay_minutes` |
-| `PUT` | `/api/github/config` | Change `auto_sync`, `sync_on_save` (back up after the last edit), `sync_delay_minutes` (1 to 60, default 2; else `VALIDATION_ERROR`) or `branch` |
+| `GET` | `/api/github/config` | The settings (never the token), the last sync, the last error and its code, `auto_sync_interval_minutes`, `sync_delay_minutes`, `mode`, and in two-way mode `sync_conflicts`, `paused_remote_head` and `unreadable` |
+| `PUT` | `/api/github/config` | Change `auto_sync`, `sync_on_save` (back up after the last edit), `sync_delay_minutes` (1 to 60, default 2; else `VALIDATION_ERROR`) `branch` or `mode` (`backup`, the default, or `two-way`; `two-way` also turns on `auto_sync`; else `VALIDATION_ERROR`) |
 | `GET` | `/api/github/connection-status` | `{connected, tokenExists, pendingChanges}` |
-| `POST` | `/api/github/sync` | Push now. `{"replace_remote": true}` force-pushes once over a diverged branch; send it only after the user confirms |
+| `POST` | `/api/github/sync` | Sync now. In backup mode it pushes; `{"replace_remote": true}` force-pushes once over a diverged branch, so send it only after the user confirms. In two-way mode it pulls, merges and pushes. `{"resolutions": {"<path>": "local" or "remote"}, "remote_head": "<sha>"}` settles paused conflicts; `remote_head` comes from the preview or the `SYNC_CONFLICT` error and is required with `resolutions` |
+| `POST` | `/api/github/sync/preview` | Two-way mode: what a sync would do, without changing anything. Returns `incoming` (`[{path, action, page}]`, `action` is `add`, `change` or `delete`), `outgoing`, `conflicts` and `unreadable` (lists of paths) and `remote_head` |
+| `GET` | `/api/github/sync/conflict?path=` | Both versions of a page a paused sync waits on: `{path, local, remote, diff}`. `404` when the path isn't a pending conflict |
 | `POST` | `/api/github/disconnect` | Remove the backup settings and token |
 
-`sync` answers `409 INVALID_STATE` when backup isn't set up, `409 SYNC_REMOTE_DIVERGED` when the branch has other commits, and `423 SECRETS_LOCKED` when the token is still in a locked secret store. See [GitHub backup](../guides/github-backup.md).
+`sync` answers `409 INVALID_STATE` when backup isn't set up, `409 SYNC_REMOTE_DIVERGED` when the branch has other commits, and `423 SECRETS_LOCKED` when the token is still in a locked secret store.
+
+In two-way mode `sync` also answers `409 SYNC_CONFLICT` when pages changed on both sides (nothing is applied or pushed), `409 INVALID_STATE` naming the path when a git-ignored local file blocks a file from GitHub, `409 RESOURCE_CONFLICT` when the wiki kept changing through 3 attempts, and `503` when the GitHub branch did. Files that aren't pages take GitHub's version without a conflict. See [GitHub backup](../guides/github-backup.md).
 
 ## Users and sign-in
 

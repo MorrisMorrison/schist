@@ -30,7 +30,7 @@ Booleans take `true`/`false` (also `1`/`0`, `yes`/`no`, `on`/`off`). A value tha
 | `SCHIST_SHARING_ENABLED` | `true` | Public share links. `false` refuses new ones (403) and makes existing ones stop resolving (404); owners can still list and revoke them. |
 | `SCHIST_SHARE_DEFAULT_EXPIRY_DAYS` | `7` | Expiry of a share created without one. |
 | `SCHIST_SHARE_MAX_EXPIRY_DAYS` | `90` | The longest expiry a share can have. |
-| `SCHIST_GITHUB_AUTO_SYNC_MINUTES` | `15` | Interval of the "Back up every N minutes" GitHub backup, in whole minutes from 1 to 1440. |
+| `SCHIST_GITHUB_AUTO_SYNC_MINUTES` | `15`; `5` in two-way mode when unset | Interval of the "Back up every N minutes" GitHub backup and of two-way sync, in whole minutes from 1 to 1440. |
 | `SCHIST_TEMPLATES_DIR` | `./templates` in the image | Folder with the page templates offered by **New page**. |
 
 ## Rate limiting

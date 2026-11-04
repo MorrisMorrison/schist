@@ -510,7 +510,11 @@ func TestSync_APauseKeepsTheUnreadableList(t *testing.T) {
 func TestPreviewSync_ShowsWhatTheFirstSyncWouldDo(t *testing.T) {
 	f, _ := twoWayFixture(t)
 	_, push := obsidianClone(t)
-	push(map[string]string{"plan.md": page("Plan", "obsidian"), "new.md": page("New", "x")})
+	push(map[string]string{"gone.md": page("Gone", "g")})
+	_, err := f.gs.SyncToGitHub()
+	require.NoError(t, err)
+	push(map[string]string{"plan.md": page("Plan", "obsidian"), "new.md": page("New", "x"),
+		"notes.md": page("Notes", "n2"), "image.png": "png"}, "gone.md")
 	writeNote(t, f.dataDir, "plan.md", page("Plan", "schist"))
 	writeNote(t, f.dataDir, "mine.md", page("Mine", "m"))
 	_, _ = f.gs.gitService.CommitPendingChanges("local")
@@ -518,7 +522,12 @@ func TestPreviewSync_ShowsWhatTheFirstSyncWouldDo(t *testing.T) {
 
 	p, err := f.gs.PreviewSync()
 	require.NoError(t, err)
-	assert.Equal(t, []string{"new.md"}, p.Incoming)
+	assert.ElementsMatch(t, []PreviewChange{
+		{Path: "new.md", Action: "add", Page: true},
+		{Path: "image.png", Action: "add", Page: false},
+		{Path: "notes.md", Action: "change", Page: true},
+		{Path: "gone.md", Action: "delete", Page: true},
+	}, p.Incoming)
 	assert.Equal(t, []string{"mine.md"}, p.Outgoing)
 	assert.Equal(t, []string{"plan.md"}, p.Conflicts)
 	after, _ := f.gs.gitService.repository.Head()

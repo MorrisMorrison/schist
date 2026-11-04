@@ -369,11 +369,20 @@ func (gs *GitHubService) notifyPulled(paths, unreadable []string) {
 
 // SyncPreview is what a two-way sync would do now.
 type SyncPreview struct {
-	Incoming   []string `json:"incoming"`   // pages/files that change in the wiki
-	Outgoing   []string `json:"outgoing"`   // local changes that go to GitHub
-	Conflicts  []string `json:"conflicts"`
-	Unreadable []string `json:"unreadable"`
-	RemoteHead string   `json:"remote_head"`
+	Incoming   []PreviewChange `json:"incoming"` // files that change in the wiki
+	Outgoing   []string        `json:"outgoing"` // local changes that go to GitHub
+	Conflicts  []string        `json:"conflicts"`
+	Unreadable []string        `json:"unreadable"`
+	RemoteHead string          `json:"remote_head"`
+}
+
+// PreviewChange is one file a sync would bring into the wiki. Action is
+// "add", "change" or "delete"; Page is false for files that aren't pages
+// (images, settings...).
+type PreviewChange struct {
+	Path   string `json:"path"`
+	Action string `json:"action"`
+	Page   bool   `json:"page"`
 }
 
 // ConflictVersions are the wiki's and GitHub's versions of a page a paused
@@ -406,7 +415,7 @@ func (gs *GitHubService) PreviewSync() (*SyncPreview, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &SyncPreview{Incoming: []string{}, Outgoing: []string{}, Conflicts: out.Conflicts,
+	p := &SyncPreview{Incoming: []PreviewChange{}, Outgoing: []string{}, Conflicts: out.Conflicts,
 		Unreadable: out.Unreadable, RemoteHead: out.RemoteHead.String()}
 	if p.Conflicts == nil {
 		p.Conflicts = []string{}
@@ -414,8 +423,20 @@ func (gs *GitHubService) PreviewSync() (*SyncPreview, error) {
 	if p.Unreadable == nil {
 		p.Unreadable = []string{}
 	}
+	localTree := syncplan.Tree{}
+	if len(plan.Apply) > 0 {
+		if localTree, err = gs.headTree(); err != nil {
+			return nil, err
+		}
+	}
 	for _, c := range plan.Apply {
-		p.Incoming = append(p.Incoming, c.Path)
+		action := "change"
+		if c.Delete {
+			action = "delete"
+		} else if _, ok := localTree[c.Path]; !ok {
+			action = "add"
+		}
+		p.Incoming = append(p.Incoming, PreviewChange{Path: c.Path, Action: action, Page: isPagePath(c.Path)})
 	}
 	outgoing, err := gs.outgoingPaths(out.RemoteHead, plan.Conflicts)
 	if err != nil {
@@ -423,6 +444,19 @@ func (gs *GitHubService) PreviewSync() (*SyncPreview, error) {
 	}
 	p.Outgoing = outgoing
 	return p, nil
+}
+
+// headTree lists the files at the wiki's HEAD.
+func (gs *GitHubService) headTree() (syncplan.Tree, error) {
+	repo, err := gs.localRepository()
+	if err != nil {
+		return nil, err
+	}
+	head, err := repo.Head()
+	if err != nil {
+		return nil, err
+	}
+	return commitTree(repo, head.Hash())
 }
 
 // outgoingPaths lists files the wiki changed since the last commit it shares

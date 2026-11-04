@@ -597,7 +597,11 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 			if *req.Mode == appconfig.GitHubModeTwoWay {
 				st.GitHub.AutoSync = true // pulls need the interval sync
 			} else {
-				st.GitHub.SyncConflicts, st.GitHub.PausedRemoteHead = nil, ""
+				// Backup never pauses or reads pages from GitHub.
+				st.GitHub.SyncConflicts, st.GitHub.PausedRemoteHead, st.GitHub.Unreadable = nil, "", nil
+				if st.GitHub.LastSyncErrorCode == string(apierrors.ErrCodeSyncConflict) {
+					st.GitHub.LastSyncError, st.GitHub.LastSyncErrorCode = "", ""
+				}
 			}
 		}
 		return nil
@@ -792,9 +796,14 @@ func (gs *GitHubService) resolutionsFor(opts GitHubSyncOptions) (map[string]sync
 }
 
 // recordPause stores the paused state. The unreadable list stays as the last
-// completed sync left it: the paused plan wasn't applied.
+// completed sync left it: the paused plan wasn't applied. Like recordSettled,
+// it does nothing once the mode is no longer two-way (a sync can finish after
+// the switch to backup).
 func (gs *GitHubService) recordPause(conflicts []string, remoteHead string) {
 	if err := gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
+		if !st.GitHub.TwoWay() {
+			return nil
+		}
 		st.GitHub.SyncConflicts = conflicts
 		st.GitHub.PausedRemoteHead = remoteHead
 		return nil
@@ -818,6 +827,9 @@ func (gs *GitHubService) recordSettled() {
 		log.Printf("[GitHubService] Warning: failed to list the unreadable pages: %v", err)
 	}
 	if err := gs.settings.Update(gs.dataDir, func(st *appconfig.Settings) error {
+		if !st.GitHub.TwoWay() {
+			return nil
+		}
 		st.GitHub.SyncConflicts = nil
 		st.GitHub.PausedRemoteHead = ""
 		st.GitHub.Unreadable = unreadable

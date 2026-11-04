@@ -553,3 +553,40 @@ func TestUpdateConfiguration_TwoWayTurnsOnAutoSync(t *testing.T) {
 	bad := "sideways"
 	assert.Error(t, f.gs.UpdateConfiguration(&GitHubConfigRequest{Mode: &bad}))
 }
+
+func TestRecordPause_OnlyInTwoWayMode(t *testing.T) {
+	// A sync that started in two-way mode can finish after the switch to backup.
+	f := newGitHubFixture(t, enabledSettings())
+	f.gs.recordPause([]string{"plan.md"}, "0123456789abcdef0123456789abcdef01234567")
+	s := f.settings.GetGitHubSettings()
+	assert.Empty(t, s.SyncConflicts)
+	assert.Empty(t, s.PausedRemoteHead)
+}
+
+func TestUpdateConfiguration_BackupClearsTheTwoWayState(t *testing.T) {
+	gh := enabledSettings()
+	gh.Mode = appconfig.GitHubModeTwoWay
+	gh.SyncConflicts = []string{"plan.md"}
+	gh.PausedRemoteHead = "0123456789abcdef0123456789abcdef01234567"
+	gh.Unreadable = []string{"My Note.md"}
+	gh.LastSyncError = "Sync paused"
+	gh.LastSyncErrorCode = string(apierrors.ErrCodeSyncConflict)
+	f := newGitHubFixture(t, gh)
+
+	mode := appconfig.GitHubModeBackup
+	require.NoError(t, f.gs.UpdateConfiguration(&GitHubConfigRequest{Mode: &mode}))
+	s := f.settings.GetGitHubSettings()
+	assert.Empty(t, s.SyncConflicts)
+	assert.Empty(t, s.PausedRemoteHead)
+	assert.Empty(t, s.Unreadable)
+	assert.Empty(t, s.LastSyncError)
+	assert.Empty(t, s.LastSyncErrorCode)
+
+	// Other errors still describe the last sync.
+	require.NoError(t, f.settings.Update(f.dataDir, func(st *appconfig.Settings) error {
+		st.GitHub.LastSyncError, st.GitHub.LastSyncErrorCode = "down", string(apierrors.ErrCodeUnavailable)
+		return nil
+	}))
+	require.NoError(t, f.gs.UpdateConfiguration(&GitHubConfigRequest{Mode: &mode}))
+	assert.Equal(t, string(apierrors.ErrCodeUnavailable), f.settings.GetGitHubSettings().LastSyncErrorCode)
+}

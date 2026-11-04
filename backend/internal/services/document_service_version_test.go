@@ -1,6 +1,8 @@
 package services
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -86,5 +88,38 @@ func TestUpdateDocumentChecked(t *testing.T) {
 		require.NoError(t, d.UpdateDocumentChecked("/plan", renamed, "manual", doc.Version))
 		_, err := d.GetDocumentByPath("/roadmap")
 		assert.NoError(t, err)
+	})
+
+	t.Run("a page deleted since is refused, not resurrected", func(t *testing.T) {
+		d := newVersionTestService(t)
+		doc := seedPage(t, d, "/plan", "# Plan\n\nv1")
+		require.NoError(t, os.Remove(filepath.Join(d.dataDir, "plan.md")))
+
+		err := d.UpdateDocumentChecked("/plan", edit(doc, "# Plan\n\nmine"), "auto", doc.Version)
+		var apiErr *apierrors.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, apierrors.ErrCodeDocumentChanged, apiErr.Code)
+		assert.Contains(t, apiErr.Details, "document")
+		assert.Nil(t, apiErr.Details["document"])
+		assert.Equal(t, true, apiErr.Details["deleted"])
+		_, statErr := os.Stat(filepath.Join(d.dataDir, "plan.md"))
+		assert.True(t, os.IsNotExist(statErr), "not written back")
+	})
+
+	t.Run("a page made unreadable since is refused, not overwritten", func(t *testing.T) {
+		d := newVersionTestService(t)
+		doc := seedPage(t, d, "/plan", "# Plan\n\nv1")
+		broken := "---\ntitle: [unclosed\n---\nbody\n"
+		require.NoError(t, os.WriteFile(filepath.Join(d.dataDir, "plan.md"), []byte(broken), 0o644))
+
+		err := d.UpdateDocumentChecked("/plan", edit(doc, "# Plan\n\nmine"), "auto", doc.Version)
+		var apiErr *apierrors.APIError
+		require.ErrorAs(t, err, &apiErr)
+		assert.Equal(t, apierrors.ErrCodeDocumentChanged, apiErr.Code)
+		assert.Contains(t, apiErr.Details, "document")
+		assert.Nil(t, apiErr.Details["document"])
+		assert.Equal(t, true, apiErr.Details["unreadable"])
+		got, _ := os.ReadFile(filepath.Join(d.dataDir, "plan.md"))
+		assert.Equal(t, broken, string(got), "not overwritten")
 	})
 }

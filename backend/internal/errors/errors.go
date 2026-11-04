@@ -220,6 +220,19 @@ func NewDocumentChangedError(current any) *APIError {
 		WithDetails("document", current)
 }
 
+// NewDocumentGoneError refuses a save made from an older version of a page
+// that has since been deleted (deleted) or can no longer be read (unreadable
+// otherwise). details.document is nil.
+func NewDocumentGoneError(deleted bool) *APIError {
+	message, key := "This page was deleted since you opened it (on GitHub or by someone else).", "deleted"
+	if !deleted {
+		message, key = "This page changed since you opened it and can no longer be read.", "unreadable"
+	}
+	return NewAPIError(ErrCodeDocumentChanged, message, http.StatusConflict).
+		WithDetails("document", nil).
+		WithDetails(key, true)
+}
+
 func WrapError(err error) *APIError {
 	var apiErr *APIError
 	if stderrors.As(err, &apiErr) {

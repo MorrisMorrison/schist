@@ -212,8 +212,17 @@ func (d *DocumentService) UpdateDocumentChecked(oldPath string, document *models
 	defer unlock()
 
 	if baseVersion != "" {
+		// A page deleted or made unreadable since (a pull can do both) is
+		// refused too: saving would resurrect or overwrite it.
 		current, err := d.GetDocumentByPath(oldPath)
-		if err == nil && current.Version != baseVersion {
+		switch {
+		case errors.HasCode(err, errors.ErrCodeNotFound):
+			return errors.NewDocumentGoneError(true)
+		case errors.IsAPIError(err):
+			return err // an invalid path
+		case err != nil:
+			return errors.NewDocumentGoneError(false).WithCause(err)
+		case current.Version != baseVersion:
 			return errors.NewDocumentChangedError(current)
 		}
 	}

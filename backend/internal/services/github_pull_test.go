@@ -399,3 +399,50 @@ func TestSync_TwoWayRetriesWhenTheRemoteMovesDuringPush(t *testing.T) {
 	_, statErr := os.Stat(filepath.Join(f.dataDir, "race.md"))
 	assert.NoError(t, statErr)
 }
+
+func TestPreviewSync_ShowsWhatTheFirstSyncWouldDo(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian"), "new.md": page("New", "x")})
+	writeNote(t, f.dataDir, "plan.md", page("Plan", "schist"))
+	writeNote(t, f.dataDir, "mine.md", page("Mine", "m"))
+	_, _ = f.gs.gitService.CommitPendingChanges("local")
+	before, _ := f.gs.gitService.repository.Head()
+
+	p, err := f.gs.PreviewSync()
+	require.NoError(t, err)
+	assert.Equal(t, []string{"new.md"}, p.Incoming)
+	assert.Equal(t, []string{"mine.md"}, p.Outgoing)
+	assert.Equal(t, []string{"plan.md"}, p.Conflicts)
+	after, _ := f.gs.gitService.repository.Head()
+	assert.Equal(t, before.Hash(), after.Hash(), "a preview changes nothing")
+}
+
+func TestConflictVersions_ReturnsBothSidesAndADiff(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian")})
+	writeNote(t, f.dataDir, "plan.md", page("Plan", "schist"))
+	_, err := f.gs.SyncToGitHub()
+	require.Error(t, err)
+
+	v, err := f.gs.ConflictVersions("plan.md")
+	require.NoError(t, err)
+	assert.Contains(t, v.Local, "schist")
+	assert.Contains(t, v.Remote, "obsidian")
+	assert.NotNil(t, v.Diff)
+}
+
+func TestUpdateConfiguration_TwoWayTurnsOnAutoSync(t *testing.T) {
+	t.Setenv("SCHIST_GITHUB_AUTO_SYNC_MINUTES", "")
+	f := newGitHubFixture(t, enabledSettings())
+	mode := "two-way"
+	require.NoError(t, f.gs.UpdateConfiguration(&GitHubConfigRequest{Mode: &mode}))
+	s := f.settings.GetGitHubSettings()
+	assert.True(t, s.TwoWay())
+	assert.True(t, s.AutoSync)
+	assert.Equal(t, 5*time.Minute, f.gs.autoSyncInterval())
+
+	bad := "sideways"
+	assert.Error(t, f.gs.UpdateConfiguration(&GitHubConfigRequest{Mode: &bad}))
+}

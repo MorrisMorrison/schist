@@ -27,7 +27,7 @@ func TestSyncScheduler_DelayIsReadAtEachChange(t *testing.T) {
 		autoSync:   p.auto.Load,
 		debounce:   func() time.Duration { return time.Duration(delay.Load()) },
 		maxWait:    2 * time.Hour,
-		interval:   time.Hour,
+		interval:   func() time.Duration { return time.Hour },
 	})
 	t.Cleanup(func() { stopScheduler(t, s) })
 

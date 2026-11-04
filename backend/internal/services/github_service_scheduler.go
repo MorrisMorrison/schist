@@ -37,7 +37,7 @@ type syncSchedulerConfig struct {
 	debounce func() time.Duration
 	// maxWait caps the wait while changes keep coming (never below debounce).
 	maxWait  time.Duration
-	interval time.Duration
+	interval func() time.Duration
 }
 
 // syncScheduler runs GitHub syncs in the background: debounced after commits
@@ -142,13 +142,13 @@ func (s *syncScheduler) Start(ctx context.Context) {
 	s.done.Add(1)
 	go func() {
 		defer s.done.Done()
-		ticker := time.NewTicker(s.cfg.interval)
-		defer ticker.Stop()
 		for {
+			timer := time.NewTimer(s.cfg.interval())
 			select {
 			case <-ctx.Done():
+				timer.Stop()
 				return
-			case <-ticker.C:
+			case <-timer.C:
 				if s.cfg.autoSync() {
 					s.trigger()
 				}

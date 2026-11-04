@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -114,6 +115,8 @@ type GitHubConfigRequest struct {
 	AutoSync   *bool   `json:"auto_sync,omitempty"`
 	SyncOnSave *bool   `json:"sync_on_save,omitempty"`
 	Branch     *string `json:"branch,omitempty"`
+	// Mode is "backup" or "two-way"; two-way also turns auto sync on.
+	Mode *string `json:"mode,omitempty"`
 	// SyncDelayMinutes sets how long backup after edits waits (1 to 60).
 	SyncDelayMinutes *int `json:"sync_delay_minutes,omitempty"`
 }
@@ -183,7 +186,7 @@ func NewGitHubService(
 		autoSync:   service.ShouldAutoSync,
 		debounce:   service.backupDelay,
 		maxWait:    syncAfterEditMaxWait,
-		interval:   service.autoSyncInterval(),
+		interval:   service.autoSyncInterval,
 	})
 
 	githubSettings := settings.GetGitHubSettings()
@@ -487,8 +490,13 @@ func (gs *GitHubService) backupDelay() time.Duration {
 	return time.Duration(minutes) * time.Minute
 }
 
-// autoSyncInterval is the configured automatic backup interval.
+// autoSyncInterval is SCHIST_GITHUB_AUTO_SYNC_MINUTES when set; otherwise 5
+// minutes for two-way sync (so edits from elsewhere arrive soon) and the
+// default for backup.
 func (gs *GitHubService) autoSyncInterval() time.Duration {
+	if os.Getenv("SCHIST_GITHUB_AUTO_SYNC_MINUTES") == "" && gs.settings.GetGitHubSettings().TwoWay() {
+		return 5 * time.Minute
+	}
 	if gs.config == nil || gs.config.GitHubAutoSyncInterval <= 0 {
 		return appconfig.DefaultGitHubAutoSyncMinutes * time.Minute
 	}
@@ -549,6 +557,9 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 	if err := validateBackupDelay(req.SyncDelayMinutes); err != nil {
 		return err
 	}
+	if req.Mode != nil && *req.Mode != appconfig.GitHubModeBackup && *req.Mode != appconfig.GitHubModeTwoWay {
+		return apierrors.NewValidationError(`mode must be "backup" or "two-way"`)
+	}
 
 	// A branch that doesn't exist yet is fine (the next sync creates it);
 	// only a failed lookup stops the change.
@@ -578,6 +589,14 @@ func (gs *GitHubService) UpdateConfiguration(req *GitHubConfigRequest) error {
 		}
 		if req.Branch != nil && *req.Branch != "" {
 			st.GitHub.Branch = *req.Branch
+		}
+		if req.Mode != nil {
+			st.GitHub.Mode = *req.Mode
+			if *req.Mode == appconfig.GitHubModeTwoWay {
+				st.GitHub.AutoSync = true // pulls need the interval sync
+			} else {
+				st.GitHub.SyncConflicts, st.GitHub.PausedRemoteHead = nil, ""
+			}
 		}
 		return nil
 	})

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 
+	apierrors "github.com/MorrisMorrison/schist/internal/errors"
 	"github.com/MorrisMorrison/schist/internal/serializer"
 	"github.com/MorrisMorrison/schist/internal/syncplan"
 	"github.com/MorrisMorrison/schist/internal/utils"
@@ -344,4 +346,143 @@ func (gs *GitHubService) notifyPulled(paths []string) {
 		}
 	}
 	gs.onPulled(pages)
+}
+
+// SyncPreview is what a two-way sync would do now.
+type SyncPreview struct {
+	Incoming   []string `json:"incoming"`   // pages/files that change in the wiki
+	Outgoing   []string `json:"outgoing"`   // local changes that go to GitHub
+	Conflicts  []string `json:"conflicts"`
+	Unreadable []string `json:"unreadable"`
+	RemoteHead string   `json:"remote_head"`
+}
+
+// ConflictVersions are the wiki's and GitHub's versions of a page a paused
+// sync is waiting on.
+type ConflictVersions struct {
+	Path   string      `json:"path"`
+	Local  string      `json:"local"`
+	Remote string      `json:"remote"`
+	Diff   *DiffResult `json:"diff"`
+}
+
+// PreviewSync reports what a two-way sync would do now, without doing it.
+func (gs *GitHubService) PreviewSync() (*SyncPreview, error) {
+	if !gs.IsEnabled() {
+		return nil, errGitHubNotEnabled()
+	}
+	gs.syncMu.Lock()
+	defer gs.syncMu.Unlock()
+	if _, err := gs.ensureClient(); err != nil {
+		return nil, err
+	}
+	if err := gs.setupGitRemote(); err != nil {
+		return nil, apierrors.NewInternalError("Couldn't configure the git remote. See the server log.").WithCause(err)
+	}
+	if err := gs.commitUncommittedChanges(); err != nil {
+		return nil, apierrors.NewInternalError("Couldn't commit local changes before the preview. See the server log.").
+			WithCause(err)
+	}
+	out, plan, err := gs.pullOnce(nil, true)
+	if err != nil {
+		return nil, err
+	}
+	p := &SyncPreview{Incoming: []string{}, Outgoing: []string{}, Conflicts: out.Conflicts,
+		Unreadable: out.Unreadable, RemoteHead: out.RemoteHead.String()}
+	if p.Conflicts == nil {
+		p.Conflicts = []string{}
+	}
+	if p.Unreadable == nil {
+		p.Unreadable = []string{}
+	}
+	for _, c := range plan.Apply {
+		p.Incoming = append(p.Incoming, c.Path)
+	}
+	outgoing, err := gs.outgoingPaths(out.RemoteHead, plan.Conflicts)
+	if err != nil {
+		return nil, err
+	}
+	p.Outgoing = outgoing
+	return p, nil
+}
+
+// outgoingPaths lists files the wiki changed since the last commit it shares
+// with GitHub (all of them when it shares none), minus the conflicts.
+func (gs *GitHubService) outgoingPaths(remoteHead plumbing.Hash, conflicts []string) ([]string, error) {
+	repo, err := gs.localRepository()
+	if err != nil {
+		return nil, err
+	}
+	head, err := repo.Head()
+	if err != nil {
+		return nil, err
+	}
+	base := plumbing.ZeroHash
+	if !remoteHead.IsZero() {
+		if base, err = mergeBase(repo, head.Hash(), remoteHead); err != nil {
+			return nil, err
+		}
+	}
+	baseTree, err := commitTree(repo, base)
+	if err != nil {
+		return nil, err
+	}
+	localTree, err := commitTree(repo, head.Hash())
+	if err != nil {
+		return nil, err
+	}
+	skip := map[string]bool{}
+	for _, c := range conflicts {
+		skip[c] = true
+	}
+	out := []string{}
+	seen := map[string]bool{}
+	for _, t := range []syncplan.Tree{baseTree, localTree} {
+		for p := range t {
+			if seen[p] || skip[p] {
+				continue
+			}
+			seen[p] = true
+			if baseTree[p] != localTree[p] {
+				out = append(out, p)
+			}
+		}
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+// ConflictVersions returns the wiki's and GitHub's version of a page a paused
+// sync is waiting on, with a diff between them.
+func (gs *GitHubService) ConflictVersions(path string) (*ConflictVersions, error) {
+	s := gs.settings.GetGitHubSettings()
+	if !slices.Contains(s.SyncConflicts, path) {
+		return nil, apierrors.NewNotFoundError("sync conflict", path)
+	}
+	repo, err := gs.localRepository()
+	if err != nil {
+		return nil, err
+	}
+	remoteTree, err := commitTree(repo, plumbing.NewHash(s.PausedRemoteHead))
+	if err != nil {
+		return nil, err
+	}
+	head, err := repo.Head()
+	if err != nil {
+		return nil, err
+	}
+	localTree, err := commitTree(repo, head.Hash())
+	if err != nil {
+		return nil, err
+	}
+	read := func(blob string) string {
+		if blob == "" {
+			return ""
+		}
+		b, _ := blobBytes(repo, blob)
+		return string(b)
+	}
+	v := &ConflictVersions{Path: path, Local: read(localTree[path]), Remote: read(remoteTree[path])}
+	v.Diff = gs.gitService.computeDiff("/"+strings.TrimSuffix(path, ".md"), "schist", "github", v.Local, v.Remote)
+	return v, nil
 }

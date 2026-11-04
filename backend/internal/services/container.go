@@ -69,6 +69,12 @@ func NewServices() (*Services, error) {
 	gitHubService := NewGitHubService(appConfig, gitService, settings, secretManager)
 	// Sync on save: every document commit schedules a debounced GitHub push.
 	gitService.SetCommitHook(gitHubService.NotifyCommitted)
+	// A pull changes pages behind the editor's back: keep the link index current.
+	gitHubService.SetPullHook(func(pages []string) {
+		if err := linkService.UpdateBacklinksFor(pages...); err != nil {
+			log.Printf("Warning: link index after a pull: %v", err)
+		}
+	})
 	authService := NewAuthService(appConfig, userService)
 	shareService := NewShareService(appConfig, documentService)
 

@@ -17,12 +17,11 @@ export default defineConfig({
 	/* Fail the build on CI if you accidentally left test.only in the source code. */
 	forbidOnly: isCI,
 
-	/* 3 retries on CI: the GitHub-hosted runner speed is variable, so a few
-	   timing-sensitive tests (page/document render waits) can occasionally exceed
-	   their visibility budget on a slow moment. Page objects now settle on the
-	   app's load signals (see BasePage.waitForContentReady) to cut this down; the
-	   retries remain as a backstop for a lone transient flake. */
-	retries: isCI ? 3 : 0,
+	/* One retry on CI, as a backstop for a lone slow moment on the runner. Page
+	   objects settle on the app's load signals (see BasePage.waitForContentReady),
+	   so a test that needs more than one retry is broken, not unlucky; a test
+	   that passes on its retry is reported as flaky in the summary. */
+	retries: isCI ? 1 : 0,
 
 	/* Run with a single worker: the suite shares one backend instance and a single
 	   auth/storage state, and several suites use test.describe.serial, so parallel

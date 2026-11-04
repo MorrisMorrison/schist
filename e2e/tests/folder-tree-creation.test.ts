@@ -66,28 +66,13 @@ test.describe.serial('Folder Tree Creation', () => {
 		await folderPage.verifyContainsFolder(folderName);
 	});
 
-	test('should handle context menu outside tree items gracefully', async ({ folderPage, page }) => {
+	test('should handle context menu outside tree items gracefully', async ({ folderPage }) => {
 		await folderPage.navigateToRoot();
 
-		await page.click('body');
+		await expect(folderPage.folderTree).toBeVisible();
 
-		const sidebar = page.locator('[data-testid="sidebar"]').or(page.locator('aside')).first();
-		const treeContainer = folderPage.folderTree;
-
-		const treeBox = await treeContainer.boundingBox();
-		const sidebarBox = await sidebar.boundingBox();
-
-		if (treeBox && sidebarBox) {
-			const clickY = Math.max(5, treeBox.y - sidebarBox.y - 10);
-			const clickX = 10;
-
-			await sidebar.click({
-				button: 'right',
-				position: { x: clickX, y: clickY }
-			});
-		} else {
-			await treeContainer.click({ button: 'right', position: { x: 5, y: 5 } });
-		}
+		// A right-click whose target is the tree itself (blank space, not a row).
+		await folderPage.folderTree.dispatchEvent('contextmenu', { button: 2 });
 
 		// The menu renders synchronously on the contextmenu event, so had it
 		// opened it would already be in the DOM once the right-click resolves.

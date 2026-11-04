@@ -654,6 +654,10 @@ func (gs *GitHubService) sync(opts GitHubSyncOptions) (*GitHubSyncResult, error)
 	if err := gs.pushToGitHub(opts.ReplaceRemote || githubSettings.ForcePush); err != nil {
 		return nil, err
 	}
+	if githubSettings.TwoWay() {
+		// Replacing GitHub's history settles any paused conflicts.
+		gs.recordPause(nil, "", nil)
+	}
 
 	return &GitHubSyncResult{
 		Success:   true,
@@ -677,6 +681,10 @@ func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, 
 		out, _, err := gs.pullOnce(resolutions, false)
 		if stderrors.Is(err, errHeadMoved) {
 			continue
+		}
+		if stderrors.Is(err, errIgnoredFileInTheWay) {
+			// The user has to move the file; keep the message naming it.
+			return nil, apierrors.NewInvalidStateError(err.Error()).WithCause(err)
 		}
 		if err != nil {
 			return nil, err

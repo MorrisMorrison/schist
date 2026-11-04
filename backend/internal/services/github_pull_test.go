@@ -316,6 +316,55 @@ func TestSync_TwoWayPausesThenResumesWithResolutions(t *testing.T) {
 	assert.Empty(t, s.PausedRemoteHead)
 	head, _ := f.gs.gitService.repository.Head()
 	assert.Equal(t, head.Hash(), remoteBranchHash(t, remoteDir, "main"), "pushed")
+	assert.Equal(t, page("Plan", "schist"), remoteFileContent(t, remoteDir, "main", "plan.md"), "local side won")
+}
+
+func remoteFileContent(t *testing.T, remoteDir, branch, path string) string {
+	t.Helper()
+	repo, err := git.PlainOpen(remoteDir)
+	require.NoError(t, err)
+	commit, err := repo.CommitObject(remoteBranchHash(t, remoteDir, branch))
+	require.NoError(t, err)
+	file, err := commit.File(path)
+	require.NoError(t, err)
+	content, err := file.Contents()
+	require.NoError(t, err)
+	return content
+}
+
+func TestSync_TwoWayIgnoredFileInTheWayIsAnInvalidStateNamingThePath(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"scratch.md": page("Scratch", "from obsidian")})
+	gitignore := filepath.Join(f.dataDir, ".gitignore")
+	existing, err := os.ReadFile(gitignore)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(gitignore, append(existing, []byte("\nscratch.md\n")...), 0o644))
+	writeNote(t, f.dataDir, "scratch.md", "local scratch\n")
+
+	_, err = f.gs.SyncToGitHub()
+	assert.Equal(t, apierrors.ErrCodeInvalidState, errorCode(err))
+	s := f.settings.GetGitHubSettings()
+	assert.Contains(t, s.LastSyncError, "scratch.md")
+	assert.Equal(t, string(apierrors.ErrCodeInvalidState), s.LastSyncErrorCode)
+}
+
+func TestSync_TwoWayReplaceRemoteClearsThePause(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	require.NoError(t, f.settings.Update(f.dataDir, func(st *appconfig.Settings) error {
+		st.GitHub.SyncConflicts = []string{"plan.md"}
+		st.GitHub.PausedRemoteHead = "0123456789abcdef0123456789abcdef01234567"
+		return nil
+	}))
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian")})
+	writeNote(t, f.dataDir, "plan.md", page("Plan", "schist"))
+
+	_, err := f.gs.Sync(GitHubSyncOptions{ReplaceRemote: true})
+	require.NoError(t, err)
+	s := f.settings.GetGitHubSettings()
+	assert.Empty(t, s.SyncConflicts)
+	assert.Empty(t, s.PausedRemoteHead)
 }
 
 func TestSync_BackupModeUnchanged(t *testing.T) {

@@ -698,9 +698,11 @@ func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, 
 	if err != nil {
 		return nil, err
 	}
+	wikiMoved := false // whether the last attempt ended because the wiki changed
 	for attempt := 0; attempt < maxTwoWayAttempts; attempt++ {
 		out, _, err := gs.pullOnce(resolutions, false)
-		if stderrors.Is(err, errHeadMoved) {
+		wikiMoved = stderrors.Is(err, errHeadMoved)
+		if wikiMoved {
 			continue
 		}
 		if stderrors.Is(err, errIgnoredFileInTheWay) {
@@ -729,6 +731,10 @@ func (gs *GitHubService) syncTwoWay(opts GitHubSyncOptions) (*GitHubSyncResult, 
 		gs.recordPause(nil, "", out.Unreadable)
 		return &GitHubSyncResult{Success: true, Message: "GitHub sync completed successfully",
 			Timestamp: time.Now().Format(time.RFC3339)}, nil
+	}
+	if wikiMoved {
+		return nil, apierrors.NewConflictError(
+			"The wiki kept changing during the sync, so it stopped; it retries on the next sync.")
 	}
 	return nil, apierrors.NewUnavailableError("GitHub (the branch kept changing during the sync; it retries on the next sync)")
 }
@@ -763,9 +769,17 @@ func (gs *GitHubService) resolutionsFor(opts GitHubSyncOptions) (map[string]sync
 	if err != nil {
 		return nil, err
 	}
-	decidedTree, err := commitTree(repo, plumbing.NewHash(opts.RemoteHead))
+	// The zero hash would read as the empty tree and silently decide every
+	// edit-against-delete conflict.
+	decided := plumbing.NewHash(opts.RemoteHead)
+	if decided.IsZero() {
+		return nil, apierrors.NewValidationError("remote_head is required with resolutions: the GitHub commit they were decided against")
+	}
+	decidedTree, err := commitTree(repo, decided)
 	if err != nil {
-		return nil, apierrors.NewValidationError("remote_head is not a commit this wiki has fetched").WithCause(err)
+		return nil, apierrors.NewValidationError(fmt.Sprintf(
+			"remote_head %s is not a GitHub commit this wiki has fetched; preview the sync again", opts.RemoteHead)).
+			WithCause(err)
 	}
 	out := map[string]syncplan.Resolution{}
 	for path, side := range opts.Resolutions {

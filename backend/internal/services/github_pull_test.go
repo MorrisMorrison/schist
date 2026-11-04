@@ -2,6 +2,7 @@ package services
 
 import (
 	stderrors "errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -422,6 +423,54 @@ func TestSync_TwoWayRetriesWhenTheRemoteMovesAfterThePushCheck(t *testing.T) {
 	assert.NoError(t, statErr)
 	head, _ := f.gs.gitService.repository.Head()
 	assert.Equal(t, head.Hash(), remoteBranchHash(t, remoteDir, "main"), "pushed")
+}
+
+func TestSync_TwoWayGivesUpWhenTheWikiKeepsChanging(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(map[string]string{"plan.md": page("Plan", "obsidian")})
+	n := 0
+	f.gs.beforeApply = func() {
+		// Another page is committed each time, moving HEAD under the sync
+		// (straight through go-git: the sync holds commitMu here).
+		n++
+		writeNote(t, f.dataDir, "busy.md", page("Busy", fmt.Sprintf("edit %d", n)))
+		wt, err := f.gs.gitService.repository.Worktree()
+		require.NoError(t, err)
+		_, err = wt.Add("busy.md")
+		require.NoError(t, err)
+		_, err = wt.Commit("busy", &git.CommitOptions{Author: &object.Signature{Name: "b", Email: "b@x", When: time.Now()}})
+		require.NoError(t, err)
+	}
+
+	_, err := f.gs.SyncToGitHub()
+	require.Error(t, err)
+	assert.Equal(t, maxTwoWayAttempts, n, "every attempt was used")
+	assert.Equal(t, apierrors.ErrCodeConflict, errorCode(err))
+	assert.Contains(t, err.Error(), "wiki kept changing")
+	assert.NotContains(t, err.Error(), "GitHub")
+}
+
+func TestSync_ResolutionsNeedTheRemoteHeadTheyWereDecidedAgainst(t *testing.T) {
+	f, _ := twoWayFixture(t)
+	_, push := obsidianClone(t)
+	push(nil, "plan.md") // edit vs delete: an empty decided tree would apply silently
+	writeNote(t, f.dataDir, "plan.md", page("Plan", "schist"))
+	_, err := f.gs.SyncToGitHub()
+	require.Equal(t, apierrors.ErrCodeSyncConflict, errorCode(err))
+
+	for _, head := range []string{"", plumbing.ZeroHash.String()} {
+		_, err = f.gs.Sync(GitHubSyncOptions{Resolutions: map[string]string{"plan.md": "remote"}, RemoteHead: head})
+		assert.Equal(t, apierrors.ErrCodeValidation, errorCode(err), "remote_head %q", head)
+		assert.Contains(t, err.Error(), "remote_head")
+	}
+	_, statErr := os.Stat(filepath.Join(f.dataDir, "plan.md"))
+	assert.NoError(t, statErr, "nothing applied")
+
+	_, err = f.gs.Sync(GitHubSyncOptions{Resolutions: map[string]string{"plan.md": "remote"},
+		RemoteHead: "0123456789abcdef0123456789abcdef01234567"})
+	assert.Equal(t, apierrors.ErrCodeValidation, errorCode(err))
+	assert.Contains(t, err.Error(), "fetched")
 }
 
 func TestPreviewSync_ShowsWhatTheFirstSyncWouldDo(t *testing.T) {

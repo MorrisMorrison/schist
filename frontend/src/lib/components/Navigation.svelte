@@ -76,20 +76,14 @@
 	});
 
 	// The page links, shown in the bar on desktop and in the menu on mobile.
+	// Recent lives on Home now (the Recent list), so Home is the only link.
 	const navLinks = $derived([
 		{
 			href: '/',
 			label: 'Home',
 			active: page.url.pathname === '/' || page.url.pathname.startsWith('/folders'),
 			testId: 'nav-home',
-			mobileTestId: undefined
-		},
-		{
-			href: '/recent',
-			label: 'Recent',
-			active: page.url.pathname === '/recent',
-			testId: 'nav-recent',
-			mobileTestId: 'nav-recent-mobile'
+			mobileTestId: 'nav-home-mobile'
 		}
 	]);
 

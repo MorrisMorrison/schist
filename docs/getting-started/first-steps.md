@@ -32,6 +32,8 @@ Pages live in folders, like files on disk. Create one with <kbd>Ctrl/Cmd</kbd>+<
 
 - **Quick switcher** (<kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd>): jump to a page by title, or search the full text.
 - **Tags:** add `#tags` in the text or a `tags` list in the front matter, then search with `tag:name`.
+- **Home:** **Pinned** pages, and a **Recent** list with the pages you opened and the pages that changed lately (including edits from other devices, AI assistants and imports). **Browse all** opens the folder view.
+- **Pin a page** with **Pin to Home** in its **⋯** menu, or the pin on a Recent row. Pins show on Home and at the top of the sidebar, sorted by title. A pin is a page property (`pinned: true` in the front matter), so it's shared with everyone in the wiki.
 
 ## 6. Bring your notes
 

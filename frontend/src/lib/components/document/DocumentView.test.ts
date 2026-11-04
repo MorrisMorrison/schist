@@ -34,7 +34,12 @@ vi.mock('#lib/components/document/LazyDocumentGraphView.svelte', async () => ({
 vi.mock('#lib/components/editor/DocumentInlineEditor.svelte', async () => ({
 	default: (await import('#lib/test/InlineEditorStub.svelte')).default
 }));
+vi.mock('#lib/utils/pins.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/pins.ts')>()),
+	setPinned: vi.fn()
+}));
 
+import { setPinned } from '#lib/utils/pins.ts';
 import { goto } from '$app/navigation';
 import { apiClient } from '#lib/api/client.ts';
 import { resetAllState } from '#lib/stores/documents.svelte.ts';
@@ -421,6 +426,40 @@ describe('DocumentView', () => {
 			expect(screen.queryByTestId('confirm-delete-button')).not.toBeInTheDocument()
 		);
 		expect(onDelete).not.toHaveBeenCalled();
+	});
+
+	describe('pinning', () => {
+		async function openMenu() {
+			await waitForPointerEvents();
+			await userEvent.click(screen.getByTestId('document-actions-menu'));
+		}
+
+		it('pins the page from the ⋯ menu and shows the saved page', async () => {
+			const saved = makeDoc();
+			saved.metaData.properties = { pinned: true };
+			vi.mocked(setPinned).mockResolvedValue(saved);
+			const onSaved = vi.fn();
+			render(DocumentView, { props: { document: makeDoc(), onSaved } });
+
+			await openMenu();
+			await userEvent.click(await screen.findByTestId('pin-document-menu-item'));
+
+			expect(setPinned).toHaveBeenCalledWith('/notes/plan', true);
+			await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved));
+		});
+
+		it('offers to unpin a pinned page', async () => {
+			vi.mocked(setPinned).mockResolvedValue(undefined);
+			const pinned = makeDoc();
+			pinned.metaData.properties = { pinned: true };
+			render(DocumentView, { props: { document: pinned } });
+
+			await openMenu();
+			const item = await screen.findByTestId('pin-document-menu-item');
+			expect(item).toHaveTextContent('Unpin');
+			await userEvent.click(item);
+			expect(setPinned).toHaveBeenCalledWith('/notes/plan', false);
+		});
 	});
 
 	describe('links', () => {

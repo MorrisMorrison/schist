@@ -56,7 +56,7 @@ Search by tag with `tag:planning` in the quick switcher or the sidebar search.
 
 Every other front matter key is a **property**: `status`, `aliases`, `due`, anything you like. Values can be strings, numbers, booleans, lists or objects. Schist keeps them as they are when it saves the page, and its own fields (`title`, `path`, `tags`, `created`, `updated`) always win.
 
-`aliases` is the one property Schist uses: it lets other names link to the page.
+Schist uses two properties itself: `aliases` lets other names link to the page, and `pinned: true` pins it to Home and the sidebar (set it with **Pin to Home** in the page's **⋯** menu, by hand, or through the MCP tools).
 
 ## Images
 

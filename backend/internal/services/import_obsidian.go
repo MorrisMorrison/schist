@@ -238,7 +238,7 @@ func convertObsidianMarkdown(body string, notes []string) (string, []string) {
 		text := seg.text
 		text = replaceCounting(importComment, text, "", counts, "removed comment")
 		text = replaceCounting(importTemplater, text, "", counts, "removed Templater tag")
-		text = replaceCounting(importInlineQuery, text, "", counts, "removed inline Dataview query")
+		text = removeInlineQueries(text, counts)
 		text = replaceCounting(importBlockID, text, "", counts, "removed block ID")
 		text = importCallout.ReplaceAllStringFunc(text, func(m string) string {
 			counts["converted callout"]++
@@ -270,6 +270,44 @@ func convertObsidianMarkdown(body string, notes []string) (string, []string) {
 		notes = append(notes, plural(counts[k], k))
 	}
 	return importBlankRuns.ReplaceAllString(out.String(), "\n\n"), notes
+}
+
+// inlineQueryMark stands in for an inline query while its line is examined.
+const inlineQueryMark = "\x01"
+
+// importQueryValueLine matches a line that, apart from one inline query, is
+// only a label (or nothing): an optional quote or list prefix, an optional
+// "Label:" / "**Label:**" / "Field::", the query, and at most two trailing
+// words such as a unit ("files"). A label has no sentence punctuation, so
+// "Created today. Count: <query>" is a sentence, not a label.
+var importQueryValueLine = regexp.MustCompile(`^[ \t]*(?:>[ \t]*)*(?:[-*+][ \t]+|\d+[.)][ \t]+)?` +
+	`(?:(?:\*\*|__|\*|_)?[^\x01:*_.!?\n]{1,60}?(?:\*\*|__|\*|_)?:{1,2}(?:\*\*|__|\*|_)?[ \t]*)?` +
+	inlineQueryMark + `(?:[ \t]+\S+){0,2}[ \t]*$`)
+
+// removeInlineQueries removes inline Dataview queries (#292). A line that is
+// just a label for the query's value is dropped, since the label would point
+// at nothing; a query inside a sentence becomes "(Dataview value)" so the
+// sentence still reads.
+func removeInlineQueries(text string, counts map[string]int) string {
+	if !importInlineQuery.MatchString(text) {
+		return text
+	}
+	lines := strings.Split(text, "\n")
+	kept := lines[:0]
+	for _, line := range lines {
+		found := len(importInlineQuery.FindAllStringIndex(line, -1))
+		if found == 0 {
+			kept = append(kept, line)
+			continue
+		}
+		counts["removed inline Dataview query"] += found
+		marked := importInlineQuery.ReplaceAllString(line, inlineQueryMark)
+		if found == 1 && importQueryValueLine.MatchString(marked) {
+			continue
+		}
+		kept = append(kept, strings.ReplaceAll(marked, inlineQueryMark, "(Dataview value)"))
+	}
+	return strings.Join(kept, "\n")
 }
 
 func replaceCounting(re *regexp.Regexp, text, with string, counts map[string]int, label string) string {

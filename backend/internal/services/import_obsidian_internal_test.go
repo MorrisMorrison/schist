@@ -85,7 +85,7 @@ func TestConvertObsidianMarkdown(t *testing.T) {
 	assert.Equal(t, strings.Join([]string{
 		"Intro  text.",
 		"",
-		"Created  today. Count: ",
+		"Created  today. Count: (Dataview value)",
 		"",
 		"> **Warning:** Careful",
 		"> with this",
@@ -224,4 +224,37 @@ func TestRewriteImportLinks_DuplicateTitlesBecomePathLinks(t *testing.T) {
 	assert.Equal(t, "[[/second/a/overview|Overview]] [[/second/a/overview|start]] [[Core switch]] [[/second/a/overview|o]]", far,
 		"from /second/c both overviews are as near")
 	assert.Equal(t, 0, unresolved)
+}
+
+// #292: removing an inline Dataview query must not leave a label pointing at
+// nothing. A line that is only a label (or nothing) around the query is
+// dropped; a query inside a sentence becomes a short marker.
+func TestConvertObsidianMarkdown_InlineQueries(t *testing.T) {
+	tests := []struct {
+		name, in, want string
+	}{
+		{"bold label in a callout, with a unit",
+			"Before\n> **Total Notes:** `$= dv.pages().length` files\nAfter", "Before\nAfter"},
+		{"plain label", "Before\nLast updated: `= this.file.mtime`\nAfter", "Before\nAfter"},
+		{"list item with a bold label outside the colon",
+			"- **Status**: `= this.status`\n- kept", "- kept"},
+		{"inline field", "Tasks:: `= this.tasks`\nkept", "kept"},
+		{"only a query", "Before\n`= this.file.name`\nAfter", "Before\nAfter"},
+		{"query inside a sentence",
+			"There are `$= dv.pages().length` notes in this vault.",
+			"There are (Dataview value) notes in this vault."},
+		{"label with more text after it is a sentence",
+			"Count: `= this.size` pages, last checked yesterday by the script.",
+			"Count: (Dataview value) pages, last checked yesterday by the script."},
+		{"ordinary inline code stays", "Set `x = 1` here.", "Set `x = 1` here."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, notes := convertObsidianMarkdown(tt.in, nil)
+			assert.Equal(t, tt.want, out)
+			if tt.in != tt.want {
+				assert.Contains(t, notes, "1 × removed inline Dataview query")
+			}
+		})
+	}
 }

@@ -34,8 +34,7 @@
 		{ value: '1', label: '1 day' },
 		{ value: '7', label: '1 week' },
 		{ value: '30', label: '1 month' },
-		{ value: '90', label: '3 months' },
-		{ value: '0', label: 'Never expires' }
+		{ value: '90', label: '3 months' }
 	];
 
 	// Load existing shares when modal opens

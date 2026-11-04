@@ -10,9 +10,6 @@ Give someone without an account a read-only link to one page. Links expire, and 
 
 The person sees the page as it is when they open it, without the sidebar. The link gives access to that page only; the rest of the wiki still needs an account.
 
-> [!NOTE]
-> **Never expires** in the dialog currently creates a link with the default expiry (7 days); see [#338](https://github.com/MorrisMorrison/schist/issues/338).
-
 ## Manage links
 
 The share dialog lists your links with their expiry dates. Revoke one to make it stop working immediately. Expired links stop working on their own.

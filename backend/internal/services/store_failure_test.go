@@ -146,7 +146,7 @@ func TestShareService_LookupEdgeCases(t *testing.T) {
 		assert.False(t, apierrors.IsAPIError(err))
 	})
 
-	t.Run("expiry defaults, caps and never-expires", func(t *testing.T) {
+	t.Run("expiry defaults and caps; every share expires", func(t *testing.T) {
 		ss, _, _ := newShareTestService(t)
 		tests := []struct {
 			days int
@@ -155,7 +155,7 @@ func TestShareService_LookupEdgeCases(t *testing.T) {
 		}{
 			{0, 6 * 24 * time.Hour, 8 * 24 * time.Hour},     // default 7 days
 			{365, 29 * 24 * time.Hour, 31 * 24 * time.Hour}, // capped at 30
-			{-1, 99 * 365 * 24 * time.Hour, 1 << 62},        // never expires
+			{-1, 6 * 24 * time.Hour, 8 * 24 * time.Hour},    // no never: default 7 days
 		}
 		for _, tt := range tests {
 			share, err := ss.CreateShare("/shared", "admin", tt.days)

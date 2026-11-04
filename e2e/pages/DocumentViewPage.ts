@@ -258,8 +258,7 @@ export class DocumentViewPage extends BasePage {
 		1: '1 day',
 		7: '1 week',
 		30: '1 month',
-		90: '3 months',
-		0: 'Never expires'
+		90: '3 months'
 	};
 
 	/** Pick the share expiry in the open share modal's select (a listbox, not a native select). */

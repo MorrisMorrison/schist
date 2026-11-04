@@ -2,41 +2,67 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 
-const state = vi.hoisted(() => ({
-	settings: {
-		mode: 'two-way',
-		sync_conflicts: ['plan.md', 'notes/a.md'],
-		paused_remote_head: 'abc',
-		unreadable: ['My Note.md']
-	}
-}));
+type MockSettings = {
+	mode: string;
+	sync_conflicts: string[];
+	paused_remote_head: string;
+	unreadable: string[];
+};
+const holder = vi.hoisted(() => ({ store: null as unknown as { settings: MockSettings } }));
 
-vi.mock('#lib/stores/github.svelte.ts', () => ({
-	githubStore: state,
-	githubActions: {
-		loadConflict: vi.fn().mockResolvedValue({
-			path: 'plan.md',
-			local: 'L',
-			remote: 'R',
-			diff: {
-				path: '/plan',
-				hash1: 'schist',
-				hash2: 'github',
-				lines: [],
-				summary: { additions: 0, deletions: 0, modifications: 0 }
-			}
-		}),
-		syncToGitHub: vi.fn().mockResolvedValue({ success: true })
-	}
-}));
+vi.mock('#lib/stores/github.svelte.ts', async () => {
+	// Reactive, so a test can change the settings the way a refresh would.
+	const { reactive } = await import('#lib/test/reactive.svelte.ts');
+	holder.store = reactive({
+		settings: {
+			mode: 'two-way',
+			sync_conflicts: ['plan.md', 'notes/a.md'],
+			paused_remote_head: 'abc',
+			unreadable: ['My Note.md']
+		}
+	});
+	return {
+		githubStore: holder.store,
+		githubActions: {
+			loadConflict: vi.fn().mockResolvedValue({
+				path: 'plan.md',
+				local: 'L',
+				remote: 'R',
+				diff: {
+					path: '/plan',
+					hash1: 'schist',
+					hash2: 'github',
+					lines: [],
+					summary: { additions: 0, deletions: 0, modifications: 0 }
+				}
+			}),
+			syncToGitHub: vi.fn().mockResolvedValue({ success: true })
+		}
+	};
+});
 
+import { tick } from 'svelte';
 import { githubActions } from '#lib/stores/github.svelte.ts';
 import SyncConflicts from './SyncConflicts.svelte';
+
+const state = holder.store;
+
+/** The 409 a resume gets when the sync paused again. */
+function pausedAgain(conflicts: string[], remoteHead: string) {
+	return new Error(
+		JSON.stringify({
+			error: 'paused',
+			code: 'SYNC_CONFLICT',
+			details: { conflicts, remote_head: remoteHead }
+		})
+	);
+}
 
 describe('SyncConflicts', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		state.settings.sync_conflicts = ['plan.md', 'notes/a.md'];
+		state.settings.paused_remote_head = 'abc';
 	});
 	afterEach(() => cleanup());
 
@@ -127,6 +153,67 @@ describe('SyncConflicts', () => {
 		const rows = screen.getAllByTestId('sync-conflict-row');
 		expect(within(rows[0]).queryByTestId('sync-conflict-diff')).toBeNull();
 		expect(within(rows[1]).getByTestId('sync-conflict-diff')).toBeVisible();
+	});
+
+	it('drops the picks and closes the diff when GitHub changed again in the background', async () => {
+		render(SyncConflicts);
+		await userEvent.click(screen.getByRole('button', { name: 'All Schist' }));
+		await userEvent.click(screen.getByRole('button', { name: 'plan.md' }));
+		expect(await screen.findByTestId('sync-conflict-diff')).toBeVisible();
+
+		// A background sync paused again at a newer GitHub head.
+		state.settings.paused_remote_head = 'def';
+		await tick();
+
+		expect(screen.queryByTestId('sync-conflict-diff')).toBeNull();
+		expect(screen.getByText(/GitHub changed again/)).toBeVisible();
+		const resume = screen.getByRole('button', { name: 'Resume sync' });
+		expect(resume).toBeDisabled();
+
+		await userEvent.click(screen.getByRole('button', { name: 'All GitHub' }));
+		await userEvent.click(resume);
+		expect(githubActions.syncToGitHub).toHaveBeenCalledWith({
+			resolutions: { 'plan.md': 'remote', 'notes/a.md': 'remote' },
+			remoteHead: 'def'
+		});
+	});
+
+	it('keeps the picks the server still accepts when a resume pauses again', async () => {
+		vi.mocked(githubActions.syncToGitHub).mockImplementationOnce(async () => {
+			// What the store's refresh brings: only the re-conflicted page, at the new head.
+			state.settings.sync_conflicts = ['notes/a.md'];
+			state.settings.paused_remote_head = 'def';
+			throw pausedAgain(['notes/a.md'], 'def');
+		});
+		render(SyncConflicts);
+		let rows = screen.getAllByTestId('sync-conflict-row');
+		await userEvent.click(within(rows[0]).getByRole('button', { name: /Keep Schist's/ }));
+		await userEvent.click(within(rows[1]).getByRole('button', { name: /Take GitHub's/ }));
+		await userEvent.click(screen.getByRole('button', { name: 'Resume sync' }));
+
+		// plan.md's pick stands and is shown as decided; notes/a.md asks again.
+		expect(screen.queryByText(/GitHub changed again/)).toBeNull();
+		const decided = await screen.findByTestId('sync-decided-row');
+		expect(within(decided).getByText('plan.md')).toBeVisible();
+		expect(within(decided).getByRole('button', { name: /Keep Schist's/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		rows = screen.getAllByTestId('sync-conflict-row');
+		expect(rows).toHaveLength(1);
+		expect(within(rows[0]).getByRole('button', { name: /Take GitHub's/ })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+		const resume = screen.getByRole('button', { name: 'Resume sync' });
+		expect(resume).toBeDisabled();
+
+		await userEvent.click(within(rows[0]).getByRole('button', { name: /Keep Schist's/ }));
+		await userEvent.click(resume);
+		expect(githubActions.syncToGitHub).toHaveBeenLastCalledWith({
+			resolutions: { 'plan.md': 'local', 'notes/a.md': 'local' },
+			remoteHead: 'def'
+		});
 	});
 
 	it('lists notes Schist cannot read', () => {

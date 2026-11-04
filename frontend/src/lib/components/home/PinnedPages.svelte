@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronRight, Pin } from '@lucide/svelte';
+	import { ChevronRight, FileText, Pin } from '@lucide/svelte';
 	import { cn } from '#lib/utils.ts';
 	import { pinnedDocuments } from '#lib/utils/pins.ts';
 	import { sidebarNameClass } from '#lib/stores/settings.svelte.ts';
@@ -36,20 +36,25 @@
 	const pins = $derived(pinnedDocuments(documents));
 </script>
 
+<!-- Shown at the top of the page tree, styled like a folder of the tree: a
+     "Pinned" row, with the pinned pages as file rows below it. -->
 {#if pins.length > 0}
-	<div class="border-border border-b px-2 pt-1 pb-2" data-testid="sidebar-pinned">
+	<div class="px-2 pt-2" data-testid="sidebar-pinned">
 		<button
 			type="button"
-			class="text-muted-foreground hover:text-foreground flex w-full items-center gap-1 rounded-md px-2 py-1 text-xs font-medium"
+			class="text-foreground hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"
 			aria-expanded={!collapsed}
 			onclick={toggle}
 		>
-			<ChevronRight class={cn('size-3 transition-transform', !collapsed && 'rotate-90')} />
-			<Pin class="text-primary size-3" />
-			Pinned
+			<ChevronRight
+				class={cn('text-muted-foreground size-3 transition-transform', !collapsed && 'rotate-90')}
+			/>
+			<Pin class="text-primary size-4" />
+			<span class="flex-1 text-left">Pinned</span>
+			<span class="text-muted-foreground text-xs">{pins.length}</span>
 		</button>
 		{#if !collapsed}
-			<ul class="mt-0.5">
+			<ul class="space-y-1">
 				{#each pins as document (document.metaData.path)}
 					{@const isCurrent = document.metaData.path === currentPath}
 					<li>
@@ -59,10 +64,13 @@
 							aria-current={isCurrent ? 'page' : undefined}
 							title={document.metaData.title}
 							class={cn(
-								'text-foreground hover:bg-accent block rounded-md py-1 pr-2 pl-7 text-sm no-underline hover:no-underline',
+								'text-foreground hover:bg-accent flex items-center gap-2 rounded-md py-1.5 pr-2 pl-7 text-sm no-underline hover:no-underline',
 								isCurrent &&
 									'bg-[var(--nav-active)] font-medium shadow-[inset_2px_0_0_var(--primary)]'
-							)}><span class={cn('block', sidebarNameClass())}>{document.metaData.title}</span></a
+							)}
+							><FileText class="text-muted-foreground size-4 shrink-0" /><span
+								class={cn('min-w-0', sidebarNameClass())}>{document.metaData.title}</span
+							></a
 						>
 					</li>
 				{/each}

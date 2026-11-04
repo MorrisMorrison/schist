@@ -351,6 +351,27 @@ describe('FolderTree', () => {
 		expect(screen.queryByRole('treeitem')).not.toBeInTheDocument();
 	});
 
+	it('shows pinned pages at the top of the page tree, under the filter', async () => {
+		const pinnedDoc = {
+			...doc('/notes/alpha', 'Alpha'),
+			metaData: { ...doc('/notes/alpha', 'Alpha').metaData, properties: { pinned: true } }
+		};
+		setDocumentsState({ documents: [docs[0], pinnedDoc, docs[2], docs[3]] });
+		renderTree({ showSearch: true, showPages: true });
+
+		const search = screen.getByPlaceholderText('Filter pages… (tag:name)');
+		const pinned = screen.getByTestId('sidebar-pinned');
+		const tree = screen.getByTestId('folder-tree');
+		expect(within(pinned).getByTestId('sidebar-pinned-link')).toHaveTextContent('Alpha');
+		// Order in the page: filter, then Pinned, then the folder tree.
+		expect(search.compareDocumentPosition(pinned) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(pinned.compareDocumentPosition(tree) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+		// While filtering, only the matching tree shows.
+		await userEvent.type(search, 'daily');
+		expect(screen.queryByTestId('sidebar-pinned')).not.toBeInTheDocument();
+	});
+
 	it('filters folders and pages by text and tag', async () => {
 		renderTree({ showSearch: true, showPages: true });
 		const search = screen.getByPlaceholderText('Filter pages… (tag:name)');

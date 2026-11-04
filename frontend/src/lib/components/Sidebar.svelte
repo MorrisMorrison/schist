@@ -9,13 +9,7 @@
 	import DeleteConfirmModal from './modal/DeleteConfirmModal.svelte';
 	import ImportDocumentsModal from './modal/ImportDocumentsModal.svelte';
 	import type { Folder as FolderType, DocumentSummary } from '#lib/api/types.ts';
-	import {
-		folderActions,
-		documentActions,
-		documentsStore,
-		foldersStore
-	} from '#lib/stores/documents.svelte.ts';
-	import PinnedPages from './home/PinnedPages.svelte';
+	import { folderActions, documentActions, foldersStore } from '#lib/stores/documents.svelte.ts';
 	import { apiClient } from '#lib/api/client.ts';
 	import { onMount } from 'svelte';
 
@@ -162,10 +156,6 @@
 
 <aside class="bg-primary border-border flex h-full w-full flex-col overflow-hidden border-r">
 	<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-		<PinnedPages
-			documents={documentsStore.documents}
-			currentPath={decodeURIComponent(currentPath.replace(/^\/documents/, ''))}
-		/>
 		<FolderTree
 			{currentPath}
 			showPages={true}

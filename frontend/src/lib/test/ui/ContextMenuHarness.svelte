@@ -15,9 +15,9 @@
 
 <ContextMenu.Root bind:open {onOpenChange}>
 	{#if !position}
-		<ContextMenu.Trigger data-testid="area" class="block h-40 w-80"
-			>Right-click here</ContextMenu.Trigger
-		>
+		<ContextMenu.Trigger data-testid="area" class="block h-40 w-80">
+			Right-click here
+		</ContextMenu.Trigger>
 	{/if}
 	<ContextMenu.Content {position} aria-label="Actions" data-testid="menu">
 		<ContextMenu.Group>

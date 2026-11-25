@@ -18,8 +18,7 @@
 
 <Badge variant="tag" class={className} title={`Tag: ${tag}`} {...restProps}>
 	<!-- One inline wrapper: the badge's flex gap would otherwise split prefix and name. -->
-	<span
-		>{#if prefix}<span data-tag-prefix class="text-[var(--tag-prefix)]">{prefix}</span
-			>{/if}{name}</span
-	>
+	<span>
+		{#if prefix}<span data-tag-prefix class="text-[var(--tag-prefix)]">{prefix}</span>{/if}{name}
+	</span>
 </Badge>

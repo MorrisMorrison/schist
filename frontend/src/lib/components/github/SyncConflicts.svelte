@@ -109,15 +109,19 @@
 		variant={choices[path] === 'local' ? 'default' : 'outline'}
 		aria-pressed={choices[path] === 'local'}
 		aria-label="Keep Schist's version of {path}"
-		onclick={() => (choices = { ...choices, [path]: 'local' })}>Keep Schist's</Button
+		onclick={() => (choices = { ...choices, [path]: 'local' })}
 	>
+		Keep Schist's
+	</Button>
 	<Button
 		size="sm"
 		variant={choices[path] === 'remote' ? 'default' : 'outline'}
 		aria-pressed={choices[path] === 'remote'}
 		aria-label="Take GitHub's version of {path}"
-		onclick={() => (choices = { ...choices, [path]: 'remote' })}>Take GitHub's</Button
+		onclick={() => (choices = { ...choices, [path]: 'remote' })}
 	>
+		Take GitHub's
+	</Button>
 {/snippet}
 
 {#if conflicts.length}
@@ -147,8 +151,10 @@
 							type="button"
 							class="font-mono text-sm underline"
 							aria-expanded={open?.path === path}
-							onclick={() => toggleDiff(path)}>{path}</button
+							onclick={() => toggleDiff(path)}
 						>
+							{path}
+						</button>
 						<span class="flex-1"></span>
 						{@render sides(path)}
 					</div>

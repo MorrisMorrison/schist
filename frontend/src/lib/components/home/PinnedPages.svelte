@@ -68,10 +68,13 @@
 								isCurrent &&
 									'bg-[var(--nav-active)] font-medium shadow-[inset_2px_0_0_var(--primary)]'
 							)}
-							><FileText class="text-muted-foreground size-4 shrink-0" /><span
-								class={cn('min-w-0', sidebarNameClass())}>{document.metaData.title}</span
-							></a
 						>
+							<FileText class="text-muted-foreground size-4 shrink-0" /><span
+								class={cn('min-w-0', sidebarNameClass())}
+							>
+								{document.metaData.title}
+							</span>
+						</a>
 					</li>
 				{/each}
 			</ul>

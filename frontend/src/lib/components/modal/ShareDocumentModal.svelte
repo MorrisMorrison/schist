@@ -219,9 +219,9 @@
 										<span class="text-muted-foreground text-sm">
 											{#if share.expires_at && new Date(share.expires_at) > new Date()}
 												{#if isExpiringSoon(share.expires_at)}
-													<span class="text-amber-600"
-														>Expires {formatDateTime(share.expires_at)}</span
-													>
+													<span class="text-amber-600">
+														Expires {formatDateTime(share.expires_at)}
+													</span>
 												{:else}
 													Expires {formatDateTime(share.expires_at)}
 												{/if}

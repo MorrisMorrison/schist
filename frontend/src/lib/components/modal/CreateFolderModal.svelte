@@ -94,8 +94,9 @@
 			<span class="text-muted-foreground text-sm font-medium">Full Path:</span>
 			<code
 				class="bg-muted border-border text-primary block w-full rounded border px-3 py-2 text-sm"
-				>{folderPath}</code
 			>
+				{folderPath}
+			</code>
 		</div>
 	</div>
 

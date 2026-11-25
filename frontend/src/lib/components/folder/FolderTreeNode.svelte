@@ -174,9 +174,9 @@
 					</span>
 
 					{#if showPageCounts && folder.document_count > 0}
-						<span class="text-muted-foreground ml-auto pl-2 text-xs tabular-nums"
-							>{folder.document_count}</span
-						>
+						<span class="text-muted-foreground ml-auto pl-2 text-xs tabular-nums">
+							{folder.document_count}
+						</span>
 					{/if}
 				</button>
 			</div>

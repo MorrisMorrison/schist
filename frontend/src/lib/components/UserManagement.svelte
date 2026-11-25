@@ -132,9 +132,9 @@
 				{#if showInviteDialog}
 					<Card>
 						<CardHeader>
-							<CardTitle class="text-base" data-testid="invitation-dialog-title"
-								>Invite User</CardTitle
-							>
+							<CardTitle class="text-base" data-testid="invitation-dialog-title">
+								Invite User
+							</CardTitle>
 							<CardDescription>
 								Share this invitation link with the person you want to invite. The link expires in 7
 								days.
@@ -195,12 +195,13 @@
 								</div>
 								<div>
 									<div class="flex items-center gap-2">
-										<span class="font-medium" data-testid="user-item-username">{user.username}</span
-										>
+										<span class="font-medium" data-testid="user-item-username">
+											{user.username}
+										</span>
 										{#if user.is_admin}
-											<Badge variant="secondary" class="text-xs" data-testid="admin-badge"
-												>Admin</Badge
-											>
+											<Badge variant="secondary" class="text-xs" data-testid="admin-badge">
+												Admin
+											</Badge>
 										{/if}
 									</div>
 									<div class="text-muted-foreground text-sm">

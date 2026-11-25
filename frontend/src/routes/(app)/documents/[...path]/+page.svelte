@@ -154,8 +154,9 @@
 			<p class="text-muted-foreground mb-8 max-w-2xl">
 				The document at <code
 					class="bg-muted text-muted-foreground rounded px-2 py-1 font-mono text-sm"
-					>{fullPath}</code
-				> could not be found. It may have been moved, deleted, or never existed.
+				>
+					{fullPath}
+				</code> could not be found. It may have been moved, deleted, or never existed.
 			</p>
 			<div class="flex flex-wrap justify-center gap-4 md:flex-row">
 				<Button
@@ -164,16 +165,16 @@
 						goto('/new?title=' + encodeURIComponent(fullPath.split('/').pop() || 'New Document'))}
 				>
 					<Plus class="h-5 w-5 text-white"></Plus>
-					Create this Document</Button
-				>
+					Create this Document
+				</Button>
 				<Button variant="secondary" size="lg" onclick={() => goto('/documents')}>
 					<Search class="h-5 w-5 text-white"></Search>
-					Browse All Documents</Button
-				>
+					Browse All Documents
+				</Button>
 				<Button variant="outline" size="lg" onclick={() => goto('/')}>
 					<Home class="h-5 w-5 text-white"></Home>
-					Go to Home</Button
-				>
+					Go to Home
+				</Button>
 			</div>
 		</div>
 	{:else if !isLoadingContent}
@@ -185,12 +186,12 @@
 			<div class="flex flex-wrap justify-center gap-4 md:flex-row">
 				<Button onclick={loadContent}>
 					<RotateCcw class="h-5 w-5 text-white"></RotateCcw>
-					Try Again</Button
-				>
+					Try Again
+				</Button>
 				<Button variant="outline" size="lg" onclick={() => goto('/')}>
 					<Home class="h-5 w-5 text-white"></Home>
-					Go to Home</Button
-				>
+					Go to Home
+				</Button>
 			</div>
 		</div>
 	{/if}

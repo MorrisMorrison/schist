@@ -265,8 +265,9 @@
 					checked={includeSubfolders}
 					onCheckedChange={(on) => (includeSubfolders = on)}
 				/>
-				<Label for="folder-include-subfolders" class="text-sm font-normal">Include subfolders</Label
-				>
+				<Label for="folder-include-subfolders" class="text-sm font-normal">
+					Include subfolders
+				</Label>
 			</div>
 
 			<Button
@@ -336,8 +337,9 @@
 					<a
 						href={`/folders${folder.path}`}
 						class="text-foreground min-w-0 flex-1 truncate text-sm no-underline hover:underline"
-						><span data-row-title>{folder.name}</span></a
 					>
+						<span data-row-title>{folder.name}</span>
+					</a>
 					<span class="text-muted-foreground shrink-0 text-xs">
 						{folder.document_count}
 						{folder.document_count === 1 ? 'page' : 'pages'}
@@ -383,8 +385,10 @@
 					</span>
 					<time
 						class="text-muted-foreground w-20 shrink-0 text-right text-xs"
-						datetime={document.metaData.updated}>{formatTimeAgo(document.metaData.updated)}</time
+						datetime={document.metaData.updated}
 					>
+						{formatTimeAgo(document.metaData.updated)}
+					</time>
 					<Button
 						variant="ghost"
 						size="icon"

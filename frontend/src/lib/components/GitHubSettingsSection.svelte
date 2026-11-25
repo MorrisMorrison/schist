@@ -362,8 +362,10 @@
 							Create a token at <a
 								href="https://github.com/settings/tokens"
 								target="_blank"
-								class="text-blue-600 hover:underline dark:text-blue-400">GitHub Settings</a
-							> with read and write access to the repository contents.
+								class="text-blue-600 hover:underline dark:text-blue-400"
+							>
+								GitHub Settings
+							</a> with read and write access to the repository contents.
 						</p>
 					</div>
 
@@ -473,9 +475,9 @@
 							<AlertCircle />
 						{/if}
 						<AlertDescription>
-							<span data-testid="github-connection-test-message"
-								>{githubStore.connectionTest.message}</span
-							>
+							<span data-testid="github-connection-test-message">
+								{githubStore.connectionTest.message}
+							</span>
 						</AlertDescription>
 					</Alert>
 				{/if}
@@ -494,13 +496,15 @@
 										<CheckCircle class="h-4 w-4 text-green-500" />
 										<span
 											data-testid="github-status-connected"
-											class="text-sm text-green-600 dark:text-green-400">Connected</span
+											class="text-sm text-green-600 dark:text-green-400"
 										>
+											Connected
+										</span>
 									{:else}
 										<AlertCircle class="h-4 w-4 text-red-500" />
-										<span data-testid="github-status-disconnected" class="text-destructive text-sm"
-											>Disconnected</span
-										>
+										<span data-testid="github-status-disconnected" class="text-destructive text-sm">
+											Disconnected
+										</span>
 									{/if}
 								</div>
 							</div>
@@ -640,14 +644,14 @@
 							<div class="flex items-center gap-2">
 								{#if githubStore.gitHealthStatus.healthy}
 									<CheckCircle class="h-4 w-4 text-green-500" />
-									<span class="text-sm text-green-600 dark:text-green-400"
-										>Repository is healthy</span
-									>
+									<span class="text-sm text-green-600 dark:text-green-400">
+										Repository is healthy
+									</span>
 								{:else}
 									<AlertCircle class="h-4 w-4 text-red-500" />
-									<span class="text-sm text-red-600 dark:text-red-400"
-										>Repository health issues detected</span
-									>
+									<span class="text-sm text-red-600 dark:text-red-400">
+										Repository health issues detected
+									</span>
 								{/if}
 							</div>
 

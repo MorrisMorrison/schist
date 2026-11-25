@@ -225,9 +225,9 @@
 									<FolderUp class="size-4" />
 									Choose a folder
 								</Button>
-								<span class="text-muted-foreground text-xs"
-									>or pick a .zip, e.g. an Obsidian vault: folders are kept</span
-								>
+								<span class="text-muted-foreground text-xs">
+									or pick a .zip, e.g. an Obsidian vault: folders are kept
+								</span>
 								<input
 									bind:this={folderInput}
 									type="file"
@@ -294,9 +294,9 @@
 							{#each overwriteModes as mode (mode.value)}
 								<div class="flex items-center gap-2">
 									<RadioGroup.Item id="overwrite-mode-{mode.value}" value={mode.value} />
-									<Label for="overwrite-mode-{mode.value}" class="font-normal {mode.class ?? ''}"
-										>{mode.label}</Label
-									>
+									<Label for="overwrite-mode-{mode.value}" class="font-normal {mode.class ?? ''}">
+										{mode.label}
+									</Label>
 								</div>
 							{/each}
 						</RadioGroup.Root>

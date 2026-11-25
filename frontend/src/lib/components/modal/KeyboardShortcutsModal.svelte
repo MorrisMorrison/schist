@@ -50,14 +50,14 @@
 
 		<div class="border-border border-t px-6 py-4">
 			<div class="text-muted-foreground flex items-center justify-between text-sm">
-				<span
-					>💡 Tip: Press <kbd class="bg-muted rounded border px-1 font-mono text-xs"
-						>Cmd/Ctrl + K</kbd
-					> to open Quick Switcher</span
-				>
-				<span
-					>Press <kbd class="bg-muted rounded border px-1 font-mono text-xs">Escape</kbd> to close</span
-				>
+				<span>
+					💡 Tip: Press <kbd class="bg-muted rounded border px-1 font-mono text-xs">
+						Cmd/Ctrl + K
+					</kbd> to open Quick Switcher
+				</span>
+				<span>
+					Press <kbd class="bg-muted rounded border px-1 font-mono text-xs">Escape</kbd> to close
+				</span>
 			</div>
 		</div>
 	</DialogContent>

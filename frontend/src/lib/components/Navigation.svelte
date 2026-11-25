@@ -165,8 +165,9 @@
 							<span class="flex-1 text-left">Search documents...</span>
 							<kbd
 								class="bg-muted text-muted-foreground pointer-events-none rounded border px-1.5 py-0.5 font-mono text-xs"
-								>⌘K</kbd
 							>
+								⌘K
+							</kbd>
 						</button>
 					</div>
 
@@ -290,8 +291,9 @@
 							<span class="flex-1 text-left">Search documents...</span>
 							<kbd
 								class="bg-muted text-muted-foreground pointer-events-none rounded border px-1.5 py-0.5 font-mono text-xs"
-								>⌘K</kbd
 							>
+								⌘K
+							</kbd>
 						</button>
 					</div>
 

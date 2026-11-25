@@ -154,9 +154,9 @@
 				<AlertDescription class="space-y-3">
 					<p>Copy it now. You won't be able to see it again.</p>
 					<div class="bg-background flex items-center gap-2 rounded-md border p-2">
-						<code class="min-w-0 flex-1 font-mono text-xs break-all" data-testid="api-token-value"
-							>{created.token}</code
-						>
+						<code class="min-w-0 flex-1 font-mono text-xs break-all" data-testid="api-token-value">
+							{created.token}
+						</code>
 						<CopyButton text={created.token} />
 					</div>
 					<Button size="sm" variant="outline" onclick={() => (created = null)}>Done</Button>
@@ -288,9 +288,9 @@
 				<div class="space-y-1.5">
 					<Label>Claude Code</Label>
 					<div class="flex items-start gap-2 rounded-md border p-2">
-						<code class="min-w-0 flex-1 font-mono text-xs break-all" data-testid="mcp-claude-code"
-							>{claudeCodeCommand}</code
-						>
+						<code class="min-w-0 flex-1 font-mono text-xs break-all" data-testid="mcp-claude-code">
+							{claudeCodeCommand}
+						</code>
 						<CopyButton text={claudeCodeCommand} />
 					</div>
 				</div>

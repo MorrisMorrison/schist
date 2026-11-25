@@ -158,9 +158,9 @@
 
 		<DialogFooter>
 			{#if step === 'ready'}
-				<Button variant="outline" onclick={handleClose} disabled={passkeyStore.loading}
-					>Cancel</Button
-				>
+				<Button variant="outline" onclick={handleClose} disabled={passkeyStore.loading}>
+					Cancel
+				</Button>
 				<Button
 					onclick={handleWebAuthnUnlock}
 					disabled={!webAuthnSupported || passkeyStore.loading}

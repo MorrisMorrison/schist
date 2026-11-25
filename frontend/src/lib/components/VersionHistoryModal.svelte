@@ -171,9 +171,9 @@
 				<div class="bg-muted rounded-lg p-4">
 					<div class="mb-2 flex items-center gap-2">
 						<Badge variant="outline">{formatHash(restoreVersion.hash)}</Badge>
-						<span class="text-muted-foreground text-sm"
-							>{formatDateTime(restoreVersion.timestamp)}</span
-						>
+						<span class="text-muted-foreground text-sm">
+							{formatDateTime(restoreVersion.timestamp)}
+						</span>
 					</div>
 					{#if restoreVersion.author}
 						<div class="mb-2 flex items-center gap-2">

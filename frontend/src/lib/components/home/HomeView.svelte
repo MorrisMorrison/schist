@@ -97,12 +97,12 @@
 						data-testid="pinned-tile"
 						class="border-border bg-card hover:border-primary/50 group block min-w-0 rounded-lg border px-4 py-3 no-underline transition-colors hover:no-underline"
 					>
-						<span data-tile-title class="text-foreground block truncate text-sm font-medium"
-							>{document.metaData.title}</span
-						>
-						<span class="text-muted-foreground block truncate text-xs"
-							>{folderOf(document) || 'Top level'}</span
-						>
+						<span data-tile-title class="text-foreground block truncate text-sm font-medium">
+							{document.metaData.title}
+						</span>
+						<span class="text-muted-foreground block truncate text-xs">
+							{folderOf(document) || 'Top level'}
+						</span>
 					</a>
 				{/each}
 			</div>
@@ -169,9 +169,10 @@
 	</section>
 
 	<p class="text-muted-foreground border-border mt-6 border-t pt-4 text-sm">
-		<span data-testid="home-page-count"
-			>{documents.length} {documents.length === 1 ? 'page' : 'pages'}</span
-		>
+		<span data-testid="home-page-count">
+			{documents.length}
+			{documents.length === 1 ? 'page' : 'pages'}
+		</span>
 		·
 		<a href="/folders">Browse all</a>
 	</p>

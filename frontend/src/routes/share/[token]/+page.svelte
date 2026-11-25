@@ -75,9 +75,9 @@
 						<Tag class="text-muted-foreground h-4 w-4" />
 						<div class="flex flex-wrap gap-2">
 							{#each documentTags as tag (tag)}
-								<Badge variant="default" class="text-xs text-white" data-testid="document-tag"
-									>{tag}</Badge
-								>
+								<Badge variant="default" class="text-xs text-white" data-testid="document-tag">
+									{tag}
+								</Badge>
 							{/each}
 						</div>
 					</div>
@@ -114,9 +114,9 @@
 	<!-- Footer Info -->
 	{#if document?.metaData?.path}
 		<div class="text-muted-foreground mb-8 text-center text-xs">
-			Original document path: <code class="bg-muted rounded px-1 py-0.5"
-				>{document.metaData.path}</code
-			>
+			Original document path: <code class="bg-muted rounded px-1 py-0.5">
+				{document.metaData.path}
+			</code>
 		</div>
 	{/if}
 </PageContainer>

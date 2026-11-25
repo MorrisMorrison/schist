@@ -97,18 +97,18 @@
 		<div class="bg-secondary rounded-lg border p-4">
 			<div class="space-y-2">
 				<span class="text-secondary text-sm font-medium">Current Path:</span>
-				<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-gray-600"
-					>{currentPath}</code
-				>
+				<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-gray-600">
+					{currentPath}
+				</code>
 			</div>
 		</div>
 
 		<div class="bg-secondary rounded-lg border p-4">
 			<div class="space-y-2">
 				<span class="text-secondary text-sm font-medium">New Path:</span>
-				<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-blue-600"
-					>{newPath}</code
-				>
+				<code class="bg-primary block w-full rounded border px-3 py-2 text-sm text-blue-600">
+					{newPath}
+				</code>
 			</div>
 		</div>
 	</div>

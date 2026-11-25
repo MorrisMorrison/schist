@@ -143,9 +143,9 @@
 
 		<DialogFooter>
 			{#if step === 'setup'}
-				<Button variant="outline" onclick={handleClose} disabled={passkeyStore.loading}
-					>Cancel</Button
-				>
+				<Button variant="outline" onclick={handleClose} disabled={passkeyStore.loading}>
+					Cancel
+				</Button>
 				<Button
 					onclick={handleCreatePasskey}
 					disabled={!passkeyName.trim() || passkeyStore.loading}
